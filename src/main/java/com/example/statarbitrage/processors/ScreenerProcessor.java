@@ -138,7 +138,7 @@ public class ScreenerProcessor {
                 entry.setAPrice(aPrice);
                 entry.setBPrice(bPrice);
 
-                double profit = calculateProfitForMeanReversion(aPrice, bPrice, entry);
+                String profit = calculateProfitForMeanReversion(aPrice, bPrice, entry);
                 entry.setProfit(profit);
             }
 
@@ -151,9 +151,10 @@ public class ScreenerProcessor {
     }
 
     // Метод для расчёта доходности возврата к среднему (mean reversion)
-    private double calculateProfitForMeanReversion(double priceA, double priceB, ZScoreEntry zScoreEntry) {
+    private String calculateProfitForMeanReversion(double priceA, double priceB, ZScoreEntry zScoreEntry) {
         double spreadNow = priceB / priceA;  // отношение цен текущего спреда
-        return (zScoreEntry.getMean() - zScoreEntry.getSpread()) / spreadNow;
+        double v = (zScoreEntry.getMean() - zScoreEntry.getSpread()) / spreadNow;
+        return String.format("%.2f%%", v * 100); // "0.25%"
     }
 
     private void clearChartDir() {

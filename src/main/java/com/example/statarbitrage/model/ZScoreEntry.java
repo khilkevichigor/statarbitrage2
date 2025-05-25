@@ -13,7 +13,7 @@ public class ZScoreEntry {
     private String direction;
     private double aPrice;
     private double bPrice;
-    private double profit;
+    private String profit;
     private double spread;
     private double mean;
 }
