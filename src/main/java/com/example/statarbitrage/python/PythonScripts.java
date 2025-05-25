@@ -1,7 +1,9 @@
 package com.example.statarbitrage.python;
 
 public enum PythonScripts {
-    FIND_ALL_AND_SAVE("/find_all_and_save.py");
+    Z_SCORE_FIND_ALL_AND_SAVE("/z_score_find_all_and_save.py"),
+    ROLLING_CORRELATION_FIND_ALL_AND_SAVE("/rolling_correlation_find_all_and_save.py"),
+    ADF_FIND_ALL_AND_SAVE("/adf_find_all_and_save.py");
 
     PythonScripts(String name) {
         this.name = name;

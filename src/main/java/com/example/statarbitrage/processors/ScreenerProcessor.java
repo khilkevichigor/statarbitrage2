@@ -56,7 +56,7 @@ public class ScreenerProcessor {
 
         // ✅ Сохраняем allCloses в JSON-файл
         ObjectMapper mapper = new ObjectMapper();
-        String jsonFilePath = "closes.json";
+        String jsonFilePath = "all_closes.json";
         try {
             mapper.writeValue(new File(jsonFilePath), allCloses);
         } catch (IOException e) {
@@ -66,9 +66,9 @@ public class ScreenerProcessor {
 
         // ✅ Вызываем Python-скрипт, передаём путь и настройки
         try {
-            System.out.println("-->>1");
-            PythonScriptsExecuter.execute(PythonScripts.FIND_ALL_AND_SAVE.getName());
-            System.out.println("-->>2");
+            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
+            PythonScriptsExecuter.execute(PythonScripts.ROLLING_CORRELATION_FIND_ALL_AND_SAVE.getName());
+            PythonScriptsExecuter.execute(PythonScripts.ADF_FIND_ALL_AND_SAVE.getName());
         } catch (Exception e) {
             log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
             return "Ошибка при выполнении скрипта";

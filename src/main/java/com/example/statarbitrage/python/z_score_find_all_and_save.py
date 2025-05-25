@@ -1,3 +1,5 @@
+# z_score_find_all_and_save.py
+
 import itertools
 import json
 import numpy as np
@@ -49,7 +51,7 @@ def analyze_pairs(pairs, candles_dict, chat_config):
 
 
 def main():
-    with open("closes.json") as f:
+    with open("all_closes.json") as f:
         candles_dict = json.load(f)
 
     with open("settings.json") as f:
