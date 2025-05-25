@@ -29,7 +29,7 @@ public class ScreenerProcessor {
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
 
-    public String process(String chatId) {
+    public void process(String chatId) {
         long startTime = System.currentTimeMillis();
         Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
@@ -54,6 +54,8 @@ public class ScreenerProcessor {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         executor.shutdown();
 
+        log.info("Собрали цены для {} монет", allCloses.size());
+
         // ✅ Сохраняем allCloses в JSON-файл
         ObjectMapper mapper = new ObjectMapper();
         String jsonFilePath = "all_closes.json";
@@ -61,30 +63,29 @@ public class ScreenerProcessor {
             mapper.writeValue(new File(jsonFilePath), allCloses);
         } catch (IOException e) {
             log.error("Ошибка при сохранении closes.json: {}", e.getMessage(), e);
-            return "Ошибка при сохранении данных";
         }
 
-        // ✅ Вызываем Python-скрипт, передаём путь и настройки
+        log.info("Сохранили цены в all_closes.json");
+
+        log.info("Исполняем Python-скрипты...");
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
 //            PythonScriptsExecuter.execute(PythonScripts.ROLLING_CORRELATION_FIND_ALL_AND_SAVE.getName());
 //            PythonScriptsExecuter.execute(PythonScripts.ADF_FIND_ALL_AND_SAVE.getName());
 
-            PythonScriptsExecuter.execute("create_charts.py");
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
 
         } catch (Exception e) {
             log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
-            return "Ошибка при выполнении скрипта";
         }
+
+        log.info("✅ Python-скрипты исполнены");
 
         long durationMillis = System.currentTimeMillis() - startTime;
         long minutes = durationMillis / 1000 / 60;
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
-
-        return "Скан завершен";
     }
-
 
     private void sendSignal(String chatId, String text) {
         System.out.println(text);

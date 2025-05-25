@@ -19,7 +19,13 @@ def analyze_pairs(pairs, candles_dict, chat_config):
     zscore_entry = chat_config["zscoreEntry"]
     significance = chat_config["significanceLevel"]
 
-    for a, b in pairs:
+    total_pairs = len(pairs)
+    print(f"🔍 Анализируем {total_pairs} пар...")
+
+    for idx, (a, b) in enumerate(pairs, 1):
+        if idx % 100 == 0 or idx == total_pairs:
+            print(f"  [{idx}/{total_pairs}] {a}/{b}")
+
         s1 = candles_dict.get(a, [])
         s2 = candles_dict.get(b, [])
         if len(s1) != len(s2) or len(s1) <= window:
@@ -44,9 +50,10 @@ def analyze_pairs(pairs, candles_dict, chat_config):
             "b": b,
             "zscore": z,
             "pvalue": pvalue,
-            "direction": "SHORT/{} LONG/{}".format(a, b) if z > 0 else "LONG/{} SHORT/{}".format(a, b)
+            "direction": f"SHORT/{a} LONG/{b}" if z > 0 else f"LONG/{a} SHORT/{b}"
         })
 
+    print(f"✅ Найдено {len(results)} подходящих пар из {total_pairs}")
     return results
 
 
@@ -59,16 +66,13 @@ def main():
 
     chat_id = "159178617"
     chat_config = config[chat_id]
-    max_pairs = chat_config["maxPairs"]
+
+    # Сгенерировать все возможные комбинации без ограничения
     pairs = list(itertools.combinations(candles_dict.keys(), 2))
-    pairs_to_analyze = pairs[:max_pairs]
 
-    results = analyze_pairs(pairs_to_analyze, candles_dict, chat_config)
+    results = analyze_pairs(pairs, candles_dict, chat_config)
 
-    # Печать в консоль (если нужно)
-    print(json.dumps(results, indent=2))
-
-    # Сохранение в файл
+    # Сохранить результат
     with open("z_score.json", "w") as f:
         json.dump(results, f, indent=2)
 

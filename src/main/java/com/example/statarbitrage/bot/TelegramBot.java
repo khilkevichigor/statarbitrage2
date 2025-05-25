@@ -124,20 +124,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         autoScanTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                String result = screenerProcessor.process(chatId);
-                String newText = result.isEmpty() ? "🤷Ничего не найдено" : result;
-
-                if (!newText.equals(lastSentText)) {
-                    SendMessage newMessage = new SendMessage();
-                    newMessage.setChatId(chatId);
-                    newMessage.setText(newText);
-                    execute(newMessage);
-
-
-                    lastSentText = newText;
-                    log.info("Обновление авто-скана: {}", newText);
-                }
-
+                screenerProcessor.process(chatId);
             } catch (Exception e) {
                 log.error("Ошибка в autoScan", e);
             }

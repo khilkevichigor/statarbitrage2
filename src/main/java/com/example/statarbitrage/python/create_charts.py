@@ -1,9 +1,11 @@
 # create_charts.py
 
 import json
-import os
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import sys
+import traceback
 
 
 def plot_chart(prices_a, prices_b, window, direction, a, b, output_dir="charts"):
@@ -57,8 +59,9 @@ def plot_chart(prices_a, prices_b, window, direction, a, b, output_dir="charts")
 
 
 def main():
-    zscore_path = "z_score.json"
-    closes_path = "closes.json"
+    zscore_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/z_score.json"
+    closes_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/all_closes.json"
+    output_dir = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/charts"
 
     if not os.path.exists(zscore_path) or not os.path.exists(closes_path):
         print("❌ z_score.json или closes.json не найден")
@@ -70,7 +73,7 @@ def main():
     with open(closes_path, "r") as f:
         closes = json.load(f)
 
-    window = 50  # Можно сделать аргументом, если нужно
+    window = 50
 
     for entry in z_scores:
         a = entry["a"]
@@ -85,7 +88,6 @@ def main():
             continue
 
         print(f"🟢 Генерирую график для {a} / {b}")
-        output_dir = os.path.join(os.path.dirname(__file__), "charts")
         plot_chart(prices_a, prices_b, window, direction, a, b, output_dir)
 
 

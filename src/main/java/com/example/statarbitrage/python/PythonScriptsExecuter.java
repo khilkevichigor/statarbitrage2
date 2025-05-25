@@ -1,8 +1,11 @@
 package com.example.statarbitrage.python;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+@Slf4j
 public final class PythonScriptsExecuter {
 
     private static final String SCRIPTS_ROOT_PATH = "src/main/java/com/example/statarbitrage/python/";
@@ -11,16 +14,29 @@ public final class PythonScriptsExecuter {
     }
 
     public static void execute(String scriptName) {
+        log.info("▶️ Исполняем Python скрипт: " + scriptName);
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("python3", SCRIPTS_ROOT_PATH + scriptName);
             Process process = processBuilder.start();
 
-            // Отдельно читаем stderr (ошибки)
+            // Читаем stdout (обычный вывод)
+            new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        log.info("Python вывод: " + line);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
+            // Читаем stderr (ошибки)
             new Thread(() -> {
                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                     String line;
                     while ((line = errorReader.readLine()) != null) {
-                        System.err.println("Python error: " + line);
+                        log.error("Python ошибка: " + line);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -28,11 +44,12 @@ public final class PythonScriptsExecuter {
             }).start();
 
             int exitCode = process.waitFor();
-            System.out.println("Python script exited with code: " + exitCode);
+            log.info("Python скрипт завершен с кодом: " + exitCode);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
 }
