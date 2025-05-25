@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -77,6 +78,9 @@ public class ScreenerProcessor {
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
 
+            // Обогащаем данные по парам
+            enrichZScoreWithPricesAndProfitFromCloses();
+
             keepBestPairByZscoreAndPvalue();
 
             clearChartDir();
@@ -93,6 +97,63 @@ public class ScreenerProcessor {
         long minutes = durationMillis / 1000 / 60;
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
+    }
+
+    private void enrichZScoreWithPricesAndProfitFromCloses() {
+        String zScorePath = "z_score.json";
+        String allClosesPath = "all_closes.json";
+
+        try {
+            File zFile = new File(zScorePath);
+            File closesFile = new File(allClosesPath);
+
+            if (!zFile.exists() || !closesFile.exists()) {
+                log.warn("Файлы z_score.json или all_closes.json не найдены.");
+                return;
+            }
+
+            // Считаем пары из z_score.json
+            List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
+
+            // Считаем все закрытия из all_closes.json (Map<String, List<Double>>)
+            Map<String, List<Double>> allCloses = mapper.readValue(closesFile,
+                    mapper.getTypeFactory().constructMapType(
+                            ConcurrentHashMap.class, String.class, List.class));
+
+            for (ZScoreEntry entry : allEntries) {
+                String a = entry.getA();
+                String b = entry.getB();
+
+                List<Double> closes1 = allCloses.get(a);
+                List<Double> closes2 = allCloses.get(b);
+
+                if (closes1 == null || closes1.isEmpty() || closes2 == null || closes2.isEmpty()) {
+                    log.warn("Нет данных по ценам для пары: {} - {}", a, b);
+                    continue;
+                }
+
+                double aPrice = closes1.get(closes1.size() - 1);  // последняя цена
+                double bPrice = closes2.get(closes2.size() - 1);
+
+                entry.setAPrice(aPrice);
+                entry.setBPrice(bPrice);
+
+                double profit = calculateProfitForMeanReversion(aPrice, bPrice, entry);
+                entry.setProfit(profit);
+            }
+
+            mapper.writeValue(zFile, allEntries);
+            log.info("Обогатили z_score.json ценами из all_closes.json и доходностью");
+
+        } catch (Exception e) {
+            log.error("Ошибка при обогащении z_score.json из all_closes.json: {}", e.getMessage(), e);
+        }
+    }
+
+    // Метод для расчёта доходности возврата к среднему (mean reversion)
+    private double calculateProfitForMeanReversion(double priceA, double priceB, ZScoreEntry zScoreEntry) {
+        double spreadNow = priceB / priceA;  // отношение цен текущего спреда
+        return (zScoreEntry.getMean() - zScoreEntry.getSpread()) / spreadNow;
     }
 
     private void clearChartDir() {

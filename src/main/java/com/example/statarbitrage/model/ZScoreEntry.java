@@ -11,4 +11,9 @@ public class ZScoreEntry {
     private double zscore;
     private double pvalue;
     private String direction;
+    private double aPrice;
+    private double bPrice;
+    private double profit;
+    private double spread;
+    private double mean;
 }
