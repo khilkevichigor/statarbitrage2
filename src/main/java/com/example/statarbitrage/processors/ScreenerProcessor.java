@@ -26,9 +26,13 @@ import java.util.concurrent.Executors;
 @Component
 @RequiredArgsConstructor
 public class ScreenerProcessor {
+
     private final OkxClient okxClient;
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
+
+    // ObjectMapper создаём один раз, он потокобезопасен
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public void process(String chatId) {
         long startTime = System.currentTimeMillis();
@@ -40,25 +44,27 @@ public class ScreenerProcessor {
         ExecutorService executor = Executors.newFixedThreadPool(5);
         ConcurrentHashMap<String, List<Double>> allCloses = new ConcurrentHashMap<>();
 
-        List<CompletableFuture<Void>> futures = swapTickers.stream()
-                .map(symbol -> CompletableFuture.runAsync(() -> {
-                    try {
-                        List<Double> closes = okxClient.getCloses(symbol, settings.getTimeframe(), settings.getCandleLimit());
-                        allCloses.put(symbol, closes);
-                    } catch (Exception e) {
-                        log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
-                    }
-                }, executor))
-                .toList();
+        try {
+            List<CompletableFuture<Void>> futures = swapTickers.stream()
+                    .map(symbol -> CompletableFuture.runAsync(() -> {
+                        try {
+                            List<Double> closes = okxClient.getCloses(symbol, settings.getTimeframe(), settings.getCandleLimit());
+                            allCloses.put(symbol, closes);
+                        } catch (Exception e) {
+                            log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+                        }
+                    }, executor))
+                    .toList();
 
-        // Ожидаем завершения всех задач
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        executor.shutdown();
+            // Ожидаем завершения всех задач
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } finally {
+            executor.shutdown();
+        }
 
         log.info("Собрали цены для {} монет", allCloses.size());
 
         // ✅ Сохраняем allCloses в JSON-файл
-        ObjectMapper mapper = new ObjectMapper();
         String jsonFilePath = "all_closes.json";
         try {
             mapper.writeValue(new File(jsonFilePath), allCloses);
@@ -71,38 +77,9 @@ public class ScreenerProcessor {
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
 
-            // 📌 Оставляем только одну лучшую пару по zscore/pvalue
-            String zScorePath = "z_score.json";
-            try {
-                File zFile = new File(zScorePath);
-                if (zFile.exists()) {
-                    List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
+            keepBestPairByZscoreAndPvalue();
 
-                    // Фильтрация: минимальный pvalue и при равенстве — максимальный zscore
-                    ZScoreEntry best = allEntries.stream()
-                            .min((e1, e2) -> {
-                                int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
-                                if (cmp == 0) {
-                                    // При равных pvalue берём с большим zscore
-                                    return -Double.compare(e1.getZscore(), e2.getZscore());
-                                }
-                                return cmp;
-                            })
-                            .orElse(null);
-
-                    if (best != null) {
-                        mapper.writeValue(zFile, List.of(best));
-                        log.info("🔍 Сохранили лучшую пару в z_score.json: {}", best);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
-            }
-
-            // --- очищаем папку charts перед созданием новых графиков ---
-            String chartsDir = "charts";
-            clearDirectory(chartsDir);
-            log.info("Очистили папку с чартами: {}", chartsDir);
+            clearChartDir();
 
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
 
@@ -118,12 +95,22 @@ public class ScreenerProcessor {
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
 
+    private void clearChartDir() {
+        // --- очищаем папку charts перед созданием новых графиков ---
+        String chartsDir = "charts";
+        clearDirectory(chartsDir);
+        log.info("Очистили папку с чартами: {}", chartsDir);
+    }
+
     private void clearDirectory(String dirPath) {
         File dir = new File(dirPath);
         if (dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles();
             if (files != null) {
                 for (File file : files) {
+                    if (file.isDirectory()) {
+                        clearDirectory(file.getAbsolutePath());
+                    }
                     if (!file.delete()) {
                         log.warn("Не удалось удалить файл: {}", file.getAbsolutePath());
                     }
@@ -132,6 +119,35 @@ public class ScreenerProcessor {
         }
     }
 
+    private void keepBestPairByZscoreAndPvalue() {
+        // 📌 Оставляем только одну лучшую пару по zscore/pvalue
+        String zScorePath = "z_score.json";
+        try {
+            File zFile = new File(zScorePath);
+            if (zFile.exists()) {
+                List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
+
+                // Фильтрация: минимальный pvalue и при равенстве — максимальный zscore
+                ZScoreEntry best = allEntries.stream()
+                        .min((e1, e2) -> {
+                            int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
+                            if (cmp == 0) {
+                                // При равных pvalue берём с большим zscore
+                                return -Double.compare(e1.getZscore(), e2.getZscore());
+                            }
+                            return cmp;
+                        })
+                        .orElse(null);
+
+                if (best != null) {
+                    mapper.writeValue(zFile, List.of(best));
+                    log.info("🔍 Сохранили лучшую пару в z_score.json: {}", best);
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
+        }
+    }
 
     private void sendSignal(String chatId, String text) {
         System.out.println(text);
