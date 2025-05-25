@@ -1,6 +1,6 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.StatArbitrageSettings;
+import com.example.statarbitrage.model.Settings;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -12,25 +12,25 @@ import java.util.Map;
 
 @Component
 public class SettingsService {
-    private static final String SETTINGS_FILE = "user-settings.json";
+    private static final String SETTINGS_FILE = "settings.json";
     private final ObjectMapper mapper = new ObjectMapper();
-    private Map<Long, StatArbitrageSettings> userSettings = new HashMap<>();
+    private Map<Long, Settings> userSettings = new HashMap<>();
 
     public SettingsService() {
         loadSettings();
     }
 
-    public StatArbitrageSettings getSettings(long chatId) {
+    public Settings getSettings(long chatId) {
         if (!userSettings.containsKey(chatId)) {
-            StatArbitrageSettings defaultSettings = getDefaultSettings();
+            Settings defaultSettings = getDefaultSettings();
             userSettings.put(chatId, defaultSettings);
             saveSettings();
         }
         return userSettings.get(chatId);
     }
 
-    private static StatArbitrageSettings getDefaultSettings() {
-        return StatArbitrageSettings.builder()
+    private static Settings getDefaultSettings() {
+        return Settings.builder()
                 .candleLimit(300)
                 .depo(1000)
                 .maxPairs(1000)
@@ -45,7 +45,7 @@ public class SettingsService {
                 .build();
     }
 
-    public void updateAllSettings(long chatId, StatArbitrageSettings newSettings) {
+    public void updateAllSettings(long chatId, Settings newSettings) {
         userSettings.put(chatId, newSettings);
         saveSettings();
     }
@@ -71,7 +71,7 @@ public class SettingsService {
     }
 
     public void resetSettings(long chatId) {
-        StatArbitrageSettings defaultSettings = getDefaultSettings(); // с дефолтными значениями
+        Settings defaultSettings = getDefaultSettings(); // с дефолтными значениями
         userSettings.put(chatId, defaultSettings);
         saveSettings();
     }

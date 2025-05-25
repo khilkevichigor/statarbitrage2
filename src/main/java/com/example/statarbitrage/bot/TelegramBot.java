@@ -1,7 +1,7 @@
 package com.example.statarbitrage.bot;
 
 import com.example.statarbitrage.events.SendAsTextEvent;
-import com.example.statarbitrage.model.StatArbitrageSettings;
+import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.processors.ScreenerProcessor;
 import com.example.statarbitrage.services.SettingsService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -76,10 +76,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if (Objects.equals(text, BotMenu.FIND.getName())) {
                 log.info("-> FIND");
-                screenerProcessor.find(chatIdStr);
+                screenerProcessor.process(chatIdStr);
             } else if (text.equals("/get_settings")) {
                 log.info("-> GET_SETTINGS");
-                StatArbitrageSettings settings = settingsService.getSettings(chatId);
+                Settings settings = settingsService.getSettings(chatId);
                 String json;
                 try {
                     json = new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(settings);
@@ -92,7 +92,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 log.info("-> SET_SETTINGS");
                 try {
                     String jsonPart = text.replace(text.startsWith("/set_settings") ? "/set_settings" : "/ss", "").trim();
-                    StatArbitrageSettings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, StatArbitrageSettings.class);
+                    Settings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, Settings.class);
                     settingsService.updateAllSettings(chatId, newSettings);
                     sendMessage(chatIdStr, "✅ Настройки успешно обновлены!");
                 } catch (Exception e) {
@@ -124,7 +124,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         autoScanTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                String result = screenerProcessor.scanAllAuto(chatId);
+                String result = screenerProcessor.process(chatId);
                 String newText = result.isEmpty() ? "🤷Ничего не найдено" : result;
 
                 if (!newText.equals(lastSentText)) {

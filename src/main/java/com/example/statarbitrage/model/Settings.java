@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StatArbitrageSettings {
+public class Settings {
     private String timeframe;
     private int candleLimit;
     private int windowSize;
