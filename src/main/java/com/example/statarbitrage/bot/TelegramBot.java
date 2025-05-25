@@ -44,6 +44,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
+        listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
         listOfCommands.add(new BotCommand(BotMenu.START_AUTOSCAN.getName(), "Старт автоскан"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_AUTOSCAN.getName(), "Стоп автоскан"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
@@ -73,7 +74,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             Message message = update.getMessage();
             String text = message.getText();
 
-            if (text.equals("/get_settings")) {
+            if (Objects.equals(text, BotMenu.FIND.getName())) {
+                log.info("-> FIND");
+                screenerProcessor.find(chatIdStr);
+            } else if (text.equals("/get_settings")) {
                 log.info("-> GET_SETTINGS");
                 StatArbitrageSettings settings = settingsService.getSettings(chatId);
                 String json;

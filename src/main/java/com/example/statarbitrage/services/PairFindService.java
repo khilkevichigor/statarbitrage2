@@ -1,11 +1,7 @@
-package com.example.statarbitrage.processors;
+package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.events.SendAsTextEvent;
-import com.example.statarbitrage.python.PythonExecuteProcessor;
-import com.example.statarbitrage.python.PythonScripts;
-import com.example.statarbitrage.services.EventSendService;
-import com.example.statarbitrage.services.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,25 +19,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ScreenerProcessor {
+public class PairFindService {
     private final OkxClient okxClient;
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
     private Set<String> previouslyFoundCoins = new HashSet<>();
-
-    public String find(String chatId) {
-
-        Set<String> swapTickers = okxClient.getSwapTickers();
-        int totalSymbols = swapTickers.size();
-
-        try {
-            PythonExecuteProcessor.execute(PythonScripts.FIND_ALL.getName());
-            return "";
-        } catch (Exception e) {
-            log.error("Ошибка при поиске пар: {}", e.getMessage(), e);
-            return null;
-        }
-    }
 
     public String scanAllAuto(String chatId) {
         long startTime = System.currentTimeMillis();
@@ -54,7 +36,6 @@ public class ScreenerProcessor {
         List<CompletableFuture<String>> futures = swapTickers.stream()
                 .map(symbol -> CompletableFuture.supplyAsync(() -> {
                     try {
-                        PythonExecuteProcessor.execute(PythonScripts.FIND_ALL.getName());
                         return "";
                     } catch (Exception e) {
                         log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
