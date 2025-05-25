@@ -3,6 +3,7 @@ package com.example.statarbitrage.processors;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.EventSendService;
@@ -69,6 +70,40 @@ public class ScreenerProcessor {
 
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
+
+            // 📌 Оставляем только одну лучшую пару по zscore/pvalue
+            String zScorePath = "z_score.json";
+            try {
+                File zFile = new File(zScorePath);
+                if (zFile.exists()) {
+                    List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
+
+                    // Фильтрация: минимальный pvalue и при равенстве — максимальный zscore
+                    ZScoreEntry best = allEntries.stream()
+                            .min((e1, e2) -> {
+                                int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
+                                if (cmp == 0) {
+                                    // При равных pvalue берём с большим zscore
+                                    return -Double.compare(e1.getZscore(), e2.getZscore());
+                                }
+                                return cmp;
+                            })
+                            .orElse(null);
+
+                    if (best != null) {
+                        mapper.writeValue(zFile, List.of(best));
+                        log.info("🔍 Сохранили лучшую пару в z_score.json: {}", best);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
+            }
+
+            // --- очищаем папку charts перед созданием новых графиков ---
+            String chartsDir = "charts";
+            clearDirectory(chartsDir);
+            log.info("Очистили папку с чартами: {}", chartsDir);
+
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
 
         } catch (Exception e) {
@@ -82,6 +117,21 @@ public class ScreenerProcessor {
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
+
+    private void clearDirectory(String dirPath) {
+        File dir = new File(dirPath);
+        if (dir.exists() && dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (!file.delete()) {
+                        log.warn("Не удалось удалить файл: {}", file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+    }
+
 
     private void sendSignal(String chatId, String text) {
         System.out.println(text);

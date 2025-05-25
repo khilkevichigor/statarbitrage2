@@ -23,8 +23,8 @@ def analyze_pairs(pairs, candles_dict, chat_config):
     print(f"🔍 Анализируем {total_pairs} пар...")
 
     for idx, (a, b) in enumerate(pairs, 1):
-        if idx % 100 == 0 or idx == total_pairs:
-            print(f"  [{idx}/{total_pairs}] {a}/{b}")
+        # if idx % 100 == 0 or idx == total_pairs:
+        # print(f"  [{idx}/{total_pairs}] {a}/{b}")
 
         s1 = candles_dict.get(a, [])
         s2 = candles_dict.get(b, [])
