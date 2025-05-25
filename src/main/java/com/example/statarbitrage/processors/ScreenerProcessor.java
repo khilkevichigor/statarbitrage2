@@ -81,7 +81,9 @@ public class ScreenerProcessor {
             // Обогащаем данные по парам
             enrichZScoreWithPricesAndProfitFromCloses();
 
-            keepBestPairByZscoreAndPvalue();
+            keepBestByProfit();
+
+//            keepBestPairByZscoreAndPvalue();
 
             clearChartDir();
 
@@ -180,6 +182,49 @@ public class ScreenerProcessor {
             }
         }
     }
+
+    private void keepBestByProfit() {
+        String zScorePath = "z_score.json";
+        try {
+            File zFile = new File(zScorePath);
+            if (!zFile.exists()) {
+                log.warn("Файл z_score.json не найден.");
+                return;
+            }
+
+            List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
+
+            ZScoreEntry best = allEntries.stream()
+                    .filter(e -> {
+                        String p = e.getProfit();
+                        return p != null && p.endsWith("%");
+                    })
+                    .max((e1, e2) -> {
+                        double profit1 = parseProfitPercent(e1.getProfit());
+                        double profit2 = parseProfitPercent(e2.getProfit());
+                        return Double.compare(profit1, profit2);
+                    })
+                    .orElse(null);
+
+            if (best != null) {
+                mapper.writeValue(zFile, List.of(best));
+                log.info("🔝 Сохранили лучшую по доходности пару в z_score.json: {}", best);
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при фильтрации по доходности: {}", e.getMessage(), e);
+        }
+    }
+
+    // 🔧 Вспомогательный метод для преобразования "0.35%" → 0.35
+    private double parseProfitPercent(String profitStr) {
+        try {
+            return Double.parseDouble(profitStr.replace("%", ""));
+        } catch (NumberFormatException e) {
+            return Double.NEGATIVE_INFINITY;
+        }
+    }
+
 
     private void keepBestPairByZscoreAndPvalue() {
         // 📌 Оставляем только одну лучшую пару по zscore/pvalue
