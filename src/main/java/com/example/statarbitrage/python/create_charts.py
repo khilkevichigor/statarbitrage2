@@ -1,5 +1,6 @@
 # create_charts.py
 
+import gc
 import json
 import matplotlib.pyplot as plt
 import numpy as np
@@ -53,15 +54,35 @@ def plot_chart(prices_a, prices_b, window, direction, a, b, output_dir="charts")
     filename = f"{a}_{b}.png".replace("/", "-")
     filepath = os.path.join(output_dir, filename)
     plt.savefig(filepath)
-    plt.close()
+    plt.clf()
+    plt.close('all')
 
     print(f"✅ График сохранён: {filepath}")
 
 
+def load_settings(settings_path, account_id="159178617"):
+    if not os.path.exists(settings_path):
+        print(f"❌ Файл настроек не найден: {settings_path}")
+        return None
+
+    with open(settings_path, "r") as f:
+        all_settings = json.load(f)
+
+    return all_settings.get(account_id)
+
+
 def main():
+    settings_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/settings.json"
     zscore_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/z_score.json"
     closes_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/all_closes.json"
     output_dir = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/charts"
+
+    settings = load_settings(settings_path)
+    if not settings:
+        print("❌ Не удалось загрузить настройки")
+        return
+
+    window = settings.get("windowSize", 20)  # по умолчанию 20, если не указано
 
     if not os.path.exists(zscore_path) or not os.path.exists(closes_path):
         print("❌ z_score.json или closes.json не найден")
@@ -72,8 +93,6 @@ def main():
 
     with open(closes_path, "r") as f:
         closes = json.load(f)
-
-    window = 50
 
     for entry in z_scores:
         a = entry["a"]
@@ -87,9 +106,8 @@ def main():
             print(f"⚠️ Пропущена пара {a}/{b} — нет данных о ценах")
             continue
 
-        print(f"🟢 Генерирую график для {a} / {b}")
         plot_chart(prices_a, prices_b, window, direction, a, b, output_dir)
-
+        gc.collect()
 
 if __name__ == "__main__":
     try:

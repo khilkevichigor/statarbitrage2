@@ -67,12 +67,8 @@ public class ScreenerProcessor {
 
         log.info("Сохранили цены в all_closes.json");
 
-        log.info("Исполняем Python-скрипты...");
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
-//            PythonScriptsExecuter.execute(PythonScripts.ROLLING_CORRELATION_FIND_ALL_AND_SAVE.getName());
-//            PythonScriptsExecuter.execute(PythonScripts.ADF_FIND_ALL_AND_SAVE.getName());
-
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
 
         } catch (Exception e) {
