@@ -1,4 +1,4 @@
-package com.example.statarbitrage.experemental.chatgpt;
+package com.example.statarbitrage.experemental;
 
 import java.io.BufferedReader;
 import java.io.IOException;

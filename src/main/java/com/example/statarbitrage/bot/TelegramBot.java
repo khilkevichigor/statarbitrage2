@@ -1,10 +1,9 @@
 package com.example.statarbitrage.bot;
 
 import com.example.statarbitrage.events.SendAsTextEvent;
-import com.example.statarbitrage.model.UserSettings;
+import com.example.statarbitrage.model.StatArbitrageSettings;
 import com.example.statarbitrage.processors.ScreenerProcessor;
 import com.example.statarbitrage.services.SettingsService;
-import com.example.statarbitrage.utils.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
@@ -41,14 +39,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final AtomicBoolean isAutoScanRunning = new AtomicBoolean(false);
     private ScheduledFuture<?> autoScanTask;
-    private Integer lastSentMessageId;
     private String lastSentText = ""; // новое поле
 
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand(BotMenu.SCAN_ALL.getName(), "Сканировать"));
-        listOfCommands.add(new BotCommand(BotMenu.SCAN_BTC.getName(), "Сканировать BTC"));
         listOfCommands.add(new BotCommand(BotMenu.START_AUTOSCAN.getName(), "Старт автоскан"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_AUTOSCAN.getName(), "Стоп автоскан"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
@@ -78,15 +73,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             Message message = update.getMessage();
             String text = message.getText();
 
-            if (Objects.equals(text, BotMenu.SCAN_BTC.getName())) {
-                log.info("-> SCAN_BTC");
-                screenerProcessor.process(chatIdStr, "BTC-USDT-SWAP");
-            } else if (Objects.equals(text, BotMenu.SCAN_ALL.getName())) {
-                log.info("-> SCAN_ALL");
-                screenerProcessor.process(chatIdStr, null);
-            } else if (text.equals("/get_settings")) {
+            if (text.equals("/get_settings")) {
                 log.info("-> GET_SETTINGS");
-                UserSettings settings = settingsService.getSettings(chatId);
+                StatArbitrageSettings settings = settingsService.getSettings(chatId);
                 String json;
                 try {
                     json = new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(settings);
@@ -99,7 +88,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 log.info("-> SET_SETTINGS");
                 try {
                     String jsonPart = text.replace(text.startsWith("/set_settings") ? "/set_settings" : "/ss", "").trim();
-                    UserSettings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, UserSettings.class);
+                    StatArbitrageSettings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, StatArbitrageSettings.class);
                     settingsService.updateAllSettings(chatId, newSettings);
                     sendMessage(chatIdStr, "✅ Настройки успешно обновлены!");
                 } catch (Exception e) {
@@ -110,15 +99,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 log.info("-> RESET_SETTINGS");
                 settingsService.resetSettings(chatId);
                 sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
-            } else if (text.startsWith("/check")) {
-                log.info("-> CHECK COIN");
-                try {
-                    String symbolPart = text.replace("/check", "").trim();
-                    screenerProcessor.process(chatIdStr, StringUtil.getSymbol(symbolPart));
-                } catch (Exception e) {
-                    log.warn("❌ Ошибка разбора команды: {}", e.getMessage());
-                    sendMessage(chatIdStr, "❌ Ошибка разбора команды: " + e.getMessage());
-                }
             } else if (Objects.equals(text, BotMenu.START_AUTOSCAN.getName())) {
                 log.info("-> START_AUTOSCAN");
                 startAutoScan(chatIdStr);
@@ -138,41 +118,17 @@ public class TelegramBot extends TelegramLongPollingBot {
         isAutoScanRunning.set(true);
         sendMessage(chatId, "🔍 Автоскан запущен...");
 
-        UserSettings userSettings = settingsService.getSettings(Long.parseLong(chatId));
-        boolean sendNewEachTime = userSettings.isSendNewMessageOnAutoScan(); // новый флаг
-
-        if (!sendNewEachTime) {
-            // отправляем первое сообщение только если будет обновляться
-            SendMessage initial = new SendMessage();
-            initial.setChatId(chatId);
-            initial.setText("Ждем монеты...");
-            try {
-                Message sent = execute(initial);
-                lastSentMessageId = sent.getMessageId();
-            } catch (TelegramApiException e) {
-                log.error("Ошибка отправки стартового сообщения", e);
-                return;
-            }
-        }
-
         autoScanTask = scheduler.scheduleAtFixedRate(() -> {
             try {
                 String result = screenerProcessor.scanAllAuto(chatId);
                 String newText = result.isEmpty() ? "🤷Ничего не найдено" : result;
 
                 if (!newText.equals(lastSentText)) {
-                    if (sendNewEachTime) {
-                        SendMessage newMessage = new SendMessage();
-                        newMessage.setChatId(chatId);
-                        newMessage.setText(newText);
-                        execute(newMessage);
-                    } else {
-                        EditMessageText edit = new EditMessageText();
-                        edit.setChatId(chatId);
-                        edit.setMessageId(lastSentMessageId);
-                        edit.setText(newText);
-                        execute(edit);
-                    }
+                    SendMessage newMessage = new SendMessage();
+                    newMessage.setChatId(chatId);
+                    newMessage.setText(newText);
+                    execute(newMessage);
+
 
                     lastSentText = newText;
                     log.info("Обновление авто-скана: {}", newText);
@@ -181,7 +137,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             } catch (Exception e) {
                 log.error("Ошибка в autoScan", e);
             }
-        }, 0, userSettings.getAutoScan().getIntervalSec().intValue(), TimeUnit.SECONDS);
+        }, 0, 60, TimeUnit.SECONDS);
     }
 
 
