@@ -67,8 +67,11 @@ public class ScreenerProcessor {
         // ✅ Вызываем Python-скрипт, передаём путь и настройки
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
-            PythonScriptsExecuter.execute(PythonScripts.ROLLING_CORRELATION_FIND_ALL_AND_SAVE.getName());
-            PythonScriptsExecuter.execute(PythonScripts.ADF_FIND_ALL_AND_SAVE.getName());
+//            PythonScriptsExecuter.execute(PythonScripts.ROLLING_CORRELATION_FIND_ALL_AND_SAVE.getName());
+//            PythonScriptsExecuter.execute(PythonScripts.ADF_FIND_ALL_AND_SAVE.getName());
+
+            PythonScriptsExecuter.execute("create_charts.py");
+
         } catch (Exception e) {
             log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
             return "Ошибка при выполнении скрипта";

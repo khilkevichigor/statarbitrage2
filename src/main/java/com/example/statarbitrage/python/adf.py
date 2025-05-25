@@ -1,12 +1,14 @@
-# rolling_correlation.py
+# adf.py
+
 import itertools
 import json
 import numpy as np
 import sys
 import traceback
+from statsmodels.tsa.stattools import adfuller
 
 
-def analyze_pairs_rolling_corr(pairs, candles_dict, window=20, min_corr=0.9):
+def analyze_pairs_adf(pairs, candles_dict, window=20, pvalue_threshold=0.01, stat_threshold=-2.5):
     results = []
     for a, b in pairs:
         s1 = candles_dict.get(a, [])
@@ -14,16 +16,19 @@ def analyze_pairs_rolling_corr(pairs, candles_dict, window=20, min_corr=0.9):
         if len(s1) != len(s2) or len(s1) < window:
             continue
 
-        s1_window = s1[-window:]
-        s2_window = s2[-window:]
-        corr = np.corrcoef(s1_window, s2_window)[0, 1]
+        spread = np.array(s1[-window:]) - np.array(s2[-window:])
+        try:
+            stat, pvalue, *_ = adfuller(spread)
+            if pvalue < pvalue_threshold and stat < stat_threshold:
+                results.append({
+                    "a": a,
+                    "b": b,
+                    "adf_pvalue": pvalue,
+                    "adf_stat": stat
+                })
+        except Exception:
+            continue
 
-        if abs(corr) >= min_corr:
-            results.append({
-                "a": a,
-                "b": b,
-                "correlation": corr
-            })
     return results
 
 
@@ -32,8 +37,8 @@ def main():
         candles_dict = json.load(f)
 
     pairs = list(itertools.combinations(candles_dict.keys(), 2))
-    results = analyze_pairs_rolling_corr(pairs, candles_dict)
-    with open("results_method2.json", "w") as f:
+    results = analyze_pairs_adf(pairs, candles_dict)
+    with open("adf.json", "w") as f:
         json.dump(results, f, indent=2)
 
 

@@ -1,4 +1,4 @@
-# z_score_find_all_and_save.py
+# z_score.py
 
 import itertools
 import json
@@ -69,7 +69,7 @@ def main():
     print(json.dumps(results, indent=2))
 
     # Сохранение в файл
-    with open("find_all_and_save.json", "w") as f:
+    with open("z_score.json", "w") as f:
         json.dump(results, f, indent=2)
 
 
