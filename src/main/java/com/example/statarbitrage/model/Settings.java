@@ -16,9 +16,5 @@ public class Settings {
     private double zscoreEntry;
     private double zscoreExit;
     private double significanceLevel;
-    private int positionSize;
-    private int depo;
-    private int maxPairs;
-    private int maxWorkers;
     private int checkInterval;
 }

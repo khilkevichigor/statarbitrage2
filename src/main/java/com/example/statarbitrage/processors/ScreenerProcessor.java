@@ -80,19 +80,14 @@ public class ScreenerProcessor {
             }
             topPair = zScores.get(0);
 
-            String longTicker = topPair.getLongticker();
-            String shortTicker = topPair.getShortticker();
-            double longTickerEntryPrice = topPair.getLongTickerEntryPrice();
-            double shortTickerEntryPrice = topPair.getShortTickerEntryPrice();
-            double longTickerCurrentPrice = topPair.getLongTickerCurrentPrice();
-            double shortTickerCurrentPrice = topPair.getShortTickerCurrentPrice();
-
             // 4. Устанавливаем точки входа, если они ещё не заданы
-            if (longTickerEntryPrice == 0.0 || shortTickerEntryPrice == 0.0) {
-                topPair.setLongTickerEntryPrice(longTickerCurrentPrice);
-                topPair.setShortTickerEntryPrice(shortTickerCurrentPrice);
+            if (topPair.getLongTickerEntryPrice() == 0.0 || topPair.getShortTickerEntryPrice() == 0.0) {
+                topPair.setLongTickerEntryPrice(topPair.getLongTickerCurrentPrice());
+                topPair.setShortTickerEntryPrice(topPair.getShortTickerCurrentPrice());
+                topPair.setMeanEntry(topPair.getMean());
+                topPair.setSpreadEntry(topPair.getSpread());
                 JsonUtils.writeZScoreJson("z_score.json", zScores); //сохраняем сразу!
-                log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}", longTicker, topPair.getLongTickerEntryPrice(), shortTicker, topPair.getShortTickerEntryPrice());
+                log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", topPair.getLongticker(), topPair.getLongTickerEntryPrice(), topPair.getShortticker(), topPair.getShortTickerEntryPrice(), topPair.getSpreadEntry(), topPair.getMeanEntry());
                 return; //пока не надо считать прибыль
             }
 
@@ -105,12 +100,30 @@ public class ScreenerProcessor {
                 log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
             }
 
-            // 7. Расчет прибыли
-            log.info("📊 LONG {{}}: Entry: {}, Current: {}", longTicker, longTickerEntryPrice, longTickerCurrentPrice);
-            log.info("📊 SHORT {{}}: Entry: {}, Current: {}", shortTicker, shortTickerEntryPrice, shortTickerCurrentPrice);
+            //опсле скриптов снова берем свежий файл
+            zScores = JsonUtils.readZScoreJson("z_score.json");
+            if (zScores == null || zScores.isEmpty()) {
+                log.warn("⚠️ z_score.json пустой или не найден");
+                return;
+            }
+            topPair = zScores.get(0);
 
-            double longReturn = (longTickerCurrentPrice - longTickerEntryPrice) / longTickerEntryPrice;
-            double shortReturn = (shortTickerEntryPrice - shortTickerCurrentPrice) / shortTickerEntryPrice;
+            log.info("📊 LONG {{}}: Entry: {}, Current: {}", topPair.getLongticker(), topPair.getLongTickerEntryPrice(), topPair.getLongTickerCurrentPrice());
+            log.info("📊 SHORT {{}}: Entry: {}, Current: {}", topPair.getShortticker(), topPair.getShortTickerEntryPrice(), topPair.getShortTickerCurrentPrice());
+
+            double meanChangePercent = 100.0 * (topPair.getMean() - topPair.getMeanEntry()) / topPair.getMeanEntry();
+            double spreadChangePercent = 100.0 * (topPair.getSpread() - topPair.getSpreadEntry()) / topPair.getSpreadEntry();
+
+            double meanChangeAbs = topPair.getMean() - topPair.getMeanEntry();
+            double spreadChangeAbs = topPair.getSpread() - topPair.getSpreadEntry();
+
+            log.info("🔄 Изменение MEAN: {} (абсолютно), {}% (от начального)", String.format("%.5f", meanChangeAbs), String.format("%.2f", meanChangePercent));
+            log.info("🔄 Изменение SPREAD: {} (абсолютно), {}% (от начального)", String.format("%.5f", spreadChangeAbs), String.format("%.2f", spreadChangePercent));
+
+
+            // 7. Расчет прибыли
+            double longReturn = (topPair.getLongTickerCurrentPrice() - topPair.getLongTickerEntryPrice()) / topPair.getLongTickerEntryPrice();
+            double shortReturn = (topPair.getShortTickerEntryPrice() - topPair.getShortTickerCurrentPrice()) / topPair.getShortTickerEntryPrice();
             double profitPercent = longReturn + shortReturn;
             topPair.setProfit(String.format("%.2f%%", profitPercent * 100));
             log.info("💰Прибыль рассчитана: {}", topPair.getProfit());

@@ -32,10 +32,6 @@ public class SettingsService {
     private static Settings getDefaultSettings() {
         return Settings.builder()
                 .candleLimit(300)
-                .depo(1000)
-                .maxPairs(1000)
-                .maxWorkers(5)
-                .positionSize(500)
                 .timeframe("15m")
                 .significanceLevel(0.05)
                 .zscoreEntry(2.0)

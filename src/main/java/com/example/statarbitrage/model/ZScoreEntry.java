@@ -20,4 +20,8 @@ public class ZScoreEntry {
     private double longTickerEntryPrice;
     private double shortTickerEntryPrice;
     private String profit;
+
+    private double meanEntry;
+    private double spreadEntry;
+
 }
