@@ -87,7 +87,9 @@ public class ScreenerProcessor {
                 topPair.setMeanEntry(topPair.getMean());
                 topPair.setSpreadEntry(topPair.getSpread());
                 JsonUtils.writeZScoreJson("z_score.json", zScores); //сохраняем сразу!
-                log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", topPair.getLongticker(), topPair.getLongTickerEntryPrice(), topPair.getShortticker(), topPair.getShortTickerEntryPrice(), topPair.getSpreadEntry(), topPair.getMeanEntry());
+                String message = "🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}";
+                log.info(message, topPair.getLongticker(), topPair.getLongTickerEntryPrice(), topPair.getShortticker(), topPair.getShortTickerEntryPrice(), topPair.getSpreadEntry(), topPair.getMeanEntry());
+                sendText(chatId, message);
                 return; //пока не надо считать прибыль
             }
 
