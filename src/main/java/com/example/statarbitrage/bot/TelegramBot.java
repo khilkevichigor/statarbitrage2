@@ -78,6 +78,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if (Objects.equals(text, BotMenu.FIND.getName())) {
                 log.info("-> FIND");
+                sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
                 screenerProcessor.sendBestChart(chatIdStr);
             } else if (Objects.equals(text, BotMenu.GET_SETTINGS.getName())) {
                 log.info("-> GET_SETTINGS");
