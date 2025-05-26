@@ -49,8 +49,11 @@ def analyze_pairs(pairs, candles_dict, chat_config):
             "zscore": z,
             "pvalue": pvalue,
             "direction": f"SHORT/{a} LONG/{b}" if z > 0 else f"LONG/{a} SHORT/{b}",
-            "spread": spread,  # добавляем spread
-            "mean": mean  # добавляем mean
+            "spread": spread,
+            "mean": mean,
+            "longTicker": b if z > 0 else a,
+            "shortTicker": a if z > 0 else b
+
         })
 
     print(f"✅ Найдено {len(results)} подходящих пар из {total_pairs}")

@@ -40,16 +40,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final AtomicBoolean isAutoScanRunning = new AtomicBoolean(false);
-    private ScheduledFuture<?> autoScanTask;
-    private String lastSentText = ""; // новое поле
+    private final AtomicBoolean isStartTestTradeRunning = new AtomicBoolean(false);
+    private ScheduledFuture<?> testTradeTask;
 
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
-        listOfCommands.add(new BotCommand(BotMenu.START_AUTOSCAN.getName(), "Старт автоскан"));
-        listOfCommands.add(new BotCommand(BotMenu.STOP_AUTOSCAN.getName(), "Стоп автоскан"));
+        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
+        listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
         try {
@@ -79,8 +78,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if (Objects.equals(text, BotMenu.FIND.getName())) {
                 log.info("-> FIND");
-                screenerProcessor.process(chatIdStr);
-            } else if (text.equals("/get_settings")) {
+                screenerProcessor.sendBestChart(chatIdStr);
+            } else if (Objects.equals(text, BotMenu.GET_SETTINGS.getName())) {
                 log.info("-> GET_SETTINGS");
                 Settings settings = settingsService.getSettings(chatId);
                 String json;
@@ -102,51 +101,50 @@ public class TelegramBot extends TelegramLongPollingBot {
                     log.warn("❌ Ошибка разбора JSON: {}", e.getMessage());
                     sendMessage(chatIdStr, "❌ Ошибка разбора JSON: " + e.getMessage());
                 }
-            } else if (text.equals("/reset_settings")) {
+            } else if (Objects.equals(text, BotMenu.RESET_SETTINGS.getName())) {
                 log.info("-> RESET_SETTINGS");
                 settingsService.resetSettings(chatId);
                 sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
-            } else if (Objects.equals(text, BotMenu.START_AUTOSCAN.getName())) {
-                log.info("-> START_AUTOSCAN");
-                startAutoScan(chatIdStr);
-            } else if (Objects.equals(text, BotMenu.STOP_AUTOSCAN.getName())) {
-                log.info("-> STOP_AUTOSCAN");
-                stopAutoScan(chatIdStr);
+            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE.getName())) {
+                log.info("-> START_TEST_TRADE");
+                startTestTrade(chatIdStr);
+            } else if (Objects.equals(text, BotMenu.STOP_TEST_TRADE.getName())) {
+                log.info("-> STOP_TEST_TRADE");
+                stopTestTrade(chatIdStr);
             }
         }
     }
 
-    private void startAutoScan(String chatId) {
-        if (isAutoScanRunning.get()) {
-            sendMessage(chatId, "⏳ Авто-скан уже запущен");
+    private void startTestTrade(String chatId) {
+        if (isStartTestTradeRunning.get()) {
+            sendMessage(chatId, "⏳ Тест-трейд уже запущен");
             return;
         }
 
-        isAutoScanRunning.set(true);
-        sendMessage(chatId, "🔍 Автоскан запущен...");
+        isStartTestTradeRunning.set(true);
+        sendMessage(chatId, "🔍 Тест-трейд запущен...");
 
-        autoScanTask = scheduler.scheduleAtFixedRate(() -> {
+        testTradeTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                screenerProcessor.process(chatId);
+                screenerProcessor.testTrade(chatId);
             } catch (Exception e) {
-                log.error("Ошибка в autoScan", e);
+                log.error("Ошибка в testTrade()", e);
             }
-        }, 0, 60, TimeUnit.SECONDS);
+        }, 0, 60 * 1, TimeUnit.SECONDS);
     }
 
-
-    private void stopAutoScan(String chatId) {
-        if (!isAutoScanRunning.get()) {
-            sendMessage(chatId, "⛔ Авто-скан не запущен");
+    private void stopTestTrade(String chatId) {
+        if (!isStartTestTradeRunning.get()) {
+            sendMessage(chatId, "⛔ Тест-трейд не запущен");
             return;
         }
 
-        isAutoScanRunning.set(false);
-        if (autoScanTask != null) {
-            autoScanTask.cancel(true);
+        isStartTestTradeRunning.set(false);
+        if (testTradeTask != null) {
+            testTradeTask.cancel(true);
         }
 
-        sendMessage(chatId, "✅ Авто-скан остановлен");
+        sendMessage(chatId, "✅ Тест-трейд остановлен");
     }
 
     @EventListener

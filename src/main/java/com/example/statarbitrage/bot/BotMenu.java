@@ -2,8 +2,8 @@ package com.example.statarbitrage.bot;
 
 public enum BotMenu {
     FIND("/find"),
-    START_AUTOSCAN("/start_autoscan"),
-    STOP_AUTOSCAN("/stop_autoscan"),
+    START_TEST_TRADE("/start_test_trade"),
+    STOP_TEST_TRADE("/stop_test_trade"),
     GET_SETTINGS("/get_settings"),
     RESET_SETTINGS("/reset_settings");
 

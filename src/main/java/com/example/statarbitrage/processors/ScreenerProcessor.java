@@ -9,6 +9,7 @@ import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.SettingsService;
+import com.example.statarbitrage.utils.JsonUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +36,111 @@ public class ScreenerProcessor {
 
     // ObjectMapper создаём один раз, он потокобезопасен
     private final ObjectMapper mapper = new ObjectMapper();
+    ConcurrentHashMap<String, List<Double>> allCloses = new ConcurrentHashMap<>();
 
-    public void process(String chatId) {
+    public void testTrade(String chatId) {
+        try {
+            // 1. Загружаем z_score.json
+            List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
+            if (zScores == null || zScores.isEmpty()) {
+                log.warn("⚠️ z_score.json пустой или не найден");
+                return;
+            }
+
+            ZScoreEntry topPair = zScores.get(0); // Берем первую (лучшую) пару
+
+            // 2. Получаем настройки пользователя
+            Settings settings = settingsService.getSettings(Long.parseLong(chatId));
+            if (settings == null) {
+                log.warn("⚠️ Настройки пользователя не найдены для chatId {}", chatId);
+                return;
+            }
+
+            // 3. Получаем текущие цены закрытия
+            List<Double> aCloses = okxClient.getCloses(topPair.getA(), settings.getTimeframe(), settings.getCandleLimit());
+            List<Double> bCloses = okxClient.getCloses(topPair.getB(), settings.getTimeframe(), settings.getCandleLimit());
+            allCloses.clear();
+            allCloses.put(topPair.getA(), aCloses);
+            allCloses.put(topPair.getB(), bCloses);
+
+            if (aCloses.isEmpty() || bCloses.isEmpty()) {
+                log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getA(), topPair.getB());
+                return;
+            }
+            log.info("Собрали цены для {} монет", allCloses.size());
+
+            //Сохраняем allCloses в JSON-файл
+            String jsonFilePath = "all_closes.json";
+            try {
+                mapper.writeValue(new File(jsonFilePath), allCloses);
+            } catch (IOException e) {
+                log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
+            }
+            log.info("Сохранили цены в all_closes.json");
+
+            try {
+                PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
+                clearChartDir();
+                PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
+            } catch (Exception e) {
+                log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
+            }
+            log.info("✅ Python-скрипты исполнены");
+
+            // 4. Расчет прибыли (приблизительный)
+            double currentAPrice = aCloses.get(aCloses.size() - 1);
+            double currentBPrice = bCloses.get(bCloses.size() - 1);
+
+            // Устанавливаем точки входа, если они еще не заданы
+            if (topPair.getAEntryPrice() == 0.0 || topPair.getBEntryPrice() == 0.0) {
+                topPair.setAEntryPrice(currentAPrice);
+                topPair.setBEntryPrice(currentBPrice);
+                log.info("🔹 Установлены точки входа: A = {}, B = {}", currentAPrice, currentBPrice);
+            } else {
+                double aEntryPrice = topPair.getAEntryPrice();
+                double bEntryPrice = topPair.getBEntryPrice();
+
+                double profit;
+                if (topPair.getLongTicker().equals(topPair.getA())) {
+                    double aReturn = (currentAPrice - aEntryPrice) / aEntryPrice;
+                    double bReturn = (bEntryPrice - currentBPrice) / bEntryPrice;
+                    profit = (aReturn + bReturn) * settings.getPositionSize();
+                } else {
+                    double aReturn = (aEntryPrice - currentAPrice) / aEntryPrice;
+                    double bReturn = (currentBPrice - bEntryPrice) / bEntryPrice;
+                    profit = (aReturn + bReturn) * settings.getPositionSize();
+                }
+
+                topPair.setProfit(String.format("%.2f%%", profit * 100)); // "0.25%"
+                log.info("💰 Прибыль рассчитана: {}", topPair.getProfit());
+            }
+
+            // 5. Обновляем z_score.json
+            JsonUtils.writeZScoreJson("z_score.json", zScores);
+
+            // 7. Отправляем чарт
+            File chartDir = new File("charts");
+            File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+
+            if (chartFiles != null && chartFiles.length > 0) {
+                File chart = chartFiles[0];
+                zScores = JsonUtils.readZScoreJson("z_score.json");
+                if (zScores == null || zScores.isEmpty()) {
+                    log.warn("⚠️ z_score.json пустой или не найден");
+                    return;
+                }
+
+                topPair = zScores.get(0); // Берем первую (лучшую) пару
+
+                sendChart(chatId, chart, topPair.getProfit());
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка в testTrade: {}", e.getMessage(), e);
+        }
+    }
+
+    public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
         Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
@@ -44,8 +148,8 @@ public class ScreenerProcessor {
         int totalSymbols = swapTickers.size();
 
         ExecutorService executor = Executors.newFixedThreadPool(5);
-        ConcurrentHashMap<String, List<Double>> allCloses = new ConcurrentHashMap<>();
 
+        allCloses.clear();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -77,7 +181,7 @@ public class ScreenerProcessor {
         log.info("Сохранили цены в all_closes.json");
 
         try {
-            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
+            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
 
             // Обогащаем данные по парам
             enrichZScoreWithPricesFromCloses();
@@ -150,8 +254,8 @@ public class ScreenerProcessor {
                 double aPrice = closes1.get(closes1.size() - 1);  // последняя цена
                 double bPrice = closes2.get(closes2.size() - 1);
 
-                entry.setAPrice(aPrice);
-                entry.setBPrice(bPrice);
+                entry.setACurrentPrice(aPrice);
+                entry.setACurrentPrice(bPrice);
             }
 
             mapper.writeValue(zFile, allEntries);
