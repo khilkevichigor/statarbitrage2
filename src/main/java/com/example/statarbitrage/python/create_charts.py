@@ -9,13 +9,13 @@ import sys
 import traceback
 
 
-def plot_chart(prices_a, prices_b, window, direction, a, b, output_dir="charts"):
-    if len(prices_a) < window or len(prices_b) < window:
+def plot_chart(prices_long, prices_short, window, longticker, shortticker, output_dir="charts"):
+    if len(prices_long) < window or len(prices_short) < window:
         return
 
     os.makedirs(output_dir, exist_ok=True)
 
-    spread = np.array(prices_a) - np.array(prices_b)
+    spread = np.array(prices_short) - np.array(prices_long)
     mean = np.convolve(spread, np.ones(window) / window, mode='valid')
     std = np.std(spread[-window:])
 
@@ -25,13 +25,10 @@ def plot_chart(prices_a, prices_b, window, direction, a, b, output_dir="charts")
     lower2 = mean - 2 * std
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
-    fig.suptitle(f"Цены монет и спред: {a} / {b} ({direction})")
+    fig.suptitle(f"Цены монет и спред: SHORT/{shortticker} LONG/{longticker}")
 
-    color_a = "green" if direction.startswith("LONG") else "red"
-    color_b = "red" if direction.startswith("LONG") else "green"
-
-    ax1.plot(prices_a, label=a, color=color_a)
-    ax1.plot(prices_b, label=b, color=color_b)
+    ax1.plot(prices_short, label=shortticker, color="red")
+    ax1.plot(prices_long, label=longticker, color="green")
     ax1.set_ylabel("Цена")
     ax1.legend()
     ax1.grid(True)
@@ -50,8 +47,7 @@ def plot_chart(prices_a, prices_b, window, direction, a, b, output_dir="charts")
 
     plt.tight_layout()
 
-    # Сохраняем график
-    filename = f"{a}_{b}.png".replace("/", "-")
+    filename = f"{shortticker}_{longticker}.png".replace("/", "-")
     filepath = os.path.join(output_dir, filename)
     plt.savefig(filepath)
     plt.clf()
@@ -82,7 +78,7 @@ def main():
         print("❌ Не удалось загрузить настройки")
         return
 
-    window = settings.get("windowSize", 20)  # по умолчанию 20, если не указано
+    window = settings.get("windowSize", 20)
 
     if not os.path.exists(zscore_path) or not os.path.exists(closes_path):
         print("❌ z_score.json или closes.json не найден")
@@ -95,19 +91,23 @@ def main():
         closes = json.load(f)
 
     for entry in z_scores:
-        a = entry["a"]
-        b = entry["b"]
-        direction = entry.get("direction", "LONG")
+        longticker = entry.get("longticker")
+        shortticker = entry.get("shortticker")
 
-        prices_a = closes.get(a)
-        prices_b = closes.get(b)
-
-        if not prices_a or not prices_b:
-            print(f"⚠️ Пропущена пара {a}/{b} — нет данных о ценах")
+        if not longticker or not shortticker:
+            print("⚠️ Пропущена пара — нет longticker или shortticker")
             continue
 
-        plot_chart(prices_a, prices_b, window, direction, a, b, output_dir)
+        prices_long = closes.get(longticker)
+        prices_short = closes.get(shortticker)
+
+        if not prices_long or not prices_short:
+            print(f"⚠️ Пропущена пара {shortticker}/{longticker} — нет данных о ценах")
+            continue
+
+        plot_chart(prices_long, prices_short, window, longticker, shortticker, output_dir)
         gc.collect()
+
 
 if __name__ == "__main__":
     try:

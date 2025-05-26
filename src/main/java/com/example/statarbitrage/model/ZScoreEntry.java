@@ -8,18 +8,16 @@ import lombok.ToString;
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZScoreEntry {
-    private String a;
-    private String b;
-    private double zScore;
-    private double pValue;
-    private String direction;
-    private double aCurrentPrice;
-    private double bCurrentPrice;
-    private double aEntryPrice;
-    private double bEntryPrice;
-    private String profit;
+    private double zscore;
+    private double pvalue;
     private double spread;
     private double mean;
-    private String longTicker;
-    private String shortTicker;
+    private String longticker;
+    private String shortticker;
+
+    private double longTickerCurrentPrice;
+    private double shortTickerCurrentPrice;
+    private double longTickerEntryPrice;
+    private double shortTickerEntryPrice;
+    private String profit;
 }

@@ -58,16 +58,16 @@ public class ScreenerProcessor {
             }
 
             // 3. Получаем текущие цены закрытия
-            List<Double> aCloses = okxClient.getCloses(topPair.getA(), settings.getTimeframe(), settings.getCandleLimit());
-            List<Double> bCloses = okxClient.getCloses(topPair.getB(), settings.getTimeframe(), settings.getCandleLimit());
-            if (aCloses.isEmpty() || bCloses.isEmpty()) {
-                log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getA(), topPair.getB());
+            List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
+            List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
+            if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
+                log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getLongticker(), topPair.getShortticker());
                 return;
             }
 
             allCloses.clear();
-            allCloses.put(topPair.getA(), aCloses);
-            allCloses.put(topPair.getB(), bCloses);
+            allCloses.put(topPair.getLongticker(), longTickerCloses);
+            allCloses.put(topPair.getShortticker(), shortTickerCloses);
 
             saveAllClosesToJson();
 
@@ -80,49 +80,45 @@ public class ScreenerProcessor {
             }
             topPair = zScores.get(0);
 
-            double aEntryPrice = topPair.getAEntryPrice();
-            double bEntryPrice = topPair.getBEntryPrice();
-            double aCurrentPrice = topPair.getACurrentPrice();
-            double bCurrentPrice = topPair.getBCurrentPrice();
+            String longTicker = topPair.getLongticker();
+            String shortTicker = topPair.getShortticker();
+            double longTickerEntryPrice = topPair.getLongTickerEntryPrice();
+            double shortTickerEntryPrice = topPair.getShortTickerEntryPrice();
+            double longTickerCurrentPrice = topPair.getLongTickerCurrentPrice();
+            double shortTickerCurrentPrice = topPair.getShortTickerCurrentPrice();
 
             // 4. Устанавливаем точки входа, если они ещё не заданы
-            if (aEntryPrice == 0.0 || bEntryPrice == 0.0) {
-                topPair.setAEntryPrice(aCurrentPrice);
-                topPair.setBEntryPrice(bCurrentPrice);
-                log.info("🔹 Установлены точки входа: A = {}, B = {}", aCurrentPrice, bCurrentPrice);
+            if (longTickerEntryPrice == 0.0 || shortTickerEntryPrice == 0.0) {
+                topPair.setLongTickerEntryPrice(longTickerCurrentPrice);
+                topPair.setShortTickerEntryPrice(shortTickerCurrentPrice);
                 JsonUtils.writeZScoreJson("z_score.json", zScores); //сохраняем сразу!
+                log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}", longTicker, topPair.getLongTickerEntryPrice(), shortTicker, topPair.getShortTickerEntryPrice());
                 return; //пока не надо считать прибыль
             }
 
             // 6. Запускаем Python-скрипты
             try {
-                log.info("▶️ Исполняем Python скрипт: " + PythonScripts.Z_SCORE.getName());
-                PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
+                PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
                 clearChartDir();
-                log.info("▶️ Исполняем Python скрипт: " + PythonScripts.CREATE_CHARTS.getName());
-                PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
+                PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
             } catch (Exception e) {
                 log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
             }
 
             // 7. Расчет прибыли
-            log.info("📊 Entry A: {}, Entry B: {}, Current A: {}, Current B: {}", aEntryPrice, bEntryPrice, aCurrentPrice, bCurrentPrice);
-            log.info("🔍 Long: {}, Short: {}", topPair.getLongTicker(), topPair.getShortTicker());
+            log.info("📊 LONG {{}}: Entry: {}, Current: {}", longTicker, longTickerEntryPrice, longTickerCurrentPrice);
+            log.info("📊 SHORT {{}}: Entry: {}, Current: {}", shortTicker, shortTickerEntryPrice, shortTickerCurrentPrice);
 
-            double aReturn, bReturn, profitPercent;
-            if (topPair.getLongTicker().equals(topPair.getA())) {
-                aReturn = (aCurrentPrice - aEntryPrice) / aEntryPrice;
-                bReturn = (bEntryPrice - bCurrentPrice) / bEntryPrice;
-            } else {
-                aReturn = (aEntryPrice - aCurrentPrice) / aEntryPrice;
-                bReturn = (bCurrentPrice - bEntryPrice) / bEntryPrice;
-            }
-            profitPercent = (aReturn + bReturn);
+            double longReturn = (longTickerCurrentPrice - longTickerEntryPrice) / longTickerEntryPrice;
+            double shortReturn = (shortTickerEntryPrice - shortTickerCurrentPrice) / shortTickerEntryPrice;
+            double profitPercent = longReturn + shortReturn;
             topPair.setProfit(String.format("%.2f%%", profitPercent * 100));
-            log.info("💰 Прибыль рассчитана: {}", topPair.getProfit());
+            log.info("💰Прибыль рассчитана: {}", topPair.getProfit());
 
             // 8. Обновляем z_score.json
             JsonUtils.writeZScoreJson("z_score.json", Collections.singletonList(topPair));
+
+            sendText(chatId, "📊Профит " + topPair.getProfit());
 
             // 9. Отправляем график
             File chartDir = new File("charts");
@@ -131,12 +127,11 @@ public class ScreenerProcessor {
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    sendChart(chatId, chart, "📊" + topPair.getProfit());
+                    sendChart(chatId, chart, "📊Профит " + topPair.getProfit());
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }
             }
-
 
         } catch (Exception e) {
             log.error("❌ Ошибка в testTrade: {}", e.getMessage(), e);
@@ -147,7 +142,6 @@ public class ScreenerProcessor {
         String jsonFilePath = "all_closes.json";
         try {
             mapper.writeValue(new File(jsonFilePath), allCloses);
-            log.info("Сохранили цены в all_closes.json");
         } catch (IOException e) {
             log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
         }
@@ -186,20 +180,24 @@ public class ScreenerProcessor {
 
         //Сохраняем allCloses в JSON-файл
         saveAllClosesToJson();
+        log.info("Сохранили цены в all_closes.json");
 
         try {
             log.info("▶️ Исполняем Python скрипт: " + PythonScripts.Z_SCORE.getName());
-            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
+            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), true);
 
             // Обогащаем данные по парам
             enrichZScoreWithPricesFromCloses();
+            log.info("Обогатили z_score.json ценами из all_closes.json");
 
             keepBestPairByZscoreAndPvalue();
+            log.info("🔍 Сохранили лучшую пару в z_score.json");
 
             clearChartDir();
+            log.info("Очистили папку с чартами");
 
             log.info("▶️ Исполняем Python скрипт: " + PythonScripts.CREATE_CHARTS.getName());
-            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), true);
 
             List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
             if (zScores == null || zScores.isEmpty()) {
@@ -214,7 +212,7 @@ public class ScreenerProcessor {
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    sendChart(chatId, chart, "📊" + topPair.getDirection());
+                    sendChart(chatId, chart, "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker());
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }
@@ -254,27 +252,25 @@ public class ScreenerProcessor {
                             ConcurrentHashMap.class, String.class, List.class));
 
             for (ZScoreEntry entry : allEntries) {
-                String a = entry.getA();
-                String b = entry.getB();
+                String longTicker = entry.getLongticker();
+                String shortTicker = entry.getShortticker();
 
-                List<Double> closes1 = allCloses.get(a);
-                List<Double> closes2 = allCloses.get(b);
+                List<Double> longTickerCloses = allCloses.get(longTicker);
+                List<Double> shortTickerCloses = allCloses.get(shortTicker);
 
-                if (closes1 == null || closes1.isEmpty() || closes2 == null || closes2.isEmpty()) {
-                    log.warn("Нет данных по ценам для пары: {} - {}", a, b);
+                if (longTickerCloses == null || longTickerCloses.isEmpty() || shortTickerCloses == null || shortTickerCloses.isEmpty()) {
+                    log.warn("Нет данных по ценам для пары: {} - {}", longTicker, shortTicker);
                     continue;
                 }
 
-                double aPrice = closes1.get(closes1.size() - 1);  // последняя цена
-                double bPrice = closes2.get(closes2.size() - 1);
+                double longTickerCurrentPrice = longTickerCloses.get(longTickerCloses.size() - 1);  // последняя цена
+                double shortTickerCurrentPrice = shortTickerCloses.get(shortTickerCloses.size() - 1);
 
-                entry.setACurrentPrice(aPrice);
-                entry.setBCurrentPrice(bPrice);
+                entry.setLongTickerCurrentPrice(longTickerCurrentPrice);
+                entry.setShortTickerCurrentPrice(shortTickerCurrentPrice);
             }
 
             JsonUtils.writeZScoreJson("z_score.json", allEntries);
-            log.info("Обогатили z_score.json ценами из all_closes.json");
-
         } catch (Exception e) {
             log.error("Ошибка при обогащении z_score.json из all_closes.json: {}", e.getMessage(), e);
         }
@@ -284,7 +280,6 @@ public class ScreenerProcessor {
         // --- очищаем папку charts перед созданием новых графиков ---
         String chartsDir = "charts";
         clearDirectory(chartsDir);
-        log.info("Очистили папку с чартами: {}", chartsDir);
     }
 
     private void clearDirectory(String dirPath) {
@@ -315,10 +310,10 @@ public class ScreenerProcessor {
                 //Фильтрация: минимальный pvalue и при равенстве — максимальный zscore
                 ZScoreEntry best = allEntries.stream()
                         .min((e1, e2) -> {
-                            int cmp = Double.compare(e1.getPValue(), e2.getPValue());
+                            int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
                             if (cmp == 0) {
                                 //При равных pvalue берём с большим zscore
-                                return -Double.compare(e1.getZScore(), e2.getZScore());
+                                return -Double.compare(e1.getZscore(), e2.getZscore());
                             }
                             return cmp;
                         })
@@ -326,7 +321,6 @@ public class ScreenerProcessor {
 
                 if (best != null) {
                     mapper.writeValue(zFile, List.of(best));
-                    log.info("🔍 Сохранили лучшую пару в z_score.json: {}", best);
                 }
             }
         } catch (Exception e) {

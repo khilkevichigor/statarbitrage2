@@ -13,7 +13,7 @@ public final class PythonScriptsExecuter {
     private PythonScriptsExecuter() {
     }
 
-    public static void execute(String scriptName) {
+    public static void execute(String scriptName, boolean withLogging) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("python3", SCRIPTS_ROOT_PATH + scriptName);
             Process process = processBuilder.start();
@@ -23,7 +23,9 @@ public final class PythonScriptsExecuter {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        log.info("Python вывод: " + line);
+                        if (withLogging) {
+                            log.info("Python вывод: " + line);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -35,7 +37,9 @@ public final class PythonScriptsExecuter {
                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                     String line;
                     while ((line = errorReader.readLine()) != null) {
-                        log.error("Python ошибка: " + line);
+                        if (withLogging) {
+                            log.error("Python ошибка: " + line);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -43,7 +47,9 @@ public final class PythonScriptsExecuter {
             }).start();
 
             int exitCode = process.waitFor();
-            log.info("Python скрипт завершен с кодом: " + exitCode);
+            if (withLogging) {
+                log.info("Python скрипт завершен с кодом: " + exitCode);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

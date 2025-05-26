@@ -23,9 +23,14 @@ def analyze_pairs(pairs, candles_dict, chat_config):
     print(f"🔍 Анализируем {total_pairs} пар...")
 
     for idx, (a, b) in enumerate(pairs, 1):
+        if not a or not b:
+            continue
 
-        s1 = candles_dict.get(a, [])
-        s2 = candles_dict.get(b, [])
+        s1 = candles_dict.get(a)
+        s2 = candles_dict.get(b)
+
+        if not isinstance(s1, list) or not isinstance(s2, list):
+            continue
         if len(s1) != len(s2) or len(s1) <= window:
             continue
 
@@ -43,17 +48,19 @@ def analyze_pairs(pairs, candles_dict, chat_config):
         if abs(z) < zscore_entry:
             continue
 
+        longticker = b if z > 0 else a
+        shortticker = a if z > 0 else b
+
+        if not longticker or not shortticker:
+            continue
+
         results.append({
-            "a": a,
-            "b": b,
-            "zScore": z,
-            "pValue": pvalue,
-            "direction": f"SHORT/{a} LONG/{b}" if z > 0 else f"LONG/{a} SHORT/{b}",
+            "zscore": z,
+            "pvalue": pvalue,
             "spread": spread,
             "mean": mean,
-            "longTicker": b if z > 0 else a,
-            "shortTicker": a if z > 0 else b
-
+            "longticker": longticker,
+            "shortticker": shortticker
         })
 
     print(f"✅ Найдено {len(results)} подходящих пар из {total_pairs}")
