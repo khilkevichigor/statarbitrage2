@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,21 +68,29 @@ public class ScreenerProcessor {
             allCloses.clear();
             allCloses.put(topPair.getA(), aCloses);
             allCloses.put(topPair.getB(), bCloses);
+            saveAllClosesToJson();
 
-            double currentAPrice = aCloses.get(aCloses.size() - 1);
-            double currentBPrice = bCloses.get(bCloses.size() - 1);
+            enrichZScoreWithPricesFromCloses();
+            zScores = JsonUtils.readZScoreJson("z_score.json");
+            if (zScores == null || zScores.isEmpty()) {
+                log.warn("⚠️ z_score.json пустой или не найден");
+                return;
+            }
+            topPair = zScores.get(0);
+
+            double aEntryPrice = topPair.getAEntryPrice();
+            double bEntryPrice = topPair.getBEntryPrice();
+            double aCurrentPrice = topPair.getACurrentPrice();
+            double bCurrentPrice = topPair.getBCurrentPrice();
 
             // 4. Устанавливаем точки входа, если они ещё не заданы
-            if (topPair.getAEntryPrice() == 0.0 || topPair.getBEntryPrice() == 0.0) {
-                topPair.setAEntryPrice(currentAPrice);
-                topPair.setBEntryPrice(currentBPrice);
-                log.info("🔹 Установлены точки входа: A = {}, B = {}", currentAPrice, currentBPrice);
+            if (aEntryPrice == 0.0 || bEntryPrice == 0.0) {
+                topPair.setAEntryPrice(aCurrentPrice);
+                topPair.setBEntryPrice(bCurrentPrice);
+                log.info("🔹 Установлены точки входа: A = {}, B = {}", aCurrentPrice, bCurrentPrice);
                 JsonUtils.writeZScoreJson("z_score.json", zScores); // 💾 сохраняем сразу!
                 return; // 👈 пока не надо считать прибыль
             }
-
-            // 5. Сохраняем цены в all_closes.json
-            saveAllClosesToJson("Ошибка при сохранении all_closes.json: {}");
 
             // 6. Запускаем Python-скрипты
             try {
@@ -93,25 +102,23 @@ public class ScreenerProcessor {
             }
 
             // 7. Расчет прибыли
-            double aEntryPrice = topPair.getAEntryPrice();
-            double bEntryPrice = topPair.getBEntryPrice();
+            log.info("📊 Entry A: {}, Entry B: {}, Current A: {}, Current B: {}", aEntryPrice, bEntryPrice, aCurrentPrice, bCurrentPrice);
+            log.info("🔍 Long: {}, Short: {}", topPair.getLongTicker(), topPair.getShortTicker());
 
-            double profit;
+            double aReturn, bReturn, profitPercent;
             if (topPair.getLongTicker().equals(topPair.getA())) {
-                double aReturn = (currentAPrice - aEntryPrice) / aEntryPrice;
-                double bReturn = (bEntryPrice - currentBPrice) / bEntryPrice;
-                profit = (aReturn + bReturn) * settings.getPositionSize();
+                aReturn = (aCurrentPrice - aEntryPrice) / aEntryPrice;
+                bReturn = (bEntryPrice - bCurrentPrice) / bEntryPrice;
             } else {
-                double aReturn = (aEntryPrice - currentAPrice) / aEntryPrice;
-                double bReturn = (currentBPrice - bEntryPrice) / bEntryPrice;
-                profit = (aReturn + bReturn) * settings.getPositionSize();
+                aReturn = (aEntryPrice - aCurrentPrice) / aEntryPrice;
+                bReturn = (bCurrentPrice - bEntryPrice) / bEntryPrice;
             }
-
-            topPair.setProfit(String.format("%.2f%%", profit * 100)); // "0.25%"
+            profitPercent = (aReturn + bReturn);
+            topPair.setProfit(String.format("%.2f%%", profitPercent * 100));
             log.info("💰 Прибыль рассчитана: {}", topPair.getProfit());
 
             // 8. Обновляем z_score.json
-            JsonUtils.writeZScoreJson("z_score.json", zScores);
+            JsonUtils.writeZScoreJson("z_score.json", Collections.singletonList(topPair));
 
             // 9. Отправляем график
             File chartDir = new File("charts");
@@ -127,14 +134,13 @@ public class ScreenerProcessor {
         }
     }
 
-    private void saveAllClosesToJson(String s) {
-        //Сохраняем allCloses в JSON-файл
+    private void saveAllClosesToJson() {
         String jsonFilePath = "all_closes.json";
         try {
             mapper.writeValue(new File(jsonFilePath), allCloses);
             log.info("Сохранили цены в all_closes.json");
         } catch (IOException e) {
-            log.error(s, e.getMessage(), e);
+            log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
         }
     }
 
@@ -170,15 +176,13 @@ public class ScreenerProcessor {
         log.info("Собрали цены для {} монет", allCloses.size());
 
         //Сохраняем allCloses в JSON-файл
-        saveAllClosesToJson("Ошибка при сохранении closes.json: {}");
+        saveAllClosesToJson();
 
         try {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
 
             // Обогащаем данные по парам
             enrichZScoreWithPricesFromCloses();
-
-//            keepBestByProfit();
 
             keepBestPairByZscoreAndPvalue();
 
@@ -250,7 +254,8 @@ public class ScreenerProcessor {
                 entry.setBCurrentPrice(bPrice);
             }
 
-            mapper.writeValue(zFile, allEntries);
+//            mapper.writeValue(zFile, allEntries);
+            JsonUtils.writeZScoreJson("z_score.json", allEntries);
             log.info("Обогатили z_score.json ценами из all_closes.json");
 
         } catch (Exception e) {
