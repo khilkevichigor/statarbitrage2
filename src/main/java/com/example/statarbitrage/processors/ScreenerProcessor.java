@@ -195,10 +195,17 @@ public class ScreenerProcessor {
             File chartDir = new File("charts");
             File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
 
+            List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
+            if (zScores == null || zScores.isEmpty()) {
+                log.warn("⚠️ z_score.json пустой или не найден");
+                return;
+            }
+            ZScoreEntry topPair = zScores.get(0); // Берем первую (лучшую) пару
+
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    sendChart(chatId, chart, "📊 Лучшая пара по z-score/p-value");
+                    sendChart(chatId, chart, "📊" + topPair.getDirection());
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }
@@ -256,7 +263,6 @@ public class ScreenerProcessor {
                 entry.setBCurrentPrice(bPrice);
             }
 
-//            mapper.writeValue(zFile, allEntries);
             JsonUtils.writeZScoreJson("z_score.json", allEntries);
             log.info("Обогатили z_score.json ценами из all_closes.json");
 
