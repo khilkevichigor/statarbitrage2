@@ -130,8 +130,13 @@ public class ScreenerProcessor {
 
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
-                sendChart(chatId, chart, topPair.getProfit());
+                try {
+                    sendChart(chatId, chart, "📊" + topPair.getProfit());
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
+                }
             }
+
 
         } catch (Exception e) {
             log.error("❌ Ошибка в testTrade: {}", e.getMessage(), e);
@@ -196,15 +201,15 @@ public class ScreenerProcessor {
             log.info("▶️ Исполняем Python скрипт: " + PythonScripts.CREATE_CHARTS.getName());
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
 
-            File chartDir = new File("charts");
-            File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
-
             List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
             if (zScores == null || zScores.isEmpty()) {
                 log.warn("⚠️ z_score.json пустой или не найден");
                 return;
             }
             ZScoreEntry topPair = zScores.get(0); // Берем первую (лучшую) пару
+
+            File chartDir = new File("charts");
+            File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
 
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
