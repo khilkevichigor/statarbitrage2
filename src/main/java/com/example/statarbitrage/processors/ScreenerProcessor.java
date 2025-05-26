@@ -68,9 +68,11 @@ public class ScreenerProcessor {
             allCloses.clear();
             allCloses.put(topPair.getA(), aCloses);
             allCloses.put(topPair.getB(), bCloses);
+
             saveAllClosesToJson();
 
             enrichZScoreWithPricesFromCloses();
+
             zScores = JsonUtils.readZScoreJson("z_score.json");
             if (zScores == null || zScores.isEmpty()) {
                 log.warn("⚠️ z_score.json пустой или не найден");
@@ -88,8 +90,8 @@ public class ScreenerProcessor {
                 topPair.setAEntryPrice(aCurrentPrice);
                 topPair.setBEntryPrice(bCurrentPrice);
                 log.info("🔹 Установлены точки входа: A = {}, B = {}", aCurrentPrice, bCurrentPrice);
-                JsonUtils.writeZScoreJson("z_score.json", zScores); // 💾 сохраняем сразу!
-                return; // 👈 пока не надо считать прибыль
+                JsonUtils.writeZScoreJson("z_score.json", zScores); //сохраняем сразу!
+                return; //пока не надо считать прибыль
             }
 
             // 6. Запускаем Python-скрипты
@@ -263,13 +265,6 @@ public class ScreenerProcessor {
         }
     }
 
-    // Метод для расчёта доходности возврата к среднему (mean reversion)
-    private String calculateProfitForMeanReversion(double priceA, double priceB, ZScoreEntry zScoreEntry) {
-        double spreadNow = priceB / priceA;  // отношение цен текущего спреда
-        double v = (zScoreEntry.getMean() - zScoreEntry.getSpread()) / spreadNow;
-        return String.format("%.2f%%", v * 100); // "0.25%"
-    }
-
     private void clearChartDir() {
         // --- очищаем папку charts перед созданием новых графиков ---
         String chartsDir = "charts";
@@ -294,63 +289,20 @@ public class ScreenerProcessor {
         }
     }
 
-    private void keepBestByProfit() {
-        String zScorePath = "z_score.json";
-        try {
-            File zFile = new File(zScorePath);
-            if (!zFile.exists()) {
-                log.warn("Файл z_score.json не найден.");
-                return;
-            }
-
-            List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
-
-            ZScoreEntry best = allEntries.stream()
-                    .filter(e -> {
-                        String p = e.getProfit();
-                        return p != null && p.endsWith("%");
-                    })
-                    .max((e1, e2) -> {
-                        double profit1 = parseProfitPercent(e1.getProfit());
-                        double profit2 = parseProfitPercent(e2.getProfit());
-                        return Double.compare(profit1, profit2);
-                    })
-                    .orElse(null);
-
-            if (best != null) {
-                mapper.writeValue(zFile, List.of(best));
-                log.info("🔝 Сохранили лучшую по доходности пару в z_score.json: {}", best);
-            }
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при фильтрации по доходности: {}", e.getMessage(), e);
-        }
-    }
-
-    // 🔧 Вспомогательный метод для преобразования "0.35%" → 0.35
-    private double parseProfitPercent(String profitStr) {
-        try {
-            return Double.parseDouble(profitStr.replace("%", ""));
-        } catch (NumberFormatException e) {
-            return Double.NEGATIVE_INFINITY;
-        }
-    }
-
-
     private void keepBestPairByZscoreAndPvalue() {
-        // 📌 Оставляем только одну лучшую пару по zscore/pvalue
+        //Оставляем только одну лучшую пару по zscore/pvalue
         String zScorePath = "z_score.json";
         try {
             File zFile = new File(zScorePath);
             if (zFile.exists()) {
                 List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
 
-                // Фильтрация: минимальный pvalue и при равенстве — максимальный zscore
+                //Фильтрация: минимальный pvalue и при равенстве — максимальный zscore
                 ZScoreEntry best = allEntries.stream()
                         .min((e1, e2) -> {
                             int cmp = Double.compare(e1.getPValue(), e2.getPValue());
                             if (cmp == 0) {
-                                // При равных pvalue берём с большим zscore
+                                //При равных pvalue берём с большим zscore
                                 return -Double.compare(e1.getZScore(), e2.getZScore());
                             }
                             return cmp;

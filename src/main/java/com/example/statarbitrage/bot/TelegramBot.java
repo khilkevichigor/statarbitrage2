@@ -130,7 +130,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             } catch (Exception e) {
                 log.error("Ошибка в testTrade()", e);
             }
-        }, 0, 60 * 1, TimeUnit.SECONDS);
+        }, 0, 60L * settingsService.getSettings(Long.parseLong(chatId)).getCheckInterval(), TimeUnit.SECONDS);
     }
 
     private void stopTestTrade(String chatId) {
