@@ -96,8 +96,10 @@ public class ScreenerProcessor {
 
             // 6. Запускаем Python-скрипты
             try {
+                log.info("▶️ Исполняем Python скрипт: " + PythonScripts.Z_SCORE.getName());
                 PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
                 clearChartDir();
+                log.info("▶️ Исполняем Python скрипт: " + PythonScripts.CREATE_CHARTS.getName());
                 PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
             } catch (Exception e) {
                 log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
@@ -181,6 +183,7 @@ public class ScreenerProcessor {
         saveAllClosesToJson();
 
         try {
+            log.info("▶️ Исполняем Python скрипт: " + PythonScripts.Z_SCORE.getName());
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName());
 
             // Обогащаем данные по парам
@@ -190,6 +193,7 @@ public class ScreenerProcessor {
 
             clearChartDir();
 
+            log.info("▶️ Исполняем Python скрипт: " + PythonScripts.CREATE_CHARTS.getName());
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
 
             File chartDir = new File("charts");

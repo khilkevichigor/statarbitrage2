@@ -14,7 +14,6 @@ public final class PythonScriptsExecuter {
     }
 
     public static void execute(String scriptName) {
-        log.info("▶️ Исполняем Python скрипт: " + scriptName);
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("python3", SCRIPTS_ROOT_PATH + scriptName);
             Process process = processBuilder.start();
