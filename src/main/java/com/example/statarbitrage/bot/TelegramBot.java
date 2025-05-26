@@ -1,5 +1,6 @@
 package com.example.statarbitrage.bot;
 
+import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.processors.ScreenerProcessor;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
@@ -155,12 +158,31 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(message);
     }
 
+    @EventListener
+    public void onSendAsPhotoEvent(SendAsPhotoEvent event) {
+        SendPhoto photo = new SendPhoto();
+        photo.setChatId(event.getChatId());
+        photo.setPhoto(new InputFile(event.getPhoto()));
+        photo.setCaption(event.getCaption());
+        photo.setParseMode(event.isEnableMarkdown() ? "Markdown" : null);
+
+        sendPhoto(photo); // ✅ метод, который отправляет фото
+    }
+
     private void sendMessage(String chatId, String text) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(text);
         message.enableMarkdown(true);
         sendMessage(message);
+    }
+
+    private void sendPhoto(SendPhoto photo) {
+        try {
+            execute(photo);
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при отправке фото: {}", e.getMessage(), e);
+        }
     }
 
     private void sendMessage(SendMessage message) {

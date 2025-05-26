@@ -1,6 +1,7 @@
 package com.example.statarbitrage.processors;
 
 import com.example.statarbitrage.api.OkxClient;
+import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreEntry;
@@ -79,15 +80,27 @@ public class ScreenerProcessor {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_FIND_ALL_AND_SAVE.getName());
 
             // Обогащаем данные по парам
-            enrichZScoreWithPricesAndProfitFromCloses();
+            enrichZScoreWithPricesFromCloses();
 
-            keepBestByProfit();
+//            keepBestByProfit();
 
-//            keepBestPairByZscoreAndPvalue();
+            keepBestPairByZscoreAndPvalue();
 
             clearChartDir();
 
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName());
+
+            File chartDir = new File("charts");
+            File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+
+            if (chartFiles != null && chartFiles.length > 0) {
+                File chart = chartFiles[0];
+                try {
+                    sendChart(chatId, chart, "📊 Лучшая пара по z-score/p-value");
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
+                }
+            }
 
         } catch (Exception e) {
             log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
@@ -101,7 +114,7 @@ public class ScreenerProcessor {
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
 
-    private void enrichZScoreWithPricesAndProfitFromCloses() {
+    private void enrichZScoreWithPricesFromCloses() {
         String zScorePath = "z_score.json";
         String allClosesPath = "all_closes.json";
 
@@ -139,13 +152,10 @@ public class ScreenerProcessor {
 
                 entry.setAPrice(aPrice);
                 entry.setBPrice(bPrice);
-
-                String profit = calculateProfitForMeanReversion(aPrice, bPrice, entry);
-                entry.setProfit(profit);
             }
 
             mapper.writeValue(zFile, allEntries);
-            log.info("Обогатили z_score.json ценами из all_closes.json и доходностью");
+            log.info("Обогатили z_score.json ценами из all_closes.json");
 
         } catch (Exception e) {
             log.error("Ошибка при обогащении z_score.json из all_closes.json: {}", e.getMessage(), e);
@@ -253,6 +263,19 @@ public class ScreenerProcessor {
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
+        }
+    }
+
+    private void sendChart(String chatId, File chartFile, String caption) {
+        try {
+            eventSendService.sendAsPhoto(SendAsPhotoEvent.builder()
+                    .chatId(chatId)
+                    .photo(chartFile)
+                    .caption(caption)
+                    .build());
+            log.info("📤 Чарт отправлен в Telegram: {}", chartFile.getName());
+        } catch (Exception e) {
+            log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,10 @@ public class EventSendService {
     private ApplicationEventPublisher applicationEventPublisher;
 
     public void sendAsText(SendAsTextEvent event) {
+        applicationEventPublisher.publishEvent(event);
+    }
+
+    public void sendAsPhoto(SendAsPhotoEvent event) {
         applicationEventPublisher.publishEvent(event);
     }
 }
