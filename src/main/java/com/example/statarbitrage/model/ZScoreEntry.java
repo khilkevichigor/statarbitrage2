@@ -10,8 +10,8 @@ import lombok.ToString;
 public class ZScoreEntry {
     private String a;
     private String b;
-    private double zscore;
-    private double pvalue;
+    private double zScore;
+    private double pValue;
     private String direction;
     private double aCurrentPrice;
     private double bCurrentPrice;

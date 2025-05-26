@@ -46,8 +46,8 @@ def analyze_pairs(pairs, candles_dict, chat_config):
         results.append({
             "a": a,
             "b": b,
-            "zscore": z,
-            "pvalue": pvalue,
+            "zScore": z,
+            "pValue": pvalue,
             "direction": f"SHORT/{a} LONG/{b}" if z > 0 else f"LONG/{a} SHORT/{b}",
             "spread": spread,
             "mean": mean,
