@@ -3,6 +3,7 @@ package com.example.statarbitrage.processors;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
+import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.python.PythonScripts;
@@ -19,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,18 +37,11 @@ public class ScreenerProcessor {
 
     // ObjectMapper создаём один раз, он потокобезопасен
     private final ObjectMapper mapper = new ObjectMapper();
-    ConcurrentHashMap<String, List<Double>> allCloses = new ConcurrentHashMap<>();
 
     public void testTrade(String chatId) {
         try {
-            // 1. Загружаем z_score.json
-            List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
-            if (zScores == null || zScores.isEmpty()) {
-                log.warn("⚠️ z_score.json пустой или не найден");
-                return;
-            }
-
-            ZScoreEntry topPair = zScores.get(0); // Берем первую (лучшую) пару
+            ZScoreEntry topPair = getzScoreEntry();
+            EntryData entryData = getEntryData();
 
             // 2. Получаем настройки пользователя
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
@@ -65,75 +58,79 @@ public class ScreenerProcessor {
                 return;
             }
 
-            allCloses.clear();
-            allCloses.put(topPair.getLongticker(), longTickerCloses);
-            allCloses.put(topPair.getShortticker(), shortTickerCloses);
+            ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
+            topPairCloses.put(topPair.getLongticker(), longTickerCloses);
+            topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
 
-            saveAllClosesToJson();
+            saveAllClosesToJson(topPairCloses);
 
-            enrichZScoreWithPricesFromCloses();
+            updateCurrentPrices(entryData, topPairCloses);
 
-            zScores = JsonUtils.readZScoreJson("z_score.json");
-            if (zScores == null || zScores.isEmpty()) {
-                log.warn("⚠️ z_score.json пустой или не найден");
-                return;
-            }
-            topPair = zScores.get(0);
+            entryData = getEntryData();
 
             // 4. Устанавливаем точки входа, если они ещё не заданы
-            if (topPair.getLongTickerEntryPrice() == 0.0 || topPair.getShortTickerEntryPrice() == 0.0) {
-                topPair.setLongTickerEntryPrice(topPair.getLongTickerCurrentPrice());
-                topPair.setShortTickerEntryPrice(topPair.getShortTickerCurrentPrice());
-                topPair.setMeanEntry(topPair.getMean());
-                topPair.setSpreadEntry(topPair.getSpread());
-                JsonUtils.writeZScoreJson("z_score.json", zScores); //сохраняем сразу!
-                String message = "🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}";
-                log.info(message, topPair.getLongticker(), topPair.getLongTickerEntryPrice(), topPair.getShortticker(), topPair.getShortTickerEntryPrice(), topPair.getSpreadEntry(), topPair.getMeanEntry());
-                sendText(chatId, message);
+            if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
+                entryData.setLongticker(topPair.getLongticker());
+                entryData.setShortticker(topPair.getShortticker());
+                entryData.setLongTickerEntryPrice(longTickerCloses.get(longTickerCloses.size() - 1));
+                entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
+                entryData.setMeanEntry(topPair.getMean());
+                entryData.setSpreadEntry(topPair.getSpread());
+
+                JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData)); //сохраняем сразу!
+
+                log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
                 return; //пока не надо считать прибыль
             }
 
+            log.info("🐍Запускаем скрипты...");
+
             // 6. Запускаем Python-скрипты
-            try {
-                PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
-                clearChartDir();
-                PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
-            } catch (Exception e) {
-                log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
-            }
+            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
+            log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
 
-            //опсле скриптов снова берем свежий файл
-            zScores = JsonUtils.readZScoreJson("z_score.json");
-            if (zScores == null || zScores.isEmpty()) {
-                log.warn("⚠️ z_score.json пустой или не найден");
-                return;
-            }
-            topPair = zScores.get(0);
+            clearChartDir();
+            log.info("Очистили папку с чартами");
 
-            log.info("📊 LONG {{}}: Entry: {}, Current: {}", topPair.getLongticker(), topPair.getLongTickerEntryPrice(), topPair.getLongTickerCurrentPrice());
-            log.info("📊 SHORT {{}}: Entry: {}, Current: {}", topPair.getShortticker(), topPair.getShortTickerEntryPrice(), topPair.getShortTickerCurrentPrice());
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
+            log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
-            double meanChangePercent = 100.0 * (topPair.getMean() - topPair.getMeanEntry()) / topPair.getMeanEntry();
-            double spreadChangePercent = 100.0 * (topPair.getSpread() - topPair.getSpreadEntry()) / topPair.getSpreadEntry();
+            log.info("🐍скрипты отработали");
 
-            double meanChangeAbs = topPair.getMean() - topPair.getMeanEntry();
-            double spreadChangeAbs = topPair.getSpread() - topPair.getSpreadEntry();
+            //после скриптов снова берем свежий файл
+            topPair = getzScoreEntry();
 
-            log.info("🔄 Изменение MEAN: {} (абсолютно), {}% (от начального)", String.format("%.5f", meanChangeAbs), String.format("%.2f", meanChangePercent));
-            log.info("🔄 Изменение SPREAD: {} (абсолютно), {}% (от начального)", String.format("%.5f", spreadChangeAbs), String.format("%.2f", spreadChangePercent));
+            log.info("📊 LONG {{}}: Entry: {}, Current: {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice());
+            log.info("📊 SHORT {{}}: Entry: {}, Current: {}", entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice());
 
+            double meanChangeAbs = topPair.getMean() - entryData.getMeanEntry();
+            double spreadChangeAbs = topPair.getSpread() - entryData.getSpreadEntry();
+
+            double meanChangePercent = 100.0 * Math.abs(meanChangeAbs) / Math.abs(entryData.getMeanEntry());
+            if (meanChangeAbs < 0) meanChangePercent = -meanChangePercent;
+
+            double spreadChangePercent = 100.0 * Math.abs(spreadChangeAbs) / Math.abs(entryData.getSpreadEntry());
+            if (spreadChangeAbs < 0) spreadChangePercent = -spreadChangePercent;
+
+            log.info("🔄 Изменение MEAN: {} (абсолютно), {}% (от начального)",
+                    String.format("%+.5f", meanChangeAbs),
+                    String.format("%+.2f", meanChangePercent));
+
+            log.info("🔄 Изменение SPREAD: {} (абсолютно), {}% (от начального)",
+                    String.format("%+.5f", spreadChangeAbs),
+                    String.format("%+.2f", spreadChangePercent));
 
             // 7. Расчет прибыли
-            double longReturn = (topPair.getLongTickerCurrentPrice() - topPair.getLongTickerEntryPrice()) / topPair.getLongTickerEntryPrice();
-            double shortReturn = (topPair.getShortTickerEntryPrice() - topPair.getShortTickerCurrentPrice()) / topPair.getShortTickerEntryPrice();
+            double longReturn = (entryData.getLongTickerCurrentPrice() - entryData.getLongTickerEntryPrice()) / entryData.getLongTickerEntryPrice();
+            double shortReturn = (entryData.getShortTickerEntryPrice() - entryData.getShortTickerCurrentPrice()) / entryData.getShortTickerEntryPrice();
             double profitPercent = longReturn + shortReturn;
-            topPair.setProfit(String.format("%.2f%%", profitPercent * 100));
-            log.info("💰Прибыль рассчитана: {}", topPair.getProfit());
+            entryData.setProfit(String.format("%.2f%%", profitPercent * 100));
+            log.info("💰Прибыль рассчитана: {}", entryData.getProfit());
 
-            // 8. Обновляем z_score.json
-            JsonUtils.writeZScoreJson("z_score.json", Collections.singletonList(topPair));
+            // 8. Обновляем entry_data.json
+            JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
 
-            sendText(chatId, "📊Профит " + topPair.getProfit());
+            sendText(chatId, "📊Профит " + entryData.getProfit());
 
             // 9. Отправляем график
             File chartDir = new File("charts");
@@ -142,7 +139,7 @@ public class ScreenerProcessor {
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    sendChart(chatId, chart, "📊Профит " + topPair.getProfit());
+                    sendChart(chatId, chart, "📊Профит " + entryData.getProfit());
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }
@@ -153,17 +150,12 @@ public class ScreenerProcessor {
         }
     }
 
-    private void saveAllClosesToJson() {
-        String jsonFilePath = "all_closes.json";
-        try {
-            mapper.writeValue(new File(jsonFilePath), allCloses);
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
-        }
-    }
-
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
+
+        deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_closes.json"));
+        log.info("Удалили z_score.json, entry_data.json, all_closes.json");
+
         Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
         Set<String> swapTickers = okxClient.getSwapTickers();
@@ -171,7 +163,7 @@ public class ScreenerProcessor {
 
         ExecutorService executor = Executors.newFixedThreadPool(5);
 
-        allCloses.clear();
+        ConcurrentHashMap<String, List<Double>> allCloses = new ConcurrentHashMap<>();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -189,55 +181,51 @@ public class ScreenerProcessor {
         } finally {
             executor.shutdown();
         }
-        List.of("USDC-USDT-SWAP").forEach(symbol -> allCloses.remove(symbol));
-
         log.info("Собрали цены для {} монет", allCloses.size());
 
+        List.of("USDC-USDT-SWAP").forEach(allCloses::remove);
+        log.info("Удалили цены тикеров из черного списка");
+
         //Сохраняем allCloses в JSON-файл
-        saveAllClosesToJson();
+        saveAllClosesToJson(allCloses);
         log.info("Сохранили цены в all_closes.json");
 
-        try {
-            log.info("▶️ Исполняем Python скрипт: " + PythonScripts.Z_SCORE.getName());
-            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), true);
+        log.info("🐍Запускаем скрипты...");
 
-            // Обогащаем данные по парам
-            enrichZScoreWithPricesFromCloses();
-            log.info("Обогатили z_score.json ценами из all_closes.json");
+        PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), true);
+        log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
 
-            keepBestPairByZscoreAndPvalue();
-            log.info("🔍 Сохранили лучшую пару в z_score.json");
+        keepBestPairByZscoreAndPvalue();
+        log.info("🔍 Сохранили лучшую пару в z_score.json");
 
-            clearChartDir();
-            log.info("Очистили папку с чартами");
+        clearChartDir();
+        log.info("Очистили папку с чартами");
 
-            log.info("▶️ Исполняем Python скрипт: " + PythonScripts.CREATE_CHARTS.getName());
-            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), true);
+        PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), true);
+        log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
-            List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
-            if (zScores == null || zScores.isEmpty()) {
-                log.warn("⚠️ z_score.json пустой или не найден");
-                return;
+        log.info("🐍скрипты отработали");
+
+        ZScoreEntry topPair = getzScoreEntry(); // Берем первую (лучшую) пару
+
+        EntryData entryData = createEntryData(topPair);//создаем на этапе поиска
+        log.info("Создали entry_data.json");
+
+        updateCurrentPrices(entryData, allCloses);
+        log.info("Обогатили entry_data.json ценами из all_closes.json");
+
+        File chartDir = new File("charts");
+        File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+
+        if (chartFiles != null && chartFiles.length > 0) {
+            File chart = chartFiles[0];
+            try {
+                sendChart(chatId, chart, "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker());
+                log.info("Отправили чарт в телеграм");
+            } catch (Exception e) {
+                log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
             }
-            ZScoreEntry topPair = zScores.get(0); // Берем первую (лучшую) пару
-
-            File chartDir = new File("charts");
-            File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
-
-            if (chartFiles != null && chartFiles.length > 0) {
-                File chart = chartFiles[0];
-                try {
-                    sendChart(chatId, chart, "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker());
-                } catch (Exception e) {
-                    log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("Ошибка при запуске Python: {}", e.getMessage(), e);
         }
-
-        log.info("✅ Python-скрипты исполнены");
 
         long durationMillis = System.currentTimeMillis() - startTime;
         long minutes = durationMillis / 1000 / 60;
@@ -245,47 +233,39 @@ public class ScreenerProcessor {
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
 
-    private void enrichZScoreWithPricesFromCloses() {
-        String zScorePath = "z_score.json";
-        String allClosesPath = "all_closes.json";
-
-        try {
-            File zFile = new File(zScorePath);
-            File closesFile = new File(allClosesPath);
-
-            if (!zFile.exists() || !closesFile.exists()) {
-                log.warn("Файлы z_score.json или all_closes.json не найдены.");
-                return;
-            }
-
-            // Считаем пары из z_score.json
-            List<ZScoreEntry> allEntries = List.of(mapper.readValue(zFile, ZScoreEntry[].class));
-
-            // Считаем все закрытия из all_closes.json (Map<String, List<Double>>)
-            Map<String, List<Double>> allCloses = mapper.readValue(closesFile,
-                    mapper.getTypeFactory().constructMapType(
-                            ConcurrentHashMap.class, String.class, List.class));
-
-            for (ZScoreEntry entry : allEntries) {
-                String longTicker = entry.getLongticker();
-                String shortTicker = entry.getShortticker();
-
-                List<Double> longTickerCloses = allCloses.get(longTicker);
-                List<Double> shortTickerCloses = allCloses.get(shortTicker);
-
-                if (longTickerCloses == null || longTickerCloses.isEmpty() || shortTickerCloses == null || shortTickerCloses.isEmpty()) {
-                    log.warn("Нет данных по ценам для пары: {} - {}", longTicker, shortTicker);
-                    continue;
+    public void deleteSpecificFilesInProjectRoot(List<String> fileNames) {
+        File projectRoot = new File(".");
+        for (String fileName : fileNames) {
+            File file = new File(projectRoot, fileName);
+            if (file.exists()) {
+                boolean deleted = file.delete();
+                if (deleted) {
+                    log.info("✅ Удалён файл: {}", file.getAbsolutePath());
+                } else {
+                    log.warn("⚠️ Не удалось удалить файл: {}", file.getAbsolutePath());
                 }
+            } else {
+                log.info("ℹ️ Файл не найден: {}", file.getAbsolutePath());
+            }
+        }
+    }
 
-                double longTickerCurrentPrice = longTickerCloses.get(longTickerCloses.size() - 1);  // последняя цена
-                double shortTickerCurrentPrice = shortTickerCloses.get(shortTickerCloses.size() - 1);
+    private void updateCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
+        try {
+            String longTicker = entryData.getLongticker();
+            String shortTicker = entryData.getShortticker();
 
-                entry.setLongTickerCurrentPrice(longTickerCurrentPrice);
-                entry.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+            List<Double> longTickerCloses = allCloses.get(longTicker);
+            List<Double> shortTickerCloses = allCloses.get(shortTicker);
+
+            if (longTickerCloses == null || longTickerCloses.isEmpty() || shortTickerCloses == null || shortTickerCloses.isEmpty()) {
+                log.warn("Нет данных по ценам для пары: {} - {}", longTicker, shortTicker);
             }
 
-            JsonUtils.writeZScoreJson("z_score.json", allEntries);
+            entryData.setLongTickerCurrentPrice(longTickerCloses.get(longTickerCloses.size() - 1));
+            entryData.setShortTickerCurrentPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
+
+            JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
         } catch (Exception e) {
             log.error("Ошибка при обогащении z_score.json из all_closes.json: {}", e.getMessage(), e);
         }
@@ -367,5 +347,67 @@ public class ScreenerProcessor {
                 .text(text)
                 .enableMarkdown(true)
                 .build());
+    }
+
+    private static ZScoreEntry getzScoreEntry() {
+        List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
+        if (zScores == null || zScores.isEmpty()) {
+            log.warn("⚠️ z_score.json пустой или не найден");
+            throw new RuntimeException("⚠️ z_score.json пустой или не найден");
+        }
+        return zScores.get(0);
+    }
+
+    private static EntryData getEntryData() {
+        List<EntryData> entryData = JsonUtils.readEntryDataJson("entry_data.json");
+        if (entryData == null || entryData.isEmpty()) {
+            String message = "⚠️entry_data.json пустой или не найден";
+            log.warn(message);
+            throw new RuntimeException(message);
+        }
+        return entryData.get(0);
+    }
+
+    private EntryData getOrCreateEntryData() {
+        String jsonFilePath = "entry_data.json";
+        List<EntryData> entryDataList = JsonUtils.readEntryDataJson(jsonFilePath);
+        if (entryDataList == null || entryDataList.isEmpty()) {
+            try {
+                EntryData entryData = new EntryData();
+                mapper.writeValue(new File(jsonFilePath), Collections.singletonList(entryData));
+                return JsonUtils.readEntryDataJson(jsonFilePath).get(0);
+            } catch (IOException e) {
+                log.error("Ошибка при сохранении entry_data.json: {}", e.getMessage(), e);
+            }
+        }
+        return entryDataList.get(0);
+    }
+
+    private EntryData createEntryData(ZScoreEntry topPair) {
+        String jsonFilePath = "entry_data.json";
+        try {
+            EntryData entryData = new EntryData();
+            entryData.setPvalue(topPair.getPvalue());
+            entryData.setZscore(topPair.getZscore());
+            entryData.setLongticker(topPair.getLongticker());
+            entryData.setShortticker(topPair.getShortticker());
+            entryData.setSpread(topPair.getSpread());
+            entryData.setMean(topPair.getMean());
+            mapper.writeValue(new File(jsonFilePath), Collections.singletonList(entryData));
+            return JsonUtils.readEntryDataJson(jsonFilePath).get(0);
+        } catch (IOException e) {
+            String message = "Ошибка при сохранении entry_data.json: {}";
+            log.error(message, e.getMessage(), e);
+            throw new RuntimeException(message);
+        }
+    }
+
+    private void saveAllClosesToJson(ConcurrentHashMap<String, List<Double>> topPairCloses) {
+        String jsonFilePath = "all_closes.json";
+        try {
+            mapper.writeValue(new File(jsonFilePath), topPairCloses);
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
+        }
     }
 }

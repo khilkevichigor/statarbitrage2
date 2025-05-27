@@ -1,5 +1,6 @@
 package com.example.statarbitrage.utils;
 
+import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +23,24 @@ public class JsonUtils {
     }
 
     public static void writeZScoreJson(String filePath, List<ZScoreEntry> entries) {
+        try {
+            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(filePath), entries);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static List<EntryData> readEntryDataJson(String filePath) {
+        try {
+            return mapper.readValue(new File(filePath), new TypeReference<List<EntryData>>() {
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void writeEntryDataJson(String filePath, List<EntryData> entries) {
         try {
             mapper.writerWithDefaultPrettyPrinter().writeValue(new File(filePath), entries);
         } catch (Exception e) {

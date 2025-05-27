@@ -51,6 +51,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
+        listOfCommands.add(new BotCommand(BotMenu.DELETE_FILES.getName(), "Удалить файлы"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -112,6 +113,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             } else if (Objects.equals(text, BotMenu.STOP_TEST_TRADE.getName())) {
                 log.info("-> STOP_TEST_TRADE");
                 stopTestTrade(chatIdStr);
+            } else if (Objects.equals(text, BotMenu.DELETE_FILES.getName())) {
+                log.info("-> DELETE_FILES");
+                screenerProcessor.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_closes.json"));
             }
         }
     }

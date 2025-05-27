@@ -5,7 +5,8 @@ public enum BotMenu {
     START_TEST_TRADE("/start_test_trade"),
     STOP_TEST_TRADE("/stop_test_trade"),
     GET_SETTINGS("/get_settings"),
-    RESET_SETTINGS("/reset_settings");
+    RESET_SETTINGS("/reset_settings"),
+    DELETE_FILES("/delete_files");
 
     BotMenu(String name) {
         this.name = name;
