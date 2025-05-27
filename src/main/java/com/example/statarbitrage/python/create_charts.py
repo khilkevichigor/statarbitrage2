@@ -16,6 +16,11 @@ def load_settings(path):
         return None
 
 
+def normalize(series):
+    arr = np.array(series)
+    return (arr - arr.mean()) / arr.std()
+
+
 def plot_chart(
         prices_long, prices_short, window,
         longticker, shortticker, output_dir="charts",
@@ -37,16 +42,21 @@ def plot_chart(
     upper2 = mean + 2 * std
     lower2 = mean - 2 * std
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
-    fig.suptitle(f"Цены монет и спред: SHORT/{shortticker} LONG/{longticker}")
+    # Нормализация цен
+    norm_long = normalize(prices_long)
+    norm_short = normalize(prices_short)
 
-    ax1.plot(prices_short, label=f"{shortticker}", color="red")
-    ax1.plot(prices_long, label=f"{longticker}", color="green")
-    ax1.set_ylabel("Цена")
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+    fig.suptitle(f"Нормированные цены и спред: SHORT/{shortticker} LONG/{longticker}")
+
+    # Верхний график: нормализованные цены
+    ax1.plot(norm_short, label=f"{shortticker} (norm)", color="red")
+    ax1.plot(norm_long, label=f"{longticker} (norm)", color="green")
+    ax1.set_ylabel("Норм. цена")
     ax1.legend()
     ax1.grid(True)
 
-    # ⬅️ Добавим текущие цены long и short
+    # Добавим текущие цены (в обычном виде)
     price_text = (
         f"{longticker} = {long_price:.6f}, "
         f"{shortticker} = {short_price:.6f}"
@@ -59,6 +69,7 @@ def plot_chart(
         bbox=dict(boxstyle='round', facecolor='white', alpha=0.7)
     )
 
+    # Нижний график: spread и границы
     ax2.plot(spread, label="Spread", color="black")
     ax2.plot(range(window - 1, len(spread)), mean, label="Mean", color="blue")
     ax2.plot(range(window - 1, len(spread)), upper1, "--", label="+1σ", color="green")
