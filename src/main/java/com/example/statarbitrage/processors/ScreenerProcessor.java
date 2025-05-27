@@ -14,17 +14,20 @@ import com.example.statarbitrage.utils.JsonUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
@@ -37,8 +40,15 @@ public class ScreenerProcessor {
 
     // ObjectMapper создаём один раз, он потокобезопасен
     private final ObjectMapper mapper = new ObjectMapper();
+    private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
+    @Async
     public void testTrade(String chatId) {
+        AtomicBoolean isRunning = runningTrades.computeIfAbsent(chatId, k -> new AtomicBoolean(false));
+        if (!isRunning.compareAndSet(false, true)) {
+            log.warn("testTrade уже выполняется для chatId = {}", chatId);
+            return;
+        }
         try {
             ZScoreEntry topPair = getzScoreEntry();
             EntryData entryData = getEntryData();
@@ -146,9 +156,12 @@ public class ScreenerProcessor {
             }
         } catch (Exception e) {
             log.error("❌ Ошибка в testTrade: {}", e.getMessage(), e);
+        } finally {
+            isRunning.set(false);
         }
     }
 
+    @Async
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
 
