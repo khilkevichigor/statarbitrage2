@@ -48,7 +48,7 @@ def plot_chart(
 
     # ⬅️ Добавим текущие цены long и short
     price_text = (
-        f"{longticker} = {long_price:.6f}\n"
+        f"{longticker} = {long_price:.6f}, "
         f"{shortticker} = {short_price:.6f}"
     )
     ax1.text(
