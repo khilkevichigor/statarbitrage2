@@ -51,8 +51,8 @@ def analyze_pairs(pairs, candles_dict, chat_config):
         longticker = b if z > 0 else a
         shortticker = a if z > 0 else b
 
-        if not longticker or not shortticker:
-            continue
+        long_price = candles_dict[longticker][-1]
+        short_price = candles_dict[shortticker][-1]
 
         results.append({
             "zscore": z,
@@ -60,7 +60,9 @@ def analyze_pairs(pairs, candles_dict, chat_config):
             "spread": spread,
             "mean": mean,
             "longticker": longticker,
-            "shortticker": shortticker
+            "shortticker": shortticker,
+            "longtickercurrentprice": long_price,
+            "shorttickercurrentprice": short_price
         })
 
     print(f"✅ Найдено {len(results)} подходящих пар из {total_pairs}")
@@ -77,7 +79,7 @@ def main():
     chat_id = "159178617"
     chat_config = config[chat_id]
 
-    # Сгенерировать все возможные комбинации без ограничения
+    # Сгенерировать все возможные комбинации
     pairs = list(itertools.combinations(candles_dict.keys(), 2))
 
     results = analyze_pairs(pairs, candles_dict, chat_config)

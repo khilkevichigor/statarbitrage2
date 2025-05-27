@@ -1,10 +1,10 @@
 # create_charts.py
 
-import json
-import os
 import gc
-import numpy as np
+import json
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 
 def load_settings(path):
@@ -19,7 +19,8 @@ def load_settings(path):
 def plot_chart(
         prices_long, prices_short, window,
         longticker, shortticker, output_dir="charts",
-        spread_val=None, mean_val=None, zscore=None, pvalue=None
+        spread_val=None, mean_val=None, zscore=None, pvalue=None,
+        long_price=None, short_price=None
 ):
     if len(prices_long) < window or len(prices_short) < window:
         print(f"⚠️ Недостаточно данных для {shortticker}/{longticker}")
@@ -39,11 +40,24 @@ def plot_chart(
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
     fig.suptitle(f"Цены монет и спред: SHORT/{shortticker} LONG/{longticker}")
 
-    ax1.plot(prices_short, label=shortticker, color="red")
-    ax1.plot(prices_long, label=longticker, color="green")
+    ax1.plot(prices_short, label=f"{shortticker}", color="red")
+    ax1.plot(prices_long, label=f"{longticker}", color="green")
     ax1.set_ylabel("Цена")
     ax1.legend()
     ax1.grid(True)
+
+    # ⬅️ Добавим текущие цены long и short
+    price_text = (
+        f"{longticker} = {long_price:.6f}\n"
+        f"{shortticker} = {short_price:.6f}"
+    )
+    ax1.text(
+        0.01, 0.95, price_text,
+        transform=ax1.transAxes,
+        fontsize=10,
+        verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.7)
+    )
 
     ax2.plot(spread, label="Spread", color="black")
     ax2.plot(range(window - 1, len(spread)), mean, label="Mean", color="blue")
@@ -57,7 +71,6 @@ def plot_chart(
     ax2.legend()
     ax2.grid(True)
 
-    # Используем значения из z_score.json
     info_text = (
         f"mean={mean_val:.4f}, spread={spread_val:.4f}, "
         f"zscore={zscore:.4f}, pvalue={pvalue:.4f}"
@@ -125,7 +138,9 @@ def main():
             spread_val=entry.get("spread"),
             mean_val=entry.get("mean"),
             zscore=entry.get("zscore"),
-            pvalue=entry.get("pvalue")
+            pvalue=entry.get("pvalue"),
+            long_price=entry.get("longtickercurrentprice"),
+            short_price=entry.get("shorttickercurrentprice")
         )
         gc.collect()
 

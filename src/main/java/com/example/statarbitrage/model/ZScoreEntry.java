@@ -1,12 +1,8 @@
 package com.example.statarbitrage.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import lombok.ToString;
 
 @Data
-@ToString
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ZScoreEntry {
     private double zscore;
     private double pvalue;
@@ -14,4 +10,6 @@ public class ZScoreEntry {
     private double mean;
     private String longticker;
     private String shortticker;
+    private double longtickercurrentprice;
+    private double shorttickercurrentprice;
 }
