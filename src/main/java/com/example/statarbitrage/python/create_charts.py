@@ -1,16 +1,28 @@
 # create_charts.py
 
-import gc
 import json
-import matplotlib.pyplot as plt
-import numpy as np
 import os
-import sys
-import traceback
+import gc
+import numpy as np
+import matplotlib.pyplot as plt
 
 
-def plot_chart(prices_long, prices_short, window, longticker, shortticker, output_dir="charts"):
+def load_settings(path):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Ошибка загрузки настроек: {e}")
+        return None
+
+
+def plot_chart(
+        prices_long, prices_short, window,
+        longticker, shortticker, output_dir="charts",
+        spread_val=None, mean_val=None, zscore=None, pvalue=None
+):
     if len(prices_long) < window or len(prices_short) < window:
+        print(f"⚠️ Недостаточно данных для {shortticker}/{longticker}")
         return
 
     os.makedirs(output_dir, exist_ok=True)
@@ -45,31 +57,11 @@ def plot_chart(prices_long, prices_short, window, longticker, shortticker, outpu
     ax2.legend()
     ax2.grid(True)
 
-    # 🔽 Добавим текст с текущими значениями
-    current_spread = spread[-1]
-    current_mean = mean[-1]
-    current_std = std
-    current_zscore = (current_spread - current_mean) / current_std if current_std != 0 else 0
-
-    # Попробуем получить pvalue из z_score.json
-    current_pvalue = None
-    try:
-        with open("z_score.json", "r") as f:
-            zscore_data = json.load(f)
-            for item in zscore_data:
-                if item.get("longticker") == longticker and item.get("shortticker") == shortticker:
-                    current_pvalue = item.get("pvalue")
-                    break
-    except Exception as e:
-        print(f"⚠️ Не удалось загрузить pvalue: {e}")
-
-    # Подпись на графике
+    # Используем значения из z_score.json
     info_text = (
-            f"mean={current_mean:.4f}, spread={current_spread:.4f}, "
-            f"zscore={current_zscore:.4f}" +
-            (f", pvalue={current_pvalue:.4f}" if current_pvalue is not None else "")
+        f"mean={mean_val:.4f}, spread={spread_val:.4f}, "
+        f"zscore={zscore:.4f}, pvalue={pvalue:.4f}"
     )
-
     ax2.text(
         0.01, 0.95, info_text,
         transform=ax2.transAxes,
@@ -87,17 +79,6 @@ def plot_chart(prices_long, prices_short, window, longticker, shortticker, outpu
     plt.close('all')
 
     print(f"✅ График сохранён: {filepath}")
-
-
-def load_settings(settings_path, account_id="159178617"):
-    if not os.path.exists(settings_path):
-        print(f"❌ Файл настроек не найден: {settings_path}")
-        return None
-
-    with open(settings_path, "r") as f:
-        all_settings = json.load(f)
-
-    return all_settings.get(account_id)
 
 
 def main():
@@ -138,7 +119,14 @@ def main():
             print(f"⚠️ Пропущена пара {shortticker}/{longticker} — нет данных о ценах")
             continue
 
-        plot_chart(prices_long, prices_short, window, longticker, shortticker, output_dir)
+        plot_chart(
+            prices_long, prices_short, window,
+            longticker, shortticker, output_dir,
+            spread_val=entry.get("spread"),
+            mean_val=entry.get("mean"),
+            zscore=entry.get("zscore"),
+            pvalue=entry.get("pvalue")
+        )
         gc.collect()
 
 
