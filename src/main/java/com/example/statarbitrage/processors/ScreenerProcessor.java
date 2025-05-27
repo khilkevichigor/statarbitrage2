@@ -130,7 +130,7 @@ public class ScreenerProcessor {
             // 8. Обновляем entry_data.json
             JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
 
-            sendText(chatId, "📊Профит " + entryData.getProfit());
+//            sendText(chatId, "📊Профит " + entryData.getProfit());
 
             // 9. Отправляем график
             File chartDir = new File("charts");
@@ -144,7 +144,6 @@ public class ScreenerProcessor {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }
             }
-
         } catch (Exception e) {
             log.error("❌ Ошибка в testTrade: {}", e.getMessage(), e);
         }
