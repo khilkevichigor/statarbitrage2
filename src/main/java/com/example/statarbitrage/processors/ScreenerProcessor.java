@@ -130,38 +130,52 @@ public class ScreenerProcessor {
                     String.format("%+.2f", spreadChangePercent));
 
             // 7. Расчет прибыли
+
+            // Исходные данные
             BigDecimal longEntry = BigDecimal.valueOf(entryData.getLongTickerEntryPrice());
             BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
             BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
             BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
 
-            // (Current - Entry) / Entry * 100
-            BigDecimal longReturn = longCurrent.subtract(longEntry)
+            // Расчёт доходности по каждому тикеру в процентах
+            BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                     .divide(longEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
 
-            BigDecimal shortReturn = shortEntry.subtract(shortCurrent)
+            BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
                     .divide(shortEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
 
-            // Округляем каждое значение до 5 знаков после запятой
-            BigDecimal longReturnRounded = longReturn.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal shortReturnRounded = shortReturn.setScale(2, RoundingMode.HALF_UP);
+            // 👉 Плечо (допустим по $500 в каждую позицию)
+            BigDecimal capitalPerLeg = BigDecimal.valueOf(500);
+            BigDecimal totalCapital = capitalPerLeg.multiply(BigDecimal.valueOf(2)); // $1000
 
-            // Складываем
-            BigDecimal profitPercent = longReturnRounded.add(shortReturnRounded);
+            // Прибыль/убыток в долларах по каждой позиции
+            BigDecimal longPL = longReturnPct.multiply(capitalPerLeg)
+                    .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
-            // Округляем общую прибыль до 2 знаков для отображения
-            BigDecimal profitRounded = profitPercent.setScale(2, RoundingMode.HALF_UP);
-            String profitStr = profitRounded + "%";
+            BigDecimal shortPL = shortReturnPct.multiply(capitalPerLeg)
+                    .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
-            // Сохраняем
-            entryData.setProfit(profitStr);
+            BigDecimal totalPL = longPL.add(shortPL);
 
-            // Логируем
+            // Общая прибыль в %
+            BigDecimal profitPercentFromTotal = totalPL
+                    .divide(totalCapital, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            // Округления для отображения
+            BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
+
+            // Устанавливаем в объект и логируем
+            entryData.setProfit(profitRounded + "%");
+
             log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
             log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%", entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
-            log.info("💰Профит: {}", profitStr);
+            log.info("💰Профит от капитала {}$: {}", totalCapital, profitRounded + "%");
+
 
             // 8. Обновляем entry_data.json
             JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
