@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -110,9 +112,6 @@ public class ScreenerProcessor {
             //после скриптов снова берем свежий файл
             topPair = getzScoreEntry();
 
-            log.info("📊 LONG {{}}: Entry: {}, Current: {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice());
-            log.info("📊 SHORT {{}}: Entry: {}, Current: {}", entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice());
-
             double meanChangeAbs = topPair.getMean() - entryData.getMeanEntry();
             double spreadChangeAbs = topPair.getSpread() - entryData.getSpreadEntry();
 
@@ -131,16 +130,41 @@ public class ScreenerProcessor {
                     String.format("%+.2f", spreadChangePercent));
 
             // 7. Расчет прибыли
-            double longReturn = (entryData.getLongTickerCurrentPrice() - entryData.getLongTickerEntryPrice()) / entryData.getLongTickerEntryPrice();
-            double shortReturn = (entryData.getShortTickerEntryPrice() - entryData.getShortTickerCurrentPrice()) / entryData.getShortTickerEntryPrice();
-            double profitPercent = longReturn + shortReturn;
-            entryData.setProfit(String.format("%.2f%%", profitPercent * 100));
-            log.info("💰Прибыль рассчитана: {}", entryData.getProfit());
+            BigDecimal longEntry = BigDecimal.valueOf(entryData.getLongTickerEntryPrice());
+            BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
+            BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
+            BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
+
+            // (Current - Entry) / Entry * 100
+            BigDecimal longReturn = longCurrent.subtract(longEntry)
+                    .divide(longEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            BigDecimal shortReturn = shortEntry.subtract(shortCurrent)
+                    .divide(shortEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            // Округляем каждое значение до 5 знаков после запятой
+            BigDecimal longReturnRounded = longReturn.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal shortReturnRounded = shortReturn.setScale(2, RoundingMode.HALF_UP);
+
+            // Складываем
+            BigDecimal profitPercent = longReturnRounded.add(shortReturnRounded);
+
+            // Округляем общую прибыль до 2 знаков для отображения
+            BigDecimal profitRounded = profitPercent.setScale(2, RoundingMode.HALF_UP);
+            String profitStr = profitRounded + "%";
+
+            // Сохраняем
+            entryData.setProfit(profitStr);
+
+            // Логируем
+            log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
+            log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%", entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
+            log.info("💰Профит: {}", profitStr);
 
             // 8. Обновляем entry_data.json
             JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
-
-//            sendText(chatId, "📊Профит " + entryData.getProfit());
 
             // 9. Отправляем график
             File chartDir = new File("charts");
@@ -149,7 +173,8 @@ public class ScreenerProcessor {
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    sendChart(chatId, chart, "📊Профит " + entryData.getProfit());
+                    String message = "💰Профит: " + entryData.getProfit() + ", где LONG: " + longReturnRounded + "%, SHORT: " + shortReturnRounded + "%";
+                    sendChart(chatId, chart, message);
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }
