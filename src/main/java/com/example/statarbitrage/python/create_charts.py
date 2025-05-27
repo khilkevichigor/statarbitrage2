@@ -45,6 +45,39 @@ def plot_chart(prices_long, prices_short, window, longticker, shortticker, outpu
     ax2.legend()
     ax2.grid(True)
 
+    # 🔽 Добавим текст с текущими значениями
+    current_spread = spread[-1]
+    current_mean = mean[-1]
+    current_std = std
+    current_zscore = (current_spread - current_mean) / current_std if current_std != 0 else 0
+
+    # Попробуем получить pvalue из z_score.json
+    current_pvalue = None
+    try:
+        with open("z_score.json", "r") as f:
+            zscore_data = json.load(f)
+            for item in zscore_data:
+                if item.get("longticker") == longticker and item.get("shortticker") == shortticker:
+                    current_pvalue = item.get("pvalue")
+                    break
+    except Exception as e:
+        print(f"⚠️ Не удалось загрузить pvalue: {e}")
+
+    # Подпись на графике
+    info_text = (
+            f"mean={current_mean:.4f}, spread={current_spread:.4f}, "
+            f"zscore={current_zscore:.4f}" +
+            (f", pvalue={current_pvalue:.4f}" if current_pvalue is not None else "")
+    )
+
+    ax2.text(
+        0.01, 0.95, info_text,
+        transform=ax2.transAxes,
+        fontsize=10,
+        verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.7)
+    )
+
     plt.tight_layout()
 
     filename = f"{shortticker}_{longticker}.png".replace("/", "-")
