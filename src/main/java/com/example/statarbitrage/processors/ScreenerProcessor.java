@@ -362,13 +362,28 @@ public class ScreenerProcessor {
     }
 
     private static ZScoreEntry getzScoreEntry() {
-        List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
-        if (zScores == null || zScores.isEmpty()) {
-            log.warn("⚠️ z_score.json пустой или не найден");
-            throw new RuntimeException("⚠️ z_score.json пустой или не найден");
+        int maxAttempts = 5;
+        int waitMillis = 300;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            List<ZScoreEntry> zScores = JsonUtils.readZScoreJson("z_score.json");
+            if (zScores != null && !zScores.isEmpty()) {
+                return zScores.get(0);
+            }
+
+            log.warn("Попытка {}: z_score.json пустой или не найден", attempt);
+            try {
+                Thread.sleep(waitMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Ожидание чтения z_score.json прервано", e);
+            }
         }
-        return zScores.get(0);
+
+        log.error("❌ Не удалось прочитать z_score.json после {} попыток", maxAttempts);
+        throw new RuntimeException("⚠️ z_score.json пустой или не найден после попыток");
     }
+
 
     private static EntryData getEntryData() {
         List<EntryData> entryData = JsonUtils.readEntryDataJson("entry_data.json");

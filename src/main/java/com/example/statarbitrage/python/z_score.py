@@ -84,9 +84,13 @@ def main():
 
     results = analyze_pairs(pairs, candles_dict, chat_config)
 
+    print("Saving z_score.json with data:", results)
     # Сохранить результат
-    with open("z_score.json", "w") as f:
-        json.dump(results, f, indent=2)
+    if results:
+        with open('z_score.json', 'w') as f:
+            json.dump(results, f)
+    else:
+        print("results is empty — skipping file write")
 
 
 if __name__ == "__main__":
