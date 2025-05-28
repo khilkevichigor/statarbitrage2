@@ -38,8 +38,7 @@ def plot_chart(
         longticker, shortticker, output_dir="charts",
         spread_val=None, mean_val=None, zscore=None, pvalue=None,
         long_price=None, short_price=None,
-        entry_data=None):  # 👈 добавлено
-
+        entry_data=None):
     if len(prices_long) < window or len(prices_short) < window:
         print(f"⚠️ Недостаточно данных для {shortticker}/{longticker}")
         return
@@ -60,16 +59,17 @@ def plot_chart(
     norm_short = normalize(prices_short)
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
-    fig.suptitle(f"Нормированные цены и спред: SHORT/{shortticker} LONG/{longticker}")
+    fig.suptitle(f"Нормализованные цены и спред: SHORT/{shortticker} LONG/{longticker}")
 
     # Верхний график: нормализованные цены
     ax1.plot(norm_short, label=f"{shortticker} (norm)", color="red")
     ax1.plot(norm_long, label=f"{longticker} (norm)", color="green")
-    ax1.set_ylabel("Норм. цена")
+    ax1.set_yticks([])  # 🟣 Убираем шкалу Y
+    ax1.set_ylabel("")  # Убираем подпись оси
     ax1.legend()
     ax1.grid(True)
 
-    # Добавим текущие цены (в обычном виде)
+    # Добавим текущие цены
     price_text = (
         f"{longticker} = {long_price:.6f}, "
         f"{shortticker} = {short_price:.6f}"
@@ -117,14 +117,11 @@ def plot_chart(
             entry_price_short = entry_data.get("shortTickerEntryPrice")
 
             try:
-                # Нормализуем входные цены, чтобы сравнивать с norm_long/norm_short
                 entry_price_long_norm = (entry_price_long - np.mean(prices_long)) / np.std(prices_long)
                 entry_price_short_norm = (entry_price_short - np.mean(prices_short)) / np.std(prices_short)
 
-                # Поиск самого близкого индекса на нормализованных ценах
                 min_diff = float("inf")
                 idx_entry = None
-
                 for i in range(len(prices_long)):
                     diff = abs(norm_long[i] - entry_price_long_norm) + abs(norm_short[i] - entry_price_short_norm)
                     if diff < min_diff:
@@ -138,7 +135,6 @@ def plot_chart(
                 ax1.scatter(idx_entry, norm_short[idx_entry], color="purple", zorder=5)
                 ax2.scatter(idx_entry, spread[idx_entry], color="purple", zorder=5)
 
-                # PROFIT
                 profit = entry_data.get("profit")
                 if profit:
                     ax1.text(
@@ -151,7 +147,6 @@ def plot_chart(
                 print(f"⚠️ Не удалось отобразить ENTRY линию: {e}")
 
     plt.tight_layout()
-
     filename = f"{shortticker}_{longticker}.png".replace("/", "-")
     filepath = os.path.join(output_dir, filename)
     plt.savefig(filepath)
