@@ -17,4 +17,9 @@ public class Settings {
     private double zscoreExit;
     private double significanceLevel;
     private int checkInterval;
+
+    private double capitalLong;
+    private double capitalShort;
+    private double leverage;
+    private double feePctPerTrade;
 }

@@ -38,6 +38,10 @@ public class SettingsService {
                 .zscoreExit(0.5)
                 .windowSize(20)
                 .checkInterval(1)
+                .capitalLong(1000.0)
+                .capitalShort(1000.0)
+                .leverage(10.0)
+                .feePctPerTrade(0.04)
                 .build();
     }
 

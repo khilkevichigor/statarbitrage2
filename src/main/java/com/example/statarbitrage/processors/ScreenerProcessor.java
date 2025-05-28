@@ -4,11 +4,13 @@ import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.EntryData;
+import com.example.statarbitrage.model.ProfitData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.EventSendService;
+import com.example.statarbitrage.services.ProfitService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.utils.JsonUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +41,7 @@ public class ScreenerProcessor {
     private final OkxClient okxClient;
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
+    private final ProfitService profitService;
 
     // ObjectMapper создаём один раз, он потокобезопасен
     private final ObjectMapper mapper = new ObjectMapper();
@@ -130,55 +133,7 @@ public class ScreenerProcessor {
                     String.format("%+.2f", spreadChangePercent));
 
             // 7. Расчет прибыли
-
-            // Исходные данные
-            BigDecimal longEntry = BigDecimal.valueOf(entryData.getLongTickerEntryPrice());
-            BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
-            BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
-            BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
-
-            // Расчёт доходности по каждому тикеру в процентах
-            BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-                    .divide(longEntry, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-            BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-                    .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-            // 👉 Плечо (допустим по $500 в каждую позицию)
-            BigDecimal capitalPerLeg = BigDecimal.valueOf(500);
-            BigDecimal totalCapital = capitalPerLeg.multiply(BigDecimal.valueOf(2)); // $1000
-
-            // Прибыль/убыток в долларах по каждой позиции
-            BigDecimal longPL = longReturnPct.multiply(capitalPerLeg)
-                    .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
-
-            BigDecimal shortPL = shortReturnPct.multiply(capitalPerLeg)
-                    .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
-
-            BigDecimal totalPL = longPL.add(shortPL);
-
-            // Общая прибыль в %
-            BigDecimal profitPercentFromTotal = totalPL
-                    .divide(totalCapital, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-            // Округления для отображения
-            BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
-
-            // Устанавливаем в объект и логируем
-            entryData.setProfit(profitRounded + "%");
-
-            log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
-            log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%", entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
-            log.info("💰Профит от капитала {}$: {}", totalCapital, profitRounded + "%");
-
-
-            // 8. Обновляем entry_data.json
-            JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
+            ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
             // 9. Отправляем график
             File chartDir = new File("charts");
@@ -187,7 +142,7 @@ public class ScreenerProcessor {
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    String message = "💰Профит: " + entryData.getProfit() + ", где LONG: " + longReturnRounded + "%, SHORT: " + shortReturnRounded + "%";
+                    String message = "💰Профит: " + entryData.getProfit() + ", где LONG: " + profitData.getLongReturnRounded() + "%, SHORT: " + profitData.getShortReturnRounded() + "%";
                     sendChart(chatId, chart, message);
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
@@ -283,6 +238,59 @@ public class ScreenerProcessor {
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
+
+    public static ProfitData calculateAndSetProfit(EntryData entryData, double capitalPerLeg) {
+        BigDecimal longEntry = BigDecimal.valueOf(entryData.getLongTickerEntryPrice());
+        BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
+        BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
+        BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
+
+        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
+                .divide(longEntry, 10, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
+                .divide(shortEntry, 10, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        BigDecimal capitalPerLegBD = BigDecimal.valueOf(capitalPerLeg);
+        BigDecimal totalCapital = capitalPerLegBD.multiply(BigDecimal.valueOf(2));
+
+        BigDecimal longPL = longReturnPct.multiply(capitalPerLegBD)
+                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+
+        BigDecimal shortPL = shortReturnPct.multiply(capitalPerLegBD)
+                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+
+        BigDecimal totalPL = longPL.add(shortPL);
+
+        BigDecimal profitPercentFromTotal = totalPL
+                .divide(totalCapital, 10, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
+
+        String profitStr = profitRounded + "%";
+        entryData.setProfit(profitStr);
+        JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
+
+        log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",
+                entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
+        log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%",
+                entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
+        log.info("💰Профит от капитала {}$: {}", totalCapital, profitStr);
+
+        return ProfitData.builder()
+                .totalCapital(totalCapital)
+                .longReturnRounded(longReturnRounded)
+                .shortReturnRounded(shortReturnRounded)
+                .profitRounded(profitRounded)
+                .profitStr(profitStr)
+                .build();
+    }
+
 
     public void deleteSpecificFilesInProjectRoot(List<String> fileNames) {
         File projectRoot = new File(".");
