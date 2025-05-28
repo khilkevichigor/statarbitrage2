@@ -14,7 +14,7 @@ import java.util.Collections;
 @Service
 @RequiredArgsConstructor
 public class ProfitService {
-    private FileService fileService;
+    private final FileService fileService;
 
     public ProfitData calculateAndSetProfit(
             EntryData entryData,

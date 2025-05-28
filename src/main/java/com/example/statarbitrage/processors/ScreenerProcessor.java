@@ -62,14 +62,13 @@ public class ScreenerProcessor {
                 return;
             }
 
-            // 2. Получаем настройки пользователя
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
             if (settings == null) {
                 log.warn("⚠️ Настройки пользователя не найдены для chatId {}", chatId);
                 return;
             }
 
-            // 3. Получаем текущие цены закрытия
+            //Получаем текущие цены закрытия
             List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
             List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
             if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
@@ -84,9 +83,7 @@ public class ScreenerProcessor {
 
             updateEntryDataWithCurrentCloses(entryData, topPairCloses);
 
-            entryData = fileService.getEntryData(); //todo возможно можно не делать тк по ссылке изменили
-
-            // 4. Устанавливаем точки входа, если они ещё не заданы
+            //Устанавливаем точки входа, если они ещё не заданы
             if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
                 entryData.setLongticker(topPair.getLongticker());
                 entryData.setShortticker(topPair.getShortticker());
@@ -94,16 +91,16 @@ public class ScreenerProcessor {
                 entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
                 entryData.setMeanEntry(topPair.getMean());
                 entryData.setSpreadEntry(topPair.getSpread());
-
                 fileService.writeEntryDataToJson(Collections.singletonList(entryData)); //сохраняем сразу!
-
                 log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
-                return; //пока не надо считать прибыль
             }
+
+            //Расчет прибыли что бы отобразить на чарте
+            ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
             log.info("🐍Запускаем скрипты...");
 
-            // 6. Запускаем Python-скрипты
+            //Запускаем Python-скрипты
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
             log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
 
@@ -111,36 +108,13 @@ public class ScreenerProcessor {
             fileService.clearChartDir();
             log.info("Очистили папку с чартами");
 
-            ThreadUtil.sleep(1000); //чтобы чарт отрисовался по обновленному z_score.json
+            ThreadUtil.sleep(1000 * 2); //чтобы чарт отрисовался по обновленному z_score.json
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
             log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
             log.info("🐍скрипты отработали");
 
-            //после скриптов снова берем свежий файл
-            topPair = fileService.getTopPairEntry();
-
-            double meanChangeAbs = topPair.getMean() - entryData.getMeanEntry();
-            double spreadChangeAbs = topPair.getSpread() - entryData.getSpreadEntry();
-
-            double meanChangePercent = 100.0 * Math.abs(meanChangeAbs) / Math.abs(entryData.getMeanEntry());
-            if (meanChangeAbs < 0) meanChangePercent = -meanChangePercent;
-
-            double spreadChangePercent = 100.0 * Math.abs(spreadChangeAbs) / Math.abs(entryData.getSpreadEntry());
-            if (spreadChangeAbs < 0) spreadChangePercent = -spreadChangePercent;
-
-            log.info("🔄 Изменение MEAN: {} (абсолютно), {}% (от начального)",
-                    String.format("%+.5f", meanChangeAbs),
-                    String.format("%+.2f", meanChangePercent));
-
-            log.info("🔄 Изменение SPREAD: {} (абсолютно), {}% (от начального)",
-                    String.format("%+.5f", spreadChangeAbs),
-                    String.format("%+.2f", spreadChangePercent));
-
-            // 7. Расчет прибыли
-            ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
-
-            // 9. Отправляем график
+            //Отправляем график
             try {
                 sendChart(chatId, fileService.getChart(), profitData.getLogMessage());
             } catch (Exception e) {
@@ -205,7 +179,7 @@ public class ScreenerProcessor {
         fileService.clearChartDir();
         log.info("Очистили папку с чартами");
 
-        ThreadUtil.sleep(1000); //чтобы чарт отрисовался по обновленному z_score.json
+        ThreadUtil.sleep(1000 * 2); //чтобы чарт отрисовался по обновленному z_score.json
         PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), true);
         log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
@@ -219,17 +193,11 @@ public class ScreenerProcessor {
         updateEntryDataWithCurrentCloses(entryData, allCloses);
         log.info("Обогатили entry_data.json ценами из all_closes.json и данными из z_score.json");
 
-        File chartDir = new File("charts");
-        File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
-
-        if (chartFiles != null && chartFiles.length > 0) {
-            File chart = chartFiles[0];
-            try {
-                sendChart(chatId, chart, "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker());
-                log.info("Отправили чарт в телеграм");
-            } catch (Exception e) {
-                log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
-            }
+        //Отправляем график
+        try {
+            sendChart(chatId, fileService.getChart(), "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker());
+        } catch (Exception e) {
+            log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
         }
 
         long durationMillis = System.currentTimeMillis() - startTime;
@@ -243,7 +211,7 @@ public class ScreenerProcessor {
         entryData.setLongticker(topPair.getLongticker());
         entryData.setShortticker(topPair.getShortticker());
         fileService.writeEntryDataToJson(Collections.singletonList(entryData));
-        return fileService.readEntryDataJson().get(0);
+        return entryData;
     }
 
     private void updateEntryDataWithCurrentCloses(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
