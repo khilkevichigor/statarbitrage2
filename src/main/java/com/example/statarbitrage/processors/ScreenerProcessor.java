@@ -98,25 +98,17 @@ public class ScreenerProcessor {
             //Расчет прибыли что бы отобразить на чарте
             ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
-            log.info("🐍Запускаем скрипты...");
-
             //Запускаем Python-скрипты
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
-            log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
-
 
             fileService.clearChartDir();
-            log.info("Очистили папку с чартами");
 
             ThreadUtil.sleep(1000 * 2); //чтобы чарт отрисовался по обновленному z_score.json
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
-            log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
-
-            log.info("🐍скрипты отработали");
 
             //Отправляем график
             try {
-                sendChart(chatId, fileService.getChart(), profitData.getLogMessage());
+                sendChart(chatId, fileService.getChart(), profitData.getLogMessage(), false);
             } catch (Exception e) {
                 log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
             }
@@ -195,7 +187,7 @@ public class ScreenerProcessor {
 
         //Отправляем график
         try {
-            sendChart(chatId, fileService.getChart(), "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker());
+            sendChart(chatId, fileService.getChart(), "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker(), true);
         } catch (Exception e) {
             log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
         }
@@ -235,14 +227,16 @@ public class ScreenerProcessor {
         }
     }
 
-    private void sendChart(String chatId, File chartFile, String caption) {
+    private void sendChart(String chatId, File chartFile, String caption, boolean withLogging) {
         try {
             eventSendService.sendAsPhoto(SendAsPhotoEvent.builder()
                     .chatId(chatId)
                     .photo(chartFile)
                     .caption(caption)
                     .build());
-            log.info("📤 Чарт отправлен в Telegram: {}", chartFile.getName());
+            if (withLogging) {
+                log.info("📤 Чарт отправлен в Telegram: {}", chartFile.getName());
+            }
         } catch (Exception e) {
             log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
         }
