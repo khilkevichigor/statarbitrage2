@@ -24,7 +24,6 @@ public class FileService {
     private static final String ENTRY_DATA_JSON_FILE_PATH = "entry_data.json";
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
     private static final String CHARTS_DIR = "charts";
-    ;
 
     public ZScoreEntry getTopPairEntry() {
         int maxAttempts = 5;
@@ -63,7 +62,7 @@ public class FileService {
         try {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(ENTRY_DATA_JSON_FILE_PATH), entries);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Ошибка при записи entry_data.json: {}", e.getMessage(), e);
         }
     }
 
@@ -76,7 +75,7 @@ public class FileService {
         }
     }
 
-    private static List<ZScoreEntry> readZScoreJson() {
+    private List<ZScoreEntry> readZScoreJson() {
         try {
             return MAPPER.readValue(new File(Z_SCORE_JSON_FILE_PATH), new TypeReference<>() {
             });
