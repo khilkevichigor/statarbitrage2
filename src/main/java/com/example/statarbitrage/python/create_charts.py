@@ -7,6 +7,16 @@ import numpy as np
 import os
 
 
+def load_entry_data(entry_path):
+    try:
+        with open(entry_path, "r") as f:
+            data = json.load(f)
+            return data[0] if data else None
+    except Exception as e:
+        print(f"Ошибка загрузки entry_data.json: {e}")
+        return None
+
+
 def load_settings(path):
     try:
         with open(path, "r") as f:
@@ -25,8 +35,9 @@ def plot_chart(
         prices_long, prices_short, window,
         longticker, shortticker, output_dir="charts",
         spread_val=None, mean_val=None, zscore=None, pvalue=None,
-        long_price=None, short_price=None
-):
+        long_price=None, short_price=None,
+        entry_data=None):  # 👈 добавлено
+
     if len(prices_long) < window or len(prices_short) < window:
         print(f"⚠️ Недостаточно данных для {shortticker}/{longticker}")
         return
@@ -94,6 +105,41 @@ def plot_chart(
         bbox=dict(boxstyle='round', facecolor='white', alpha=0.7)
     )
 
+    # === ENTRY и PROFIT линии ===
+    if entry_data:
+        entry_long = entry_data.get("longticker")
+        entry_short = entry_data.get("shortticker")
+
+        if longticker == entry_long and shortticker == entry_short:
+            entry_price_long = entry_data.get("longTickerEntryPrice")
+            entry_price_short = entry_data.get("shortTickerEntryPrice")
+
+            try:
+                # Найдём индекс ENTRY по ближайшей цене (можно улучшить!)
+                idx_entry = min(
+                    len(prices_long) - 1,
+                    max(
+                        range(len(prices_long)),
+                        key=lambda i: abs(prices_long[i] - entry_price_long)
+                    )
+                )
+
+                for ax in [ax1, ax2]:
+                    ax.axvline(idx_entry, color="purple", linestyle="--", label="ENTRY")
+
+                # Отображаем PROFIT (если есть)
+                profit = entry_data.get("profit")
+                if profit:
+                    for ax in [ax1, ax2]:
+                        ax.text(
+                            idx_entry + 2, ax.get_ylim()[1] * 0.95,
+                            f"Profit: {profit}",
+                            color="purple", fontsize=9,
+                            bbox=dict(boxstyle='round', facecolor='lavender', alpha=0.6)
+                        )
+            except Exception as e:
+                print(f"⚠️ Не удалось отобразить ENTRY линию: {e}")
+
     plt.tight_layout()
 
     filename = f"{shortticker}_{longticker}.png".replace("/", "-")
@@ -110,16 +156,19 @@ def main():
     zscore_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/z_score.json"
     closes_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/all_closes.json"
     output_dir = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/charts"
+    entry_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/entry_data.json"
+
+    entry_data = load_entry_data(entry_path)
 
     settings = load_settings(settings_path)
     if not settings:
-        print("❌ Не удалось загрузить настройки")
+        print("❌ Не удалось загрузить entry_data.json")
         return
 
     window = settings.get("windowSize", 20)
 
     if not os.path.exists(zscore_path) or not os.path.exists(closes_path):
-        print("❌ z_score.json или closes.json не найден")
+        print("❌ z_score.json или all_closes.json не найден")
         return
 
     with open(zscore_path, "r") as f:
@@ -151,7 +200,8 @@ def main():
             zscore=entry.get("zscore"),
             pvalue=entry.get("pvalue"),
             long_price=entry.get("longtickercurrentprice"),
-            short_price=entry.get("shorttickercurrentprice")
+            short_price=entry.get("shorttickercurrentprice"),
+            entry_data=entry_data  # 👈 добавь это
         )
         gc.collect()
 
