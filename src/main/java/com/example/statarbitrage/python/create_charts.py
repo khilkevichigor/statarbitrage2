@@ -5,6 +5,8 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
+import traceback
 
 
 def load_entry_data(entry_path):
@@ -132,14 +134,11 @@ def plot_chart(
                 for ax in [ax1, ax2]:
                     ax.axvline(idx_entry, color="purple", linestyle="--", label="ENTRY")
 
-                # Отметим точку на графике цен
                 ax1.scatter(idx_entry, norm_long[idx_entry], color="purple", zorder=5)
                 ax1.scatter(idx_entry, norm_short[idx_entry], color="purple", zorder=5)
-
-                # 👇 Добавим точку на графике спреда
                 ax2.scatter(idx_entry, spread[idx_entry], color="purple", zorder=5)
 
-                # Отображаем PROFIT (если есть)
+                # PROFIT
                 profit = entry_data.get("profit")
                 if profit:
                     ax1.text(
@@ -170,10 +169,9 @@ def main():
     entry_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/entry_data.json"
 
     entry_data = load_entry_data(entry_path)
-
     settings = load_settings(settings_path)
     if not settings:
-        print("❌ Не удалось загрузить entry_data.json")
+        print("❌ Не удалось загрузить settings.json")
         return
 
     window = settings.get("windowSize", 20)
@@ -212,7 +210,7 @@ def main():
             pvalue=entry.get("pvalue"),
             long_price=entry.get("longtickercurrentprice"),
             short_price=entry.get("shorttickercurrentprice"),
-            entry_data=entry_data  # 👈 добавь это
+            entry_data=entry_data  # 👈 добавлено
         )
         gc.collect()
 
