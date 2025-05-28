@@ -52,78 +52,44 @@ public class ScreenerProcessor {
         }
         try {
             ZScoreEntry topPair = fileService.getTopPairEntry();
-            if (topPair == null) {
-                log.warn("⚠️ topPair не найден");
-                return;
-            }
             EntryData entryData = fileService.getEntryData();
-            if (entryData == null) {
-                log.warn("⚠️ entryData не найден");
-                return;
-            }
-
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
-            if (settings == null) {
-                log.warn("⚠️ Настройки пользователя не найдены для chatId {}", chatId);
-                return;
-            }
 
-            //Получаем текущие цены закрытия
-            List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
-            List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
-            if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
-                log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getLongticker(), topPair.getShortticker());
-                return;
-            }
-
-            ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
-            topPairCloses.put(topPair.getLongticker(), longTickerCloses);
-            topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
-            fileService.writeAllClosesToJson(topPairCloses);
-
-            updateEntryDataWithCurrentCloses(entryData, topPairCloses);
-
-            //Устанавливаем точки входа, если они ещё не заданы
-            if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
-                entryData.setLongticker(topPair.getLongticker());
-                entryData.setShortticker(topPair.getShortticker());
-                entryData.setLongTickerEntryPrice(longTickerCloses.get(longTickerCloses.size() - 1));
-                entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
-                entryData.setMeanEntry(topPair.getMean());
-                entryData.setSpreadEntry(topPair.getSpread());
-                fileService.writeEntryDataToJson(Collections.singletonList(entryData)); //сохраняем сразу!
-                log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
-            }
-
-            //Расчет прибыли что бы отобразить на чарте
+            ConcurrentHashMap<String, List<Double>> topPairCloses = getTopPairCloses(topPair, settings);
+            updateEntryDataFileWithCurrentPrices(entryData, topPairCloses);
+            setEntryPointsIfNeeded(entryData, topPair, topPairCloses);
             ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
-            log.info("🐍Запускаем скрипты...");
-
-            //Запускаем Python-скрипты
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
-            log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
-
-
             fileService.clearChartDir();
-            log.info("Очистили папку с чартами");
-
             ThreadUtil.sleep(1000 * 2); //чтобы чарт отрисовался по обновленному z_score.json
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
-            log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
-            log.info("🐍скрипты отработали");
-
-            //Отправляем график
-            try {
-                sendChart(chatId, fileService.getChart(), profitData.getLogMessage());
-            } catch (Exception e) {
-                log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
-            }
+            sendChart(chatId, fileService.getChart(), profitData.getLogMessage());
         } catch (Exception e) {
             log.error("❌ Ошибка в testTrade: {}", e.getMessage(), e);
         } finally {
             isRunning.set(false);
+        }
+    }
+
+    private void setEntryPointsIfNeeded(EntryData entryData, ZScoreEntry topPair, ConcurrentHashMap<String, List<Double>> topPairCloses) {
+        if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
+
+            entryData.setLongticker(topPair.getLongticker());
+            entryData.setShortticker(topPair.getShortticker());
+
+            List<Double> longTickerCloses = topPairCloses.get(topPair.getLongticker());
+            List<Double> shortTickerCloses = topPairCloses.get(topPair.getShortticker());
+
+            entryData.setLongTickerEntryPrice(longTickerCloses.get(longTickerCloses.size() - 1));
+            entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
+
+            entryData.setMeanEntry(topPair.getMean());
+            entryData.setSpreadEntry(topPair.getSpread());
+
+            fileService.writeEntryDataToJson(Collections.singletonList(entryData)); //сохраняем сразу!
+            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
         }
     }
 
@@ -190,7 +156,7 @@ public class ScreenerProcessor {
         EntryData entryData = createEntryData(topPair);//создаем на этапе поиска
         log.info("Создали entry_data.json");
 
-        updateEntryDataWithCurrentCloses(entryData, allCloses);
+        updateEntryDataFileWithCurrentPrices(entryData, allCloses);
         log.info("Обогатили entry_data.json ценами из all_closes.json и данными из z_score.json");
 
         //Отправляем график
@@ -206,7 +172,21 @@ public class ScreenerProcessor {
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
 
-    public EntryData createEntryData(ZScoreEntry topPair) {
+    private ConcurrentHashMap<String, List<Double>> getTopPairCloses(ZScoreEntry topPair, Settings settings) {
+        List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
+        List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
+        if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
+            log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getLongticker(), topPair.getShortticker());
+            throw new RuntimeException();
+        }
+        ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
+        topPairCloses.put(topPair.getLongticker(), longTickerCloses);
+        topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
+        fileService.writeAllClosesToJson(topPairCloses);
+        return topPairCloses;
+    }
+
+    private EntryData createEntryData(ZScoreEntry topPair) {
         EntryData entryData = new EntryData();
         entryData.setLongticker(topPair.getLongticker());
         entryData.setShortticker(topPair.getShortticker());
@@ -214,7 +194,7 @@ public class ScreenerProcessor {
         return entryData;
     }
 
-    private void updateEntryDataWithCurrentCloses(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
+    private void updateEntryDataFileWithCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
         try {
             String longTicker = entryData.getLongticker();
             String shortTicker = entryData.getShortticker();
