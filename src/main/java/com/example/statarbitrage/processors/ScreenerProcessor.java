@@ -13,6 +13,7 @@ import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.ProfitService;
 import com.example.statarbitrage.services.SettingsService;
+import com.example.statarbitrage.utils.ThreadUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -79,10 +80,9 @@ public class ScreenerProcessor {
             ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
             topPairCloses.put(topPair.getLongticker(), longTickerCloses);
             topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
-
             fileService.writeAllClosesToJson(topPairCloses);
 
-            updateCurrentPrices(entryData, topPairCloses);
+            updateEntryDataWithCurrentCloses(entryData, topPairCloses);
 
             entryData = fileService.getEntryData(); //todo возможно можно не делать тк по ссылке изменили
 
@@ -107,9 +107,11 @@ public class ScreenerProcessor {
             PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), false);
             log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
 
+
             fileService.clearChartDir();
             log.info("Очистили папку с чартами");
 
+            ThreadUtil.sleep(1000); //чтобы чарт отрисовался по обновленному z_score.json
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
             log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
@@ -203,6 +205,7 @@ public class ScreenerProcessor {
         fileService.clearChartDir();
         log.info("Очистили папку с чартами");
 
+        ThreadUtil.sleep(1000); //чтобы чарт отрисовался по обновленному z_score.json
         PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), true);
         log.info("Исполнили " + PythonScripts.CREATE_CHARTS.getName());
 
@@ -213,8 +216,8 @@ public class ScreenerProcessor {
         EntryData entryData = createEntryData(topPair);//создаем на этапе поиска
         log.info("Создали entry_data.json");
 
-        updateCurrentPrices(entryData, allCloses);
-        log.info("Обогатили entry_data.json ценами из all_closes.json");
+        updateEntryDataWithCurrentCloses(entryData, allCloses);
+        log.info("Обогатили entry_data.json ценами из all_closes.json и данными из z_score.json");
 
         File chartDir = new File("charts");
         File[] chartFiles = chartDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
@@ -237,17 +240,13 @@ public class ScreenerProcessor {
 
     public EntryData createEntryData(ZScoreEntry topPair) {
         EntryData entryData = new EntryData();
-        entryData.setPvalue(topPair.getPvalue());
-        entryData.setZscore(topPair.getZscore());
         entryData.setLongticker(topPair.getLongticker());
         entryData.setShortticker(topPair.getShortticker());
-        entryData.setSpread(topPair.getSpread());
-        entryData.setMean(topPair.getMean());
         fileService.writeEntryDataToJson(Collections.singletonList(entryData));
         return fileService.readEntryDataJson().get(0);
     }
 
-    private void updateCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
+    private void updateEntryDataWithCurrentCloses(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
         try {
             String longTicker = entryData.getLongticker();
             String shortTicker = entryData.getShortticker();
