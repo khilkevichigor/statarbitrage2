@@ -2,7 +2,6 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ProfitData;
-import com.example.statarbitrage.utils.JsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,6 +14,7 @@ import java.util.Collections;
 @Service
 @RequiredArgsConstructor
 public class ProfitService {
+    private FileService fileService;
 
     public ProfitData calculateAndSetProfit(
             EntryData entryData,
@@ -73,7 +73,7 @@ public class ProfitService {
         String profitStr = profitRounded + "%";
         entryData.setProfit(profitStr);
 
-        JsonUtils.writeEntryDataJson("entry_data.json", Collections.singletonList(entryData));
+        fileService.writeEntryDataToJson(Collections.singletonList(entryData));
 
         log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",
                 entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
