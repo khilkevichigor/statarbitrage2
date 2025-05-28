@@ -117,11 +117,8 @@ def plot_chart(
             try:
                 # Найдём индекс ENTRY по ближайшей цене (можно улучшить!)
                 idx_entry = min(
-                    len(prices_long) - 1,
-                    max(
-                        range(len(prices_long)),
-                        key=lambda i: abs(prices_long[i] - entry_price_long)
-                    )
+                    range(len(prices_long)),
+                    key=lambda i: abs(prices_long[i] - entry_price_long)
                 )
 
                 for ax in [ax1, ax2]:
@@ -130,7 +127,7 @@ def plot_chart(
                 # Отображаем PROFIT (если есть)
                 profit = entry_data.get("profit")
                 if profit:
-                    for ax in [ax1, ax2]:
+                    for ax in [ax1]:
                         ax.text(
                             idx_entry + 2, ax.get_ylim()[1] * 0.95,
                             f"Profit: {profit}",
