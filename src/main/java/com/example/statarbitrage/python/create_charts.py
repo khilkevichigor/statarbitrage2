@@ -31,43 +31,6 @@ def normalize(series):
     return (arr - arr.mean()) / arr.std()
 
 
-def find_entry_index(prices_long, prices_short, entry_price_long, entry_price_short, spread, mean, window):
-    norm_long = normalize(prices_long)
-    norm_short = normalize(prices_short)
-
-    # Нормализуем входные цены для сравнения с нормализованными ценами
-    entry_price_long_norm = (entry_price_long - np.mean(prices_long)) / np.std(prices_long)
-    entry_price_short_norm = (entry_price_short - np.mean(prices_short)) / np.std(prices_short)
-    entry_spread = entry_price_short - entry_price_long
-
-    # Нормализуем среднюю, чтобы сравнивать одинаково
-    mean_full = np.concatenate([np.full(window - 1, np.nan), mean])  # чтобы выровнять индексы
-    mean_norm = normalize(mean_full[~np.isnan(mean_full)])
-
-    min_score = float("inf")
-    idx_entry = None
-
-    for i in range(len(prices_long)):
-        # Проверяем, есть ли в mean значение для i
-        if i < window - 1:
-            continue
-
-        # Оценим расстояние по трем критериям
-
-        diff_prices = abs(norm_long[i] - entry_price_long_norm) + abs(norm_short[i] - entry_price_short_norm)
-        diff_spread = abs(spread[i] - entry_spread)
-        diff_mean = abs(mean[i - (window - 1)] - entry_spread)  # сравниваем mean с entry_spread
-
-        # Взвешиваем критерии, можно экспериментировать с весами
-        score = diff_prices * 0.5 + diff_spread * 0.3 + diff_mean * 0.2
-
-        if score < min_score:
-            min_score = score
-            idx_entry = i
-
-    return idx_entry
-
-
 def plot_chart(
         prices_long, prices_short, window,
         longticker, shortticker, output_dir="charts",
@@ -145,37 +108,48 @@ def plot_chart(
     # === ENTRY и PROFIT линии ===
     if entry_data:
         entry_long = entry_data.get("longticker")
-    entry_short = entry_data.get("shortticker")
+        entry_short = entry_data.get("shortticker")
 
-    if longticker == entry_long and shortticker == entry_short:
-        entry_price_long = entry_data.get("longTickerEntryPrice")
-        entry_price_short = entry_data.get("shortTickerEntryPrice")
+        if longticker == entry_long and shortticker == entry_short:
+            entry_price_long = entry_data.get("longTickerEntryPrice")
+            entry_price_short = entry_data.get("shortTickerEntryPrice")
 
-        try:
-            idx_entry = find_entry_index(
-                prices_long, prices_short,
-                entry_price_long, entry_price_short,
-                spread, mean, window
-            )
+            try:
+                # Нормализуем входные цены, чтобы сравнивать с norm_long/norm_short
+                entry_price_long_norm = (entry_price_long - np.mean(prices_long)) / np.std(prices_long)
+                entry_price_short_norm = (entry_price_short - np.mean(prices_short)) / np.std(prices_short)
 
-            for ax in [ax1, ax2]:
-                ax.axvline(idx_entry, color="purple", linestyle="--", label="ENTRY")
+                # Поиск самого близкого индекса на нормализованных ценах
+                min_diff = float("inf")
+                idx_entry = None
 
-            ax1.scatter(idx_entry, normalize(prices_long)[idx_entry], color="purple", zorder=5)
-            ax1.scatter(idx_entry, normalize(prices_short)[idx_entry], color="purple", zorder=5)
-            ax2.scatter(idx_entry, spread[idx_entry], color="purple", zorder=5)
+                for i in range(len(prices_long)):
+                    diff = abs(norm_long[i] - entry_price_long_norm) + abs(norm_short[i] - entry_price_short_norm)
+                    if diff < min_diff:
+                        min_diff = diff
+                        idx_entry = i
 
-            profit = entry_data.get("profit")
-            if profit:
-                ax1.text(
-                    idx_entry + 2, ax1.get_ylim()[1] * 0.95,
-                    f"Profit: {profit}",
-                    color="purple", fontsize=9,
-                    bbox=dict(boxstyle='round', facecolor='lavender', alpha=0.6)
-                )
-        except Exception as e:
-            print(f"⚠️ Не удалось отобразить ENTRY линию: {e}")
+                for ax in [ax1, ax2]:
+                    ax.axvline(idx_entry, color="purple", linestyle="--", label="ENTRY")
 
+                # Отметим точку на графике цен
+                ax1.scatter(idx_entry, norm_long[idx_entry], color="purple", zorder=5)
+                ax1.scatter(idx_entry, norm_short[idx_entry], color="purple", zorder=5)
+
+                # 👇 Добавим точку на графике спреда
+                ax2.scatter(idx_entry, spread[idx_entry], color="purple", zorder=5)
+
+                # Отображаем PROFIT (если есть)
+                profit = entry_data.get("profit")
+                if profit:
+                    ax1.text(
+                        idx_entry + 2, ax1.get_ylim()[1] * 0.95,
+                        f"Profit: {profit}",
+                        color="purple", fontsize=9,
+                        bbox=dict(boxstyle='round', facecolor='lavender', alpha=0.6)
+                    )
+            except Exception as e:
+                print(f"⚠️ Не удалось отобразить ENTRY линию: {e}")
 
     plt.tight_layout()
 
