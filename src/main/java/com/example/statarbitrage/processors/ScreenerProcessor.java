@@ -210,7 +210,7 @@ public class ScreenerProcessor {
 
         ZScoreEntry topPair = fileService.getTopPairEntry(); // Берем первую (лучшую) пару
 
-        EntryData entryData = fileService.createEntryData(topPair);//создаем на этапе поиска
+        EntryData entryData = createEntryData(topPair);//создаем на этапе поиска
         log.info("Создали entry_data.json");
 
         updateCurrentPrices(entryData, allCloses);
@@ -233,6 +233,18 @@ public class ScreenerProcessor {
         long minutes = durationMillis / 1000 / 60;
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
+    }
+
+    public EntryData createEntryData(ZScoreEntry topPair) {
+        EntryData entryData = new EntryData();
+        entryData.setPvalue(topPair.getPvalue());
+        entryData.setZscore(topPair.getZscore());
+        entryData.setLongticker(topPair.getLongticker());
+        entryData.setShortticker(topPair.getShortticker());
+        entryData.setSpread(topPair.getSpread());
+        entryData.setMean(topPair.getMean());
+        fileService.writeEntryDataToJson(Collections.singletonList(entryData));
+        return fileService.readEntryDataJson().get(0);
     }
 
     private void updateCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
