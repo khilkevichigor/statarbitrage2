@@ -115,12 +115,16 @@ def plot_chart(
             entry_price_short = entry_data.get("shortTickerEntryPrice")
 
             try:
-                # Найдём индекс, где цены long и short наиболее близки к входным
+                # Нормализуем входные цены, чтобы сравнивать с norm_long/norm_short
+                entry_price_long_norm = (entry_price_long - np.mean(prices_long)) / np.std(prices_long)
+                entry_price_short_norm = (entry_price_short - np.mean(prices_short)) / np.std(prices_short)
+
+                # Поиск самого близкого индекса на нормализованных ценах
                 min_diff = float("inf")
                 idx_entry = None
 
                 for i in range(len(prices_long)):
-                    diff = abs(prices_long[i] - entry_price_long) + abs(prices_short[i] - entry_price_short)
+                    diff = abs(norm_long[i] - entry_price_long_norm) + abs(norm_short[i] - entry_price_short_norm)
                     if diff < min_diff:
                         min_diff = diff
                         idx_entry = i
@@ -128,16 +132,22 @@ def plot_chart(
                 for ax in [ax1, ax2]:
                     ax.axvline(idx_entry, color="purple", linestyle="--", label="ENTRY")
 
+                # Отметим точку на графике цен
+                ax1.scatter(idx_entry, norm_long[idx_entry], color="purple", zorder=5)
+                ax1.scatter(idx_entry, norm_short[idx_entry], color="purple", zorder=5)
+
+                # 👇 Добавим точку на графике спреда
+                ax2.scatter(idx_entry, spread[idx_entry], color="purple", zorder=5)
+
                 # Отображаем PROFIT (если есть)
                 profit = entry_data.get("profit")
                 if profit:
-                    for ax in [ax1]:
-                        ax.text(
-                            idx_entry + 2, ax.get_ylim()[1] * 0.95,
-                            f"Profit: {profit}",
-                            color="purple", fontsize=9,
-                            bbox=dict(boxstyle='round', facecolor='lavender', alpha=0.6)
-                        )
+                    ax1.text(
+                        idx_entry + 2, ax1.get_ylim()[1] * 0.95,
+                        f"Profit: {profit}",
+                        color="purple", fontsize=9,
+                        bbox=dict(boxstyle='round', facecolor='lavender', alpha=0.6)
+                    )
             except Exception as e:
                 print(f"⚠️ Не удалось отобразить ENTRY линию: {e}")
 
