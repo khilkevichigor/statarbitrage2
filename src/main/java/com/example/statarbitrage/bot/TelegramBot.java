@@ -4,6 +4,7 @@ import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.processors.ScreenerProcessor;
+import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.SettingsService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private ScreenerProcessor screenerProcessor;
     @Autowired
     private SettingsService settingsService;
+    @Autowired
+    private FileService fileService;
     private final BotConfig botConfig;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -116,7 +119,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 stopTestTrade(chatIdStr);
             } else if (Objects.equals(text, BotMenu.DELETE_FILES.getName())) {
                 log.info("-> DELETE_FILES");
-                screenerProcessor.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_closes.json"));
+                fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_closes.json"));
             }
         }
     }
