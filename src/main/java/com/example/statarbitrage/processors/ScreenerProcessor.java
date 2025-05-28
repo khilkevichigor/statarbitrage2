@@ -142,8 +142,7 @@ public class ScreenerProcessor {
             if (chartFiles != null && chartFiles.length > 0) {
                 File chart = chartFiles[0];
                 try {
-                    String message = "💰Профит: " + entryData.getProfit() + ", где LONG: " + profitData.getLongReturnRounded() + "%, SHORT: " + profitData.getShortReturnRounded() + "%";
-                    sendChart(chatId, chart, message);
+                    sendChart(chatId, chart, profitData.getLogMessage());
                 } catch (Exception e) {
                     log.error("❌ Ошибка при отправке чарта: {}", e.getMessage(), e);
                 }

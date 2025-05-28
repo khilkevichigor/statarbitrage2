@@ -79,7 +79,9 @@ public class ProfitService {
                 entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
         log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%",
                 entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
-        log.info("💰Профит (леверидж {}x, комиссия {}%) от капитала {}$: {}", leverage, feePctPerTrade, totalCapital, profitStr);
+
+        String logMsg = String.format("💰Профит (леверидж %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
+        log.info(logMsg);
 
         return ProfitData.builder()
                 .totalCapital(totalCapital)
@@ -87,6 +89,7 @@ public class ProfitService {
                 .shortReturnRounded(shortReturnRounded)
                 .profitRounded(profitRounded)
                 .profitStr(profitStr)
+                .logMessage(logMsg)
                 .build();
     }
 

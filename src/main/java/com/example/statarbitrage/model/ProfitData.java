@@ -13,4 +13,5 @@ public class ProfitData {
     private BigDecimal profitRounded;
     private String profitStr;
     private BigDecimal totalCapital;
+    private String logMessage;
 }
