@@ -45,7 +45,7 @@ def plot_chart(
 
     os.makedirs(output_dir, exist_ok=True)
 
-    spread = np.array(prices_short) - np.array(prices_long)
+    spread = np.array(prices_long) - np.array(prices_short)
     mean = np.convolve(spread, np.ones(window) / window, mode='valid')
     std = np.std(spread[-window:])
 
@@ -122,7 +122,8 @@ def plot_chart(
 
                 min_diff = float("inf")
                 idx_entry = None
-                for i in range(len(prices_long)):
+                # 🔁 Итерируемся с конца
+                for i in reversed(range(len(prices_long))):
                     diff = abs(norm_long[i] - entry_price_long_norm) + abs(norm_short[i] - entry_price_short_norm)
                     if diff < min_diff:
                         min_diff = diff
