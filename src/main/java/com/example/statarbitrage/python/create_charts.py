@@ -115,11 +115,15 @@ def plot_chart(
             entry_price_short = entry_data.get("shortTickerEntryPrice")
 
             try:
-                # Найдём индекс ENTRY по ближайшей цене (можно улучшить!)
-                idx_entry = min(
-                    range(len(prices_long)),
-                    key=lambda i: abs(prices_long[i] - entry_price_long)
-                )
+                # Найдём индекс, где цены long и short наиболее близки к входным
+                min_diff = float("inf")
+                idx_entry = None
+
+                for i in range(len(prices_long)):
+                    diff = abs(prices_long[i] - entry_price_long) + abs(prices_short[i] - entry_price_short)
+                    if diff < min_diff:
+                        min_diff = diff
+                        idx_entry = i
 
                 for ax in [ax1, ax2]:
                     ax.axvline(idx_entry, color="purple", linestyle="--", label="ENTRY")
