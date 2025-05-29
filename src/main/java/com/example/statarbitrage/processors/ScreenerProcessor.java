@@ -3,10 +3,7 @@ package com.example.statarbitrage.processors;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
-import com.example.statarbitrage.model.EntryData;
-import com.example.statarbitrage.model.ProfitData;
-import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.EventSendService;
@@ -14,10 +11,8 @@ import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.ProfitService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.utils.ThreadUtil;
-import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -55,6 +50,7 @@ public class ScreenerProcessor {
             EntryData entryData = fileService.getEntryData();
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
             ConcurrentHashMap<String, List<Double>> topPairCloses = getTopPairCloses(topPair, settings);
+            Map<String, List<Candle>> topPairCandles = saveCandlesToJson(topPair, settings);
 
             updateCurrentPrices(entryData, topPairCloses);
             setupEntryPointsIfNeeded(entryData, topPair, topPairCloses);
@@ -70,51 +66,6 @@ public class ScreenerProcessor {
         } finally {
             isRunning.set(false);
         }
-    }
-
-    private void setupEntryPointsIfNeeded(EntryData entryData, ZScoreEntry topPair, ConcurrentHashMap<String, List<Double>> topPairCloses) {
-        if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
-            entryData.setLongticker(topPair.getLongticker());
-            entryData.setShortticker(topPair.getShortticker());
-
-            List<Double> longTickerCloses = topPairCloses.get(topPair.getLongticker());
-            List<Double> shortTickerCloses = topPairCloses.get(topPair.getShortticker());
-
-            entryData.setLongTickerEntryPrice(longTickerCloses.get(longTickerCloses.size() - 1));
-            entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
-            entryData.setMeanEntry(topPair.getMean());
-            entryData.setSpreadEntry(topPair.getSpread());
-            fileService.writeEntryDataToJson(Collections.singletonList(entryData));
-            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
-        }
-    }
-
-    @Nullable
-    private ConcurrentHashMap<String, List<Double>> getTopPairCloses(ZScoreEntry topPair, Settings settings) {
-        List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
-        List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
-        if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
-            log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getLongticker(), topPair.getShortticker());
-            return null;
-        }
-
-        ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
-        topPairCloses.put(topPair.getLongticker(), longTickerCloses);
-        topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
-        fileService.writeAllClosesToJson(topPairCloses);
-        return topPairCloses;
-    }
-
-    //todo на будущее - пока заморочно править скрипт
-    private void saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
-        JsonArray longTickerCandles = okxClient.getCandles(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
-        JsonArray shortTickerCandles = okxClient.getCandles(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
-
-        Map<String, JsonArray> allCandles = new HashMap<>();
-        allCandles.put(topPair.getLongticker(), longTickerCandles);
-        allCandles.put(topPair.getShortticker(), shortTickerCandles);
-
-        fileService.writeAllCandlesToJson(allCandles);
     }
 
     @Async
@@ -196,6 +147,59 @@ public class ScreenerProcessor {
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
+
+    private void setupEntryPointsIfNeeded(EntryData entryData, ZScoreEntry topPair, ConcurrentHashMap<String, List<Double>> topPairCloses) {
+        if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
+            entryData.setLongticker(topPair.getLongticker());
+            entryData.setShortticker(topPair.getShortticker());
+
+            List<Double> longTickerCloses = topPairCloses.get(topPair.getLongticker());
+            List<Double> shortTickerCloses = topPairCloses.get(topPair.getShortticker());
+
+            entryData.setLongTickerEntryPrice(longTickerCloses.get(longTickerCloses.size() - 1));
+            entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
+            entryData.setMeanEntry(topPair.getMean());
+            entryData.setSpreadEntry(topPair.getSpread());
+            fileService.writeEntryDataToJson(Collections.singletonList(entryData));
+            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
+        }
+    }
+
+    private ConcurrentHashMap<String, List<Double>> getTopPairCloses(ZScoreEntry topPair, Settings settings) {
+        List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
+        List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
+        if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
+            log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getLongticker(), topPair.getShortticker());
+            return null;
+        }
+        ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
+        topPairCloses.put(topPair.getLongticker(), longTickerCloses);
+        topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
+        fileService.writeAllClosesToJson(topPairCloses);
+        return topPairCloses;
+    }
+
+    private Map<String, List<Candle>> saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
+        List<Candle> longTickerCandles = okxClient.getCandleList(
+                topPair.getLongticker(),
+                settings.getTimeframe(),
+                settings.getCandleLimit()
+        );
+
+        List<Candle> shortTickerCandles = okxClient.getCandleList(
+                topPair.getShortticker(),
+                settings.getTimeframe(),
+                settings.getCandleLimit()
+        );
+
+        Map<String, List<Candle>> allCandles = new HashMap<>();
+        allCandles.put(topPair.getLongticker(), longTickerCandles);
+        allCandles.put(topPair.getShortticker(), shortTickerCandles);
+
+        fileService.writeAllCandlesToJson(allCandles); // этот метод должен принимать Map<String, List<Candle>>
+        return allCandles;
+    }
+
 
     public EntryData createEntryData(ZScoreEntry topPair) {
         EntryData entryData = new EntryData();

@@ -1,11 +1,13 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
+import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FileService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String ENTRY_DATA_JSON_FILE_PATH = "entry_data.json";
+    private static final String ALL_CLOSES_JSON_FILE_PATH = "all_closes.json";
+    private static final String ALL_CANDLES_JSON_FILE_PATH = "all_candles.json";
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
     private static final String CHARTS_DIR = "charts";
 
@@ -70,23 +75,25 @@ public class FileService {
     }
 
     public void writeAllClosesToJson(ConcurrentHashMap<String, List<Double>> topPairCloses) {
-        String jsonFilePath = "all_closes.json";
         try {
-            MAPPER.writeValue(new File(jsonFilePath), topPairCloses);
+            MAPPER.writeValue(new File(ALL_CLOSES_JSON_FILE_PATH), topPairCloses);
         } catch (IOException e) {
             log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
         }
     }
 
-    public void writeAllCandlesToJson(Map<String, JsonArray> allCandles) {
-        String jsonFilePath = "all_candles.json";
-        try (FileWriter file = new FileWriter(jsonFilePath)) {
-            new GsonBuilder().setPrettyPrinting().create().toJson(allCandles, file);
+    public void writeAllCandlesToJson(Map<String, List<Candle>> allCandles) {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+                .setPrettyPrinting()
+                .create();
+
+        try (FileWriter file = new FileWriter(ALL_CANDLES_JSON_FILE_PATH)) {
+            gson.toJson(allCandles, file);
         } catch (IOException e) {
             log.error("Ошибка при сохранении all_candles.json: {}", e.getMessage(), e);
         }
     }
-
 
     private List<ZScoreEntry> readZScoreJson() {
         try {

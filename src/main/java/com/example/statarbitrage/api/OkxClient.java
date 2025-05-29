@@ -1,5 +1,6 @@
 package com.example.statarbitrage.api;
 
+import com.example.statarbitrage.model.Candle;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -71,6 +72,18 @@ public class OkxClient {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    public List<Candle> getCandleList(String symbol, String timeFrame, int limit) {
+        JsonArray rawCandles = getCandles(symbol, timeFrame, limit);
+        List<Candle> candles = new ArrayList<>();
+
+        for (JsonElement el : rawCandles) {
+            JsonArray candleArr = el.getAsJsonArray();
+            candles.add(Candle.fromJsonArray(candleArr));
+        }
+
+        return candles;
     }
 
     public JsonArray getTicker(String symbol) {

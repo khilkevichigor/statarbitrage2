@@ -84,7 +84,7 @@ def main():
 
     results = analyze_pairs(pairs, candles_dict, chat_config)
 
-    print("Saving z_score.json with data:", results)
+    # print("Saving z_score.json with data:", results)
     # Сохранить результат
     if results:
         with open('z_score.json', 'w') as f:
