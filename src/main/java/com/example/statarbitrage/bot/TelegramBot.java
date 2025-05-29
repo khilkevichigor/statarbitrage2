@@ -84,6 +84,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 log.info("-> FIND");
                 stopTestTrade(chatIdStr);
                 sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
+                //todo сначала слать лучший чарт по огромному тф 1ч или 1д для понимания
                 screenerProcessor.sendBestChart(chatIdStr);
             } else if (Objects.equals(text, BotMenu.GET_SETTINGS.getName())) {
                 log.info("-> GET_SETTINGS");
