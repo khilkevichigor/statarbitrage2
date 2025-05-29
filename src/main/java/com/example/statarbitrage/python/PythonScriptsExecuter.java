@@ -1,5 +1,6 @@
 package com.example.statarbitrage.python;
 
+import com.example.statarbitrage.utils.ThreadUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
@@ -50,7 +51,7 @@ public final class PythonScriptsExecuter {
             if (withLogging) {
                 log.info("Python скрипт завершен с кодом: " + exitCode);
             }
-
+            ThreadUtil.sleep(1000 * 2);
         } catch (Exception e) {
             e.printStackTrace();
         }
