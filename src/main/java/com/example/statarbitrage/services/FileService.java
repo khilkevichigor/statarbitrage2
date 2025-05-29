@@ -187,4 +187,26 @@ public class FileService {
             log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
         }
     }
+
+    public void keepPairWithMaxZScore() {
+        String zScorePath = "z_score.json";
+        try {
+            File zFile = new File(zScorePath);
+            if (zFile.exists()) {
+                List<ZScoreEntry> allEntries = List.of(MAPPER.readValue(zFile, ZScoreEntry[].class));
+
+                // Находим пару с максимальным абсолютным значением z-score
+                ZScoreEntry best = allEntries.stream()
+                        .max(Comparator.comparingDouble(e -> Math.abs(e.getZscore())))
+                        .orElse(null);
+
+                if (best != null) {
+                    MAPPER.writeValue(zFile, List.of(best));
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
+        }
+    }
+
 }
