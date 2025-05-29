@@ -79,8 +79,6 @@ public class ScreenerProcessor {
             topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
             fileService.writeAllClosesToJson(topPairCloses);
 
-//            saveCandlesToJson(topPair, settings); //todo
-
             updateEntryDataWithCurrentCloses(entryData, topPairCloses);
 
             //Устанавливаем точки входа, если они ещё не заданы
@@ -105,7 +103,6 @@ public class ScreenerProcessor {
 
             ThreadUtil.sleep(1000 * 2); //чтобы чарт отрисовался по обновленному z_score.json
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
-//            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS_BY_CANDLES.getName(), false); //todo
 
             //Отправляем график
             try {
@@ -120,7 +117,7 @@ public class ScreenerProcessor {
         }
     }
 
-    //todo ан будущее - пока заморочно править скрипт
+    //todo на будущее - пока заморочно править скрипт
     private void saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
         JsonArray longTickerCandles = okxClient.getCandles(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
         JsonArray shortTickerCandles = okxClient.getCandles(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
@@ -178,7 +175,8 @@ public class ScreenerProcessor {
         PythonScriptsExecuter.execute(PythonScripts.Z_SCORE.getName(), true);
         log.info("Исполнили " + PythonScripts.Z_SCORE.getName());
 
-        fileService.keepBestPairByZscoreAndPvalue();
+//        fileService.keepBestPairByZscoreAndPvalue();
+        fileService.keepPairWithMaxZScore();
         log.info("🔍 Сохранили лучшую пару в z_score.json");
 
         fileService.clearChartDir();
