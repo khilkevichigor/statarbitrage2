@@ -14,16 +14,14 @@ import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.ProfitService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.utils.ThreadUtil;
+import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -81,6 +79,8 @@ public class ScreenerProcessor {
             topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
             fileService.writeAllClosesToJson(topPairCloses);
 
+//            saveCandlesToJson(topPair, settings); //todo
+
             updateEntryDataWithCurrentCloses(entryData, topPairCloses);
 
             //Устанавливаем точки входа, если они ещё не заданы
@@ -105,6 +105,7 @@ public class ScreenerProcessor {
 
             ThreadUtil.sleep(1000 * 2); //чтобы чарт отрисовался по обновленному z_score.json
             PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
+//            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS_BY_CANDLES.getName(), false); //todo
 
             //Отправляем график
             try {
@@ -119,12 +120,24 @@ public class ScreenerProcessor {
         }
     }
 
+    //todo ан будущее - пока заморочно править скрипт
+    private void saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
+        JsonArray longTickerCandles = okxClient.getCandles(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
+        JsonArray shortTickerCandles = okxClient.getCandles(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
+
+        Map<String, JsonArray> allCandles = new HashMap<>();
+        allCandles.put(topPair.getLongticker(), longTickerCandles);
+        allCandles.put(topPair.getShortticker(), shortTickerCandles);
+
+        fileService.writeAllCandlesToJson(allCandles);
+    }
+
     @Async
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
 
-        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_closes.json"));
-        log.info("Удалили z_score.json, entry_data.json, all_closes.json");
+        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_closes.json", "all_candles.json"));
+        log.info("Удалили z_score.json, entry_data.json, all_closes.json, all_candles.json");
 
         Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 

@@ -4,15 +4,19 @@ import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -73,6 +77,16 @@ public class FileService {
             log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
         }
     }
+
+    public void writeAllCandlesToJson(Map<String, JsonArray> allCandles) {
+        String jsonFilePath = "all_candles.json";
+        try (FileWriter file = new FileWriter(jsonFilePath)) {
+            new GsonBuilder().setPrettyPrinting().create().toJson(allCandles, file);
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении all_candles.json: {}", e.getMessage(), e);
+        }
+    }
+
 
     private List<ZScoreEntry> readZScoreJson() {
         try {

@@ -62,7 +62,6 @@ public class OkxClient {
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/market/candles?instId=" + symbol + "&bar=" + timeFrame + "&limit=" + limit)
                 .build();
-
         try {
             Response response = client.newCall(request).execute();
             String json = response.body().string();
