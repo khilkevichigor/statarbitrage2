@@ -58,9 +58,9 @@ public class ScreenerProcessor {
             setupEntryPointsIfNeededFromCandles(entryData, topPair, topPairCandles);
             ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
-            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_CANDLES.getName(), true);
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
             fileService.clearChartDir();
-            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS_CANDLES.getName(), true);
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
 
             sendChart(chatId, fileService.getChart(), profitData.getLogMessage(), false);
         } catch (Exception e) {
@@ -93,11 +93,10 @@ public class ScreenerProcessor {
 
         log.info("🐍Запускаем скрипты...");
 
-        PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_CANDLES.getName(), true);
-        log.info("Исполнили скрипт " + PythonScripts.Z_SCORE_CANDLES.getName());
+        PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
 
         fileService.keepPairWithMaxZScore();
-        log.info("🔍 Сохранили лучшую пару в z_score.json");
+        log.info("🔍 Оставили лучшую пару в z_score.json");
 
         fileService.clearChartDir();
         log.info("Очистили папку с чартами");
@@ -107,15 +106,13 @@ public class ScreenerProcessor {
         EntryData entryData = createEntryData(topPair);
         log.info("Создали entry_data.json");
 
-        PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS_CANDLES.getName(), true);
-        log.info("Исполнили скрипт " + PythonScripts.CREATE_CHARTS.getName());
+        PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
 
         log.info("🐍скрипты отработали");
 
         updateCurrentPricesFromCandles(entryData, allCandles);
         log.info("Обогатили entry_data.json ценами из all_candles.json");
 
-        //Отправляем график
         try {
             sendChart(chatId, fileService.getChart(), "📊LONG " + topPair.getLongticker() + ", SHORT " + topPair.getShortticker(), true);
         } catch (Exception e) {
@@ -126,28 +123,6 @@ public class ScreenerProcessor {
         long minutes = durationMillis / 1000 / 60;
         long seconds = (durationMillis / 1000) % 60;
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
-    }
-
-    private void getCloses(Set<String> swapTickers, Settings settings) {
-        ExecutorService executor = Executors.newFixedThreadPool(5);
-        ConcurrentHashMap<String, List<Double>> allCloses = new ConcurrentHashMap<>();
-        try {
-            List<CompletableFuture<Void>> futures = swapTickers.stream()
-                    .map(symbol -> CompletableFuture.runAsync(() -> {
-                        try {
-                            List<Double> closes = okxClient.getCloses(symbol, settings.getTimeframe(), settings.getCandleLimit());
-                            allCloses.put(symbol, closes);
-                        } catch (Exception e) {
-                            log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
-                        }
-                    }, executor))
-                    .toList();
-
-            // Ожидаем завершения всех задач
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        } finally {
-            executor.shutdown();
-        }
     }
 
     @NotNull
@@ -172,23 +147,6 @@ public class ScreenerProcessor {
             executor.shutdown();
         }
         return allCandles;
-    }
-
-    private void setupEntryPointsIfNeeded(EntryData entryData, ZScoreEntry topPair, ConcurrentHashMap<String, List<Double>> topPairCloses) {
-        if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
-            entryData.setLongticker(topPair.getLongticker());
-            entryData.setShortticker(topPair.getShortticker());
-
-            List<Double> longTickerCloses = topPairCloses.get(topPair.getLongticker());
-            List<Double> shortTickerCloses = topPairCloses.get(topPair.getShortticker());
-
-            entryData.setLongTickerEntryPrice(longTickerCloses.get(longTickerCloses.size() - 1));
-            entryData.setShortTickerEntryPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
-            entryData.setMeanEntry(topPair.getMean());
-            entryData.setSpreadEntry(topPair.getSpread());
-            fileService.writeEntryDataToJson(Collections.singletonList(entryData));
-            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}", entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getSpreadEntry(), entryData.getMeanEntry());
-        }
     }
 
     private void setupEntryPointsIfNeededFromCandles(EntryData entryData, ZScoreEntry topPair, ConcurrentHashMap<String, List<Candle>> topPairCandles) {
@@ -229,47 +187,24 @@ public class ScreenerProcessor {
         }
     }
 
-
-    private ConcurrentHashMap<String, List<Double>> getTopPairCloses(ZScoreEntry topPair, Settings settings) {
-        List<Double> longTickerCloses = okxClient.getCloses(topPair.getLongticker(), settings.getTimeframe(), settings.getCandleLimit());
-        List<Double> shortTickerCloses = okxClient.getCloses(topPair.getShortticker(), settings.getTimeframe(), settings.getCandleLimit());
-        if (longTickerCloses.isEmpty() || shortTickerCloses.isEmpty()) {
-            log.warn("⚠️ Не удалось получить цены для пары: {} и {}", topPair.getLongticker(), topPair.getShortticker());
-            return null;
-        }
-        ConcurrentHashMap<String, List<Double>> topPairCloses = new ConcurrentHashMap<>();
-        topPairCloses.put(topPair.getLongticker(), longTickerCloses);
-        topPairCloses.put(topPair.getShortticker(), shortTickerCloses);
-        fileService.writeAllClosesToJson(topPairCloses);
-        return topPairCloses;
-    }
-
     private ConcurrentHashMap<String, List<Candle>> saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
         List<Candle> longTickerCandles = okxClient.getCandleList(
                 topPair.getLongticker(),
                 settings.getTimeframe(),
                 settings.getCandleLimit()
-        )
-//                .stream()
-//                .skip(Math.max(0, settings.getCandleLimit() - 2))
-//                .collect(Collectors.toList())
-                ;
+        );
 
         List<Candle> shortTickerCandles = okxClient.getCandleList(
                 topPair.getShortticker(),
                 settings.getTimeframe(),
                 settings.getCandleLimit()
-        )
-//                .stream()
-//                .skip(Math.max(0, settings.getCandleLimit() - 2))
-//                .collect(Collectors.toList())
-                ;
+        );
 
         ConcurrentHashMap<String, List<Candle>> allCandles = new ConcurrentHashMap<>();
         allCandles.put(topPair.getLongticker(), longTickerCandles);
         allCandles.put(topPair.getShortticker(), shortTickerCandles);
 
-        fileService.writeAllCandlesToJson(allCandles); // этот метод должен принимать Map<String, List<Candle>>
+        fileService.writeAllCandlesToJson(allCandles);
         return allCandles;
     }
 
@@ -280,27 +215,6 @@ public class ScreenerProcessor {
         entryData.setShortticker(topPair.getShortticker());
         fileService.writeEntryDataToJson(Collections.singletonList(entryData));
         return entryData;
-    }
-
-    private void updateCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Double>> allCloses) {
-        try {
-            String longTicker = entryData.getLongticker();
-            String shortTicker = entryData.getShortticker();
-
-            List<Double> longTickerCloses = allCloses.get(longTicker);
-            List<Double> shortTickerCloses = allCloses.get(shortTicker);
-
-            if (longTickerCloses == null || longTickerCloses.isEmpty() || shortTickerCloses == null || shortTickerCloses.isEmpty()) {
-                log.warn("Нет данных по ценам для пары: {} - {}", longTicker, shortTicker);
-            }
-
-            entryData.setLongTickerCurrentPrice(longTickerCloses.get(longTickerCloses.size() - 1));
-            entryData.setShortTickerCurrentPrice(shortTickerCloses.get(shortTickerCloses.size() - 1));
-
-            fileService.writeEntryDataToJson(Collections.singletonList(entryData));
-        } catch (Exception e) {
-            log.error("Ошибка при обогащении z_score.json из all_closes.json: {}", e.getMessage(), e);
-        }
     }
 
     private void updateCurrentPricesFromCandles(EntryData entryData, ConcurrentHashMap<String, List<Candle>> allCandles) {

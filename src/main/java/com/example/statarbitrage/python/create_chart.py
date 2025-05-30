@@ -1,4 +1,4 @@
-# create_charts_candles.py
+# create_chart.py
 
 import gc
 import json

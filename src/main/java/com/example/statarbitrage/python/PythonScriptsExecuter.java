@@ -50,6 +50,7 @@ public final class PythonScriptsExecuter {
             int exitCode = process.waitFor();
             if (withLogging) {
                 log.info("Python скрипт завершен с кодом: " + exitCode);
+                log.info("Исполнили скрипт " + scriptName);
             }
             ThreadUtil.sleep(1000 * 2);
         } catch (Exception e) {

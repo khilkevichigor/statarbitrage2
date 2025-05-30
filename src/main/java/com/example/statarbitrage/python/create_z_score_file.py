@@ -1,4 +1,4 @@
-# z_score_candles.py
+# create_z_score_file.py
 
 import itertools
 import json
