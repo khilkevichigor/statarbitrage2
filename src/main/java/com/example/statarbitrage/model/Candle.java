@@ -1,7 +1,11 @@
 package com.example.statarbitrage.model;
 
 import com.google.gson.JsonArray;
+import lombok.Builder;
+import lombok.Data;
 
+@Data
+@Builder
 public class Candle {
     private long timestamp;
     private double open;
@@ -9,15 +13,6 @@ public class Candle {
     private double low;
     private double close;
     private double volume;
-
-    public Candle(long timestamp, double open, double high, double low, double close, double volume) {
-        this.timestamp = timestamp;
-        this.open = open;
-        this.high = high;
-        this.low = low;
-        this.close = close;
-        this.volume = volume;
-    }
 
     public static Candle fromJsonArray(JsonArray arr) {
         long timestamp = Long.parseLong(arr.get(0).getAsString());
@@ -27,31 +22,14 @@ public class Candle {
         double close = Double.parseDouble(arr.get(4).getAsString());
         double volume = Double.parseDouble(arr.get(5).getAsString());
 
-        return new Candle(timestamp, open, high, low, close, volume);
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public double getOpen() {
-        return open;
-    }
-
-    public double getHigh() {
-        return high;
-    }
-
-    public double getLow() {
-        return low;
-    }
-
-    public double getClose() {
-        return close;
-    }
-
-    public double getVolume() {
-        return volume;
+        return Candle.builder()
+                .timestamp(timestamp)
+                .open(open)
+                .high(high)
+                .low(low)
+                .close(close)
+                .volume(volume)
+                .build();
     }
 
     @Override
