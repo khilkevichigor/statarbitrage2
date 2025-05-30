@@ -13,7 +13,7 @@ import java.util.Map;
 @Component
 public class SettingsService {
     private static final String SETTINGS_FILE = "settings.json";
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private Map<Long, Settings> userSettings = new HashMap<>();
 
     public SettingsService() {
@@ -54,7 +54,7 @@ public class SettingsService {
         File file = new File(SETTINGS_FILE);
         if (file.exists()) {
             try {
-                userSettings = mapper.readValue(file, new TypeReference<>() {
+                userSettings = MAPPER.readValue(file, new TypeReference<>() {
                 });
             } catch (IOException e) {
                 e.printStackTrace();
@@ -64,7 +64,7 @@ public class SettingsService {
 
     private void saveSettings() {
         try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_FILE), userSettings);
+            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_FILE), userSettings);
         } catch (IOException e) {
             e.printStackTrace();
         }

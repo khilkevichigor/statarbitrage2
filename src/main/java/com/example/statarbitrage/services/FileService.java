@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class FileService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    //    private final ObjectMapper objectMapper;
     private static final String ENTRY_DATA_JSON_FILE_PATH = "entry_data.json";
     private static final String ALL_CLOSES_JSON_FILE_PATH = "all_closes.json";
     private static final String ALL_CANDLES_JSON_FILE_PATH = "all_candles.json";

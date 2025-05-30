@@ -63,7 +63,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
 
         long_price = candles_dict[longticker][-1]["close"]
         short_price = candles_dict[shortticker][-1]["close"]
-        time_of_signal = candles_dict[longticker][-1]["time"]
+        timestamp_of_signal = candles_dict[longticker][-1]["timestamp"]
 
         return {
             "zscore": z,
@@ -74,7 +74,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
             "shortticker": shortticker,
             "longtickercurrentprice": long_price,
             "shorttickercurrentprice": short_price,
-            "time": time_of_signal
+            "timestamp": timestamp_of_signal
         }
 
     except Exception as e:

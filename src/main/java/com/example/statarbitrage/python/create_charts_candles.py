@@ -1,6 +1,5 @@
 # create_charts_candles.py
 
-import dateutil.parser
 import gc
 import json
 import matplotlib.pyplot as plt
@@ -16,9 +15,13 @@ def extract_closes_and_timestamps(candles):
     for i, c in enumerate(candles):
         try:
             close = float(c["close"])
-            # Можно использовать просто c["time"], но если нужен timestamp — надо его распарсить
-            # Здесь для примера: просто сохраняем как строку
-            timestamp = c["time"]
+            if "timestamp" in c:
+                timestamp = int(c["timestamp"])
+            elif "time" in c:
+                dt = dateutil.parser.parse(c["time"])
+                timestamp = int(dt.timestamp() * 1000)
+            else:
+                raise KeyError("нет поля 'timestamp' или 'time'")
             closes.append(close)
             timestamps.append(timestamp)
             print(f"[{i}] OK: close={close}, timestamp={timestamp}")
@@ -141,14 +144,7 @@ def plot_chart(
     if entry_data:
         entry_long = entry_data.get("longticker")
         entry_short = entry_data.get("shortticker")
-        entry_time_str = entry_data.get("entryTime")
-        entry_ts = None
-        if entry_time_str:
-            try:
-                dt = dateutil.parser.parse(entry_time_str)
-                entry_ts = int(dt.timestamp() * 1000)  # в миллисекундах, как в свечах
-            except Exception as e:
-                print(f"⚠️ Не удалось распарсить entryTime: {e}")
+        entry_ts = entry_data.get("entryTime")
 
         if longticker == entry_long and shortticker == entry_short and entry_ts:
             try:

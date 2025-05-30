@@ -10,8 +10,8 @@ public class ZScoreEntry {
     private double mean;
     private String longticker;
     private String shortticker;
-    private double longtickercurrentprice;
-    private double shorttickercurrentprice;
-    private String time;
+    private double longtickercurrentprice; //todo remove
+    private double shorttickercurrentprice; //todo remove
+    private long timestamp; //todo remove?
 
 }

@@ -2,8 +2,6 @@ package com.example.statarbitrage.model;
 
 import lombok.Data;
 
-import java.time.ZonedDateTime;
-
 @Data
 public class EntryData {
     private String longticker;
@@ -14,7 +12,7 @@ public class EntryData {
     private double longTickerEntryPrice;
     private double shortTickerEntryPrice;
 
-    private ZonedDateTime entryTime;
+    private long entryTime;
 
 
     private String profit;

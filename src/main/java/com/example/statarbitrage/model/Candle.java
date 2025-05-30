@@ -2,20 +2,16 @@ package com.example.statarbitrage.model;
 
 import com.google.gson.JsonArray;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-
 public class Candle {
-    private ZonedDateTime time;
+    private long timestamp;
     private double open;
     private double high;
     private double low;
     private double close;
     private double volume;
 
-    public Candle(ZonedDateTime time, double open, double high, double low, double close, double volume) {
-        this.time = time;
+    public Candle(long timestamp, double open, double high, double low, double close, double volume) {
+        this.timestamp = timestamp;
         this.open = open;
         this.high = high;
         this.low = low;
@@ -31,13 +27,11 @@ public class Candle {
         double close = Double.parseDouble(arr.get(4).getAsString());
         double volume = Double.parseDouble(arr.get(5).getAsString());
 
-        ZonedDateTime time = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault());
-        return new Candle(time, open, high, low, close, volume);
+        return new Candle(timestamp, open, high, low, close, volume);
     }
 
-    // Getters (можно добавить @Getter от Lombok)
-    public ZonedDateTime getTime() {
-        return time;
+    public long getTimestamp() {
+        return timestamp;
     }
 
     public double getOpen() {
@@ -63,7 +57,7 @@ public class Candle {
     @Override
     public String toString() {
         return "Candle{" +
-                "time=" + time +
+                "time=" + timestamp +
                 ", open=" + open +
                 ", high=" + high +
                 ", low=" + low +

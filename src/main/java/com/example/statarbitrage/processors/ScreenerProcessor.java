@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -53,21 +52,15 @@ public class ScreenerProcessor {
             ZScoreEntry topPair = fileService.getTopPairEntry();
             EntryData entryData = fileService.getEntryData();
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
-//            ConcurrentHashMap<String, List<Double>> topPairCloses = getTopPairCloses(topPair, settings);
+
             ConcurrentHashMap<String, List<Candle>> topPairCandles = saveCandlesToJson(topPair, settings);
-
-//            updateCurrentPrices(entryData, topPairCloses);
             updateCurrentPricesFromCandles(entryData, topPairCandles);
-
-//            setupEntryPointsIfNeeded(entryData, topPair, topPairCloses);
             setupEntryPointsIfNeededFromCandles(entryData, topPair, topPairCandles);
-
             ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
-
+            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_CANDLES.getName(), true);
             fileService.clearChartDir();
-            PythonScriptsExecuter.execute(PythonScripts.Z_SCORE_CANDLES.getName(), false);
-            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS.getName(), false);
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHARTS_CANDLES.getName(), true);
 
             sendChart(chatId, fileService.getChart(), profitData.getLogMessage(), false);
         } catch (Exception e) {
@@ -224,7 +217,7 @@ public class ScreenerProcessor {
             entryData.setSpreadEntry(topPair.getSpread());
 
             // Ставим время открытия по long-свечке (можно и усреднить, если нужно)
-            entryData.setEntryTime(longCandle.getTime());
+            entryData.setEntryTime(longCandle.getTimestamp());
 
             fileService.writeEntryDataToJson(Collections.singletonList(entryData));
 
@@ -253,22 +246,24 @@ public class ScreenerProcessor {
 
     private ConcurrentHashMap<String, List<Candle>> saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
         List<Candle> longTickerCandles = okxClient.getCandleList(
-                        topPair.getLongticker(),
-                        settings.getTimeframe(),
-                        settings.getCandleLimit()
-                )
-                .stream()
-                .skip(Math.max(0, settings.getCandleLimit() - 2))
-                .collect(Collectors.toList());
+                topPair.getLongticker(),
+                settings.getTimeframe(),
+                settings.getCandleLimit()
+        )
+//                .stream()
+//                .skip(Math.max(0, settings.getCandleLimit() - 2))
+//                .collect(Collectors.toList())
+                ;
 
         List<Candle> shortTickerCandles = okxClient.getCandleList(
-                        topPair.getShortticker(),
-                        settings.getTimeframe(),
-                        settings.getCandleLimit()
-                )
-                .stream()
-                .skip(Math.max(0, settings.getCandleLimit() - 2))
-                .collect(Collectors.toList());
+                topPair.getShortticker(),
+                settings.getTimeframe(),
+                settings.getCandleLimit()
+        )
+//                .stream()
+//                .skip(Math.max(0, settings.getCandleLimit() - 2))
+//                .collect(Collectors.toList())
+                ;
 
         ConcurrentHashMap<String, List<Candle>> allCandles = new ConcurrentHashMap<>();
         allCandles.put(topPair.getLongticker(), longTickerCandles);
