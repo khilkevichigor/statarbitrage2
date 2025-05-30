@@ -92,5 +92,4 @@ public class ProfitService {
                 .logMessage(logMsg)
                 .build();
     }
-
 }

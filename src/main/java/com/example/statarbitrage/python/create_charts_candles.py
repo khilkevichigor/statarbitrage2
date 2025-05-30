@@ -1,5 +1,6 @@
-# create_charts_by_candles.py
+# create_charts_candles.py
 
+import dateutil.parser
 import gc
 import json
 import matplotlib.pyplot as plt
@@ -12,11 +13,17 @@ import traceback
 def extract_closes_and_timestamps(candles):
     closes = []
     timestamps = []
-    for c in candles:
+    for i, c in enumerate(candles):
         try:
-            closes.append(float(c[4]))  # close
-            timestamps.append(int(c[0]))  # timestamp
-        except Exception:
+            close = float(c["close"])
+            # Можно использовать просто c["time"], но если нужен timestamp — надо его распарсить
+            # Здесь для примера: просто сохраняем как строку
+            timestamp = c["time"]
+            closes.append(close)
+            timestamps.append(timestamp)
+            print(f"[{i}] OK: close={close}, timestamp={timestamp}")
+        except Exception as e:
+            print(f"[{i}] ERROR: {e} | data={c}")
             continue
     return closes, timestamps
 
@@ -51,6 +58,11 @@ def plot_chart(
         spread_val=None, mean_val=None, zscore=None, pvalue=None,
         long_price=None, short_price=None,
         entry_data=None):
+    print(f"{longticker} candles sample: {candles_long[:2]}")
+    print(f"{shortticker} candles sample: {candles_short[:2]}")
+    print(f"{longticker} candles total: {len(candles_long)}")
+    print(f"{shortticker} candles total: {len(candles_short)}")
+
     closes_long, timestamps_long = extract_closes_and_timestamps(candles_long)
     closes_short, timestamps_short = extract_closes_and_timestamps(candles_short)
 
@@ -58,6 +70,7 @@ def plot_chart(
         print(f"⚠️ Несовпадение таймстемпов у {longticker}/{shortticker}")
         return
 
+    print(f"{shortticker} candles: {len(closes_short)}, {longticker} candles: {len(closes_long)}, window: {window}")
     if len(closes_long) < window or len(closes_short) < window:
         print(f"⚠️ Недостаточно данных для {shortticker}/{longticker}")
         return
@@ -128,7 +141,14 @@ def plot_chart(
     if entry_data:
         entry_long = entry_data.get("longticker")
         entry_short = entry_data.get("shortticker")
-        entry_ts = entry_data.get("entryTimestamp")
+        entry_time_str = entry_data.get("entryTime")
+        entry_ts = None
+        if entry_time_str:
+            try:
+                dt = dateutil.parser.parse(entry_time_str)
+                entry_ts = int(dt.timestamp() * 1000)  # в миллисекундах, как в свечах
+            except Exception as e:
+                print(f"⚠️ Не удалось распарсить entryTime: {e}")
 
         if longticker == entry_long and shortticker == entry_short and entry_ts:
             try:
@@ -204,6 +224,7 @@ def main():
             print(f"⚠️ Пропущена пара {shortticker}/{longticker} — нет данных о свечах")
             continue
 
+        print(f"📊 Обрабатываем пару: {shortticker}/{longticker}")
         plot_chart(
             candles_long, candles_short, window,
             longticker, shortticker, output_dir,

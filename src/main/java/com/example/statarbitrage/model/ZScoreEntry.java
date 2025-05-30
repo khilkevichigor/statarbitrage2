@@ -12,4 +12,6 @@ public class ZScoreEntry {
     private String shortticker;
     private double longtickercurrentprice;
     private double shorttickercurrentprice;
+    private String time;
+
 }
