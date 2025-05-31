@@ -13,9 +13,6 @@ public class ADFService {
 
     public double calculatePValue(double[] series) {
         double testStat = calculateADFTestStatistic(series, 1);
-        if (Double.isNaN(testStat)) {
-            return 1.0; // незначимый результат
-        }
         return approximatePValue(testStat);
     }
 

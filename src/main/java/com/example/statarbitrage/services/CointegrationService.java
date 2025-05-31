@@ -51,7 +51,6 @@ public class CointegrationService {
                     continue;
                 }
 
-
                 double pValue = adfService.calculatePValue(residuals);
 
                 if (Double.isNaN(pValue)) {
