@@ -19,7 +19,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CandlesService {
     private static final String CANDLES_JSON_FILE_PATH = "candles.json";
-    private final EntryDataService entryDataService;
 
     public void save(Map<String, List<Candle>> candles) {
         Gson gson = new GsonBuilder()
