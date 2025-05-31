@@ -17,14 +17,10 @@ def extract_closes_and_timestamps(candles):
             close = float(c["close"])
             if "timestamp" in c:
                 timestamp = int(c["timestamp"])
-            elif "time" in c:
-                dt = dateutil.parser.parse(c["time"])
-                timestamp = int(dt.timestamp() * 1000)
             else:
-                raise KeyError("нет поля 'timestamp' или 'time'")
+                raise KeyError("нет поля 'timestamp'")
             closes.append(close)
             timestamps.append(timestamp)
-            print(f"[{i}] OK: close={close}, timestamp={timestamp}")
         except Exception as e:
             print(f"[{i}] ERROR: {e} | data={c}")
             continue
@@ -61,11 +57,6 @@ def plot_chart(
         spread_val=None, mean_val=None, zscore=None, pvalue=None,
         long_price=None, short_price=None,
         entry_data=None):
-    print(f"{longticker} candles sample: {candles_long[:2]}")
-    print(f"{shortticker} candles sample: {candles_short[:2]}")
-    print(f"{longticker} candles total: {len(candles_long)}")
-    print(f"{shortticker} candles total: {len(candles_short)}")
-
     closes_long, timestamps_long = extract_closes_and_timestamps(candles_long)
     closes_short, timestamps_short = extract_closes_and_timestamps(candles_short)
 
@@ -96,24 +87,12 @@ def plot_chart(
     fig.suptitle(f"Нормализованные цены и спред: SHORT/{shortticker} LONG/{longticker}")
 
     # Верхний график — нормализованные цены
-    ax1.plot(norm_short, label=f"{shortticker} (norm)", color="red")
-    ax1.plot(norm_long, label=f"{longticker} (norm)", color="green")
+    ax1.plot(norm_short, label=f"{shortticker} = {short_price:.6f}", color="red")
+    ax1.plot(norm_long, label=f"{longticker} = {long_price:.6f}", color="green")
     ax1.set_yticks([])
     ax1.set_ylabel("")
     ax1.legend()
     ax1.grid(True)
-
-    price_text = (
-        f"{longticker} = {long_price:.6f}, "
-        f"{shortticker} = {short_price:.6f}"
-    )
-    ax1.text(
-        0.01, 0.95, price_text,
-        transform=ax1.transAxes,
-        fontsize=10,
-        verticalalignment='top',
-        bbox=dict(boxstyle='round', facecolor='white', alpha=0.7)
-    )
 
     # Нижний график — спред
     ax2.plot(spread, label="Spread", color="black")

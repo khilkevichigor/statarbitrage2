@@ -80,7 +80,7 @@ public class ProfitService {
         log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%",
                 entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
 
-        String logMsg = String.format("💰Профит (леверидж %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
+        String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
         log.info(logMsg);
 
         return ProfitData.builder()

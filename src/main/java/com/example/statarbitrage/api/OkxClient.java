@@ -1,6 +1,7 @@
 package com.example.statarbitrage.api;
 
 import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.Settings;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -12,10 +13,11 @@ import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
@@ -82,7 +84,7 @@ public class OkxClient {
             JsonArray candleArr = el.getAsJsonArray();
             candles.add(Candle.fromJsonArray(candleArr));
         }
-
+        Collections.reverse(candles);
         return candles;
     }
 
@@ -100,5 +102,28 @@ public class OkxClient {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    public ConcurrentHashMap<String, List<Candle>> getCandlesMap(Set<String> swapTickers, Settings settings) {
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+        ConcurrentHashMap<String, List<Candle>> allCandles = new ConcurrentHashMap<>();
+        try {
+            List<CompletableFuture<Void>> futures = swapTickers.stream()
+                    .map(symbol -> CompletableFuture.runAsync(() -> {
+                        try {
+                            List<Candle> candles = getCandleList(symbol, settings.getTimeframe(), settings.getCandleLimit());
+                            allCandles.put(symbol, candles);
+                        } catch (Exception e) {
+                            log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+                        }
+                    }, executor))
+                    .toList();
+
+            // Ожидаем завершения всех задач
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } finally {
+            executor.shutdown();
+        }
+        return allCandles;
     }
 }

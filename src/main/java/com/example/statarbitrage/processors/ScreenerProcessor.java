@@ -12,7 +12,6 @@ import com.example.statarbitrage.services.ProfitService;
 import com.example.statarbitrage.services.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -21,10 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -53,9 +49,11 @@ public class ScreenerProcessor {
             EntryData entryData = fileService.getEntryData();
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
-            ConcurrentHashMap<String, List<Candle>> topPairCandles = saveCandlesToJson(topPair, settings);
-            updateCurrentPricesFromCandles(entryData, topPairCandles);
-            setupEntryPointsIfNeededFromCandles(entryData, topPair, topPairCandles);
+//            ConcurrentHashMap<String, List<Candle>> topPairCandles = getAndSaveCandlesToJson(topPair, settings);
+            ConcurrentHashMap<String, List<Candle>> allCandles = okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
+            fileService.writeAllCandlesToJson(allCandles);
+            updateCurrentPricesFromCandles(entryData, allCandles);
+            setupEntryPointsIfNeededFromCandles(entryData, topPair, allCandles);
             ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
@@ -75,14 +73,14 @@ public class ScreenerProcessor {
         long startTime = System.currentTimeMillis();
 
         fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_candles.json"));
-        log.info("Удалили z_score.json, entry_data.json, all_candles.json");
+//        log.info("Удалили z_score.json, entry_data.json, all_candles.json");
 
         Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
         Set<String> swapTickers = okxClient.getSwapTickers();
         int totalSymbols = swapTickers.size();
 
-        ConcurrentHashMap<String, List<Candle>> allCandles = getCandlesMap(swapTickers, settings);
+        ConcurrentHashMap<String, List<Candle>> allCandles = okxClient.getCandlesMap(swapTickers, settings);
         log.info("Собрали цены для {} монет", allCandles.size());
 
         List.of("USDC-USDT-SWAP").forEach(allCandles::remove);
@@ -125,29 +123,28 @@ public class ScreenerProcessor {
         log.info("Скан завершен. Обработано {} тикеров за {} мин {} сек", totalSymbols, minutes, seconds);
     }
 
-    @NotNull
-    private ConcurrentHashMap<String, List<Candle>> getCandlesMap(Set<String> swapTickers, Settings settings) {
-        ExecutorService executor = Executors.newFixedThreadPool(5);
-        ConcurrentHashMap<String, List<Candle>> allCandles = new ConcurrentHashMap<>();
-        try {
-            List<CompletableFuture<Void>> futures = swapTickers.stream()
-                    .map(symbol -> CompletableFuture.runAsync(() -> {
-                        try {
-                            List<Candle> candles = okxClient.getCandleList(symbol, settings.getTimeframe(), settings.getCandleLimit());
-                            allCandles.put(symbol, candles);
-                        } catch (Exception e) {
-                            log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
-                        }
-                    }, executor))
-                    .toList();
-
-            // Ожидаем завершения всех задач
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        } finally {
-            executor.shutdown();
-        }
-        return allCandles;
-    }
+//    private ConcurrentHashMap<String, List<Candle>> getCandlesMap(Set<String> swapTickers, Settings settings) {
+//        ExecutorService executor = Executors.newFixedThreadPool(5);
+//        ConcurrentHashMap<String, List<Candle>> allCandles = new ConcurrentHashMap<>();
+//        try {
+//            List<CompletableFuture<Void>> futures = swapTickers.stream()
+//                    .map(symbol -> CompletableFuture.runAsync(() -> {
+//                        try {
+//                            List<Candle> candles = okxClient.getCandleList(symbol, settings.getTimeframe(), settings.getCandleLimit());
+//                            allCandles.put(symbol, candles);
+//                        } catch (Exception e) {
+//                            log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+//                        }
+//                    }, executor))
+//                    .toList();
+//
+//            // Ожидаем завершения всех задач
+//            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+//        } finally {
+//            executor.shutdown();
+//        }
+//        return allCandles;
+//    }
 
     private void setupEntryPointsIfNeededFromCandles(EntryData entryData, ZScoreEntry topPair, ConcurrentHashMap<String, List<Candle>> topPairCandles) {
         if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
@@ -187,7 +184,7 @@ public class ScreenerProcessor {
         }
     }
 
-    private ConcurrentHashMap<String, List<Candle>> saveCandlesToJson(ZScoreEntry topPair, Settings settings) {
+    private ConcurrentHashMap<String, List<Candle>> getAndSaveCandlesToJson(ZScoreEntry topPair, Settings settings) {
         List<Candle> longTickerCandles = okxClient.getCandleList(
                 topPair.getLongticker(),
                 settings.getTimeframe(),
