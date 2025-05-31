@@ -1,10 +1,10 @@
 import itertools
 import json
+import numpy as np
 import os
 import sys
 import traceback
 import uuid
-import numpy as np
 from multiprocessing import cpu_count, Process
 from statsmodels.tsa.stattools import coint
 
@@ -105,8 +105,8 @@ def process_chunk(input_path, output_path):
 
 
 def main():
-    print("📥 Загрузка all_candles.json...")
-    with open("all_candles.json") as f:
+    print("📥 Загрузка candles.json...")
+    with open("candles.json") as f:
         candles_dict = json.load(f)
 
     print("⚙️ Загрузка settings.json...")

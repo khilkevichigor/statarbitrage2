@@ -3,6 +3,7 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.EntryData;
+import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,17 +21,15 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    //    private final ObjectMapper objectMapper;
+    private static final String SETTINGS_JSON_FILE_PATH = "settings.json";
     private static final String ENTRY_DATA_JSON_FILE_PATH = "entry_data.json";
-    private static final String ALL_CLOSES_JSON_FILE_PATH = "all_closes.json";
-    private static final String ALL_CANDLES_JSON_FILE_PATH = "all_candles.json";
+    private static final String CANDLES_JSON_FILE_PATH = "candles.json";
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
     private static final String CHARTS_DIR = "charts";
 
@@ -75,24 +74,24 @@ public class FileService {
         }
     }
 
-    public void writeAllClosesToJson(ConcurrentHashMap<String, List<Double>> topPairCloses) {
-        try {
-            MAPPER.writeValue(new File(ALL_CLOSES_JSON_FILE_PATH), topPairCloses);
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
-        }
-    }
+//    public void writeAllClosesToJson(ConcurrentHashMap<String, List<Double>> topPairCloses) {
+//        try {
+//            MAPPER.writeValue(new File(ALL_CLOSES_JSON_FILE_PATH), topPairCloses);
+//        } catch (IOException e) {
+//            log.error("Ошибка при сохранении all_closes.json: {}", e.getMessage(), e);
+//        }
+//    }
 
-    public void writeAllCandlesToJson(Map<String, List<Candle>> allCandles) {
+    public void writeCandlesToJson(Map<String, List<Candle>> candles) {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
                 .setPrettyPrinting()
                 .create();
 
-        try (FileWriter file = new FileWriter(ALL_CANDLES_JSON_FILE_PATH)) {
-            gson.toJson(allCandles, file);
+        try (FileWriter file = new FileWriter(CANDLES_JSON_FILE_PATH)) {
+            gson.toJson(candles, file);
         } catch (IOException e) {
-            log.error("Ошибка при сохранении all_candles.json: {}", e.getMessage(), e);
+            log.error("Ошибка при сохранении candles.json: {}", e.getMessage(), e);
         }
     }
 
@@ -221,4 +220,25 @@ public class FileService {
         }
     }
 
+    public void saveSettings(Map<Long, Settings> userSettings) {
+        try {
+            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_JSON_FILE_PATH), userSettings);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Map<Long, Settings> loadSettings() {
+        File file = new File(SETTINGS_JSON_FILE_PATH);
+        if (file.exists()) {
+            try {
+                return MAPPER.readValue(file, new TypeReference<>() {
+                });
+            } catch (IOException e) {
+                log.error("Ошибка при получении settings.json: {}", e.getMessage(), e);
+                throw new RuntimeException("Ошибка при получении settings.json");
+            }
+        }
+        return null;
+    }
 }

@@ -162,7 +162,7 @@ def plot_chart(
 def main():
     settings_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/settings.json"
     zscore_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/z_score.json"
-    candles_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/all_candles.json"
+    candles_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/candles.json"
     output_dir = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/charts"
     entry_path = "/Users/igorkhilkevich/IdeaProjects/statarbitrage/entry_data.json"
 
@@ -175,7 +175,7 @@ def main():
     window = settings.get("windowSize", 20)
 
     if not os.path.exists(zscore_path) or not os.path.exists(candles_path):
-        print("❌ z_score.json или all_candles.json не найден")
+        print("❌ z_score.json или candles.json не найден")
         return
 
     with open(zscore_path, "r") as f:

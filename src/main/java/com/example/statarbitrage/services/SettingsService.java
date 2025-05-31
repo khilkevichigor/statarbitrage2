@@ -1,38 +1,31 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.Settings;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
 public class SettingsService {
-    private static final String SETTINGS_FILE = "settings.json";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private Map<Long, Settings> userSettings = new HashMap<>();
-
-    public SettingsService() {
-        loadSettings();
-    }
+    @Autowired
+    private FileService fileService;
 
     public Settings getSettings(long chatId) {
-        if (!userSettings.containsKey(chatId)) {
+        Map<Long, Settings> settings = fileService.loadSettings();
+        if (!settings.containsKey(chatId)) {
             Settings defaultSettings = getDefaultSettings();
-            userSettings.put(chatId, defaultSettings);
-            saveSettings();
+            settings.put(chatId, defaultSettings);
+            fileService.saveSettings(settings);
         }
-        return userSettings.get(chatId);
+        return settings.get(chatId);
     }
 
     private static Settings getDefaultSettings() {
         return Settings.builder()
-                .candleLimit(300)
                 .timeframe("15m")
+                .candleLimit(100)
                 .significanceLevel(0.05)
                 .zscoreEntry(2.0)
                 .zscoreExit(0.5)
@@ -41,39 +34,20 @@ public class SettingsService {
                 .capitalLong(1000.0)
                 .capitalShort(1000.0)
                 .leverage(10.0)
-                .feePctPerTrade(0.04)
+                .feePctPerTrade(0.05)
                 .build();
     }
 
     public void updateAllSettings(long chatId, Settings newSettings) {
+        Map<Long, Settings> userSettings = new HashMap<>();
         userSettings.put(chatId, newSettings);
-        saveSettings();
-    }
-
-    private void loadSettings() {
-        File file = new File(SETTINGS_FILE);
-        if (file.exists()) {
-            try {
-                userSettings = MAPPER.readValue(file, new TypeReference<>() {
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void saveSettings() {
-        try {
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_FILE), userSettings);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        fileService.saveSettings(userSettings);
     }
 
     public void resetSettings(long chatId) {
-        Settings defaultSettings = getDefaultSettings(); // с дефолтными значениями
+        Settings defaultSettings = getDefaultSettings();
+        Map<Long, Settings> userSettings = new HashMap<>();
         userSettings.put(chatId, defaultSettings);
-        saveSettings();
+        fileService.saveSettings(userSettings);
     }
-
 }

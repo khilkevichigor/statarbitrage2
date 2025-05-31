@@ -49,11 +49,10 @@ public class ScreenerProcessor {
             EntryData entryData = fileService.getEntryData();
             Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
-//            ConcurrentHashMap<String, List<Candle>> topPairCandles = getAndSaveCandlesToJson(topPair, settings);
-            ConcurrentHashMap<String, List<Candle>> allCandles = okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
-            fileService.writeAllCandlesToJson(allCandles);
-            updateCurrentPricesFromCandles(entryData, allCandles);
-            setupEntryPointsIfNeededFromCandles(entryData, topPair, allCandles);
+            ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
+            fileService.writeCandlesToJson(candlesMap);
+            updateCurrentPricesFromCandles(entryData, candlesMap);
+            setupEntryPointsIfNeededFromCandles(entryData, topPair, candlesMap);
             ProfitData profitData = profitService.calculateAndSetProfit(entryData, settings.getCapitalLong(), settings.getCapitalShort(), settings.getLeverage(), settings.getFeePctPerTrade());
 
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
@@ -72,8 +71,7 @@ public class ScreenerProcessor {
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
 
-        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "all_candles.json"));
-//        log.info("Удалили z_score.json, entry_data.json, all_candles.json");
+        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "candles.json"));
 
         Settings settings = settingsService.getSettings(Long.parseLong(chatId));
 
@@ -86,8 +84,8 @@ public class ScreenerProcessor {
         List.of("USDC-USDT-SWAP").forEach(allCandles::remove);
         log.info("Удалили цены тикеров из черного списка");
 
-        fileService.writeAllCandlesToJson(allCandles);
-        log.info("Сохранили цены в all_candles.json");
+        fileService.writeCandlesToJson(allCandles);
+        log.info("Сохранили цены в candles.json");
 
         log.info("🐍Запускаем скрипты...");
 
@@ -201,7 +199,7 @@ public class ScreenerProcessor {
         allCandles.put(topPair.getLongticker(), longTickerCandles);
         allCandles.put(topPair.getShortticker(), shortTickerCandles);
 
-        fileService.writeAllCandlesToJson(allCandles);
+        fileService.writeCandlesToJson(allCandles);
         return allCandles;
     }
 
