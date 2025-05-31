@@ -4,13 +4,18 @@ import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.utils.ADFUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CointegrationService {
@@ -49,7 +54,6 @@ public class CointegrationService {
 
         return result;
     }
-
 
     private double[] regressAndGetResiduals(double[] x, double[] y) {
         OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
