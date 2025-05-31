@@ -89,7 +89,7 @@ def plot_chart(
     # Верхний график — нормализованные цены
     ax1.plot(norm_short, label=f"{shortticker} = {short_price:.6f}", color="red")
     ax1.plot(norm_long, label=f"{longticker} = {long_price:.6f}", color="green")
-    ax1.set_yticks([])
+    ax1.set_yticks([])  # Удаляем шкалу слева
     ax1.set_ylabel("")
     ax1.legend()
     ax1.grid(True)
