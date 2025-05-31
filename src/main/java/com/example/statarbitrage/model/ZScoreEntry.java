@@ -13,5 +13,4 @@ public class ZScoreEntry {
     private double longtickercurrentprice;
     private double shorttickercurrentprice;
     private long timestamp;
-
 }
