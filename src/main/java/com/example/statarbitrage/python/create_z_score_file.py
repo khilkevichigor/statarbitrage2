@@ -1,11 +1,11 @@
-# create_z_score_file.py
-
 import itertools
 import json
-import numpy as np
+import os
 import sys
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import uuid
+import numpy as np
+from multiprocessing import cpu_count, Process
 from statsmodels.tsa.stattools import coint
 
 
@@ -38,7 +38,6 @@ def analyze_pair(a, b, candles_dict, chat_config):
         closes_a = [candle["close"] for candle in candles_a]
         closes_b = [candle["close"] for candle in candles_b]
 
-        # Дополнительные проверки
         if np.std(closes_a) == 0 or np.std(closes_b) == 0:
             return None
         if np.allclose(closes_a, closes_b):
@@ -82,6 +81,29 @@ def analyze_pair(a, b, candles_dict, chat_config):
         return None
 
 
+def split_into_chunks(pairs, n):
+    k, m = divmod(len(pairs), n)
+    return [pairs[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n)]
+
+
+def process_chunk(input_path, output_path):
+    with open(input_path) as f:
+        data = json.load(f)
+
+    candles = data["candles"]
+    config = data["config"]
+    pairs = data["pairs"]
+
+    results = []
+    for a, b in pairs:
+        result = analyze_pair(a, b, candles, config)
+        if result:
+            results.append(result)
+
+    with open(output_path, "w") as f:
+        json.dump(results, f)
+
+
 def main():
     print("📥 Загрузка all_candles.json...")
     with open("all_candles.json") as f:
@@ -98,37 +120,59 @@ def main():
         sys.exit(1)
 
     pairs = list(itertools.combinations(candles_dict.keys(), 2))
-    total = len(pairs)
-    print(f"🔍 Анализируем {total} пар с многопоточностью...")
+    print(f"🔍 Всего пар для анализа: {len(pairs)}")
 
-    results = []
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = {
-            executor.submit(analyze_pair, a, b, candles_dict, chat_config): (a, b)
-            for a, b in pairs
-        }
+    num_workers = min(cpu_count(), 8)
+    chunks = split_into_chunks(pairs, num_workers)
+    processes = []
+    temp_files = []
 
-        for idx, future in enumerate(as_completed(futures), 1):
-            res = future.result()
-            if res:
-                results.append(res)
+    for i, chunk in enumerate(chunks):
+        uid = uuid.uuid4().hex
+        input_file = f"tmp_input_{uid}.json"
+        output_file = f"tmp_output_{uid}.json"
+        temp_files.extend([input_file, output_file])
 
-            if idx % 100 == 0 or idx == total:
-                print(f"⏳ Обработано пар: {idx}/{total}")
+        with open(input_file, "w") as f:
+            json.dump({
+                "candles": candles_dict,
+                "config": chat_config,
+                "pairs": chunk
+            }, f)
 
-    if results:
-        print(f"✅ Найдено {len(results)} подходящих пар")
+        p = Process(target=process_chunk, args=(input_file, output_file))
+        p.start()
+        processes.append((p, output_file))
+
+    all_results = []
+    for p, output_file in processes:
+        p.join()
+        if os.path.exists(output_file):
+            with open(output_file) as f:
+                all_results.extend(json.load(f))
+
+    if all_results:
         with open("z_score.json", "w") as f:
-            json.dump(results, f, indent=2)
-        print("💾 Файл z_score.json успешно создан.")
+            json.dump(all_results, f, indent=2)
+        print(f"✅ Найдено {len(all_results)} пар. 💾 z_score.json создан.")
     else:
-        print("⚠️ Нет подходящих пар — файл не создан.")
+        print("⚠️ Подходящих пар не найдено.")
+
+    # 🔥 Удаление временных файлов
+    for file in temp_files:
+        try:
+            os.remove(file)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        print("❌ Ошибка во время выполнения скрипта:", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
-        sys.exit(1)
+    if len(sys.argv) == 3:
+        process_chunk(sys.argv[1], sys.argv[2])
+    else:
+        try:
+            main()
+        except Exception:
+            print("❌ Ошибка во время выполнения скрипта:", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+            sys.exit(1)
