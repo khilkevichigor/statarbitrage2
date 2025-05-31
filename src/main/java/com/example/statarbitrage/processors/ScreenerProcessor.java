@@ -77,7 +77,7 @@ public class ScreenerProcessor {
         candlesService.filterByBlackList(candlesMap);
         log.info("🐍Запускаем скрипты...");
         PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
-        zScoreService.keepPairWithMaxZScore();
+        zScoreService.keepBestPairByZscoreAndPvalue();
         chartService.clearChartDir();
         ZScoreEntry topPair = zScoreService.getTopPairEntry();
         EntryData entryData = entryDataService.createEntryData(topPair);
