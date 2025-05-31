@@ -2,7 +2,6 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.ZScoreEntry;
-import com.example.statarbitrage.utils.ADFUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
@@ -13,18 +12,23 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CointegrationService {
 
+
     private final ZScoreService zScoreService;
+    private final ADFService adfService;
 
     public List<ZScoreEntry> analyzeCointegrationPairs(ConcurrentHashMap<String, List<Candle>> candlesMap) {
         List<String> tickers = new ArrayList<>(candlesMap.keySet());
         List<ZScoreEntry> result = new ArrayList<>();
+
+        int numCoins = tickers.size();
+        int totalPairs = (numCoins * (numCoins - 1)) / 2;
+        int selectedPairs = 0;
 
         for (int i = 0; i < tickers.size(); i++) {
             for (int j = i + 1; j < tickers.size(); j++) {
@@ -35,8 +39,8 @@ public class CointegrationService {
                 List<Candle> candles2 = candlesMap.get(ticker2);
                 if (candles1 == null || candles2 == null) continue;
 
-                List<Double> prices1 = candles1.stream().map(Candle::getClose).collect(Collectors.toList());
-                List<Double> prices2 = candles2.stream().map(Candle::getClose).collect(Collectors.toList());
+                List<Double> prices1 = candles1.stream().map(Candle::getClose).toList();
+                List<Double> prices2 = candles2.stream().map(Candle::getClose).toList();
 
                 if (prices1.size() != prices2.size() || prices1.size() < 30) continue;
 
@@ -44,14 +48,15 @@ public class CointegrationService {
                 double[] y = prices2.stream().mapToDouble(Double::doubleValue).toArray();
                 double[] residuals = regressAndGetResiduals(x, y);
 
-                boolean isCointegrated = ADFUtil.augmentedDickeyFullerTest(residuals, 1);
+                boolean isCointegrated = adfService.augmentedDickeyFullerTestV3(residuals, 1);
                 if (isCointegrated) {
                     ZScoreEntry entry = zScoreService.buildZScoreEntry(ticker1, ticker2, residuals);
                     result.add(entry);
+                    selectedPairs++;
                 }
             }
         }
-
+        log.info("Всего монет: {}, пар: {}, коинтегрированных пар: {}", numCoins, totalPairs, selectedPairs);
         return result;
     }
 
@@ -70,12 +75,6 @@ public class CointegrationService {
         return residuals;
     }
 
-//    public Optional<ZScoreEntry> findBestCointegratedPair(List<ZScoreEntry> zScoreEntries) {
-//        return zScoreEntries.stream()
-//                .filter(entry -> entry.getPvalue() < 0.05) // оставляем только статистически значимые
-//                .min(Comparator.comparingDouble(ZScoreEntry::getPvalue)); // выбираем с наименьшим p-value
-//    }
-
     public ZScoreEntry findBestCointegratedPair(List<ZScoreEntry> zScoreEntries) {
         return zScoreEntries.stream()
                 .filter(entry -> entry.getPvalue() < 0.05 && Math.abs(entry.getZscore()) > 2.0) // z-score ближе к 0 — стабильнее
@@ -83,6 +82,4 @@ public class CointegrationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Cointegration pair not found"));
     }
-
-
 }

@@ -1,7 +1,6 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.ZScoreEntry;
-import com.example.statarbitrage.utils.ADFUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +16,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ZScoreService {
+    private final ADFService adfService;
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
 
@@ -118,7 +119,7 @@ public class ZScoreService {
         entry.setSpread(residuals[residuals.length - 1]);
         entry.setMean(mean);
         entry.setZscore(latestZ);
-        entry.setPvalue(ADFUtil.calculatePValue(residuals)); // если реализовано
+        entry.setPvalue(adfService.calculatePValue(residuals)); // если реализовано
         entry.setTimestamp(System.currentTimeMillis());
 
         return entry;
