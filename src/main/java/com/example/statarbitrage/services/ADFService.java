@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ADFService {
 
-    public boolean augmentedDickeyFullerTestV3(double[] series, int lags) {
+    public boolean augmentedDickeyFullerTest(double[] series, int lags) {
         int n = series.length;
         if (n <= lags + 1) return false;
 
@@ -41,13 +41,6 @@ public class ADFService {
             System.err.println("ADF ошибка: сингулярная матрица, пропускаем серию.");
             return false;
         }
-    }
-
-
-    public boolean augmentedDickeyFullerTestV2(double[] series, int lags) {
-        double testStat = calculateADFTestStatistic(series, lags);
-        // Грубый критический уровень для 95% доверия ~ -2.86
-        return testStat < -2.86;
     }
 
     public double calculatePValue(double[] series) {

@@ -48,7 +48,7 @@ public class CointegrationService {
                 double[] y = prices2.stream().mapToDouble(Double::doubleValue).toArray();
                 double[] residuals = regressAndGetResiduals(x, y);
 
-                boolean isCointegrated = adfService.augmentedDickeyFullerTestV3(residuals, 1);
+                boolean isCointegrated = adfService.augmentedDickeyFullerTest(residuals, 1);
                 if (isCointegrated) {
                     ZScoreEntry entry = zScoreService.buildZScoreEntry(ticker1, ticker2, residuals);
                     result.add(entry);
