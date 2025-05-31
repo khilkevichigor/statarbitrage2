@@ -15,6 +15,7 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class ProfitService {
     private final FileService fileService;
+    private final EntryDataService entryDataService;
 
     public ProfitData calculateAndSetProfit(
             EntryData entryData,
@@ -73,7 +74,7 @@ public class ProfitService {
         String profitStr = profitRounded + "%";
         entryData.setProfit(profitStr);
 
-        fileService.writeEntryDataToJson(Collections.singletonList(entryData));
+        entryDataService.save(Collections.singletonList(entryData));
 
         log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",
                 entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);

@@ -1,25 +1,34 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.Settings;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+@Slf4j
+@Service
+@RequiredArgsConstructor
 public class SettingsService {
-    @Autowired
-    private FileService fileService;
 
-    public Settings getSettings(long chatId) {
-        Map<Long, Settings> settings = fileService.loadSettings();
-        if (!settings.containsKey(chatId)) {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String SETTINGS_JSON_FILE_PATH = "settings.json";
+    private static final long CHAT_ID = 159178617;
+
+    public Settings getSettings() {
+        Map<Long, Settings> settings = loadSettings(SETTINGS_JSON_FILE_PATH);
+        if (!settings.containsKey(CHAT_ID)) {
             Settings defaultSettings = getDefaultSettings();
-            settings.put(chatId, defaultSettings);
-            fileService.saveSettings(settings);
+            settings.put(CHAT_ID, defaultSettings);
+            saveSettings(settings);
         }
-        return settings.get(chatId);
+        return settings.get(CHAT_ID);
     }
 
     private static Settings getDefaultSettings() {
@@ -41,13 +50,35 @@ public class SettingsService {
     public void updateAllSettings(long chatId, Settings newSettings) {
         Map<Long, Settings> userSettings = new HashMap<>();
         userSettings.put(chatId, newSettings);
-        fileService.saveSettings(userSettings);
+        saveSettings(userSettings);
     }
 
     public void resetSettings(long chatId) {
         Settings defaultSettings = getDefaultSettings();
         Map<Long, Settings> userSettings = new HashMap<>();
         userSettings.put(chatId, defaultSettings);
-        fileService.saveSettings(userSettings);
+        saveSettings(userSettings);
+    }
+
+    public void saveSettings(Map<Long, Settings> userSettings) {
+        try {
+            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_JSON_FILE_PATH), userSettings);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Map<Long, Settings> loadSettings(String settingsJsonFilePath) {
+        File file = new File(settingsJsonFilePath);
+        if (file.exists()) {
+            try {
+                return MAPPER.readValue(file, new TypeReference<>() {
+                });
+            } catch (IOException e) {
+                log.error("Ошибка при получении settings.json: {}", e.getMessage(), e);
+                throw new RuntimeException("Ошибка при получении settings.json");
+            }
+        }
+        return null;
     }
 }
