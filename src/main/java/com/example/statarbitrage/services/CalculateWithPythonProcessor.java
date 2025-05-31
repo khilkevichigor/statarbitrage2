@@ -26,11 +26,13 @@ public class CalculateWithPythonProcessor {
     private final ZScoreService zScoreService;
     private final CandlesService candlesService;
     private final ProfitService profitService;
+    private final FileService fileService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
+        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "candles.json"));
         Set<String> swapTickers = okxClient.getSwapTickers();
         int totalSymbols = swapTickers.size();
         Settings settings = settingsService.getSettings();
