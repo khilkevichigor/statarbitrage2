@@ -44,6 +44,7 @@ public class SettingsService {
                 .capitalShort(1000.0)
                 .leverage(10.0)
                 .feePctPerTrade(0.05)
+                .withPython(false)
                 .build();
     }
 
