@@ -11,7 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.title.LegendTitle;
+import org.jfree.chart.title.TextTitle;
 import org.jfree.data.time.Minute;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
@@ -88,9 +91,9 @@ public class ScreenerProcessor {
         candlesService.filterByBlackList(candlesMap);
 
         List<ZScoreEntry> zScoreEntries = cointegrationService.analyzeCointegrationPairs(candlesMap);
-        Optional<ZScoreEntry> bestCointegratedPair = cointegrationService.findBestCointegratedPair(zScoreEntries);
+        ZScoreEntry bestCointegratedPair = cointegrationService.findBestCointegratedPair(zScoreEntries);
 
-        JFreeChart jFreeChart = buildOverlayChart(bestCointegratedPair.get(), candlesMap);
+        JFreeChart jFreeChart = buildOverlayChart(bestCointegratedPair, candlesMap);
         try {
             File chartsDir = new File("charts");
             if (!chartsDir.exists()) {
@@ -144,8 +147,14 @@ public class ScreenerProcessor {
 
         for (int i = 0; i < normLong.size(); i++) {
             Date date = new Date(longCandles.get(i).getTimestamp());
-            seriesLong.addOrUpdate(new Minute(date), normLong.get(i));
-            seriesShort.addOrUpdate(new Minute(date), normShort.get(i));
+            Double valLong = normLong.get(i);
+            Double valShort = normShort.get(i);
+            if (valLong != null && !valLong.isNaN()) {
+                seriesLong.addOrUpdate(new Minute(date), valLong);
+            }
+            if (valShort != null && !valShort.isNaN()) {
+                seriesShort.addOrUpdate(new Minute(date), valShort);
+            }
         }
 
         TimeSeriesCollection dataset = new TimeSeriesCollection();
@@ -163,11 +172,32 @@ public class ScreenerProcessor {
         );
 
         XYPlot plot = chart.getXYPlot();
-        plot.getRenderer().setSeriesPaint(0, Color.GREEN); // Лонг
-        plot.getRenderer().setSeriesPaint(1, Color.RED);   // Шорт
+
+        // Белый фон
+        chart.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(Color.WHITE);
+
+        // НЕ УБИРАЙ ось Y полностью, а сделай ее "невидимой"
+        ValueAxis yAxis = plot.getRangeAxis();
+        yAxis.setTickLabelsVisible(false);
+        yAxis.setTickMarksVisible(false);
+        yAxis.setAxisLineVisible(false);
+
+        // Цвета линий
+        plot.getRenderer().setSeriesPaint(0, Color.GREEN);
+        plot.getRenderer().setSeriesPaint(1, Color.RED);
+
+        // Текущие цены в подзаголовке
+        double longCurrentPrice = longPrices.get(longPrices.size() - 1);
+        double shortCurrentPrice = shortPrices.get(shortPrices.size() - 1);
+        String subtitleText = String.format("Текущие цены: %s (LONG) = %.6f, %s (SHORT) = %.6f",
+                longTicker, longCurrentPrice, shortTicker, shortCurrentPrice);
+        chart.addSubtitle(new TextTitle(subtitleText, new Font("Arial", Font.PLAIN, 14)));
 
         return chart;
     }
+
+
 
     private List<Double> normalize(List<Double> prices) {
         double base = prices.get(0);

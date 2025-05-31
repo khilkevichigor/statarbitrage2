@@ -72,11 +72,12 @@ public class CointegrationService {
 //                .min(Comparator.comparingDouble(ZScoreEntry::getPvalue)); // выбираем с наименьшим p-value
 //    }
 
-    public Optional<ZScoreEntry> findBestCointegratedPair(List<ZScoreEntry> zScoreEntries) {
+    public ZScoreEntry findBestCointegratedPair(List<ZScoreEntry> zScoreEntries) {
         return zScoreEntries.stream()
-                .filter(entry -> entry.getPvalue() < 0.05 && Math.abs(entry.getZscore()) < 1.0) // z-score ближе к 0 — стабильнее
+                .filter(entry -> entry.getPvalue() < 0.05 && Math.abs(entry.getZscore()) > 2.0) // z-score ближе к 0 — стабильнее
                 .sorted(Comparator.comparingDouble(ZScoreEntry::getPvalue))
-                .findFirst();
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cointegration pair not found"));
     }
 
 
