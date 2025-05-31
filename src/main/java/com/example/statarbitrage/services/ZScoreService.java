@@ -1,10 +1,12 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.utils.ADFUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.math3.stat.StatUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -104,4 +106,23 @@ public class ZScoreService {
             log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
         }
     }
+
+    public ZScoreEntry buildZScoreEntry(String t1, String t2, double[] residuals) {
+        double mean = StatUtils.mean(residuals);
+        double std = Math.sqrt(StatUtils.variance(residuals));
+        double latestZ = (residuals[residuals.length - 1] - mean) / std;
+
+        ZScoreEntry entry = new ZScoreEntry();
+        entry.setLongticker(t1);
+        entry.setShortticker(t2);
+        entry.setSpread(residuals[residuals.length - 1]);
+        entry.setMean(mean);
+        entry.setZscore(latestZ);
+        entry.setPvalue(ADFUtil.calculatePValue(residuals)); // если реализовано
+        entry.setTimestamp(System.currentTimeMillis());
+
+        return entry;
+    }
+
+
 }
