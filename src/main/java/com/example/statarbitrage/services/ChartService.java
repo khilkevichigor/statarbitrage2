@@ -29,6 +29,7 @@ public class ChartService {
                     if (!file.delete()) {
                         log.warn("Не удалось удалить файл: {}", file.getAbsolutePath());
                     }
+                    log.info("Очистили папку с чартами");
                 }
             }
         }

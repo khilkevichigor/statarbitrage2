@@ -106,13 +106,13 @@ public class OkxClient {
 
     public ConcurrentHashMap<String, List<Candle>> getCandlesMap(Set<String> swapTickers, Settings settings) {
         ExecutorService executor = Executors.newFixedThreadPool(5);
-        ConcurrentHashMap<String, List<Candle>> allCandles = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, List<Candle>> candlesMap = new ConcurrentHashMap<>();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
                         try {
                             List<Candle> candles = getCandleList(symbol, settings.getTimeframe(), settings.getCandleLimit());
-                            allCandles.put(symbol, candles);
+                            candlesMap.put(symbol, candles);
                         } catch (Exception e) {
                             log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
                         }
@@ -124,6 +124,7 @@ public class OkxClient {
         } finally {
             executor.shutdown();
         }
-        return allCandles;
+        log.info("Собрали цены для {} монет", candlesMap.size());
+        return candlesMap;
     }
 }

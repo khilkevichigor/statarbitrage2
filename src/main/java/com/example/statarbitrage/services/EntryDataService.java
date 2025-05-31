@@ -26,6 +26,7 @@ public class EntryDataService {
         entryData.setLongticker(topPair.getLongticker());
         entryData.setShortticker(topPair.getShortticker());
         save(Collections.singletonList(entryData));
+        log.info("Создали entry_data.json");
         return entryData;
     }
 
@@ -57,7 +58,7 @@ public class EntryDataService {
         }
     }
 
-    public void updateCurrentPricesFromCandles(EntryData entryData, ConcurrentHashMap<String, List<Candle>> allCandles) {
+    public void updateCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Candle>> allCandles) {
         try {
             String longTicker = entryData.getLongticker();
             String shortTicker = entryData.getShortticker();
@@ -78,6 +79,7 @@ public class EntryDataService {
             entryData.setShortTickerCurrentPrice(shortPrice);
 
             save(Collections.singletonList(entryData));
+            log.info("Обогатили entry_data.json ценами из candles.json");
         } catch (Exception e) {
             log.error("Ошибка при обогащении z_score.json из свечей: {}", e.getMessage(), e);
         }

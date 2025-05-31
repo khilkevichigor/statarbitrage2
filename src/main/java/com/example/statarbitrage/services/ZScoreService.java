@@ -98,6 +98,7 @@ public class ZScoreService {
                     log.error("Нет лучшей пары в z_score.json");
                 }
                 MAPPER.writeValue(zFile, List.of(best));
+                log.info("🔍 Оставили лучшую пару в z_score.json");
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при фильтрации z_score.json: {}", e.getMessage(), e);
