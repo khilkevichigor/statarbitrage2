@@ -17,8 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class CointegrationService {
-    private final ZScoreService zScoreService;
-    private final ADFService adfService;
+
+    private static final int MIN_CANDLES = 50;
+    private static final double PVALUE_THRESHOLD = 0.05;
+    private static final double ZSCORE_THRESHOLD = 2.0;
 
     public List<ZScoreEntry> analyzeCointegrationPairs(ConcurrentHashMap<String, List<Candle>> candlesMap) {
         List<String> tickers = new ArrayList<>(candlesMap.keySet());
@@ -27,95 +29,183 @@ public class CointegrationService {
         int numCoins = tickers.size();
         int totalPairs = (numCoins * (numCoins - 1)) / 2;
         int selectedPairs = 0;
-        int errorPairs = 0;
 
         for (int i = 0; i < tickers.size(); i++) {
             for (int j = i + 1; j < tickers.size(); j++) {
-                String ticker1 = tickers.get(i);
-                String ticker2 = tickers.get(j);
+                String t1 = tickers.get(i);
+                String t2 = tickers.get(j);
 
-                List<Candle> candles1 = candlesMap.get(ticker1);
-                List<Candle> candles2 = candlesMap.get(ticker2);
-                if (candles1 == null || candles2 == null) continue;
+                List<Candle> c1 = candlesMap.get(t1);
+                List<Candle> c2 = candlesMap.get(t2);
 
-                List<Double> prices1 = candles1.stream().map(Candle::getClose).toList();
-                List<Double> prices2 = candles2.stream().map(Candle::getClose).toList();
+                if (!isValid(c1, c2)) continue;
 
-                if (prices1.size() != prices2.size() || prices1.size() < 30) continue;
+                // Проверка на синхронизацию временных рядов
+                if (!areTimestampsAligned(c1, c2)) continue;
 
-                double[] x = prices1.stream().mapToDouble(Double::doubleValue).toArray();
-                double[] y = prices2.stream().mapToDouble(Double::doubleValue).toArray();
+                double[] x = normalize(c1.stream().mapToDouble(Candle::getClose).toArray());
+                double[] y = normalize(c2.stream().mapToDouble(Candle::getClose).toArray());
 
-                double[] residuals = regressAndGetResiduals(x, y);
-                if (residuals == null) {
-                    continue;
-                }
+                double[] residuals = getResiduals(x, y);
+                if (residuals == null) continue;
 
-                double pValue = adfService.calculatePValue(residuals);
+                double zScore = calcZScore(residuals);
+                double pValue = calculatePValueForSpread(x, y);
+                if (Double.isNaN(pValue)) continue;
 
-                if (Double.isNaN(pValue)) {
-                    errorPairs++;
-                    log.debug("ADF вернул NaN для пары: {} и {}", ticker1, ticker2);
-                    continue;
-                }
-
-                if (pValue < 0.00001) {  // фильтруем по p-value
-                    ZScoreEntry entry = zScoreService.buildZScoreEntry(ticker1, ticker2, residuals);
-                    entry.setPvalue(pValue);  // если нет — добавить поле в ZScoreEntry
-                    result.add(entry);
+                if (pValue < PVALUE_THRESHOLD && Math.abs(zScore) > ZSCORE_THRESHOLD) {
                     selectedPairs++;
+                    result.add(ZScoreEntry.builder()
+                            .longticker(t1)
+                            .shortticker(t2)
+                            .zscore(zScore)
+                            .pvalue(pValue)
+                            .build());
                 }
             }
         }
-        log.info("Всего монет: {}, пар: {}, коинтегрированных пар: {}, ошибок-NaN: {}", numCoins, totalPairs, selectedPairs, errorPairs);
+
+        log.info("Обработано пар: {}, выбрано: {}", totalPairs, selectedPairs);
         return result;
     }
 
-    private double[] regressAndGetResiduals(double[] x, double[] y) {
-        if (x.length < 3 || y.length < 3) {
-            log.warn("Недостаточно данных для регрессии: x.length={}, y.length={}", x.length, y.length);
-            return null;
+    private boolean isValid(List<Candle> c1, List<Candle> c2) {
+        return c1 != null && c2 != null && c1.size() >= MIN_CANDLES && c1.size() == c2.size();
+    }
+
+    private boolean areTimestampsAligned(List<Candle> c1, List<Candle> c2) {
+        for (int i = 0; i < c1.size(); i++) {
+            if (c1.get(i).getTimestamp() != c2.get(i).getTimestamp()) return false;
         }
+        return true;
+    }
 
-        double stdX = calculateStdDev(x);
-        double stdY = calculateStdDev(y);
+    private double[] normalize(double[] data) {
+        double mean = mean(data);
+        double std = stdDev(data);
+        return Arrays.stream(data).map(d -> (d - mean) / std).toArray();
+    }
 
-        if (stdX == 0.0 || stdY == 0.0) {
-            log.warn("Нулевая дисперсия: stdX={}, stdY={}", stdX, stdY);
-            return null;
+    private double mean(double[] data) {
+        return Arrays.stream(data).average().orElse(0);
+    }
+
+    private double stdDev(double[] data) {
+        double m = mean(data);
+        return Math.sqrt(Arrays.stream(data).map(d -> (d - m) * (d - m)).sum() / data.length);
+    }
+
+    private double[] getResiduals(double[] x, double[] y) {
+        int n = x.length;
+        double meanX = mean(x), meanY = mean(y);
+        double covXY = 0, varX = 0;
+
+        for (int i = 0; i < n; i++) {
+            covXY += (x[i] - meanX) * (y[i] - meanY);
+            varX += (x[i] - meanX) * (x[i] - meanX);
+        }
+        if (varX == 0) return null;
+
+        double beta = covXY / varX;
+        double alpha = meanY - beta * meanX;
+
+        double[] residuals = new double[n];
+        for (int i = 0; i < n; i++) {
+            residuals[i] = y[i] - (alpha + beta * x[i]);
+        }
+        return residuals;
+    }
+
+    private double calcZScore(double[] data) {
+        double mean = mean(data);
+        double std = stdDev(data);
+        if (std == 0) return 0;
+        return (data[data.length - 1] - mean) / std;
+    }
+
+    public double calculatePValueForSpread(double[] x, double[] y) {
+        double[] spread = calculateSpread(y, x); // y - (α + βx)
+        return calculatePValue(spread);
+    }
+
+    private double[] calculateSpread(double[] y, double[] x) {
+        int n = y.length;
+        double[][] regressors = new double[n][2];
+
+        for (int i = 0; i < n; i++) {
+            regressors[i][0] = 1.0;
+            regressors[i][1] = x[i];
         }
 
         try {
             OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
-            double[][] xData = Arrays.stream(x).mapToObj(val -> new double[]{val}).toArray(double[][]::new);
-            regression.newSampleData(y, xData);
-            double[] params = regression.estimateRegressionParameters();
-            double alpha = params[0];
-            double beta = params[1];
+            regression.newSampleData(y, regressors);
+            double[] beta = regression.estimateRegressionParameters();
 
-            double[] residuals = new double[x.length];
-            for (int i = 0; i < x.length; i++) {
-                residuals[i] = y[i] - (alpha + beta * x[i]);
+            double[] spread = new double[n];
+            for (int i = 0; i < n; i++) {
+                spread[i] = y[i] - (beta[0] + beta[1] * x[i]);
             }
-            return residuals;
+            return spread;
         } catch (Exception e) {
-            log.warn("Регрессия не выполнена из-за ошибки: {}", e.getMessage());
-            return null;
+            log.warn("Regression failed: {}", e.getMessage());
+            return new double[n];
         }
     }
 
-    private double calculateStdDev(double[] data) {
-        double mean = Arrays.stream(data).average().orElse(0);
-        double variance = Arrays.stream(data).map(val -> (val - mean) * (val - mean)).average().orElse(0);
-        return Math.sqrt(variance);
+    private double calculatePValue(double[] series) {
+        int n = series.length;
+        double[] deltaY = new double[n - 1];
+        double[][] regressors = new double[n - 1][1];
+
+        for (int i = 1; i < n; i++) {
+            deltaY[i - 1] = series[i] - series[i - 1];
+            regressors[i - 1][0] = series[i - 1];
+        }
+
+        try {
+            OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
+            regression.setNoIntercept(false);
+            regression.newSampleData(deltaY, regressors);
+
+            double[] beta = regression.estimateRegressionParameters();
+            double[] stderr = regression.estimateRegressionParametersStandardErrors();
+
+            if (beta.length < 1 || stderr.length < 1 || stderr[0] == 0.0) return Double.NaN;
+
+            double tStat = beta[0] / stderr[0];
+            return approximatePValue(tStat);
+        } catch (Exception e) {
+            log.warn("ADF regression error: {}", e.getMessage());
+            return Double.NaN;
+        }
     }
 
+    private static double approximatePValue(double tStat) {
+        double z = Math.abs(tStat);
+        return 2 * (1 - cumulativeStandardNormal(z));
+    }
 
-    public ZScoreEntry findBestCointegratedPair(List<ZScoreEntry> zScoreEntries) {
-        return zScoreEntries.stream()
-                .filter(entry -> entry.getPvalue() < 0.05 && Math.abs(entry.getZscore()) > 2.0) // z-score ближе к 0 — стабильнее
+    private static double cumulativeStandardNormal(double z) {
+        return 0.5 * (1 + erf(z / Math.sqrt(2)));
+    }
+
+    private static double erf(double z) {
+        double t = 1.0 / (1.0 + 0.5 * Math.abs(z));
+        double ans = 1 - t * Math.exp(-z * z - 1.26551223 +
+                t * (1.00002368 + t * (0.37409196 +
+                        t * (0.09678418 + t * (-0.18628806 +
+                                t * (0.27886807 + t * (-1.13520398 +
+                                        t * (1.48851587 + t * (-0.82215223 +
+                                                t * 0.17087277)))))))));
+        return z >= 0 ? ans : -ans;
+    }
+
+    public ZScoreEntry findBestCointegratedPair(List<ZScoreEntry> entries) {
+        return entries.stream()
+                .filter(e -> e.getPvalue() < PVALUE_THRESHOLD && Math.abs(e.getZscore()) > ZSCORE_THRESHOLD)
                 .sorted(Comparator.comparingDouble(ZScoreEntry::getPvalue))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Cointegration pair not found"));
+                .orElse(null);
     }
 }

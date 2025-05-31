@@ -16,7 +16,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ZScoreService {
-    private final ADFService adfService;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
@@ -108,22 +107,22 @@ public class ZScoreService {
         }
     }
 
-    public ZScoreEntry buildZScoreEntry(String t1, String t2, double[] residuals) {
-        double mean = StatUtils.mean(residuals);
-        double std = Math.sqrt(StatUtils.variance(residuals));
-        double latestZ = (residuals[residuals.length - 1] - mean) / std;
-
-        ZScoreEntry entry = new ZScoreEntry();
-        entry.setLongticker(t1);
-        entry.setShortticker(t2);
-        entry.setSpread(residuals[residuals.length - 1]);
-        entry.setMean(mean);
-        entry.setZscore(latestZ);
-        entry.setPvalue(adfService.calculatePValue(residuals)); // если реализовано
-        entry.setTimestamp(System.currentTimeMillis());
-
-        return entry;
-    }
+//    public ZScoreEntry buildZScoreEntry(String t1, String t2, double[] residuals) {
+//        double mean = StatUtils.mean(residuals);
+//        double std = Math.sqrt(StatUtils.variance(residuals));
+//        double latestZ = (residuals[residuals.length - 1] - mean) / std;
+//
+//        ZScoreEntry entry = new ZScoreEntry();
+//        entry.setLongticker(t1);
+//        entry.setShortticker(t2);
+//        entry.setSpread(residuals[residuals.length - 1]);
+//        entry.setMean(mean);
+//        entry.setZscore(latestZ);
+//        entry.setPvalue(adfService.calculatePValue(residuals)); // если реализовано
+//        entry.setTimestamp(System.currentTimeMillis());
+//
+//        return entry;
+//    }
 
 
 }
