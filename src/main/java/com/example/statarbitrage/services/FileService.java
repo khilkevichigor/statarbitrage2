@@ -12,23 +12,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileService {
 
-    public void clearDirectory(String dirPath) {
-        File dir = new File(dirPath);
-        if (dir.exists() && dir.isDirectory()) {
-            File[] files = dir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        clearDirectory(file.getAbsolutePath());
-                    }
-                    if (!file.delete()) {
-                        log.warn("Не удалось удалить файл: {}", file.getAbsolutePath());
-                    }
-                }
-            }
-        }
-    }
-
     public void deleteSpecificFilesInProjectRoot(List<String> fileNames) {
         File projectRoot = new File(".");
         for (String fileName : fileNames) {

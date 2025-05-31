@@ -13,13 +13,25 @@ import java.util.Comparator;
 @Service
 @RequiredArgsConstructor
 public class ChartService {
-    private final FileService fileService;
     private final EventSendService eventSendService;
 
     private static final String CHARTS_DIR = "charts";
 
     public void clearChartDir() {
-        fileService.clearDirectory(CHARTS_DIR);
+        File dir = new File(CHARTS_DIR);
+        if (dir.exists() && dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        clearChartDir();
+                    }
+                    if (!file.delete()) {
+                        log.warn("Не удалось удалить файл: {}", file.getAbsolutePath());
+                    }
+                }
+            }
+        }
     }
 
     public File getChart() {
