@@ -6,6 +6,8 @@ import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -13,6 +15,9 @@ public class ADFService {
 
     public double calculatePValue(double[] series) {
         double testStat = calculateADFTestStatistic(series, 1);
+        if (Double.isNaN(testStat)) {
+            return Double.NaN;
+        }
         return approximatePValue(testStat);
     }
 
@@ -21,6 +26,13 @@ public class ADFService {
         int effectiveSize = n - lags - 1;
         if (effectiveSize <= 0) {
             log.warn("Series too short for ADF calculation");
+            return Double.NaN;
+        }
+
+        // Проверка дисперсии
+        double std = calculateStdDev(series);
+        if (std == 0.0) {
+            log.warn("Series has zero variance");
             return Double.NaN;
         }
 
@@ -39,6 +51,9 @@ public class ADFService {
             }
         }
 
+        // Логирование, чтобы увидеть регрессоры
+        log.debug("Regressors sample: {}", Arrays.toString(regressors[0]));
+
         OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
         regression.setNoIntercept(false);
 
@@ -47,7 +62,12 @@ public class ADFService {
             double[] beta = regression.estimateRegressionParameters();
             double[] stderr = regression.estimateRegressionParametersStandardErrors();
 
-            int gammaIdx = 1;
+            if (beta.length < 2 || stderr.length < 2) {
+                log.warn("Недостаточно параметров в регрессии");
+                return Double.NaN;
+            }
+
+            int gammaIdx = 1;  // Коэффициент при y_{t-1}
             return beta[gammaIdx] / stderr[gammaIdx];
         } catch (SingularMatrixException e) {
             log.warn("Singular matrix in ADF regression, returning NaN", e);
@@ -56,6 +76,12 @@ public class ADFService {
             log.error("Unexpected error in ADF regression", e);
             return Double.NaN;
         }
+    }
+
+    private static double calculateStdDev(double[] data) {
+        double mean = Arrays.stream(data).average().orElse(0);
+        double variance = Arrays.stream(data).map(val -> (val - mean) * (val - mean)).average().orElse(0);
+        return Math.sqrt(variance);
     }
 
 
