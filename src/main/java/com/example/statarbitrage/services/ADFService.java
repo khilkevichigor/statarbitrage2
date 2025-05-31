@@ -73,7 +73,7 @@ public class ADFService {
             log.warn("Singular matrix in ADF regression, returning NaN", e);
             return Double.NaN;
         } catch (Exception e) {
-            log.error("Unexpected error in ADF regression", e);
+            log.error("Unexpected error of type " + e.getClass().getName() + " in ADF regression", e);
             return Double.NaN;
         }
     }

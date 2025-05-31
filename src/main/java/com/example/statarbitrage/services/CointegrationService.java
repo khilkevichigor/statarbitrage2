@@ -59,7 +59,7 @@ public class CointegrationService {
                     continue;
                 }
 
-                if (pValue < 0.05) {  // фильтруем по p-value
+                if (pValue < 0.00001) {  // фильтруем по p-value
                     ZScoreEntry entry = zScoreService.buildZScoreEntry(ticker1, ticker2, residuals);
                     entry.setPvalue(pValue);  // если нет — добавить поле в ZScoreEntry
                     result.add(entry);
