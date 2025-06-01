@@ -238,6 +238,38 @@ public class ChartService {
             entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
         }
 
+        //точки
+        if (entryData.getEntryTime() > 0) {
+            long entryTime = entryData.getEntryTime();
+
+            // Найти ближайший индекс к entryTime
+            int index = 0;
+            for (int i = 0; i < timeAxis.size(); i++) {
+                if (timeAxis.get(i).getTime() >= entryTime) {
+                    index = i;
+                    break;
+                }
+            }
+
+            Date entryDate = timeAxis.get(index);
+
+            // Добавляем точки на график
+            XYSeries longEntryPoint = topChart.addSeries("Long Entry", Collections.singletonList(entryDate),
+                    Collections.singletonList(normLong.get(index)));
+            longEntryPoint.setMarkerColor(Color.GREEN.darker());
+            longEntryPoint.setLineColor(Color.GREEN.darker());
+            longEntryPoint.setMarker(SeriesMarkers.CIRCLE);
+            longEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
+
+            XYSeries shortEntryPoint = topChart.addSeries("Short Entry", Collections.singletonList(entryDate),
+                    Collections.singletonList(normShort.get(index)));
+            shortEntryPoint.setMarkerColor(Color.RED.darker());
+            shortEntryPoint.setLineColor(Color.RED.darker());
+            shortEntryPoint.setMarker(SeriesMarkers.CIRCLE);
+            shortEntryPoint.setLineStyle(new BasicStroke(0f));
+        }
+
+
         // Подпись профита, если есть
         if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
             topChart.setTitle("Profit: " + entryData.getProfit());
@@ -312,6 +344,30 @@ public class ChartService {
             entryLineSpread.setLineColor(java.awt.Color.BLUE);
             entryLineSpread.setMarker(new None());
             entryLineSpread.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
+        }
+
+        //точка
+        if (entryData.getEntryTime() > 0) {
+            long entryTime = entryData.getEntryTime();
+
+            // Найти ближайший индекс к entryTime
+            int index = 0;
+            for (int i = 0; i < timeAxis.size(); i++) {
+                if (timeAxis.get(i).getTime() >= entryTime) {
+                    index = i;
+                    break;
+                }
+            }
+
+            Date entryDate = timeAxis.get(index);
+
+            // Добавляем точку входа на график спреда
+            XYSeries spreadEntryPoint = bottomChart.addSeries("Spread Entry", Collections.singletonList(entryDate),
+                    Collections.singletonList(spread.get(index)));
+            spreadEntryPoint.setMarkerColor(Color.BLUE.darker());
+            spreadEntryPoint.setLineColor(Color.BLUE.darker());
+            spreadEntryPoint.setMarker(SeriesMarkers.CIRCLE);
+            spreadEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
         }
 
         // Формируем подпись с параметрами
