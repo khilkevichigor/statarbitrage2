@@ -8,10 +8,10 @@ import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchart.BitmapEncoder;
-import org.knowm.xchart.XYChart;
-import org.knowm.xchart.XYChartBuilder;
-import org.knowm.xchart.XYSeries;
+import org.jetbrains.annotations.NotNull;
+import org.jfree.chart.annotations.XYAnnotation;
+import org.jfree.chart.annotations.XYTextAnnotation;
+import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 import org.knowm.xchart.style.markers.None;
 import org.knowm.xchart.style.markers.SeriesMarkers;
@@ -205,8 +205,8 @@ public class ChartService {
 
         // Создаём верхний график — нормализованные цены
         XYChart topChart = new XYChartBuilder()
-                .width(900).height(400)
-                .title("Cointegration: LONG " + longTicker + " - SHORT " + shortTicker)
+                .width(1920).height(720)
+                .title(getTitle(entryData))
                 .xAxisTitle("")  // убираем подпись "Time"
                 .yAxisTitle("Normalized Price")
                 .build();
@@ -273,15 +273,24 @@ public class ChartService {
             shortEntryPoint.setLineStyle(new BasicStroke(0f));
         }
 
-
-        // Подпись профита, если есть
         if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
-            topChart.setTitle("Profit: " + entryData.getProfit());
+            // Определим цвет
+            Color profitColor = entryData.getProfit().startsWith("-") ? Color.RED : new Color(0, 128, 0);
+
+            topChart.getStyler().setAnnotationTextFont(new Font("Arial", Font.BOLD, 100));
+            topChart.getStyler().setAnnotationLineColor(profitColor);
+            AnnotationText annotation = new AnnotationText(
+                    "Profit: " + entryData.getProfit(),
+                    timeAxis.get(timeAxis.size() / 2).getTime(), // по оси X (в миллисекундах)
+                    Collections.max(normLong) / 2,              // по оси Y
+                    false
+            );
+            topChart.addAnnotation(annotation);
         }
 
         // Нижний график — спред (без заголовка и легенды сверху)
         XYChart bottomChart = new XYChartBuilder()
-                .width(900).height(200)
+                .width(1920).height(360)
                 .title("")  // убираем заголовок
                 .xAxisTitle("")
                 .yAxisTitle("Spread")
@@ -402,6 +411,15 @@ public class ChartService {
         log.info("Combined chart saved to {}", filename);
 
         sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
+    }
+
+    private static String getTitle(EntryData entryData) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Cointegration: LONG ").append(entryData.getLongticker()).append(" - SHORT ").append(entryData.getShortticker());
+        if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
+            sb.append(" Profit: ").append(entryData.getProfit());
+        }
+        return sb.toString();
     }
 
     public void generateSpreadChart(String chatId,
