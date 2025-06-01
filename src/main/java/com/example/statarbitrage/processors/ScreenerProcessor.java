@@ -40,6 +40,8 @@ public class ScreenerProcessor {
 
         chartService.generatePythonChartAndSend(chatId, bestPair);
         chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
+        chartService.generateCombinedChart(chatId, candlesMap, bestPair);
+        chartService.generateSpreadChart(chatId, candlesMap, bestPair);
 
         logDuration(startTime);
     }
@@ -64,6 +66,8 @@ public class ScreenerProcessor {
             chartService.clearChartDir();
             chartService.generatePythonChartAndSend(chatId, bestPair);
             chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
+            chartService.generateCombinedChart(chatId, candlesMap, bestPair);
+            chartService.generateSpreadChart(chatId, candlesMap, bestPair);
         } finally {
             runningTrades.remove(chatId);
         }
