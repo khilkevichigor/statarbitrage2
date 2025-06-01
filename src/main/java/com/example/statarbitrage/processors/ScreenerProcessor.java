@@ -39,9 +39,9 @@ public class ScreenerProcessor {
         EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
 
         chartService.generatePythonChartAndSend(chatId, bestPair);
-        chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
-        chartService.generateCombinedChart(chatId, candlesMap, bestPair);
-        chartService.generateSpreadChart(chatId, candlesMap, bestPair);
+//        chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
+        chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
+//        chartService.generateSpreadChart(chatId, candlesMap, bestPair);
 
         logDuration(startTime);
     }
@@ -65,9 +65,9 @@ public class ScreenerProcessor {
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
             chartService.clearChartDir();
             chartService.generatePythonChartAndSend(chatId, bestPair);
-            chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
-            chartService.generateCombinedChart(chatId, candlesMap, bestPair);
-            chartService.generateSpreadChart(chatId, candlesMap, bestPair);
+//            chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
+            chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
+//            chartService.generateSpreadChart(chatId, candlesMap, bestPair);
         } finally {
             runningTrades.remove(chatId);
         }

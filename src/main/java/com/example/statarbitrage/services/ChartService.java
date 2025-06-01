@@ -128,12 +128,8 @@ public class ChartService {
 
             chart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
             chart.getStyler().setLegendLayout(Styler.LegendLayout.Horizontal);
-//            chart.getStyler().setPlotContentSize(.95);
-//            chart.getStyler().setLegendPadding(5);
-//            chart.getStyler().setChartPadding(5);
             chart.getStyler().setYAxisTicksVisible(false);  // скрыть деления (цифры)
             chart.getStyler().setYAxisTitleVisible(false);  // скрыть заголовок оси
-
 
             // Вертикальная линия по entryTime, если есть
             if (entryData.getEntryTime() > 0) {
@@ -170,7 +166,7 @@ public class ChartService {
     }
 
     public void generateCombinedChart(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap,
-                                      ZScoreEntry bestPair) {
+                                      ZScoreEntry bestPair, EntryData entryData) {
 
         String longTicker = bestPair.getLongticker();
         String shortTicker = bestPair.getShortticker();
@@ -221,13 +217,15 @@ public class ChartService {
         topChart.getStyler().setYAxisTitleVisible(false);
         topChart.getStyler().setPlotMargin(0);
         topChart.getStyler().setPlotContentSize(0.95);
+        topChart.getStyler().setLegendPadding(5);
+        topChart.getStyler().setChartPadding(5);
 
-        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker, timeAxis, normLong);
-        longSeries.setLineColor(Color.GREEN);
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (" + entryData.getLongTickerCurrentPrice() + ")", timeAxis, normLong);
+        longSeries.setLineColor(java.awt.Color.GREEN);
         longSeries.setMarker(new None());
 
-        XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker, timeAxis, normShort);
-        shortSeries.setLineColor(Color.RED);
+        XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker + " (" + entryData.getShortTickerCurrentPrice() + ")", timeAxis, normShort);
+        shortSeries.setLineColor(java.awt.Color.RED);
         shortSeries.setMarker(new None());
 
         // Нижний график — спред (без заголовка и легенды сверху)
@@ -245,9 +243,10 @@ public class ChartService {
         bottomChart.getStyler().setYAxisTitleVisible(false);
         bottomChart.getStyler().setPlotMargin(0);
         bottomChart.getStyler().setPlotContentSize(0.95);
+        bottomChart.getStyler().setLegendPadding(5);
+        bottomChart.getStyler().setChartPadding(5);
 
         bottomChart.addSeries("Spread", timeAxis, spread).setMarker(SeriesMarkers.NONE);
-
 
         // Добавляем линии mean, mean ± std, mean ± 2*std
         List<Double> meanList = Collections.nCopies(spread.size(), mean);
@@ -459,7 +458,7 @@ public class ChartService {
 
     private BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
         int width = Math.max(topImg.getWidth(), bottomImg.getWidth());
-        int gap = 2;  // минимальный отступ между графиками
+        int gap = 0;  // минимальный отступ между графиками
         int captionHeight = 30;
 
         int height = topImg.getHeight() + gap + bottomImg.getHeight() + captionHeight;
@@ -477,9 +476,6 @@ public class ChartService {
         g.dispose();
         return combined;
     }
-
-
-
 
     public void generatePythonChartAndSend(String chatId, ZScoreEntry bestPair) {
         PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
