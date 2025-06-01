@@ -3,6 +3,7 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.model.Settings;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,11 @@ public class SettingsService {
     private static final String SETTINGS_JSON_FILE_PATH = "settings.json";
     private static final long CHAT_ID = 159178617;
 
+    @PostConstruct
     public Settings getSettings() {
         Map<Long, Settings> settings = loadSettings(SETTINGS_JSON_FILE_PATH);
-        if (!settings.containsKey(CHAT_ID)) {
+        if (settings == null) {
+            settings = new HashMap<>();
             Settings defaultSettings = getDefaultSettings();
             settings.put(CHAT_ID, defaultSettings);
             saveSettings(settings);

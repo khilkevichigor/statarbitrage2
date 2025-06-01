@@ -15,7 +15,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ZScoreService {
-
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
 
