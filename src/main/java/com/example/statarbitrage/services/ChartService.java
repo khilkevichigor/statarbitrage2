@@ -215,10 +215,6 @@ public class ChartService {
         topChart.getStyler().setXAxisTicksVisible(false);
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
-//        topChart.getStyler().setPlotMargin(0);
-//        topChart.getStyler().setPlotContentSize(0.95);
-//        topChart.getStyler().setLegendPadding(5);
-//        topChart.getStyler().setChartPadding(5);
 
         XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (" + entryData.getLongTickerCurrentPrice() + ")", timeAxis, normLong);
         longSeries.setLineColor(java.awt.Color.GREEN);
@@ -233,8 +229,8 @@ public class ChartService {
             Date entryDate = new Date(entryData.getEntryTime());
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
             List<Double> lineY = Arrays.asList(
-                    Math.min(Collections.min(longPrices), Collections.min(shortPrices)),
-                    Math.max(Collections.max(longPrices), Collections.max(shortPrices))
+                    Math.min(Collections.min(normLong), Collections.min(normShort)),
+                    Math.max(Collections.max(normLong), Collections.max(normShort))
             );
             XYSeries entryLine = topChart.addSeries("Entry Point", lineX, lineY);
             entryLine.setLineColor(java.awt.Color.BLUE);
@@ -260,10 +256,6 @@ public class ChartService {
         bottomChart.getStyler().setXAxisTicksVisible(true);
         bottomChart.getStyler().setYAxisTicksVisible(false);
         bottomChart.getStyler().setYAxisTitleVisible(false);
-//        bottomChart.getStyler().setPlotMargin(0);
-//        bottomChart.getStyler().setPlotContentSize(0.95);
-//        bottomChart.getStyler().setLegendPadding(5);
-//        bottomChart.getStyler().setChartPadding(5);
 
         bottomChart.addSeries("Spread", timeAxis, spread).setMarker(SeriesMarkers.NONE);
 
@@ -308,18 +300,20 @@ public class ChartService {
                 1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{2f, 6f}, 0));
 
         // Вертикальная линия по entryTime, если есть //todo
-//        if (entryData.getEntryTime() > 0) {
-//            Date entryDate = new Date(entryData.getEntryTime());
-//            List<Date> lineX = Arrays.asList(entryDate, entryDate);
-//            List<Double> lineY = Arrays.asList(
-//                    Math.min(Collections.min(longPrices), Collections.min(shortPrices)),
-//                    Math.max(Collections.max(longPrices), Collections.max(shortPrices))
-//            );
-//            XYSeries entryLine = bottomChart.addSeries("Entry Point", lineX, lineY);
-//            entryLine.setLineColor(java.awt.Color.BLUE);
-//            entryLine.setMarker(new None());
-//            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
-//        }
+        // Вертикальная линия по entryTime на графике спреда
+        if (entryData.getEntryTime() > 0) {
+            Date entryDate = new Date(entryData.getEntryTime());
+            List<Date> lineX = Arrays.asList(entryDate, entryDate);
+            // по Y рисуем от минимального до максимального значения спреда
+            Double minSpread = Collections.min(spread);
+            Double maxSpread = Collections.max(spread);
+            List<Double> lineY = Arrays.asList(minSpread, maxSpread);
+
+            XYSeries entryLineSpread = bottomChart.addSeries("Entry Point Spread", lineX, lineY);
+            entryLineSpread.setLineColor(java.awt.Color.BLUE);
+            entryLineSpread.setMarker(new None());
+            entryLineSpread.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
+        }
 
         // Формируем подпись с параметрами
         double lastSpread = spread.get(spread.size() - 1);
