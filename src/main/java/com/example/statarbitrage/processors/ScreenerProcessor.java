@@ -36,9 +36,11 @@ public class ScreenerProcessor {
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles();
         PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
         ZScoreEntry bestPair = zScoreService.getBestPair();
-        entryDataService.createEntryData(bestPair, candlesMap);
-        PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
-        chartService.sendChart(chatId, chartService.getChart(), "📊LONG " + bestPair.getLongticker() + ", SHORT " + bestPair.getShortticker(), true);
+        EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
+
+        chartService.generatePythonChartAndSend(chatId, bestPair);
+        chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
+
         logDuration(startTime);
     }
 
@@ -58,14 +60,10 @@ public class ScreenerProcessor {
             entryDataService.updateCurrentPrices(entryData, candlesMap);
             entryDataService.setupEntryPointsIfNeededFromCandles(entryData, bestPair, candlesMap);
             ProfitData profitData = entryDataService.calculateAndSetProfit(entryData);
-
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
-
             chartService.clearChartDir();
-
-            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
-
-            chartService.sendChart(chatId, chartService.getChart(), profitData.getLogMessage(), false);
+            chartService.generatePythonChartAndSend(chatId, bestPair);
+            chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
         } finally {
             runningTrades.remove(chatId);
         }
