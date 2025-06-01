@@ -37,7 +37,7 @@ public class SettingsService {
     private static Settings getDefaultSettings() {
         return Settings.builder()
                 .timeframe("15m")
-                .candleLimit(100)
+                .candleLimit(300)
                 .significanceLevel(0.05)
                 .zscoreEntry(2.0)
                 .zscoreExit(0.5)
