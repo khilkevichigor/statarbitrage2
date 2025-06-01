@@ -211,16 +211,16 @@ public class ChartService {
         XYChart topChart = new XYChartBuilder()
                 .width(900).height(400)
                 .title("Normalized Prices")
-                .xAxisTitle("Time")
+                .xAxisTitle("")  // убираем подпись "Time"
                 .yAxisTitle("Normalized Price")
                 .build();
 
-        topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
-        topChart.getStyler().setXAxisTicksVisible(false);  // чтобы не загромождать
-        topChart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
-        topChart.getStyler().setLegendLayout(Styler.LegendLayout.Horizontal);
-        topChart.getStyler().setYAxisTicksVisible(false);  // скрыть деления (цифры)
-        topChart.getStyler().setYAxisTitleVisible(false);  // скрыть заголовок оси
+        topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда сверху слева
+        topChart.getStyler().setXAxisTicksVisible(false);
+        topChart.getStyler().setYAxisTicksVisible(false);
+        topChart.getStyler().setYAxisTitleVisible(false);
+        topChart.getStyler().setPlotMargin(0);
+        topChart.getStyler().setPlotContentSize(0.95);
 
         XYSeries longSeries = topChart.addSeries("LONG: " + longTicker, timeAxis, normLong);
         longSeries.setLineColor(Color.GREEN);
@@ -230,20 +230,21 @@ public class ChartService {
         shortSeries.setLineColor(Color.RED);
         shortSeries.setMarker(new None());
 
-        // Создаём нижний график — спред и отклонения
+        // Нижний график — спред (без заголовка и легенды сверху)
         XYChart bottomChart = new XYChartBuilder()
                 .width(900).height(200)
-                .title("Spread with Mean and Std Deviations")
-                .xAxisTitle("Time")
+                .title("")  // убираем заголовок
+                .xAxisTitle("")
                 .yAxisTitle("Spread")
                 .build();
 
-        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
+        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);  // легенда справа сверху (можно и убрать)
+        bottomChart.getStyler().setLegendVisible(false);  // полностью скрыть легенду
         bottomChart.getStyler().setXAxisTicksVisible(true);
-        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
-        bottomChart.getStyler().setLegendLayout(Styler.LegendLayout.Horizontal);
-        bottomChart.getStyler().setYAxisTicksVisible(false);  // скрыть деления (цифры)
-        bottomChart.getStyler().setYAxisTitleVisible(false);  // скрыть заголовок оси
+        bottomChart.getStyler().setYAxisTicksVisible(false);
+        bottomChart.getStyler().setYAxisTitleVisible(false);
+        bottomChart.getStyler().setPlotMargin(0);
+        bottomChart.getStyler().setPlotContentSize(0.95);
 
         bottomChart.addSeries("Spread", timeAxis, spread).setMarker(SeriesMarkers.NONE);
 
@@ -456,22 +457,19 @@ public class ChartService {
         return combined;
     }
 
-    public BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
+    private BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
         int width = Math.max(topImg.getWidth(), bottomImg.getWidth());
-        int gap = 2;  // очень маленький gap между графиками
-        int captionHeight = 30;  // высота области под подпись
+        int gap = 2;  // минимальный отступ между графиками
+        int captionHeight = 30;
 
         int height = topImg.getHeight() + gap + bottomImg.getHeight() + captionHeight;
+
         BufferedImage combined = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = combined.createGraphics();
 
-        // Рисуем верхний график (цены)
         g.drawImage(topImg, 0, 0, null);
-
-        // Рисуем нижний график (спред) сразу под верхним с минимальным gap
         g.drawImage(bottomImg, 0, topImg.getHeight() + gap, null);
 
-        // Рисуем подпись с параметрами ниже графиков
         g.setColor(Color.BLACK);
         g.setFont(new Font("Arial", Font.PLAIN, 14));
         g.drawString(caption, 5, topImg.getHeight() + gap + bottomImg.getHeight() + 20);
@@ -479,6 +477,7 @@ public class ChartService {
         g.dispose();
         return combined;
     }
+
 
 
 
