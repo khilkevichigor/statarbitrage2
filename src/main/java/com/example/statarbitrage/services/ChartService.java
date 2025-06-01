@@ -299,7 +299,6 @@ public class ChartService {
         minus2Sigma.setLineStyle(new BasicStroke(
                 1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{2f, 6f}, 0));
 
-        // Вертикальная линия по entryTime, если есть //todo
         // Вертикальная линия по entryTime на графике спреда
         if (entryData.getEntryTime() > 0) {
             Date entryDate = new Date(entryData.getEntryTime());
