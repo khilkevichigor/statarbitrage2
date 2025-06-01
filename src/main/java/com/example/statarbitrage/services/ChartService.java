@@ -297,7 +297,7 @@ public class ChartService {
         BufferedImage bottomImg = BitmapEncoder.getBufferedImage(bottomChart);
 
         // Объединяем в один график с подписью
-        BufferedImage combined = combineCharts(topImg, bottomImg, caption);
+        BufferedImage combined = combineChartsWithoutGap(topImg, bottomImg, caption);
 
         // Сохраняем итоговый файл
         File dir = new File(CHARTS_DIR);
@@ -455,6 +455,31 @@ public class ChartService {
         g.dispose();
         return combined;
     }
+
+    public BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
+        int width = Math.max(topImg.getWidth(), bottomImg.getWidth());
+        int gap = 2;  // очень маленький gap между графиками
+        int captionHeight = 30;  // высота области под подпись
+
+        int height = topImg.getHeight() + gap + bottomImg.getHeight() + captionHeight;
+        BufferedImage combined = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = combined.createGraphics();
+
+        // Рисуем верхний график (цены)
+        g.drawImage(topImg, 0, 0, null);
+
+        // Рисуем нижний график (спред) сразу под верхним с минимальным gap
+        g.drawImage(bottomImg, 0, topImg.getHeight() + gap, null);
+
+        // Рисуем подпись с параметрами ниже графиков
+        g.setColor(Color.BLACK);
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
+        g.drawString(caption, 5, topImg.getHeight() + gap + bottomImg.getHeight() + 20);
+
+        g.dispose();
+        return combined;
+    }
+
 
 
     public void generatePythonChartAndSend(String chatId, ZScoreEntry bestPair) {
