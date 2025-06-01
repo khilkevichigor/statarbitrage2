@@ -212,6 +212,10 @@ public class ChartService {
                 .build();
 
         topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда сверху слева
+        // Сделаем фон легенды полупрозрачным (например, белый с 50% прозрачности)
+        topChart.getStyler().setLegendBackgroundColor(new Color(255, 255, 255, 128)); // 128 из 255 = 50% прозрачности
+        // Если хотите убрать рамку вокруг легенды или сделать ее тоже прозрачной
+        topChart.getStyler().setLegendBorderColor(new Color(0, 0, 0, 0)); // полностью прозрачная рамка
         topChart.getStyler().setXAxisTicksVisible(false);
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
@@ -225,7 +229,7 @@ public class ChartService {
         shortSeries.setMarker(new None());
 
         // Вертикальная линия по entryTime, если есть
-        if (entryData.getEntryTime() > 0) { //todo не видна
+        if (entryData.getEntryTime() > 0) {
             Date entryDate = new Date(entryData.getEntryTime());
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
             List<Double> lineY = Arrays.asList(
@@ -285,11 +289,15 @@ public class ChartService {
 
         bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда слева сверху
         bottomChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
+        // Сделаем фон легенды полупрозрачным (например, белый с 50% прозрачности)
+        bottomChart.getStyler().setLegendBackgroundColor(new Color(255, 255, 255, 128)); // 128 из 255 = 50% прозрачности
+        // Если хотите убрать рамку вокруг легенды или сделать ее тоже прозрачной
+        bottomChart.getStyler().setLegendBorderColor(new Color(0, 0, 0, 0)); // полностью прозрачная рамка
         bottomChart.getStyler().setXAxisTicksVisible(true);
         bottomChart.getStyler().setYAxisTicksVisible(false);
         bottomChart.getStyler().setYAxisTitleVisible(false);
 
-        bottomChart.addSeries("Spread", timeAxis, spread).setMarker(SeriesMarkers.NONE);
+        bottomChart.addSeries("Spread (" + bestPair.getSpread() + ")", timeAxis, spread).setMarker(SeriesMarkers.NONE);
 
         // Добавляем линии mean, mean ± std, mean ± 2*std
         List<Double> meanList = Collections.nCopies(spread.size(), mean);
@@ -362,7 +370,7 @@ public class ChartService {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точку входа на график спреда
-            XYSeries spreadEntryPoint = bottomChart.addSeries("Spread Entry " + entryData.getSpreadEntry(), Collections.singletonList(entryDate),
+            XYSeries spreadEntryPoint = bottomChart.addSeries("Spread Entry (" + entryData.getSpreadEntry() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(spread.get(index)));
             spreadEntryPoint.setMarkerColor(Color.BLUE.darker());
             spreadEntryPoint.setLineColor(Color.BLUE.darker());
