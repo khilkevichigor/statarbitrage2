@@ -229,7 +229,7 @@ public class ChartService {
         shortSeries.setMarker(new None());
 
         // Вертикальная линия по entryTime, если есть
-        if (entryData.getEntryTime() > 0) {
+        if (entryData.getEntryTime() > 0) { //todo не видна
             Date entryDate = new Date(entryData.getEntryTime());
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
             List<Double> lineY = Arrays.asList(
