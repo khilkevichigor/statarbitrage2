@@ -14,6 +14,7 @@ import org.knowm.xchart.XYChartBuilder;
 import org.knowm.xchart.XYSeries;
 import org.knowm.xchart.style.Styler;
 import org.knowm.xchart.style.markers.None;
+import org.knowm.xchart.style.markers.SeriesMarkers;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -216,6 +217,10 @@ public class ChartService {
 
         topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
         topChart.getStyler().setXAxisTicksVisible(false);  // чтобы не загромождать
+        topChart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
+        topChart.getStyler().setLegendLayout(Styler.LegendLayout.Horizontal);
+        topChart.getStyler().setYAxisTicksVisible(false);  // скрыть деления (цифры)
+        topChart.getStyler().setYAxisTitleVisible(false);  // скрыть заголовок оси
 
         XYSeries longSeries = topChart.addSeries("LONG: " + longTicker, timeAxis, normLong);
         longSeries.setLineColor(Color.GREEN);
@@ -235,8 +240,14 @@ public class ChartService {
 
         bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
         bottomChart.getStyler().setXAxisTicksVisible(true);
+        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
+        bottomChart.getStyler().setLegendLayout(Styler.LegendLayout.Horizontal);
+        bottomChart.getStyler().setYAxisTicksVisible(false);  // скрыть деления (цифры)
+        bottomChart.getStyler().setYAxisTitleVisible(false);  // скрыть заголовок оси
 
-        bottomChart.addSeries("Spread", timeAxis, spread).setLineColor(Color.BLUE);
+        bottomChart.addSeries("Spread", timeAxis, spread).setMarker(SeriesMarkers.NONE);
+
+
         // Добавляем линии mean, mean ± std, mean ± 2*std
         List<Double> meanList = Collections.nCopies(spread.size(), mean);
         List<Double> std1Up = spread.stream().map(s -> mean + std).collect(Collectors.toList());
