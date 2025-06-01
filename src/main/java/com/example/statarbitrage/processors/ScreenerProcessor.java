@@ -38,7 +38,7 @@ public class ScreenerProcessor {
         ZScoreEntry bestPair = zScoreService.getBestPair();
         EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
 
-        chartService.generatePythonChartAndSend(chatId, bestPair);
+//        chartService.generatePythonChartAndSend(chatId, bestPair);
 //        chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
         chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
 //        chartService.generateSpreadChart(chatId, candlesMap, bestPair);
@@ -64,7 +64,7 @@ public class ScreenerProcessor {
             ProfitData profitData = entryDataService.calculateAndSetProfit(entryData);
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
             chartService.clearChartDir();
-            chartService.generatePythonChartAndSend(chatId, bestPair);
+//            chartService.generatePythonChartAndSend(chatId, bestPair);
 //            chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
             chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
 //            chartService.generateSpreadChart(chatId, candlesMap, bestPair);
