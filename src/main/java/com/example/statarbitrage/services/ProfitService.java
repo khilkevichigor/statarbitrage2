@@ -2,28 +2,28 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ProfitData;
+import com.example.statarbitrage.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Collections;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfitService {
-    private final FileService fileService;
-    private final EntryDataService entryDataService;
+    private final SettingsService settingsService;
 
-    public ProfitData calculateAndSetProfit(
-            EntryData entryData,
-            double capitalLong,
-            double capitalShort,
-            double leverage,
-            double feePctPerTrade
-    ) {
+    public ProfitData calculateProfit(EntryData entryData) {
+        Settings settings = settingsService.getSettings();
+
+        double capitalLong = settings.getCapitalLong();
+        double capitalShort = settings.getCapitalShort();
+        double leverage = settings.getLeverage();
+        double feePctPerTrade = settings.getFeePctPerTrade();
+
         BigDecimal longEntry = BigDecimal.valueOf(entryData.getLongTickerEntryPrice());
         BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
         BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
@@ -73,8 +73,6 @@ public class ProfitService {
 
         String profitStr = profitRounded + "%";
         entryData.setProfit(profitStr);
-
-        entryDataService.save(Collections.singletonList(entryData));
 
         log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",
                 entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);

@@ -1,7 +1,9 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
+import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.Settings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.RequiredArgsConstructor;
@@ -13,14 +15,31 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CandlesService {
+    private final OkxClient okxClient;
+    private final SettingsService settingsService;
     private static final String CANDLES_JSON_FILE_PATH = "candles.json";
     private static final List<String> BLACK_LIST = List.of("USDC-USDT-SWAP");
+
+    public ConcurrentHashMap<String, List<Candle>> getCandles() {
+        Settings settings = settingsService.getSettings();
+        Set<String> swapTickers = okxClient.getSwapTickers();
+        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
+        return filterByBlackList(candlesMap);
+    }
+
+    public ConcurrentHashMap<String, List<Candle>> getCandles(Set<String> swapTickers) {
+        Settings settings = settingsService.getSettings();
+        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
+        save(candlesMap);
+        return candlesMap;
+    }
 
     public void save(Map<String, List<Candle>> candles) {
         Gson gson = new GsonBuilder()
@@ -36,11 +55,10 @@ public class CandlesService {
         }
     }
 
-    public void filterByBlackList(ConcurrentHashMap<String, List<Candle>> candlesMap) {
+    public ConcurrentHashMap<String, List<Candle>> filterByBlackList(ConcurrentHashMap<String, List<Candle>> candlesMap) {
         BLACK_LIST.forEach(candlesMap::remove);
-        log.info("Удалили цены тикеров из черного списка");
         save(candlesMap);
+        log.info("Удалили цены тикеров из черного списка");
+        return candlesMap;
     }
-
-
 }
