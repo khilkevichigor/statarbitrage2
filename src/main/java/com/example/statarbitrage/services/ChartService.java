@@ -216,11 +216,11 @@ public class ChartService {
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
 
-        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (" + entryData.getLongTickerCurrentPrice() + ")", timeAxis, normLong);
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + entryData.getLongTickerCurrentPrice() + ")", timeAxis, normLong);
         longSeries.setLineColor(java.awt.Color.GREEN);
         longSeries.setMarker(new None());
 
-        XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker + " (" + entryData.getShortTickerCurrentPrice() + ")", timeAxis, normShort);
+        XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker + " (current " + entryData.getShortTickerCurrentPrice() + ")", timeAxis, normShort);
         shortSeries.setLineColor(java.awt.Color.RED);
         shortSeries.setMarker(new None());
 
@@ -254,14 +254,14 @@ public class ChartService {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точки на график
-            XYSeries longEntryPoint = topChart.addSeries("Long Entry", Collections.singletonList(entryDate),
+            XYSeries longEntryPoint = topChart.addSeries("Long Entry (" + entryData.getLongTickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(normLong.get(index)));
             longEntryPoint.setMarkerColor(Color.GREEN.darker());
             longEntryPoint.setLineColor(Color.GREEN.darker());
             longEntryPoint.setMarker(SeriesMarkers.CIRCLE);
             longEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
 
-            XYSeries shortEntryPoint = topChart.addSeries("Short Entry", Collections.singletonList(entryDate),
+            XYSeries shortEntryPoint = topChart.addSeries("Short Entry (" + entryData.getShortTickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(normShort.get(index)));
             shortEntryPoint.setMarkerColor(Color.RED.darker());
             shortEntryPoint.setLineColor(Color.RED.darker());
@@ -283,8 +283,8 @@ public class ChartService {
                 .yAxisTitle("Spread")
                 .build();
 
-        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);  // легенда справа сверху (можно и убрать)
-        bottomChart.getStyler().setLegendVisible(false);  // полностью скрыть легенду
+        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда слева сверху
+        bottomChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
         bottomChart.getStyler().setXAxisTicksVisible(true);
         bottomChart.getStyler().setYAxisTicksVisible(false);
         bottomChart.getStyler().setYAxisTitleVisible(false);
@@ -362,7 +362,7 @@ public class ChartService {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точку входа на график спреда
-            XYSeries spreadEntryPoint = bottomChart.addSeries("Spread Entry", Collections.singletonList(entryDate),
+            XYSeries spreadEntryPoint = bottomChart.addSeries("Spread Entry " + entryData.getSpreadEntry(), Collections.singletonList(entryDate),
                     Collections.singletonList(spread.get(index)));
             spreadEntryPoint.setMarkerColor(Color.BLUE.darker());
             spreadEntryPoint.setLineColor(Color.BLUE.darker());
