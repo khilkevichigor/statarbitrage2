@@ -50,21 +50,25 @@ public class ScreenerProcessor {
             return;
         }
 
-        ZScoreEntry bestPair = zScoreService.getBestPair();
-        EntryData entryData = entryDataService.getEntryData();
+        try {
+            ZScoreEntry bestPair = zScoreService.getBestPair();
+            EntryData entryData = entryDataService.getEntryData();
 
-        ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(entryData.getLongticker(), entryData.getShortticker()));
-        entryDataService.updateCurrentPrices(entryData, candlesMap);
-        entryDataService.setupEntryPointsIfNeededFromCandles(entryData, bestPair, candlesMap);
-        ProfitData profitData = entryDataService.calculateAndSetProfit(entryData);
+            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(entryData.getLongticker(), entryData.getShortticker()));
+            entryDataService.updateCurrentPrices(entryData, candlesMap);
+            entryDataService.setupEntryPointsIfNeededFromCandles(entryData, bestPair, candlesMap);
+            ProfitData profitData = entryDataService.calculateAndSetProfit(entryData);
 
-        PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
 
-        chartService.clearChartDir();
+            chartService.clearChartDir();
 
-        PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
+            PythonScriptsExecuter.execute(PythonScripts.CREATE_CHART.getName(), true);
 
-        chartService.sendChart(chatId, chartService.getChart(), profitData.getLogMessage(), false);
+            chartService.sendChart(chatId, chartService.getChart(), profitData.getLogMessage(), false);
+        } finally {
+            runningTrades.remove(chatId);
+        }
     }
 
     private static void logDuration(long startTime) {
