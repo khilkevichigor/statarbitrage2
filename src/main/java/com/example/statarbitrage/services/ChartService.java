@@ -128,6 +128,9 @@ public class ChartService {
 //            chart.getStyler().setPlotContentSize(.95);
 //            chart.getStyler().setLegendPadding(5);
 //            chart.getStyler().setChartPadding(5);
+            chart.getStyler().setYAxisTicksVisible(false);  // скрыть деления (цифры)
+            chart.getStyler().setYAxisTitleVisible(false);  // скрыть заголовок оси
+
 
             // Вертикальная линия по entryTime, если есть
             if (entryData.getEntryTime() > 0) {
