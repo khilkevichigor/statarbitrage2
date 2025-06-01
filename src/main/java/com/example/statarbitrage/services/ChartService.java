@@ -206,7 +206,7 @@ public class ChartService {
         // Создаём верхний график — нормализованные цены
         XYChart topChart = new XYChartBuilder()
                 .width(900).height(400)
-                .title("Normalized Prices")
+                .title("Cointegration: LONG " + longTicker + " - SHORT " + shortTicker)
                 .xAxisTitle("")  // убираем подпись "Time"
                 .yAxisTitle("Normalized Price")
                 .build();
@@ -227,6 +227,25 @@ public class ChartService {
         XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker + " (" + entryData.getShortTickerCurrentPrice() + ")", timeAxis, normShort);
         shortSeries.setLineColor(java.awt.Color.RED);
         shortSeries.setMarker(new None());
+
+        // Вертикальная линия по entryTime, если есть
+        if (entryData.getEntryTime() > 0) {
+            Date entryDate = new Date(entryData.getEntryTime());
+            List<Date> lineX = Arrays.asList(entryDate, entryDate);
+            List<Double> lineY = Arrays.asList(
+                    Math.min(Collections.min(longPrices), Collections.min(shortPrices)),
+                    Math.max(Collections.max(longPrices), Collections.max(shortPrices))
+            );
+            XYSeries entryLine = topChart.addSeries("Entry Point", lineX, lineY);
+            entryLine.setLineColor(java.awt.Color.BLUE);
+            entryLine.setMarker(new None());
+            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
+        }
+
+        // Подпись профита, если есть
+        if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
+            topChart.setTitle("Profit: " + entryData.getProfit());
+        }
 
         // Нижний график — спред (без заголовка и легенды сверху)
         XYChart bottomChart = new XYChartBuilder()
@@ -287,6 +306,20 @@ public class ChartService {
         minus2Sigma.setMarker(new None());
         minus2Sigma.setLineStyle(new BasicStroke(
                 1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{2f, 6f}, 0));
+
+        // Вертикальная линия по entryTime, если есть //todo
+//        if (entryData.getEntryTime() > 0) {
+//            Date entryDate = new Date(entryData.getEntryTime());
+//            List<Date> lineX = Arrays.asList(entryDate, entryDate);
+//            List<Double> lineY = Arrays.asList(
+//                    Math.min(Collections.min(longPrices), Collections.min(shortPrices)),
+//                    Math.max(Collections.max(longPrices), Collections.max(shortPrices))
+//            );
+//            XYSeries entryLine = bottomChart.addSeries("Entry Point", lineX, lineY);
+//            entryLine.setLineColor(java.awt.Color.BLUE);
+//            entryLine.setMarker(new None());
+//            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
+//        }
 
         // Формируем подпись с параметрами
         double lastSpread = spread.get(spread.size() - 1);
