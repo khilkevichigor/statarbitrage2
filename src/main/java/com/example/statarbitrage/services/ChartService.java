@@ -215,10 +215,10 @@ public class ChartService {
         topChart.getStyler().setXAxisTicksVisible(false);
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
-        topChart.getStyler().setPlotMargin(0);
-        topChart.getStyler().setPlotContentSize(0.95);
-        topChart.getStyler().setLegendPadding(5);
-        topChart.getStyler().setChartPadding(5);
+//        topChart.getStyler().setPlotMargin(0);
+//        topChart.getStyler().setPlotContentSize(0.95);
+//        topChart.getStyler().setLegendPadding(5);
+//        topChart.getStyler().setChartPadding(5);
 
         XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (" + entryData.getLongTickerCurrentPrice() + ")", timeAxis, normLong);
         longSeries.setLineColor(java.awt.Color.GREEN);
@@ -260,10 +260,10 @@ public class ChartService {
         bottomChart.getStyler().setXAxisTicksVisible(true);
         bottomChart.getStyler().setYAxisTicksVisible(false);
         bottomChart.getStyler().setYAxisTitleVisible(false);
-        bottomChart.getStyler().setPlotMargin(0);
-        bottomChart.getStyler().setPlotContentSize(0.95);
-        bottomChart.getStyler().setLegendPadding(5);
-        bottomChart.getStyler().setChartPadding(5);
+//        bottomChart.getStyler().setPlotMargin(0);
+//        bottomChart.getStyler().setPlotContentSize(0.95);
+//        bottomChart.getStyler().setLegendPadding(5);
+//        bottomChart.getStyler().setChartPadding(5);
 
         bottomChart.addSeries("Spread", timeAxis, spread).setMarker(SeriesMarkers.NONE);
 
@@ -491,7 +491,7 @@ public class ChartService {
 
     private BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
         int width = Math.max(topImg.getWidth(), bottomImg.getWidth());
-        int gap = 0;  // минимальный отступ между графиками
+        int gap = 2;  // минимальный отступ между графиками
         int captionHeight = 30;
 
         int height = topImg.getHeight() + gap + bottomImg.getHeight() + captionHeight;
