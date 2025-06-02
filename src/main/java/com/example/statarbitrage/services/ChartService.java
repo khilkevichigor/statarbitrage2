@@ -8,9 +8,6 @@ import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.jfree.chart.annotations.XYAnnotation;
-import org.jfree.chart.annotations.XYTextAnnotation;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 import org.knowm.xchart.style.markers.None;
@@ -213,9 +210,9 @@ public class ChartService {
 
         topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда сверху слева
         // Сделаем фон легенды полупрозрачным (например, белый с 50% прозрачности)
-        topChart.getStyler().setLegendBackgroundColor(new Color(255, 255, 255, 128)); // 128 из 255 = 50% прозрачности
+//        topChart.getStyler().setLegendBackgroundColor(new Color(255, 255, 255, 128)); // 128 из 255 = 50% прозрачности
         // Если хотите убрать рамку вокруг легенды или сделать ее тоже прозрачной
-        topChart.getStyler().setLegendBorderColor(new Color(0, 0, 0, 0)); // полностью прозрачная рамка
+//        topChart.getStyler().setLegendBorderColor(new Color(0, 0, 0, 0)); // полностью прозрачная рамка
         topChart.getStyler().setXAxisTicksVisible(false);
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
@@ -273,19 +270,39 @@ public class ChartService {
             shortEntryPoint.setLineStyle(new BasicStroke(0f));
         }
 
-        if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
-            // Определим цвет
-            Color profitColor = entryData.getProfit().startsWith("-") ? Color.RED : new Color(0, 128, 0);
+//        if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
+//            // Определим цвет
+//            Color profitColor = entryData.getProfit().startsWith("-") ? Color.RED : new Color(0, 128, 0);
+//
+//            topChart.getStyler().setAnnotationTextFont(new Font("Arial", Font.BOLD, 100));
+//            topChart.getStyler().setAnnotationLineColor(profitColor);
+//            AnnotationText annotation = new AnnotationText(
+//                    "Profit: " + entryData.getProfit(),
+//                    timeAxis.get(timeAxis.size() / 2).getTime(), // по оси X (в миллисекундах)
+//                    Collections.max(normLong) / 2,              // по оси Y
+//                    false
+//            );
+//            topChart.addAnnotation(annotation);
+//        }
 
-            topChart.getStyler().setAnnotationTextFont(new Font("Arial", Font.BOLD, 100));
-            topChart.getStyler().setAnnotationLineColor(profitColor);
-            AnnotationText annotation = new AnnotationText(
-                    "Profit: " + entryData.getProfit(),
-                    timeAxis.get(timeAxis.size() / 2).getTime(), // по оси X (в миллисекундах)
-                    Collections.max(normLong) / 2,              // по оси Y
-                    false
-            );
-            topChart.addAnnotation(annotation);
+        if (entryData.getChartProfitMessage() != null && !entryData.getChartProfitMessage().isEmpty()) {
+            Font font = new Font("Arial", Font.BOLD, 75);
+            topChart.getStyler().setAnnotationTextFont(font);
+
+            String[] lines = entryData.getChartProfitMessage().split("\n");
+            double baseY = Collections.max(normLong);
+            double x = timeAxis.get(timeAxis.size() / 2).getTime();
+
+            for (int i = 0; i < lines.length; i++) {
+                AnnotationText annotation = new AnnotationText(
+                        lines[i],
+                        x,
+                        baseY - i * 0.6, // сдвиг по оси Y для каждой строки
+                        false
+                );
+                topChart.addAnnotation(annotation);
+            }
+
         }
 
         // Нижний график — спред (без заголовка и легенды сверху)
@@ -299,9 +316,9 @@ public class ChartService {
         bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда слева сверху
         bottomChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
         // Сделаем фон легенды полупрозрачным (например, белый с 50% прозрачности)
-        bottomChart.getStyler().setLegendBackgroundColor(new Color(255, 255, 255, 128)); // 128 из 255 = 50% прозрачности
+//        bottomChart.getStyler().setLegendBackgroundColor(new Color(255, 255, 255, 128)); // 128 из 255 = 50% прозрачности
         // Если хотите убрать рамку вокруг легенды или сделать ее тоже прозрачной
-        bottomChart.getStyler().setLegendBorderColor(new Color(0, 0, 0, 0)); // полностью прозрачная рамка
+//        bottomChart.getStyler().setLegendBorderColor(new Color(0, 0, 0, 0)); // полностью прозрачная рамка
         bottomChart.getStyler().setXAxisTicksVisible(true);
         bottomChart.getStyler().setYAxisTicksVisible(false);
         bottomChart.getStyler().setYAxisTitleVisible(false);

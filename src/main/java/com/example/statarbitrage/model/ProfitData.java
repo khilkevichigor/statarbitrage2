@@ -12,6 +12,7 @@ public class ProfitData {
     private BigDecimal shortReturnRounded;
     private BigDecimal profitRounded;
     private String profitStr;
+    private String chartProfitMessage;
     private BigDecimal totalCapital;
     private String logMessage;
 }

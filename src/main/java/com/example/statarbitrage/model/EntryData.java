@@ -20,4 +20,5 @@ public class EntryData {
     private String profit;
     private double meanEntry;
     private double spreadEntry;
+    private String chartProfitMessage;
 }

@@ -72,7 +72,27 @@ public class ProfitService {
         BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
 
         String profitStr = profitRounded + "%";
-        entryData.setProfit(profitStr);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Profit: ").append(profitStr).append("\n");
+        sb.append("LONG ")
+//                .append(entryData.getLongticker())
+//                .append(" entry: ")
+                .append("(").append(entryData.getLongTickerEntryPrice()).append(")")
+                .append(" -> ")
+                .append(longReturnRounded)
+                .append("%")
+                .append(" -> ")
+                .append("(").append(entryData.getLongTickerCurrentPrice()).append(")")
+                .append("\n");
+        sb.append("SHORT ")
+//                .append(entryData.getShortticker())
+//                .append(" entry: ")
+                .append("(").append(entryData.getShortTickerEntryPrice()).append(")")
+                .append(" -> ")
+                .append(shortReturnRounded).append("%")
+                .append(" -> ")
+                .append("(").append(entryData.getShortTickerCurrentPrice()).append(")")
+                .append("\n");
 
         log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",
                 entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
@@ -82,6 +102,7 @@ public class ProfitService {
         String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
         log.info(logMsg);
 
+
         return ProfitData.builder()
                 .totalCapital(totalCapital)
                 .longReturnRounded(longReturnRounded)
@@ -89,6 +110,7 @@ public class ProfitService {
                 .profitRounded(profitRounded)
                 .profitStr(profitStr)
                 .logMessage(logMsg)
+                .chartProfitMessage(sb.toString())
                 .build();
     }
 }
