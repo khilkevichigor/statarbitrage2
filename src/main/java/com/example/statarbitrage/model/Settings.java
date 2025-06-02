@@ -16,6 +16,7 @@ public class Settings {
     private double zscoreEntry;
     private double zscoreExit;
     private double significanceLevel;
+    private double adfSignificanceLevel;
     private int checkInterval;
 
     private double capitalLong;

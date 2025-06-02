@@ -55,7 +55,8 @@ public class ZScoreService {
     }
 
     public ZScoreEntry getBest(List<ZScoreEntry> zScores) {
-        return getBestPairByZscoreAndPvalue(zScores);
+        return getBestPairByCriteria(zScores);
+//        return getBestPairByZscoreAndPvalue(zScores);
 //        return getPairWithMaxZScore(zScores);
     }
 
@@ -71,6 +72,26 @@ public class ZScoreService {
                 })
                 .orElse(null);
     }
+
+    public ZScoreEntry getBestPairByCriteria(List<ZScoreEntry> zScores) {
+        return zScores.stream()
+                .min((e1, e2) -> {
+                    int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
+                    if (cmp != 0) {
+                        return cmp;
+                    }
+
+                    cmp = Double.compare(e1.getAdfpvalue(), e2.getAdfpvalue());
+                    if (cmp != 0) {
+                        return cmp;
+                    }
+
+                    // При равных pvalue и adfpvalue выбираем по абсолютному zscore (больше — лучше)
+                    return -Double.compare(Math.abs(e1.getZscore()), Math.abs(e2.getZscore()));
+                })
+                .orElse(null);
+    }
+
 
     public ZScoreEntry getPairWithMaxZScore(List<ZScoreEntry> zScores) {
         return zScores.stream()

@@ -2,6 +2,7 @@ package com.example.statarbitrage.python;
 
 public enum PythonScripts {
     CREATE_Z_SCORE_FILE("create_z_score_file.py"),
+    ADF_TEST("adf_test.py"),
     CREATE_CHART("create_chart.py");
 
     PythonScripts(String name) {

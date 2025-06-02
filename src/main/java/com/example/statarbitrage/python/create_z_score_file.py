@@ -6,6 +6,7 @@ import sys
 import traceback
 import uuid
 from multiprocessing import cpu_count, Process
+from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import coint
 
 
@@ -23,38 +24,53 @@ def analyze_pair(a, b, candles_dict, chat_config):
         window = chat_config["windowSize"]
         zscore_entry = chat_config["zscoreEntry"]
         significance = chat_config["significanceLevel"]
+        adf_significance = chat_config.get("adfSignificanceLevel")
 
         if not a or not b:
+            print(f"⚠️ Пропуск: пустые тикеры {a}, {b}")
             return None
 
         candles_a = candles_dict.get(a)
         candles_b = candles_dict.get(b)
 
         if not isinstance(candles_a, list) or not isinstance(candles_b, list):
+            print(f"⚠️ Пропуск: неверный формат данных для {a}, {b}")
             return None
         if len(candles_a) != len(candles_b) or len(candles_a) <= window + 1:
+            print(f"⚠️ Пропуск: недостаточно данных для {a}, {b}")
             return None
 
         closes_a = [candle["close"] for candle in candles_a]
         closes_b = [candle["close"] for candle in candles_b]
 
         if np.std(closes_a) == 0 or np.std(closes_b) == 0:
+            print(f"⚠️ Пропуск: нулевая волатильность у {a} или {b}")
             return None
         if np.allclose(closes_a, closes_b):
+            print(f"⚠️ Пропуск: {a} и {b} почти идентичны")
             return None
 
         is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
         if not is_coint:
+            print(f"⛔ {a}-{b} отклонена: p-value={pvalue:.4f} > {significance}")
             return None
 
         i = len(closes_a) - 1
+        spread_series = [closes_a[j] - closes_b[j] for j in range(i - window, i)]
+
+        # ADF проверка
+        adf_pvalue = adfuller(spread_series)[1]
+        if adf_pvalue > adf_significance:
+            print(f"⛔ {a}-{b} отклонена ADF: adf_pvalue={adf_pvalue:.4f} > {adf_significance}")
+            return None
+
         spread = closes_a[i] - closes_b[i]
-        window_spread = [closes_a[j] - closes_b[j] for j in range(i - window, i)]
-        mean = np.mean(window_spread)
-        std = np.std(window_spread)
+        mean = np.mean(spread_series)
+        std = np.std(spread_series)
         z = (spread - mean) / std if std > 0 else 0
 
         if abs(z) < zscore_entry:
+            print(f"⛔ {a}-{b} отклонена: z-score={z:.2f} < {zscore_entry}")
             return None
 
         longticker = b if z > 0 else a
@@ -64,9 +80,11 @@ def analyze_pair(a, b, candles_dict, chat_config):
         short_price = candles_dict[shortticker][-1]["close"]
         timestamp_of_signal = candles_dict[longticker][-1]["timestamp"]
 
+        print(f"✅ Подходящая пара: {a}-{b} | z={z:.2f} | p={pvalue:.4f} | adf={adf_pvalue:.4f}")
         return {
             "zscore": z,
             "pvalue": pvalue,
+            "adfpvalue": adf_pvalue,
             "spread": spread,
             "mean": mean,
             "longticker": longticker,

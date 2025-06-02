@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class ZScoreEntry {
     private double zscore;
     private double pvalue;
+    private double adfpvalue;
     private double spread;
     private double mean;
     private String longticker;

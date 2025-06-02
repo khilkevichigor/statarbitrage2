@@ -37,12 +37,7 @@ public class ScreenerProcessor {
         PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
         ZScoreEntry bestPair = zScoreService.getBestPair();
         EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
-
-//        chartService.generatePythonChartAndSend(chatId, bestPair);
-//        chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
         chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
-//        chartService.generateSpreadChart(chatId, candlesMap, bestPair);
-
         logDuration(startTime);
     }
 

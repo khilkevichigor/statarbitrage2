@@ -39,6 +39,7 @@ public class SettingsService {
                 .timeframe("15m")
                 .candleLimit(300)
                 .significanceLevel(0.05)
+                .adfSignificanceLevel(0.05)
                 .zscoreEntry(2.0)
                 .zscoreExit(0.5)
                 .windowSize(20)
