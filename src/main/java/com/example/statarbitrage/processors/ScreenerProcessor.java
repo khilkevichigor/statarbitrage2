@@ -2,7 +2,6 @@ package com.example.statarbitrage.processors;
 
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.EntryData;
-import com.example.statarbitrage.model.ProfitData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
@@ -48,21 +47,16 @@ public class ScreenerProcessor {
             log.warn("testTrade уже выполняется для chatId = {}", chatId);
             return;
         }
-
         try {
             ZScoreEntry bestPair = zScoreService.getBestPair();
             EntryData entryData = entryDataService.getEntryData();
-
             ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(entryData.getLongticker(), entryData.getShortticker()));
             entryDataService.updateCurrentPrices(entryData, candlesMap);
             entryDataService.setupEntryPointsIfNeededFromCandles(entryData, bestPair, candlesMap);
-            ProfitData profitData = entryDataService.calculateAndSetProfit(entryData);
+            entryDataService.calculateAndSetProfit(entryData);
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
             chartService.clearChartDir();
-//            chartService.generatePythonChartAndSend(chatId, bestPair);
-//            chartService.generateJavaChartAndSend(chatId, candlesMap, bestPair, entryData);
             chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
-//            chartService.generateSpreadChart(chatId, candlesMap, bestPair);
         } finally {
             runningTrades.remove(chatId);
         }
