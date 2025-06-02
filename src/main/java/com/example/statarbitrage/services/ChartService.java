@@ -270,27 +270,12 @@ public class ChartService {
             shortEntryPoint.setLineStyle(new BasicStroke(0f));
         }
 
-//        if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
-//            // Определим цвет
-//            Color profitColor = entryData.getProfit().startsWith("-") ? Color.RED : new Color(0, 128, 0);
-//
-//            topChart.getStyler().setAnnotationTextFont(new Font("Arial", Font.BOLD, 100));
-//            topChart.getStyler().setAnnotationLineColor(profitColor);
-//            AnnotationText annotation = new AnnotationText(
-//                    "Profit: " + entryData.getProfit(),
-//                    timeAxis.get(timeAxis.size() / 2).getTime(), // по оси X (в миллисекундах)
-//                    Collections.max(normLong) / 2,              // по оси Y
-//                    false
-//            );
-//            topChart.addAnnotation(annotation);
-//        }
-
         if (entryData.getChartProfitMessage() != null && !entryData.getChartProfitMessage().isEmpty()) {
             Font font = new Font("Arial", Font.BOLD, 75);
             topChart.getStyler().setAnnotationTextFont(font);
 
             String[] lines = entryData.getChartProfitMessage().split("\n");
-            double baseY = Collections.max(normLong);
+            double baseY = Collections.max(normLong) /1.1;
             double x = timeAxis.get(timeAxis.size() / 2).getTime();
 
             for (int i = 0; i < lines.length; i++) {
@@ -302,7 +287,6 @@ public class ChartService {
                 );
                 topChart.addAnnotation(annotation);
             }
-
         }
 
         // Нижний график — спред (без заголовка и легенды сверху)
