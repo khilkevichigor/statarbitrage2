@@ -53,8 +53,9 @@ public class ScreenerProcessor {
             ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(entryData.getLongticker(), entryData.getShortticker()));
             entryDataService.updateCurrentPrices(entryData, candlesMap);
             entryDataService.setupEntryPointsIfNeededFromCandles(entryData, bestPair, candlesMap);
-            entryDataService.calculateAndSetProfit(entryData);
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
+            bestPair = zScoreService.getBestPair();
+            entryDataService.calculateAndSetProfit(entryData, bestPair);
             chartService.clearChartDir();
             chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
         } finally {

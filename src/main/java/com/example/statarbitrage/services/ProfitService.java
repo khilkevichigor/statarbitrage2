@@ -3,6 +3,7 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ProfitData;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.ZScoreEntry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ import java.math.RoundingMode;
 public class ProfitService {
     private final SettingsService settingsService;
 
-    public ProfitData calculateProfit(EntryData entryData) {
+    public ProfitData calculateProfit(EntryData entryData, ZScoreEntry bestPair) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
@@ -28,6 +29,8 @@ public class ProfitService {
         BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
         BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
         BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
+        BigDecimal zScoreEntry = BigDecimal.valueOf(entryData.getZScoreEntry());
+        BigDecimal zScoreCurrent = BigDecimal.valueOf(bestPair.getZscore());
 
         BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                 .divide(longEntry, 10, RoundingMode.HALF_UP)
@@ -35,6 +38,10 @@ public class ProfitService {
 
         BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        BigDecimal zScoreReturnPct = zScoreEntry.subtract(zScoreCurrent)
+                .divide(zScoreEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
         BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
@@ -70,6 +77,7 @@ public class ProfitService {
         BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal zScoreReturnRounded = zScoreReturnPct.setScale(2, RoundingMode.HALF_UP);
 
         String profitStr = profitRounded + "%";
         StringBuilder sb = new StringBuilder();
@@ -92,6 +100,13 @@ public class ProfitService {
                 .append(shortReturnRounded).append("%")
                 .append(" -> ")
                 .append("(").append(entryData.getShortTickerCurrentPrice()).append(")")
+                .append("\n");
+        sb.append("Z-SCORE ")
+                .append("(").append(zScoreEntry).append(")")
+                .append(" -> ")
+                .append(zScoreReturnRounded).append("%") //todo при открытии сделок большой процент хотя должен быть 0
+                .append(" -> ")
+                .append("(").append(zScoreCurrent).append(")")
                 .append("\n");
 
         log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",

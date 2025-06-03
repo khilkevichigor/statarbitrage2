@@ -26,6 +26,7 @@ public class EntryDataService {
         EntryData entryData = new EntryData();
         entryData.setLongticker(bestPair.getLongticker());
         entryData.setShortticker(bestPair.getShortticker());
+        entryData.setZScoreEntry(bestPair.getZscore());
 
         List<Candle> longTickerCandles = candlesMap.get(bestPair.getLongticker());
         List<Candle> shortTickerCandles = candlesMap.get(bestPair.getShortticker());
@@ -141,8 +142,8 @@ public class EntryDataService {
         }
     }
 
-    public ProfitData calculateAndSetProfit(EntryData entryData) {
-        ProfitData profitData = profitService.calculateProfit(entryData);
+    public ProfitData calculateAndSetProfit(EntryData entryData, ZScoreEntry bestPair) {
+        ProfitData profitData = profitService.calculateProfit(entryData, bestPair);
         entryData.setProfit(profitData.getProfitStr());
         entryData.setChartProfitMessage(profitData.getChartProfitMessage());
         save(entryData);
