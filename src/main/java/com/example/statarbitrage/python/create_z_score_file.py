@@ -6,21 +6,7 @@ import sys
 import traceback
 import uuid
 from multiprocessing import cpu_count, Process
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.stattools import coint
-
-# Глобальный словарь статистики отказов
-rejection_stats = {
-    "empty_tickers": 0,
-    "invalid_format": 0,
-    "not_enough_data": 0,
-    "zero_volatility": 0,
-    "almost_identical": 0,
-    "low_correlation": 0,
-    "high_pvalue": 0,
-    "high_adf_pvalue": 0,
-    "low_zscore": 0
-}
+from statsmodels.tsa.stattools import adfuller, coint
 
 
 def is_cointegrated(s1, s2, significance):
@@ -38,11 +24,10 @@ def analyze_pair(a, b, candles_dict, chat_config):
         zscore_entry = chat_config["zscoreEntry"]
         significance = chat_config["significanceLevel"]
         adf_significance = chat_config.get("adfSignificanceLevel")
-        min_corr = chat_config.get("minCorrelation")  # Добавлен порог корреляции
+        min_corr = chat_config.get("minCorrelation")
 
         if not a or not b:
             print(f"⚠️ Пропуск: пустые тикеры {a}, {b}")
-            rejection_stats["empty_tickers"] += 1
             return None
 
         candles_a = candles_dict.get(a)
@@ -50,11 +35,9 @@ def analyze_pair(a, b, candles_dict, chat_config):
 
         if not isinstance(candles_a, list) or not isinstance(candles_b, list):
             print(f"⚠️ Пропуск: неверный формат данных для {a}, {b}")
-            rejection_stats["invalid_format"] += 1
             return None
         if len(candles_a) != len(candles_b) or len(candles_a) <= window + 1:
             print(f"⚠️ Пропуск: недостаточно данных для {a}, {b}")
-            rejection_stats["not_enough_data"] += 1
             return None
 
         closes_a = [candle["close"] for candle in candles_a]
@@ -62,25 +45,19 @@ def analyze_pair(a, b, candles_dict, chat_config):
 
         if np.std(closes_a) == 0 or np.std(closes_b) == 0:
             print(f"⚠️ Пропуск: нулевая волатильность у {a} или {b}")
-            rejection_stats["zero_volatility"] += 1
             return None
         if np.allclose(closes_a, closes_b):
             print(f"⚠️ Пропуск: {a} и {b} почти идентичны")
-            rejection_stats["almost_identical"] += 1
             return None
 
-        # 💡 Корреляция
         corr = np.corrcoef(closes_a, closes_b)[0, 1]
         if abs(corr) < min_corr:
-            print(f"⛔ {a}-{b} отклонена: корреляция {corr:.2f} < {min_corr}")
-            rejection_stats["low_correlation"] += 1
+            # print(f"⛔ {a}-{b} отклонена: корреляция {corr:.2f} < {min_corr}")
             return None
 
-        # 💡 Коинтеграция
         is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
         if not is_coint:
-            print(f"⛔ {a}-{b} отклонена: p-value={pvalue:.4f} > {significance}")
-            rejection_stats["high_pvalue"] += 1
+            # print(f"⛔ {a}-{b} отклонена: p-value={pvalue:.4f} > {significance}")
             return None
 
         i = window
@@ -88,8 +65,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
 
         adf_pvalue = adfuller(spread_series)[1]
         if adf_pvalue > adf_significance:
-            print(f"⛔ {a}-{b} отклонена ADF: adf_pvalue={adf_pvalue:.4f} > {adf_significance}")
-            rejection_stats["high_adf_pvalue"] += 1
+            # print(f"⛔ {a}-{b} отклонена ADF: adf_pvalue={adf_pvalue:.4f} > {adf_significance}")
             return None
 
         spread = closes_a[i] - closes_b[i]
@@ -98,8 +74,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
         z = (spread - mean) / std if std > 0 else 0
 
         if abs(z) < zscore_entry:
-            print(f"⛔ {a}-{b} отклонена: z-score={z:.2f} < {zscore_entry}")
-            rejection_stats["low_zscore"] += 1
+            # print(f"⛔ {a}-{b} отклонена: z-score={z:.2f} < {zscore_entry}")
             return None
 
         longticker = b if z > 0 else a
@@ -109,7 +84,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
         short_price = candles_dict[shortticker][-1]["close"]
         timestamp_of_signal = candles_dict[longticker][-1]["timestamp"]
 
-        print(f"✅ Подходящая пара: {a}-{b} | z={z:.2f} | p={pvalue:.4f} | adf={adf_pvalue:.4f} | corr={corr:.2f}")
+        # print(f"✅ Подходящая пара: {a}-{b} | z={z:.2f} | p={pvalue:.4f} | adf={adf_pvalue:.4f} | corr={corr:.2f}")
         return {
             "zscore": z,
             "pvalue": pvalue,
@@ -117,6 +92,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
             "correlation": corr,
             "spread": spread,
             "mean": mean,
+            "std": std,
             "longticker": longticker,
             "shortticker": shortticker,
             "longtickercurrentprice": long_price,
@@ -149,10 +125,7 @@ def process_chunk(input_path, output_path):
             results.append(result)
 
     with open(output_path, "w") as f:
-        json.dump({
-            "results": results,
-            "rejection_stats": rejection_stats
-        }, f)
+        json.dump({"results": results}, f)
 
 
 def main():
@@ -195,8 +168,7 @@ def main():
         p.start()
         processes.append((p, output_file))
 
-        all_results = []
-    total_rejections = {key: 0 for key in rejection_stats}
+    all_results = []
 
     for p, output_file in processes:
         p.join()
@@ -204,8 +176,13 @@ def main():
             with open(output_file) as f:
                 output_data = json.load(f)
                 all_results.extend(output_data["results"])
-                for key in total_rejections:
-                    total_rejections[key] += output_data["rejection_stats"].get(key, 0)
+
+    # Удаление временных файлов
+    for temp_file in temp_files:
+        try:
+            os.remove(temp_file)
+        except Exception as e:
+            print(f"⚠️ Не удалось удалить {temp_file}: {e}")
 
     if all_results:
         with open("z_score.json", "w") as f:
@@ -213,10 +190,6 @@ def main():
         print(f"✅ Найдено {len(all_results)} пар. 💾 z_score.json создан.")
     else:
         print("⚠️ Подходящих пар не найдено.")
-
-    print("\n📉 Статистика отказов:")
-    for k, v in total_rejections.items():
-        print(f"{k}: {v}")
 
 
 if __name__ == "__main__":

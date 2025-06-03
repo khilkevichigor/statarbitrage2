@@ -16,6 +16,7 @@ public class ZScoreEntry {
     private double correlation;
     private double spread;
     private double mean;
+    private double std;
     private String longticker;
     private String shortticker;
     private double longtickercurrentprice;
