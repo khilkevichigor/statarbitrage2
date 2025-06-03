@@ -23,4 +23,5 @@ public class Settings {
     private double capitalShort;
     private double leverage;
     private double feePctPerTrade;
+    private double minCorrelation;
 }
