@@ -55,7 +55,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
             print(f"⛔ {a}-{b} отклонена: p-value={pvalue:.4f} > {significance}")
             return None
 
-        i = len(closes_a) - 1
+        i = window #вместо "i = len(closes_a) - 1" что бы график не перерисовывылся из-за новых цен
         spread_series = [closes_a[j] - closes_b[j] for j in range(i - window, i)]
 
         # ADF проверка
