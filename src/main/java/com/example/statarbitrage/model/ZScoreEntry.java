@@ -10,10 +10,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ZScoreEntry {
+    private String pair;
     private double zscore;
     private double pvalue;
     private double adfpvalue;
     private double correlation;
+    private double alpha;
+    private double beta;
     private double spread;
     private double mean;
     private double std;

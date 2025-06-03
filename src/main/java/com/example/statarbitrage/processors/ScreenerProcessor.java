@@ -36,7 +36,7 @@ public class ScreenerProcessor {
         PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
         ZScoreEntry bestPair = zScoreService.getBestPair();
         EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
-        chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
+        chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
         logDuration(startTime);
     }
 
@@ -56,7 +56,7 @@ public class ScreenerProcessor {
             entryDataService.calculateAndSetProfit(entryData);
             PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
             chartService.clearChartDir();
-            chartService.generateCombinedChart(chatId, candlesMap, bestPair, entryData);
+            chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
         } finally {
             runningTrades.remove(chatId);
         }
