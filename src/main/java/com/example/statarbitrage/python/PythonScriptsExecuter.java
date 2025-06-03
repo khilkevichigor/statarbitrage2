@@ -1,5 +1,6 @@
 package com.example.statarbitrage.python;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,7 +19,7 @@ public final class PythonScriptsExecuter {
     private PythonScriptsExecuter() {
     }
 
-    public static <T> T executeAndReturnObject(String scriptName, Map<String, Object> inputData, Class<T> resultClass) {
+    public static <T> T executeAndReturnObject(String scriptName, Map<String, Object> inputData, TypeReference<T> typeRef) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("python3", SCRIPTS_ROOT_PATH + scriptName);
             Process process = processBuilder.start();
@@ -52,7 +53,7 @@ public final class PythonScriptsExecuter {
             }
 
             // Десериализация результата
-            return mapper.readValue(output.toString(), resultClass);
+            return mapper.readValue(output.toString(), typeRef);
 
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при исполнении Python-скрипта", e);

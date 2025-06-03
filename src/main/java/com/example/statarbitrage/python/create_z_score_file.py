@@ -5,7 +5,7 @@ import os
 import sys
 import traceback
 import uuid
-from multiprocessing import cpu_count, Process
+from multiprocessing import Process, cpu_count
 from statsmodels.api import OLS, add_constant
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import coint
@@ -231,22 +231,22 @@ def process_chunk(input_path, output_path):
 
 
 def main():
-    print("📥 Загрузка candles.json...")
-    with open("candles.json") as f:
-        candles_dict = json.load(f)
+    print("📥 Чтение входных данных из stdin...", file=sys.stderr)
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError as e:
+        print(f"❌ Ошибка чтения JSON: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    print("⚙️ Загрузка settings.json...")
-    with open("settings.json") as f:
-        config = json.load(f)
+    candles_dict = input_data.get("candlesMap")
+    settings_dict = input_data.get("settings")
 
-    chat_id = "159178617"
-    chat_config = config.get(chat_id)
-    if not chat_config:
-        print(f"❌ Не найден конфиг для chat_id {chat_id}")
+    if not candles_dict or not settings_dict:
+        print("❌ Не хватает данных: 'candles' или 'settings'", file=sys.stderr)
         sys.exit(1)
 
     pairs = list(itertools.combinations(candles_dict.keys(), 2))
-    print(f"🔍 Всего пар для анализа: {len(pairs)}")
+    print(f"🔍 Всего пар для анализа: {len(pairs)}", file=sys.stderr)
 
     num_workers = min(cpu_count(), 8)
     chunks = split_into_chunks(pairs, num_workers)
@@ -262,7 +262,7 @@ def main():
         with open(input_file, "w") as f:
             json.dump({
                 "candles": candles_dict,
-                "config": chat_config,
+                "config": settings_dict,
                 "pairs": chunk
             }, f)
 
@@ -279,19 +279,17 @@ def main():
                 output_data = json.load(f)
                 all_results.extend(output_data["results"])
 
-    # Удаление временных файлов
     for temp_file in temp_files:
         try:
             os.remove(temp_file)
         except Exception as e:
-            print(f"⚠️ Не удалось удалить {temp_file}: {e}")
+            print(f"⚠️ Не удалось удалить {temp_file}: {e}", file=sys.stderr)
 
     if all_results:
-        with open("z_score.json", "w") as f:
-            json.dump(all_results, f, indent=2)
-        print(f"✅ Найдено {len(all_results)} пар. 💾 z_score.json создан.")
+        print(json.dumps(all_results, indent=2))
+        print(f"✅ Найдено {len(all_results)} пар.", file=sys.stderr)
     else:
-        print("⚠️ Подходящих пар не найдено.")
+        print("⚠️ Подходящих пар не найдено.", file=sys.stderr)
 
 
 if __name__ == "__main__":
