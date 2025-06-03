@@ -28,7 +28,11 @@ public class ZScoreService {
                 if (zScores.size() == 1) {
                     return zScores.get(0);
                 }
-                ZScoreEntry bestPair = getBest(zScores);
+                ZScoreEntry bestPair = getBestPairByCriteria(zScores);
+                log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f\n",
+                        bestPair.getLongticker(), bestPair.getShortticker(),
+                        bestPair.getPvalue(), bestPair.getAdfpvalue(), bestPair.getZscore(), bestPair.getCorrelation()
+                ));
                 save(Collections.singletonList(bestPair));
                 return bestPair;
             }
@@ -46,7 +50,7 @@ public class ZScoreService {
         throw new RuntimeException("⚠️ z_score.json пустой или не найден после попыток");
     }
 
-    public void save(List<ZScoreEntry> entries) {
+    private void save(List<ZScoreEntry> entries) {
         try {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(Z_SCORE_JSON_FILE_PATH), entries);
         } catch (Exception e) {
@@ -54,52 +58,19 @@ public class ZScoreService {
         }
     }
 
-    public ZScoreEntry getBest(List<ZScoreEntry> zScores) {
-        return getBestPairByCriteria(zScores);
-//        return getBestPairByZscoreAndPvalue(zScores);
-//        return getPairWithMaxZScore(zScores);
-    }
-
-    public ZScoreEntry getBestPairByZscoreAndPvalue(List<ZScoreEntry> zScores) {
+    private ZScoreEntry getBestPairByCriteria(List<ZScoreEntry> zScores) {
         return zScores.stream()
-                .min((e1, e2) -> {
-                    int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
-                    if (cmp == 0) {
-                        //При равных pvalue берём с большим zscore
-                        return -Double.compare(e1.getZscore(), e2.getZscore());
-                    }
-                    return cmp;
-                })
+                .min(Comparator
+                        .comparingDouble(ZScoreEntry::getPvalue)
+                        .thenComparingDouble(ZScoreEntry::getAdfpvalue)
+                        .thenComparing((e1, e2) ->
+                                Double.compare(Math.abs(e2.getZscore()), Math.abs(e1.getZscore())))
+                        .thenComparingDouble(ZScoreEntry::getCorrelation) // максимальная корреляция
+                )
                 .orElse(null);
     }
 
-    public ZScoreEntry getBestPairByCriteria(List<ZScoreEntry> zScores) {
-        return zScores.stream()
-                .min((e1, e2) -> {
-                    int cmp = Double.compare(e1.getPvalue(), e2.getPvalue());
-                    if (cmp != 0) {
-                        return cmp;
-                    }
-
-                    cmp = Double.compare(e1.getAdfpvalue(), e2.getAdfpvalue());
-                    if (cmp != 0) {
-                        return cmp;
-                    }
-
-                    // При равных pvalue и adfpvalue выбираем по абсолютному zscore (больше — лучше)
-                    return -Double.compare(Math.abs(e1.getZscore()), Math.abs(e2.getZscore()));
-                })
-                .orElse(null);
-    }
-
-
-    public ZScoreEntry getPairWithMaxZScore(List<ZScoreEntry> zScores) {
-        return zScores.stream()
-                .max(Comparator.comparingDouble(e -> Math.abs(e.getZscore())))
-                .orElse(null);
-    }
-
-    public List<ZScoreEntry> loadZscore() {
+    private List<ZScoreEntry> loadZscore() {
         try {
             File zFile = new File(Z_SCORE_JSON_FILE_PATH);
             if (zFile.exists()) {
