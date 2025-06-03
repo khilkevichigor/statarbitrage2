@@ -219,25 +219,12 @@ def main():
         print(f"{k}: {v}")
 
 
-
 if __name__ == "__main__":
     if len(sys.argv) == 3:
         process_chunk(sys.argv[1], sys.argv[2])
     else:
         try:
             main()
-            print("\n📉 Статистика отказов:")
-            for p, output_file in processes:
-                p.join()
-                if os.path.exists(output_file):
-                    with open(output_file) as f:
-                        output_data = json.load(f)
-                        all_results.extend(output_data["results"])
-                        # агрегируем статистику
-                        for key in rejection_stats:
-                            rejection_stats[key] += output_data["rejection_stats"].get(key, 0)
-
         except Exception:
-            print("❌ Ошибка во время выполнения скрипта:", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-            sys.exit(1)
+            print("❌ Ошибка...")
+            traceback.print_exc()
