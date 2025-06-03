@@ -4,6 +4,7 @@ import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.ZScoreEntry;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,13 @@ public class CandlesService {
     public ConcurrentHashMap<String, List<Candle>> getCandles(Set<String> swapTickers) {
         Settings settings = settingsService.getSettings();
         ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
+        save(candlesMap);
+        return candlesMap;
+    }
+
+    public ConcurrentHashMap<String, List<Candle>> updateCandlesJsonForBestAndGet(ZScoreEntry bestPair) {
+        Settings settings = settingsService.getSettings();
+        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(bestPair.getLongticker(), bestPair.getShortticker()), settings);
         save(candlesMap);
         return candlesMap;
     }

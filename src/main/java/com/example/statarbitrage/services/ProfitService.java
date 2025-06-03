@@ -3,7 +3,6 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ProfitData;
 import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreEntry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,7 @@ import java.math.RoundingMode;
 public class ProfitService {
     private final SettingsService settingsService;
 
-    public ProfitData calculateProfit(EntryData entryData, ZScoreEntry bestPair) {
+    public ProfitData calculateProfit(EntryData entryData) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
@@ -30,7 +29,7 @@ public class ProfitService {
         BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
         BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
         BigDecimal zScoreEntry = BigDecimal.valueOf(entryData.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(bestPair.getZscore());
+        BigDecimal zScoreCurrent = BigDecimal.valueOf(entryData.getZScoreCurrent());
 
         BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                 .divide(longEntry, 10, RoundingMode.HALF_UP)
@@ -83,8 +82,6 @@ public class ProfitService {
         StringBuilder sb = new StringBuilder();
         sb.append("Profit: ").append(profitStr).append("\n");
         sb.append("LONG ")
-//                .append(entryData.getLongticker())
-//                .append(" entry: ")
                 .append("(").append(entryData.getLongTickerEntryPrice()).append(")")
                 .append(" -> ")
                 .append(longReturnRounded)
@@ -93,15 +90,13 @@ public class ProfitService {
                 .append("(").append(entryData.getLongTickerCurrentPrice()).append(")")
                 .append("\n");
         sb.append("SHORT ")
-//                .append(entryData.getShortticker())
-//                .append(" entry: ")
                 .append("(").append(entryData.getShortTickerEntryPrice()).append(")")
                 .append(" -> ")
                 .append(shortReturnRounded).append("%")
                 .append(" -> ")
                 .append("(").append(entryData.getShortTickerCurrentPrice()).append(")")
                 .append("\n");
-        sb.append("Z-SCORE ")
+        sb.append("Z ")
                 .append("(").append(zScoreEntry).append(")")
                 .append(" -> ")
                 .append(zScoreReturnRounded).append("%") //todo при открытии сделок большой процент хотя должен быть 0
@@ -109,10 +104,12 @@ public class ProfitService {
                 .append("(").append(zScoreCurrent).append(")")
                 .append("\n");
 
-        log.info("📊 LONG {{}}: Entry: {}, Current: {}, Profit: {}%",
+        log.info("📊 LONG {{}}: Entry: {}, Current: {}, Changes: {}%",
                 entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
-        log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Profit: {}%",
+        log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Changes: {}%",
                 entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
+        log.info("📊 Z : Entry: {}, Current: {}, Changes: {}%",
+                entryData.getZScoreEntry(), entryData.getZScoreCurrent(), zScoreReturnRounded);
 
         String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
         log.info(logMsg);

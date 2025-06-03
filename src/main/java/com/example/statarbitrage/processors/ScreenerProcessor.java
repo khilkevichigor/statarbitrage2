@@ -4,7 +4,7 @@ import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.python.PythonScripts;
-import com.example.statarbitrage.python.PythonScriptsExecuter;
+import com.example.statarbitrage.python.PythonScriptsExecuterOld;
 import com.example.statarbitrage.services.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,8 +32,8 @@ public class ScreenerProcessor {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles();
-        PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
-        ZScoreEntry bestPair = zScoreService.getBestPair();
+        PythonScriptsExecuterOld.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
+        ZScoreEntry bestPair = zScoreService.obtainBestPair();
         EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
         chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
         logDuration(startTime);
@@ -48,18 +47,26 @@ public class ScreenerProcessor {
             return;
         }
         try {
-            ZScoreEntry bestPair = zScoreService.getBestPair();
+            ConcurrentHashMap<String, List<Candle>> candlesMapForBest = candlesService.updateCandlesJsonForBestAndGet(zScoreService.obtainBestPair());
+            PythonScriptsExecuterOld.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
+            ZScoreEntry updatedBestPair = zScoreService.getFirstPair();
+            validateCurrentPricesBeforeAndAfterScriptAndThrow(updatedBestPair, candlesMapForBest);
             EntryData entryData = entryDataService.getEntryData();
-            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(entryData.getLongticker(), entryData.getShortticker()));
-            entryDataService.updateCurrentPrices(entryData, candlesMap);
-            entryDataService.setupEntryPointsIfNeededFromCandles(entryData, bestPair, candlesMap);
-            PythonScriptsExecuter.execute(PythonScripts.CREATE_Z_SCORE_FILE.getName(), true);
-            bestPair = zScoreService.getBestPair();
-            entryDataService.calculateAndSetProfit(entryData, bestPair);
+            entryDataService.updateData(entryData, updatedBestPair, candlesMapForBest);
             chartService.clearChartDir();
-            chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
+            chartService.generateCombinedChartOls(chatId, candlesMapForBest, updatedBestPair, entryData);
         } finally {
             runningTrades.remove(chatId);
+        }
+    }
+
+    private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candlesMap) {
+        List<Candle> longTickerCandles = candlesMap.get(firstPair.getLongticker());
+        double before = longTickerCandles.get(longTickerCandles.size() - 1).getClose();
+        double after = firstPair.getLongtickercurrentprice();
+        if (after != before) {
+            log.error("Wrong current prices before {} and after {} script", before, after);
+            throw new IllegalArgumentException("Wrong current prices before and after script");
         }
     }
 

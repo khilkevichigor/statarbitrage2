@@ -18,14 +18,14 @@ public class ZScoreService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
 
-    public ZScoreEntry getBestPair() {
+    public ZScoreEntry obtainBestPair() {
         int maxAttempts = 5;
         int waitMillis = 300;
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             List<ZScoreEntry> zScores = loadZscore();
             if (zScores != null && !zScores.isEmpty()) {
-                if (zScores.size() == 1) {
+                if (zScores.size() == 1) { //уже 1 лучшая пара
                     return zScores.get(0);
                 }
                 ZScoreEntry bestPair = getBestPairByCriteria(zScores);
@@ -37,6 +37,27 @@ public class ZScoreService {
                 return bestPair;
             }
 
+            log.warn("Попытка {}: z_score.json пустой или не найден", attempt);
+            try {
+                Thread.sleep(waitMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Ожидание чтения z_score.json прервано", e);
+            }
+        }
+
+        log.error("❌ Не удалось прочитать z_score.json после {} попыток", maxAttempts);
+        throw new RuntimeException("⚠️ z_score.json пустой или не найден после попыток");
+    }
+
+    public ZScoreEntry getFirstPair() {
+        int maxAttempts = 5;
+        int waitMillis = 300;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            List<ZScoreEntry> zScores = loadZscore();
+            if (zScores != null && !zScores.isEmpty()) {
+                return zScores.get(0);
+            }
             log.warn("Попытка {}: z_score.json пустой или не найден", attempt);
             try {
                 Thread.sleep(waitMillis);

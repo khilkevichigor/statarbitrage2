@@ -42,9 +42,19 @@ public class EntryDataService {
         entryData.setLongTickerCurrentPrice(longPrice);
         entryData.setShortTickerCurrentPrice(shortPrice);
 
+        entryData.setZScoreCurrent(bestPair.getZscore());
+        entryData.setCorrelationCurrent(bestPair.getCorrelation());
+        entryData.setAdfPvalueCurrent(bestPair.getAdfpvalue());
+        entryData.setPValueCurrent(bestPair.getPvalue());
+        entryData.setMeanCurrent(bestPair.getMean());
+        entryData.setStdCurrent(bestPair.getStd());
+        entryData.setSpreadCurrent(bestPair.getSpread());
+        entryData.setAlphaCurrent(bestPair.getAlpha());
+        entryData.setBetaCurrent(bestPair.getBeta());
+
         save(entryData);
 
-        log.info("Обогатили entry_data.json ценами из candles.json");
+        log.info("Создали entry_data.json");
 
         return entryData;
     }
@@ -77,76 +87,77 @@ public class EntryDataService {
         }
     }
 
+    public void updateData(EntryData entryData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles) {
+        updateCurrentPrices(entryData, candles);
+        setupEntryPointsIfNeeded(entryData, candles);
+        updateCurrentValues(entryData, firstPair);
+        calculateAndSetProfit(entryData);
+        save(entryData);
+    }
+
     public void updateCurrentPrices(EntryData entryData, ConcurrentHashMap<String, List<Candle>> candles) {
         try {
-            String longTicker = entryData.getLongticker();
-            String shortTicker = entryData.getShortticker();
-
-            List<Candle> longTickerCandles = candles.get(longTicker);
-            List<Candle> shortTickerCandles = candles.get(shortTicker);
-
-            if (longTickerCandles == null || longTickerCandles.isEmpty() ||
-                    shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-                log.warn("Нет данных по свечам для пары: {} - {}", longTicker, shortTicker);
-                return;
-            }
+            List<Candle> longTickerCandles = candles.get(entryData.getLongticker());
+            List<Candle> shortTickerCandles = candles.get(entryData.getShortticker());
 
             double longPrice = longTickerCandles.get(longTickerCandles.size() - 1).getClose();
             double shortPrice = shortTickerCandles.get(shortTickerCandles.size() - 1).getClose();
 
             entryData.setLongTickerCurrentPrice(longPrice);
             entryData.setShortTickerCurrentPrice(shortPrice);
-
-            save(entryData);
-            log.info("Обогатили entry_data.json ценами из candles.json");
         } catch (Exception e) {
-            log.error("Ошибка при обогащении z_score.json из свечей: {}", e.getMessage(), e);
+            log.error("Ошибка при обновлении текущих цен: {}", e.getMessage(), e);
         }
     }
 
-    public void setupEntryPointsIfNeededFromCandles(EntryData entryData, ZScoreEntry bestPair, ConcurrentHashMap<String, List<Candle>> candles) {
+    public void setupEntryPointsIfNeeded(EntryData entryData, ConcurrentHashMap<String, List<Candle>> candles) {
         if (entryData.getLongTickerEntryPrice() == 0.0 || entryData.getShortTickerEntryPrice() == 0.0) {
-            entryData.setLongticker(bestPair.getLongticker());
-            entryData.setShortticker(bestPair.getShortticker());
+            entryData.setLongTickerEntryPrice(entryData.getLongTickerCurrentPrice());
+            entryData.setShortTickerEntryPrice(entryData.getShortTickerCurrentPrice());
 
-            List<Candle> longTickerCandles = candles.get(bestPair.getLongticker());
-            List<Candle> shortTickerCandles = candles.get(bestPair.getShortticker());
+            entryData.setZScoreEntry(entryData.getZScoreCurrent());
+            entryData.setCorrelationEntry(entryData.getCorrelationCurrent());
+            entryData.setAdfPvalueEntry(entryData.getAdfPvalueCurrent());
+            entryData.setPValueEntry(entryData.getPValueCurrent());
+            entryData.setMeanEntry(entryData.getMeanCurrent());
+            entryData.setStdEntry(entryData.getStdCurrent());
+            entryData.setSpreadEntry(entryData.getSpreadCurrent());
+            entryData.setAlphaEntry(entryData.getAlphaCurrent());
+            entryData.setBetaEntry(entryData.getBetaCurrent());
 
-            if (longTickerCandles == null || longTickerCandles.isEmpty() ||
-                    shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-                log.warn("Нет данных по свечам для установки точек входа: {} - {}", bestPair.getLongticker(), bestPair.getShortticker());
-                return;
-            }
+            // Ставим время открытия по long-свечке
+            entryData.setEntryTime(getEntryTime(entryData.getLongticker(), candles));
 
-            Candle longCandle = longTickerCandles.get(longTickerCandles.size() - 1);
-            Candle shortCandle = shortTickerCandles.get(shortTickerCandles.size() - 1);
-
-            double longEntryPrice = longCandle.getClose();
-            double shortEntryPrice = shortCandle.getClose();
-
-            entryData.setLongTickerEntryPrice(longEntryPrice);
-            entryData.setShortTickerEntryPrice(shortEntryPrice);
-            entryData.setMeanEntry(bestPair.getMean());
-            entryData.setSpreadEntry(bestPair.getSpread());
-
-            // Ставим время открытия по long-свечке (можно и усреднить, если нужно)
-            entryData.setEntryTime(longCandle.getTimestamp());
-
-            save(entryData);
-
-            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}, ВРЕМЯ = {}",
-                    entryData.getLongticker(), longEntryPrice,
-                    entryData.getShortticker(), shortEntryPrice,
+            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, SPREAD = {}, MEAN = {}, Z = {}, ВРЕМЯ = {}",
+                    entryData.getLongticker(), entryData.getLongTickerEntryPrice(),
+                    entryData.getShortticker(), entryData.getShortTickerEntryPrice(),
                     entryData.getSpreadEntry(), entryData.getMeanEntry(),
+                    entryData.getZScoreEntry(),
                     entryData.getEntryTime());
         }
     }
 
-    public ProfitData calculateAndSetProfit(EntryData entryData, ZScoreEntry bestPair) {
-        ProfitData profitData = profitService.calculateProfit(entryData, bestPair);
+    private long getEntryTime(String longticker, ConcurrentHashMap<String, List<Candle>> candles) {
+        List<Candle> longTickerCandles = candles.get(longticker);
+        Candle longCandle = longTickerCandles.get(longTickerCandles.size() - 1);
+        return longCandle.getTimestamp();
+    }
+
+    public void calculateAndSetProfit(EntryData entryData) {
+        ProfitData profitData = profitService.calculateProfit(entryData);
         entryData.setProfit(profitData.getProfitStr());
         entryData.setChartProfitMessage(profitData.getChartProfitMessage());
-        save(entryData);
-        return profitData;
+    }
+
+    public void updateCurrentValues(EntryData entryData, ZScoreEntry firstPair) {
+        entryData.setZScoreCurrent(firstPair.getZscore());
+        entryData.setCorrelationCurrent(firstPair.getCorrelation());
+        entryData.setAdfPvalueCurrent(firstPair.getAdfpvalue());
+        entryData.setPValueCurrent(firstPair.getPvalue());
+        entryData.setMeanCurrent(firstPair.getMean());
+        entryData.setStdCurrent(firstPair.getStd());
+        entryData.setSpreadCurrent(firstPair.getSpread());
+        entryData.setAlphaCurrent(firstPair.getAlpha());
+        entryData.setBetaCurrent(firstPair.getBeta());
     }
 }
