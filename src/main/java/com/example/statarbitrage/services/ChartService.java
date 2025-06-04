@@ -6,8 +6,8 @@ import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.model.ZScorePoint;
 import com.example.statarbitrage.utils.ComboProfitAndZChart;
-import com.example.statarbitrage.utils.ComboThreeCharts;
 import com.example.statarbitrage.utils.ComboTwoTrendsAndSpreadChart;
+import com.example.statarbitrage.utils.OneOnOneCharts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -95,8 +95,8 @@ public class ChartService {
         sendChart(chatId, getChart(), "Profit:" + profit + "%, z:" + zChanges + "%", true);
     }
 
-    public void sendThreeCombinedCharts(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
-        ComboThreeCharts.createV3(candlesMap, bestPair, entryData);
+    public void sendOneOnOneCharts(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
+        OneOnOneCharts.create(candlesMap, bestPair, entryData);
         sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
     }
 }

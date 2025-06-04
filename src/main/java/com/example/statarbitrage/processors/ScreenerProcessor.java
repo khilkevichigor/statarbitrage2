@@ -44,7 +44,7 @@ public class ScreenerProcessor {
                 });
         ZScoreEntry bestPair = zScoreService.obtainBestPair(zScoreEntries);
         EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
-        chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
+        chartService.sendOneOnOneCharts(chatId, candlesMap, bestPair, entryData);
         logDuration(startTime);
     }
 
@@ -76,8 +76,7 @@ public class ScreenerProcessor {
             entryDataService.updateEntryDataAndSave(entryData, firstPair, candlesMap);
             clearChartsDirectory();
             addToHistory(entryData);
-            chartService.sendCombinedChartProfitVsZ(chatId, history);
-            chartService.sendThreeCombinedCharts(chatId, candlesMap, firstPair, entryData);
+            chartService.sendOneOnOneCharts(chatId, candlesMap, firstPair, entryData);
         } finally {
             runningTrades.remove(chatId);
         }
