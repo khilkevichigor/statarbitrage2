@@ -591,138 +591,7 @@ public class ChartService {
         sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
     }
 
-    public void generateProfitVsZChart(String chatId, List<ZScorePoint> history) {
-        if (history == null || history.isEmpty()) {
-            log.warn("Empty ZScorePoint history");
-            return;
-        }
-
-        List<Double> zScores = history.stream()
-                .map(ZScorePoint::zScore)
-                .collect(Collectors.toList());
-
-        List<BigDecimal> profits = history.stream()
-                .map(ZScorePoint::profit)
-                .collect(Collectors.toList());
-
-        if (zScores.size() != profits.size()) {
-            log.warn("Z-Scores and profits size mismatch");
-            return;
-        }
-
-        XYChart chart = new XYChartBuilder()
-                .width(1200).height(600)
-                .title("Profit vs Z-Score")
-                .xAxisTitle("Z-Score")
-                .yAxisTitle("Profit")
-                .build();
-
-        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
-        chart.getStyler().setMarkerSize(6);
-
-        XYSeries profitSeries = chart.addSeries("Profit", zScores, profits);
-        profitSeries.setMarker(SeriesMarkers.CIRCLE);
-        profitSeries.setLineColor(Color.BLUE);
-
-        double exitZ = 0.5;
-        BigDecimal minProfit = Collections.min(profits);
-        BigDecimal maxProfit = Collections.max(profits);
-
-        List<Double> exitZLineX = Arrays.asList(exitZ, exitZ);
-        List<BigDecimal> exitZLineY = Arrays.asList(minProfit, maxProfit);
-        XYSeries exitLine = chart.addSeries("Exit Threshold (z=0.5)", exitZLineX, exitZLineY);
-        exitLine.setLineColor(Color.RED);
-        exitLine.setLineStyle(new BasicStroke(2.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 6f}, 0));
-        exitLine.setMarker(SeriesMarkers.NONE);
-
-        int exitIndex = 0;
-        double minDiff = Double.MAX_VALUE;
-        for (int i = 0; i < zScores.size(); i++) {
-            double diff = Math.abs(zScores.get(i) - exitZ);
-            if (diff < minDiff) {
-                minDiff = diff;
-                exitIndex = i;
-            }
-        }
-
-        BigDecimal exitProfit = profits.get(exitIndex);
-        double exitZValue = zScores.get(exitIndex);
-        XYSeries exitPoint = chart.addSeries(
-                String.format("Exit Point (z=%.2f, profit=%.2f)", exitZValue, exitProfit),
-                Collections.singletonList(exitZValue),
-                Collections.singletonList(exitProfit)
-        );
-        exitPoint.setMarkerColor(Color.RED.darker());
-        exitPoint.setLineColor(Color.RED.darker());
-        exitPoint.setMarker(SeriesMarkers.DIAMOND);
-        exitPoint.setLineStyle(new BasicStroke(0f));
-
-        try {
-            BufferedImage img = BitmapEncoder.getBufferedImage(chart);
-            File dir = new File(CHARTS_DIR);
-            if (!dir.exists()) dir.mkdirs();
-
-            File file = new File(dir, "profit_vs_z_" + System.currentTimeMillis() + ".png");
-            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
-
-            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
-
-        } catch (IOException e) {
-            log.error("Ошибка генерации графика Profit vs Z", e);
-        }
-    }
-
-    public void generateSimpleProfitVsZChart(String chatId, List<ZScorePoint> history) {
-        if (history == null || history.isEmpty()) {
-            log.warn("Empty or null history");
-            return;
-        }
-
-        // Фильтруем только валидные значения
-        List<Double> zScores = new ArrayList<>();
-        List<BigDecimal> profits = new ArrayList<>();
-
-        for (ZScorePoint point : history) {
-            if (point != null) {
-                zScores.add(point.zScore());
-                profits.add(point.profit());
-            }
-        }
-
-        if (zScores.isEmpty()) {
-            log.warn("No valid ZScorePoints");
-            return;
-        }
-
-        // Строим график
-        XYChart chart = new XYChartBuilder()
-                .width(800).height(400)
-                .title("Z-Score vs Profit")
-                .xAxisTitle("Z-Score")
-                .yAxisTitle("Profit")
-                .build();
-
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setMarkerSize(6);
-
-        XYSeries series = chart.addSeries("ZScore-Profit", zScores, profits);
-        series.setMarker(SeriesMarkers.CIRCLE);
-        series.setLineStyle(new BasicStroke(0f)); // убираем линии между точками
-        series.setMarkerColor(Color.BLUE);
-
-        // Сохраняем и отправляем
-        try {
-            File dir = new File(CHARTS_DIR);
-            if (!dir.exists()) dir.mkdirs();
-            File file = new File(dir, "simple_chart_" + System.currentTimeMillis() + ".png");
-            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
-            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
-        } catch (IOException e) {
-            log.error("Error saving simple chart", e);
-        }
-    }
-
-    public void sendProfitChart(String chatId, List<ZScorePoint> history) {
+    public void sendCombinedChartProfitVsZ(String chatId, List<ZScorePoint> history) {
         if (history == null || history.isEmpty()) {
             log.warn("Empty history list");
             return;
@@ -736,90 +605,8 @@ public class ChartService {
                 .map(ZScorePoint::profit)
                 .collect(Collectors.toList());
 
-        XYChart chart = new XYChartBuilder()
-                .width(800).height(400)
-                .title("Profit Over Time")
-                .xAxisTitle("Point #")
-                .yAxisTitle("Profit")
-                .build();
-
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setMarkerSize(6);
-
-        XYSeries series = chart.addSeries("Profit", xData, profits);
-        series.setMarker(SeriesMarkers.CIRCLE);
-        series.setLineStyle(new BasicStroke(0f));
-        series.setMarkerColor(Color.GREEN);
-
-        // Сохраняем и отправляем
-        try {
-            File dir = new File(CHARTS_DIR);
-            if (!dir.exists()) dir.mkdirs();
-            File file = new File(dir, "simple_profit_chart_" + System.currentTimeMillis() + ".png");
-            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
-            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
-        } catch (IOException e) {
-            log.error("Error saving simple chart", e);
-        }
-    }
-
-    public void sendZScoreChart(String chatId, List<ZScorePoint> history) {
-        if (history == null || history.isEmpty()) {
-            log.warn("Empty history list");
-            return;
-        }
-
-        List<Integer> xData = IntStream.range(0, history.size())
-                .boxed()
-                .collect(Collectors.toList());
-
-        List<Double> zScores = history.stream()
-                .map(ZScorePoint::zScore)
-                .collect(Collectors.toList());
-
-        XYChart chart = new XYChartBuilder()
-                .width(800).height(400)
-                .title("Z-Score Over Time")
-                .xAxisTitle("Point #")
-                .yAxisTitle("Z-Score")
-                .build();
-
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setMarkerSize(6);
-
-        XYSeries series = chart.addSeries("Z-Score", xData, zScores);
-        series.setMarker(SeriesMarkers.CIRCLE);
-        series.setLineStyle(new BasicStroke(0f));
-        series.setMarkerColor(Color.BLUE);
-
-        // Сохраняем и отправляем
-        try {
-            File dir = new File(CHARTS_DIR);
-            if (!dir.exists()) dir.mkdirs();
-            File file = new File(dir, "simple_zscore_chart_" + System.currentTimeMillis() + ".png");
-            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
-            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
-        } catch (IOException e) {
-            log.error("Error saving simple chart", e);
-        }
-    }
-
-    public void sendCombinedChart(String chatId, List<ZScorePoint> history) {
-        if (history == null || history.isEmpty()) {
-            log.warn("Empty history list");
-            return;
-        }
-
-        List<Integer> xData = IntStream.range(0, history.size())
-                .boxed()
-                .collect(Collectors.toList());
-
-        List<BigDecimal> profits = history.stream()
-                .map(ZScorePoint::profit)
-                .collect(Collectors.toList());
-
-        List<Double> zScores = history.stream()
-                .map(ZScorePoint::zScore)
+        List<BigDecimal> zScoreChanges = history.stream()
+                .map(ZScorePoint::zScoreChanges)
                 .collect(Collectors.toList());
 
         // --- Верхний график: Profit ---
@@ -849,7 +636,7 @@ public class ChartService {
         zScoreChart.getStyler().setLegendVisible(false);
         zScoreChart.getStyler().setMarkerSize(6);
 
-        XYSeries zSeries = zScoreChart.addSeries("Z-Score", xData, zScores);
+        XYSeries zSeries = zScoreChart.addSeries("Z-Score", xData, zScoreChanges);
         zSeries.setMarker(SeriesMarkers.CIRCLE);
         zSeries.setLineStyle(new BasicStroke(0f));
         zSeries.setMarkerColor(Color.BLUE);
@@ -867,7 +654,7 @@ public class ChartService {
             File file = new File(dir, "combined_chart_" + System.currentTimeMillis() + ".png");
             ImageIO.write(combinedImage, "png", file);
 
-            sendChart(chatId, file, "Combined Stat Chart", true);
+            sendChart(chatId, file, "Profit:" + profits.get(profits.size() - 1) + "%, z:" + zScoreChanges.get(zScoreChanges.size() - 1) + "%", true);
         } catch (IOException e) {
             log.error("Failed to generate combined chart", e);
         }

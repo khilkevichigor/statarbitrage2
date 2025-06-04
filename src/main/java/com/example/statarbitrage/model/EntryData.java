@@ -50,6 +50,9 @@ public class EntryData {
 
     private String profitStr;
     private BigDecimal profit;
+
+    private BigDecimal zScoreChanges;
+
     private long entryTime;
     private String chartProfitMessage;
 }

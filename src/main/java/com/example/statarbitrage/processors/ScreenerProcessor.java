@@ -33,6 +33,7 @@ public class ScreenerProcessor {
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
+        history.clear();
         Settings settings = settingsService.getSettings();
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles();
         List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
@@ -74,12 +75,12 @@ public class ScreenerProcessor {
             entryDataService.updateData(entryData, firstPair, candlesMap);
             chartService.clearChartDir();
 
-            history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreCurrent(), entryData.getProfit()));
+            history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreChanges(), entryData.getProfit()));
 //            chartService.generateProfitVsZChart(chatId, history);
 //            chartService.generateSimpleProfitVsZChart(chatId, history);
 //            chartService.sendProfitChart(chatId, history);
 //            chartService.sendZScoreChart(chatId, history);
-            chartService.sendCombinedChart(chatId, history);
+            chartService.sendCombinedChartProfitVsZ(chatId, history);
         } finally {
             runningTrades.remove(chatId);
         }

@@ -1,8 +1,8 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.EntryData;
-import com.example.statarbitrage.model.ProfitData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class EntryDataService {
-    private final ProfitService profitService;
+    private final ChangesService changesService;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String ENTRY_DATA_JSON_FILE_PATH = "entry_data.json";
 
@@ -26,7 +26,7 @@ public class EntryDataService {
         EntryData entryData = new EntryData();
         entryData.setLongticker(bestPair.getLongticker());
         entryData.setShortticker(bestPair.getShortticker());
-        entryData.setZScoreEntry(bestPair.getZscore());
+//        entryData.setZScoreEntry(bestPair.getZscore()); //todo ошибка
 
         List<Candle> longTickerCandles = candlesMap.get(bestPair.getLongticker());
         List<Candle> shortTickerCandles = candlesMap.get(bestPair.getShortticker());
@@ -89,9 +89,9 @@ public class EntryDataService {
 
     public void updateData(EntryData entryData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles) {
         updateCurrentPrices(entryData, candles);
+        updateCurrentCointParams(entryData, firstPair);
         setupEntryPointsIfNeeded(entryData, candles);
-        updateCurrentValues(entryData, firstPair);
-        calculateAndSetProfit(entryData);
+        calculateAndSetChanges(entryData);
         save(entryData);
     }
 
@@ -143,14 +143,15 @@ public class EntryDataService {
         return longCandle.getTimestamp();
     }
 
-    public void calculateAndSetProfit(EntryData entryData) {
-        ProfitData profitData = profitService.calculateProfit(entryData);
-        entryData.setProfitStr(profitData.getProfitStr());
-        entryData.setProfit(profitData.getProfitRounded());
-        entryData.setChartProfitMessage(profitData.getChartProfitMessage());
+    public void calculateAndSetChanges(EntryData entryData) {
+        ChangesData changesData = changesService.calculateChanges(entryData);
+        entryData.setProfitStr(changesData.getProfitStr());
+        entryData.setProfit(changesData.getProfitRounded());
+        entryData.setZScoreChanges(changesData.getZScoreRounded());
+        entryData.setChartProfitMessage(changesData.getChartProfitMessage());
     }
 
-    public void updateCurrentValues(EntryData entryData, ZScoreEntry firstPair) {
+    public void updateCurrentCointParams(EntryData entryData, ZScoreEntry firstPair) {
         entryData.setZScoreCurrent(firstPair.getZscore());
         entryData.setCorrelationCurrent(firstPair.getCorrelation());
         entryData.setAdfPvalueCurrent(firstPair.getAdfpvalue());

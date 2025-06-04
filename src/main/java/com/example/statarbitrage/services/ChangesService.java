@@ -1,7 +1,7 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.EntryData;
-import com.example.statarbitrage.model.ProfitData;
 import com.example.statarbitrage.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,10 +13,10 @@ import java.math.RoundingMode;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ProfitService {
+public class ChangesService {
     private final SettingsService settingsService;
 
-    public ProfitData calculateProfit(EntryData entryData) {
+    public ChangesData calculateChanges(EntryData entryData) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
@@ -37,10 +37,6 @@ public class ProfitService {
 
         BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-
-        BigDecimal zScoreReturnPct = zScoreEntry.subtract(zScoreCurrent)
-                .divide(zScoreEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
         BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
@@ -76,7 +72,7 @@ public class ProfitService {
         BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal zScoreReturnRounded = zScoreReturnPct.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
         String profitStr = profitRounded + "%";
         StringBuilder sb = new StringBuilder();
@@ -99,7 +95,7 @@ public class ProfitService {
         sb.append("Z ")
                 .append("(").append(zScoreEntry).append(")")
                 .append(" -> ")
-                .append(zScoreReturnRounded).append("%") //todo при открытии сделок большой процент хотя должен быть 0
+                .append(zScoreRounded).append("%") //todo при открытии сделок большой процент хотя должен быть 0
                 .append(" -> ")
                 .append("(").append(zScoreCurrent).append(")")
                 .append("\n");
@@ -109,20 +105,26 @@ public class ProfitService {
         log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Changes: {}%",
                 entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
         log.info("📊 Z : Entry: {}, Current: {}, Changes: {}%",
-                entryData.getZScoreEntry(), entryData.getZScoreCurrent(), zScoreReturnRounded);
+                entryData.getZScoreEntry(), entryData.getZScoreCurrent(), zScoreRounded);
 
         String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
         log.info(logMsg);
 
 
-        return ProfitData.builder()
+        return ChangesData.builder()
                 .totalCapital(totalCapital)
+
                 .longReturnRounded(longReturnRounded)
                 .shortReturnRounded(shortReturnRounded)
+
                 .profitRounded(profitRounded)
                 .profitStr(profitStr)
-                .logMessage(logMsg)
+
+                .zScoreRounded(zScoreRounded)
+                .zScoreStr(zScoreRounded + "%")
+
                 .chartProfitMessage(sb.toString())
+                .logMessage(logMsg)
                 .build();
     }
 }
