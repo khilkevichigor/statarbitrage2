@@ -4,6 +4,7 @@ import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.ZScorePoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.*;
@@ -17,6 +18,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -588,11 +590,143 @@ public class ChartService {
         sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
     }
 
+    public void generateProfitVsZChart(String chatId, List<ZScorePoint> history) {
+        if (history == null || history.isEmpty()) {
+            log.warn("Empty ZScorePoint history");
+            return;
+        }
+
+        List<Double> zScores = history.stream()
+                .map(ZScorePoint::zScore)
+                .collect(Collectors.toList());
+
+        List<BigDecimal> profits = history.stream()
+                .map(ZScorePoint::profit)
+                .collect(Collectors.toList());
+
+        if (zScores.size() != profits.size()) {
+            log.warn("Z-Scores and profits size mismatch");
+            return;
+        }
+
+        XYChart chart = new XYChartBuilder()
+                .width(1200).height(600)
+                .title("Profit vs Z-Score")
+                .xAxisTitle("Z-Score")
+                .yAxisTitle("Profit")
+                .build();
+
+        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
+        chart.getStyler().setMarkerSize(6);
+
+        XYSeries profitSeries = chart.addSeries("Profit", zScores, profits);
+        profitSeries.setMarker(SeriesMarkers.CIRCLE);
+        profitSeries.setLineColor(Color.BLUE);
+
+        double exitZ = 0.5;
+        BigDecimal minProfit = Collections.min(profits);
+        BigDecimal maxProfit = Collections.max(profits);
+
+        List<Double> exitZLineX = Arrays.asList(exitZ, exitZ);
+        List<BigDecimal> exitZLineY = Arrays.asList(minProfit, maxProfit);
+        XYSeries exitLine = chart.addSeries("Exit Threshold (z=0.5)", exitZLineX, exitZLineY);
+        exitLine.setLineColor(Color.RED);
+        exitLine.setLineStyle(new BasicStroke(2.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 6f}, 0));
+        exitLine.setMarker(SeriesMarkers.NONE);
+
+        int exitIndex = 0;
+        double minDiff = Double.MAX_VALUE;
+        for (int i = 0; i < zScores.size(); i++) {
+            double diff = Math.abs(zScores.get(i) - exitZ);
+            if (diff < minDiff) {
+                minDiff = diff;
+                exitIndex = i;
+            }
+        }
+
+        BigDecimal exitProfit = profits.get(exitIndex);
+        double exitZValue = zScores.get(exitIndex);
+        XYSeries exitPoint = chart.addSeries(
+                String.format("Exit Point (z=%.2f, profit=%.2f)", exitZValue, exitProfit),
+                Collections.singletonList(exitZValue),
+                Collections.singletonList(exitProfit)
+        );
+        exitPoint.setMarkerColor(Color.RED.darker());
+        exitPoint.setLineColor(Color.RED.darker());
+        exitPoint.setMarker(SeriesMarkers.DIAMOND);
+        exitPoint.setLineStyle(new BasicStroke(0f));
+
+        try {
+            BufferedImage img = BitmapEncoder.getBufferedImage(chart);
+            File dir = new File(CHARTS_DIR);
+            if (!dir.exists()) dir.mkdirs();
+
+            File file = new File(dir, "profit_vs_z_" + System.currentTimeMillis() + ".png");
+            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
+
+            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
+
+        } catch (IOException e) {
+            log.error("Ошибка генерации графика Profit vs Z", e);
+        }
+    }
+
+    public void generateSimpleProfitVsZChart(String chatId, List<ZScorePoint> history) {
+        if (history == null || history.isEmpty()) {
+            log.warn("Empty or null history");
+            return;
+        }
+
+        // Фильтруем только валидные значения
+        List<Double> zScores = new ArrayList<>();
+        List<BigDecimal> profits = new ArrayList<>();
+
+        for (ZScorePoint point : history) {
+            if (point != null) {
+                zScores.add(point.zScore());
+                profits.add(point.profit());
+            }
+        }
+
+        if (zScores.isEmpty()) {
+            log.warn("No valid ZScorePoints");
+            return;
+        }
+
+        // Строим график
+        XYChart chart = new XYChartBuilder()
+                .width(800).height(400)
+                .title("Z-Score vs Profit")
+                .xAxisTitle("Z-Score")
+                .yAxisTitle("Profit")
+                .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setMarkerSize(6);
+
+        XYSeries series = chart.addSeries("ZScore-Profit", zScores, profits);
+        series.setMarker(SeriesMarkers.CIRCLE);
+        series.setLineStyle(new BasicStroke(0f)); // убираем линии между точками
+        series.setMarkerColor(Color.BLUE);
+
+        // Сохраняем и отправляем
+        try {
+            File dir = new File(CHARTS_DIR);
+            if (!dir.exists()) dir.mkdirs();
+            File file = new File(dir, "simple_chart_" + System.currentTimeMillis() + ".png");
+            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
+            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
+        } catch (IOException e) {
+            log.error("Error saving simple chart", e);
+        }
+    }
+
+
     private static String getTitle(EntryData entryData) {
         StringBuilder sb = new StringBuilder();
         sb.append("Cointegration: LONG ").append(entryData.getLongticker()).append(" - SHORT ").append(entryData.getShortticker());
-        if (entryData.getProfit() != null && !entryData.getProfit().isEmpty()) {
-            sb.append(" Profit: ").append(entryData.getProfit());
+        if (entryData.getProfitStr() != null && !entryData.getProfitStr().isEmpty()) {
+            sb.append(" Profit: ").append(entryData.getProfitStr());
         }
         return sb.toString();
     }

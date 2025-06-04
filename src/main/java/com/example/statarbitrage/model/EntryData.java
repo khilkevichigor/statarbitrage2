@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -46,7 +48,8 @@ public class EntryData {
     private double stdEntry;
     private double stdCurrent;
 
-    private String profit;
+    private String profitStr;
+    private BigDecimal profit;
     private long entryTime;
     private String chartProfitMessage;
 }

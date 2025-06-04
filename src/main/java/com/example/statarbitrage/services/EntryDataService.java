@@ -145,7 +145,8 @@ public class EntryDataService {
 
     public void calculateAndSetProfit(EntryData entryData) {
         ProfitData profitData = profitService.calculateProfit(entryData);
-        entryData.setProfit(profitData.getProfitStr());
+        entryData.setProfitStr(profitData.getProfitStr());
+        entryData.setProfit(profitData.getProfitRounded());
         entryData.setChartProfitMessage(profitData.getChartProfitMessage());
     }
 

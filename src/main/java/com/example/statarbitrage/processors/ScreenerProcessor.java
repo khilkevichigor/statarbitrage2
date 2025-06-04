@@ -1,9 +1,6 @@
 package com.example.statarbitrage.processors;
 
-import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.EntryData;
-import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
@@ -13,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +27,7 @@ public class ScreenerProcessor {
     private final FileService fileService;
     private final SettingsService settingsService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
+    private final List<ZScorePoint> history = new ArrayList<>();
 
     @Async
     public void sendBestChart(String chatId) {
@@ -74,7 +73,10 @@ public class ScreenerProcessor {
             ZScoreEntry firstPair = zScoreEntries.get(0);
             entryDataService.updateData(entryData, firstPair, candlesMap);
             chartService.clearChartDir();
-            chartService.generateCombinedChartOls(chatId, candlesMap, firstPair, entryData);
+
+            history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreCurrent(), entryData.getProfit()));
+            chartService.generateProfitVsZChart(chatId, history);
+            chartService.generateSimpleProfitVsZChart(chatId, history);
         } finally {
             runningTrades.remove(chatId);
         }
