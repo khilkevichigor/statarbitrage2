@@ -115,67 +115,32 @@ def analyze_pair_ols(a, b, candles_dict, chat_config):
         adf_significance = chat_config.get("adfSignificanceLevel")
         min_corr = chat_config.get("minCorrelation")
 
-        if not a or not b:
-            print(f"⚠️ Пропуск: пустые тикеры {a}, {b}")
-            return None
+        candles_a = np.array([c["close"] for c in candles_dict.get(a)])
+        candles_b = np.array([c["close"] for c in candles_dict.get(b)])
 
-        candles_a = candles_dict.get(a)
-        candles_b = candles_dict.get(b)
+        corr = np.corrcoef(candles_a, candles_b)[0, 1]
 
-        if not isinstance(candles_a, list) or not isinstance(candles_b, list):
-            print(f"⚠️ Пропуск: неверный формат данных для {a}, {b}")
-            return None
-        if len(candles_a) != len(candles_b) or len(candles_a) <= window + 1:
-            print(f"⚠️ Пропуск: недостаточно данных для {a}, {b}")
-            return None
+        is_coint, pvalue = is_cointegrated(candles_a, candles_b, significance)
 
-        closes_a = np.array([c["close"] for c in candles_a])
-        closes_b = np.array([c["close"] for c in candles_b])
+        a_window = candles_a[-window:]
+        b_window = candles_b[-window:]
 
-        if np.std(closes_a) == 0 or np.std(closes_b) == 0:
-            print(f"⚠️ Пропуск: нулевая волатильность у {a} или {b}")
-            return None
-        if np.allclose(closes_a, closes_b):
-            print(f"⚠️ Пропуск: {a} и {b} почти идентичны")
-            return None
-
-        corr = np.corrcoef(closes_a, closes_b)[0, 1]
-        if abs(corr) < min_corr:
-            return None
-
-        # Коинтеграция
-        is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
-        if not is_coint:
-            return None
-
-        # Берем последние window наблюдений
-        a_window = closes_a[-window:]
-        b_window = closes_b[-window:]
-
-        # Линейная регрессия: b = alpha + beta * a
         X = add_constant(a_window)
         model = OLS(b_window, X).fit()
         alpha = model.params[0]
         beta = model.params[1]
 
-        # Спред = b - (beta * a + alpha)
         spread_series = b_window - (beta * a_window + alpha)
 
         adf_pvalue = adfuller(spread_series)[1]
-        if adf_pvalue > adf_significance:
-            return None
 
-        # Текущий спред и z-score
-        current_a = closes_a[-1]
-        current_b = closes_b[-1]
+        current_a = candles_a[-1]
+        current_b = candles_b[-1]
         spread_value = current_b - (beta * current_a + alpha)
 
         mean = np.mean(spread_series)
         std = np.std(spread_series)
         z = (spread_value - mean) / std if std > 0 else 0
-
-        if abs(z) < zscore_entry:
-            return None
 
         longticker = b if z > 0 else a
         shortticker = a if z > 0 else b
@@ -186,15 +151,15 @@ def analyze_pair_ols(a, b, candles_dict, chat_config):
 
         return {
             "pair": f"{a}-{b}",
-            "zscore": round(z, 4),
-            "pvalue": round(pvalue, 6),
-            "adfpvalue": round(adf_pvalue, 6),
-            "correlation": round(corr, 4),
-            "alpha": round(alpha, 8),
-            "beta": round(beta, 8),
-            "spread": round(spread_value, 8),
-            "mean": round(mean, 8),
-            "std": round(std, 8),
+            "zscore": z,
+            "pvalue": pvalue,
+            "adfpvalue": adf_pvalue,
+            "correlation": corr,
+            "alpha": alpha,
+            "beta": beta,
+            "spread": spread_value,
+            "mean": mean,
+            "std": std,
             "longticker": longticker,
             "shortticker": shortticker,
             "longtickercurrentprice": long_price,

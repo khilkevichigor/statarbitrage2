@@ -59,7 +59,9 @@ public class ScreenerProcessor {
             Settings settings = settingsService.getSettings();
             EntryData entryData = entryDataService.getEntryData();
             ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(entryData, settings);
-            List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
+            List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(
+                    PythonScripts.CREATE_Z_SCORE_FILE.getName(),
+                    Map.of(
                             "settings", settings,
                             "candlesMap", candlesMap
                     ),
