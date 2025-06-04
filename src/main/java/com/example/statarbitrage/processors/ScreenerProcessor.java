@@ -77,6 +77,8 @@ public class ScreenerProcessor {
             history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreCurrent(), entryData.getProfit()));
             chartService.generateProfitVsZChart(chatId, history);
             chartService.generateSimpleProfitVsZChart(chatId, history);
+            chartService.sendProfitChart(chatId, history);
+            chartService.sendZScoreChart(chatId, history);
         } finally {
             runningTrades.remove(chatId);
         }

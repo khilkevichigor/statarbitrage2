@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -714,6 +715,88 @@ public class ChartService {
             File dir = new File(CHARTS_DIR);
             if (!dir.exists()) dir.mkdirs();
             File file = new File(dir, "simple_chart_" + System.currentTimeMillis() + ".png");
+            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
+            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
+        } catch (IOException e) {
+            log.error("Error saving simple chart", e);
+        }
+    }
+
+    public void sendProfitChart(String chatId, List<ZScorePoint> history) {
+        if (history == null || history.isEmpty()) {
+            log.warn("Empty history list");
+            return;
+        }
+
+        List<Integer> xData = IntStream.range(0, history.size())
+                .boxed()
+                .collect(Collectors.toList());
+
+        List<BigDecimal> profits = history.stream()
+                .map(ZScorePoint::profit)
+                .collect(Collectors.toList());
+
+        XYChart chart = new XYChartBuilder()
+                .width(800).height(400)
+                .title("Profit Over Time")
+                .xAxisTitle("Point #")
+                .yAxisTitle("Profit")
+                .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setMarkerSize(6);
+
+        XYSeries series = chart.addSeries("Profit", xData, profits);
+        series.setMarker(SeriesMarkers.CIRCLE);
+        series.setLineStyle(new BasicStroke(0f));
+        series.setMarkerColor(Color.GREEN);
+
+        // Сохраняем и отправляем
+        try {
+            File dir = new File(CHARTS_DIR);
+            if (!dir.exists()) dir.mkdirs();
+            File file = new File(dir, "simple_profit_chart_" + System.currentTimeMillis() + ".png");
+            BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
+            sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
+        } catch (IOException e) {
+            log.error("Error saving simple chart", e);
+        }
+    }
+
+    public void sendZScoreChart(String chatId, List<ZScorePoint> history) {
+        if (history == null || history.isEmpty()) {
+            log.warn("Empty history list");
+            return;
+        }
+
+        List<Integer> xData = IntStream.range(0, history.size())
+                .boxed()
+                .collect(Collectors.toList());
+
+        List<Double> zScores = history.stream()
+                .map(ZScorePoint::zScore)
+                .collect(Collectors.toList());
+
+        XYChart chart = new XYChartBuilder()
+                .width(800).height(400)
+                .title("Z-Score Over Time")
+                .xAxisTitle("Point #")
+                .yAxisTitle("Z-Score")
+                .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setMarkerSize(6);
+
+        XYSeries series = chart.addSeries("Z-Score", xData, zScores);
+        series.setMarker(SeriesMarkers.CIRCLE);
+        series.setLineStyle(new BasicStroke(0f));
+        series.setMarkerColor(Color.BLUE);
+
+        // Сохраняем и отправляем
+        try {
+            File dir = new File(CHARTS_DIR);
+            if (!dir.exists()) dir.mkdirs();
+            File file = new File(dir, "simple_zscore_chart_" + System.currentTimeMillis() + ".png");
             BitmapEncoder.saveBitmap(chart, file.getAbsolutePath(), BitmapEncoder.BitmapFormat.PNG);
             sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
         } catch (IOException e) {
