@@ -1,6 +1,5 @@
 package com.example.statarbitrage.utils;
 
-import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScorePoint;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
@@ -26,7 +25,7 @@ public final class ComboProfitAndZChart {
     private ComboProfitAndZChart() {
     }
 
-    public static void sendCombinedChartProfitVsZ(List<ZScorePoint> history) {
+    public static void create(List<ZScorePoint> history) {
         if (history == null || history.isEmpty()) {
             log.warn("Empty history list");
             return;
@@ -81,7 +80,7 @@ public final class ComboProfitAndZChart {
             BufferedImage profitImage = BitmapEncoder.getBufferedImage(profitChart);
             BufferedImage zImage = BitmapEncoder.getBufferedImage(zScoreChart);
 
-            BufferedImage combinedImage = combineChartsWithoutGap(profitImage, zImage, "Profit and Z-Score");
+            BufferedImage combinedImage = ChartUtil.combineChartsWithoutGap(profitImage, zImage, "Profit and Z-Score");
 
             File dir = new File(CHARTS_DIR);
             if (!dir.exists()) dir.mkdirs();
@@ -93,46 +92,4 @@ public final class ComboProfitAndZChart {
         }
     }
 
-    private static List<Double> normalizeZScore(List<Double> series) {
-        double mean = series.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        double std = Math.sqrt(series.stream()
-                .mapToDouble(v -> Math.pow(v - mean, 2))
-                .average().orElse(0.0));
-
-        if (std == 0) {
-            return series.stream().map(v -> v - mean).collect(Collectors.toList());
-        }
-
-        return series.stream().map(v -> (v - mean) / std).collect(Collectors.toList());
-    }
-
-    private static BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
-        int width = Math.max(topImg.getWidth(), bottomImg.getWidth());
-        int gap = 2;  // минимальный отступ между графиками
-        int captionHeight = 30;
-
-        int height = topImg.getHeight() + gap + bottomImg.getHeight() + captionHeight;
-
-        BufferedImage combined = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = combined.createGraphics();
-
-        g.drawImage(topImg, 0, 0, null);
-        g.drawImage(bottomImg, 0, topImg.getHeight() + gap, null);
-
-        g.setColor(Color.BLACK);
-        g.setFont(new Font("Arial", Font.PLAIN, 14));
-        g.drawString(caption, 5, topImg.getHeight() + gap + bottomImg.getHeight() + 20);
-
-        g.dispose();
-        return combined;
-    }
-
-    private static String getTitle(EntryData entryData) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Cointegration: LONG ").append(entryData.getLongticker()).append(" - SHORT ").append(entryData.getShortticker());
-        if (entryData.getProfitStr() != null && !entryData.getProfitStr().isEmpty()) {
-            sb.append(" Profit: ").append(entryData.getProfitStr());
-        }
-        return sb.toString();
-    }
 }

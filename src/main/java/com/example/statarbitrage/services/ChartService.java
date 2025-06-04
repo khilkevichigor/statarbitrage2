@@ -6,6 +6,7 @@ import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.model.ZScorePoint;
 import com.example.statarbitrage.utils.ComboProfitAndZChart;
+import com.example.statarbitrage.utils.ComboThreeCharts;
 import com.example.statarbitrage.utils.ComboTwoTrendsAndSpreadChart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,13 +74,13 @@ public class ChartService {
     }
 
     public void generateCombinedChartOls(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
-        ComboTwoTrendsAndSpreadChart.generateCombinedChartOls(candlesMap, bestPair, entryData);
+        ComboTwoTrendsAndSpreadChart.create(candlesMap, bestPair, entryData);
         sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
     }
 
     public void sendCombinedChartProfitVsZ(String chatId, List<ZScorePoint> history) {
 
-        ComboProfitAndZChart.sendCombinedChartProfitVsZ(history);
+        ComboProfitAndZChart.create(history);
 
         BigDecimal profit = history.stream()
                 .map(ZScorePoint::profit)
@@ -92,5 +93,10 @@ public class ChartService {
                 .orElseThrow(RuntimeException::new);
 
         sendChart(chatId, getChart(), "Profit:" + profit + "%, z:" + zChanges + "%", true);
+    }
+
+    public void sendThreeCombinedCharts(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
+        ComboThreeCharts.create(candlesMap, bestPair, entryData);
+        sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
     }
 }

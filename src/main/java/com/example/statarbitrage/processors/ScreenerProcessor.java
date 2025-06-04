@@ -77,6 +77,7 @@ public class ScreenerProcessor {
             clearChartsDirectory();
             addToHistory(entryData);
             chartService.sendCombinedChartProfitVsZ(chatId, history);
+            chartService.sendThreeCombinedCharts(chatId, candlesMap, firstPair, entryData);
         } finally {
             runningTrades.remove(chatId);
         }

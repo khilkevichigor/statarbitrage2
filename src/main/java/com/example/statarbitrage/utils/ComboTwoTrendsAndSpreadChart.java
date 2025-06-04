@@ -26,8 +26,8 @@ public final class ComboTwoTrendsAndSpreadChart {
     private ComboTwoTrendsAndSpreadChart() {
     }
 
-    public static void generateCombinedChartOls(ConcurrentHashMap<String, List<Candle>> candlesMap,
-                                                ZScoreEntry bestPair, EntryData entryData) {
+    public static void create(ConcurrentHashMap<String, List<Candle>> candlesMap,
+                              ZScoreEntry bestPair, EntryData entryData) {
         String longTicker = bestPair.getLongticker();
         String shortTicker = bestPair.getShortticker();
 
@@ -52,8 +52,8 @@ public final class ComboTwoTrendsAndSpreadChart {
         List<Double> shortPrices = shortCandles.stream().map(Candle::getClose).collect(Collectors.toList());
 
         // Нормализуем цены
-        List<Double> normLong = normalizeZScore(longPrices);
-        List<Double> normShort = normalizeZScore(shortPrices);
+        List<Double> normLong = ChartUtil.normalize(longPrices);
+        List<Double> normShort = ChartUtil.normalize(shortPrices);
 
         // Расчёт спреда
         // OLS-регрессия: long = β * short + ε
@@ -73,7 +73,7 @@ public final class ComboTwoTrendsAndSpreadChart {
         // Создаём верхний график — нормализованные цены
         XYChart topChart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title(getTitle(entryData))
+                .title(ChartUtil.getTitle(entryData))
                 .xAxisTitle("")  // убираем подпись "Time"
                 .yAxisTitle("Normalized Price")
                 .build();
@@ -269,7 +269,7 @@ public final class ComboTwoTrendsAndSpreadChart {
         BufferedImage bottomImg = BitmapEncoder.getBufferedImage(bottomChart);
 
         // Объединяем в один график с подписью
-        BufferedImage combined = combineChartsWithoutGap(topImg, bottomImg, caption);
+        BufferedImage combined = ChartUtil.combineChartsWithoutGap(topImg, bottomImg, caption);
 
         // Сохраняем итоговый файл
         File dir = new File(CHARTS_DIR);
@@ -282,48 +282,5 @@ public final class ComboTwoTrendsAndSpreadChart {
             throw new RuntimeException(e);
         }
         log.info("Combined chart saved to {}", filename);
-    }
-
-    private static List<Double> normalizeZScore(List<Double> series) {
-        double mean = series.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        double std = Math.sqrt(series.stream()
-                .mapToDouble(v -> Math.pow(v - mean, 2))
-                .average().orElse(0.0));
-
-        if (std == 0) {
-            return series.stream().map(v -> v - mean).collect(Collectors.toList());
-        }
-
-        return series.stream().map(v -> (v - mean) / std).collect(Collectors.toList());
-    }
-
-    private static BufferedImage combineChartsWithoutGap(BufferedImage topImg, BufferedImage bottomImg, String caption) {
-        int width = Math.max(topImg.getWidth(), bottomImg.getWidth());
-        int gap = 2;  // минимальный отступ между графиками
-        int captionHeight = 30;
-
-        int height = topImg.getHeight() + gap + bottomImg.getHeight() + captionHeight;
-
-        BufferedImage combined = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = combined.createGraphics();
-
-        g.drawImage(topImg, 0, 0, null);
-        g.drawImage(bottomImg, 0, topImg.getHeight() + gap, null);
-
-        g.setColor(Color.BLACK);
-        g.setFont(new Font("Arial", Font.PLAIN, 14));
-        g.drawString(caption, 5, topImg.getHeight() + gap + bottomImg.getHeight() + 20);
-
-        g.dispose();
-        return combined;
-    }
-
-    private static String getTitle(EntryData entryData) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Cointegration: LONG ").append(entryData.getLongticker()).append(" - SHORT ").append(entryData.getShortticker());
-        if (entryData.getProfitStr() != null && !entryData.getProfitStr().isEmpty()) {
-            sb.append(" Profit: ").append(entryData.getProfitStr());
-        }
-        return sb.toString();
     }
 }
