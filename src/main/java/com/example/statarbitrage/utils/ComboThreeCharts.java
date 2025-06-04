@@ -147,4 +147,74 @@ public final class ComboThreeCharts {
 
     }
 
+    public static void createV2(ConcurrentHashMap<String, List<Candle>> candlesMap,
+                                ZScoreEntry bestPair, EntryData entryData) {
+
+        String longTicker = bestPair.getLongticker();
+        String shortTicker = bestPair.getShortticker();
+
+        List<Candle> longCandles = candlesMap.get(longTicker);
+        List<Candle> shortCandles = candlesMap.get(shortTicker);
+
+        if (longCandles == null || shortCandles == null) {
+            log.warn("Не найдены свечи для тикеров {} или {}", longTicker, shortTicker);
+            return;
+        }
+
+        // Сортировка по времени
+        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        // Дата и цены
+        List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
+
+        List<Date> timeShort = shortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = shortCandles.stream().map(Candle::getClose).toList();
+
+        // График 1: первая монета (long)
+        XYChart topChart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Price Chart: " + longTicker)
+                .xAxisTitle("Time").yAxisTitle("Price")
+                .build();
+        topChart.getStyler().setLegendVisible(false);
+
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + entryData.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
+        longSeries.setLineColor(java.awt.Color.GREEN);
+        longSeries.setMarker(new None());
+
+
+        // График 2: вторая монета (short)
+        XYChart bottomChart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Price Chart: " + shortTicker)
+                .xAxisTitle("Time").yAxisTitle("Price")
+                .build();
+        bottomChart.getStyler().setLegendVisible(false);
+
+        XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + entryData.getShortTickerCurrentPrice() + ")", timeLong, shortPrices);
+        longSeries.setLineColor(Color.RED);
+        shortSeries.setMarker(new None());
+
+        // Объединение 2 графиков
+        BufferedImage topImage = BitmapEncoder.getBufferedImage(topChart);
+        BufferedImage bottomImage = BitmapEncoder.getBufferedImage(bottomChart);
+
+        BufferedImage combinedImage = new BufferedImage(1920, 1440, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = combinedImage.createGraphics();
+        g2.drawImage(topImage, 0, 0, null);
+        g2.drawImage(bottomImage, 0, 720, null);
+        g2.dispose();
+
+        try {
+            String fileName = CHARTS_DIR + "/" + System.currentTimeMillis() + "_" + longTicker + "_" + shortTicker + ".png";
+            File outputFile = new File(fileName);
+            ImageIO.write(combinedImage, "png", outputFile);
+            log.info("Сохранён график: {}", outputFile.getAbsolutePath());
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении графика", e);
+        }
+    }
+
 }

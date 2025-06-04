@@ -96,7 +96,7 @@ public class ChartService {
     }
 
     public void sendThreeCombinedCharts(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
-        ComboThreeCharts.create(candlesMap, bestPair, entryData);
+        ComboThreeCharts.createV2(candlesMap, bestPair, entryData);
         sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
     }
 }
