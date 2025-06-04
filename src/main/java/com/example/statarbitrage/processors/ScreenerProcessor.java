@@ -75,10 +75,11 @@ public class ScreenerProcessor {
             chartService.clearChartDir();
 
             history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreCurrent(), entryData.getProfit()));
-            chartService.generateProfitVsZChart(chatId, history);
-            chartService.generateSimpleProfitVsZChart(chatId, history);
-            chartService.sendProfitChart(chatId, history);
-            chartService.sendZScoreChart(chatId, history);
+//            chartService.generateProfitVsZChart(chatId, history);
+//            chartService.generateSimpleProfitVsZChart(chatId, history);
+//            chartService.sendProfitChart(chatId, history);
+//            chartService.sendZScoreChart(chatId, history);
+            chartService.sendCombinedChart(chatId, history);
         } finally {
             runningTrades.remove(chatId);
         }
