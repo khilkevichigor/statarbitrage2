@@ -72,18 +72,22 @@ public class ScreenerProcessor {
                 throw new IllegalArgumentException("Size more then 1");
             }
             ZScoreEntry firstPair = zScoreEntries.get(0);
-            entryDataService.updateData(entryData, firstPair, candlesMap);
-            chartService.clearChartDir();
-
-            history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreChanges(), entryData.getProfit()));
-//            chartService.generateProfitVsZChart(chatId, history);
-//            chartService.generateSimpleProfitVsZChart(chatId, history);
-//            chartService.sendProfitChart(chatId, history);
-//            chartService.sendZScoreChart(chatId, history);
+            validateCurrentPricesBeforeAndAfterScriptAndThrow(firstPair, candlesMap);
+            entryDataService.updateEntryDataAndSave(entryData, firstPair, candlesMap);
+            clearChartsDirectory();
+            addToHistory(entryData);
             chartService.sendCombinedChartProfitVsZ(chatId, history);
         } finally {
             runningTrades.remove(chatId);
         }
+    }
+
+    private void clearChartsDirectory() {
+        chartService.clearChartDir();
+    }
+
+    private void addToHistory(EntryData entryData) {
+        history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreChanges(), entryData.getProfit()));
     }
 
     private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candlesMap) {

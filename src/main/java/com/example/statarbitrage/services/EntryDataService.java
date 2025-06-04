@@ -87,7 +87,7 @@ public class EntryDataService {
         }
     }
 
-    public void updateData(EntryData entryData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles) {
+    public void updateEntryDataAndSave(EntryData entryData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles) {
         updateCurrentPrices(entryData, candles);
         updateCurrentCointParams(entryData, firstPair);
         setupEntryPointsIfNeeded(entryData, candles);
