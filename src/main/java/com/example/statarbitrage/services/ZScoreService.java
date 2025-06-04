@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -18,36 +17,18 @@ public class ZScoreService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
 
-    public ZScoreEntry obtainBestPair() {
-        int maxAttempts = 5;
-        int waitMillis = 300;
-
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            List<ZScoreEntry> zScores = loadZscore();
-            if (zScores != null && !zScores.isEmpty()) {
-                if (zScores.size() == 1) { //уже 1 лучшая пара
-                    return zScores.get(0);
-                }
-                ZScoreEntry bestPair = getBestPairByCriteria(zScores);
-                log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f\n",
-                        bestPair.getLongticker(), bestPair.getShortticker(),
-                        bestPair.getPvalue(), bestPair.getAdfpvalue(), bestPair.getZscore(), bestPair.getCorrelation()
-                ));
-                save(Collections.singletonList(bestPair));
-                return bestPair;
-            }
-
-            log.warn("Попытка {}: z_score.json пустой или не найден", attempt);
-            try {
-                Thread.sleep(waitMillis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Ожидание чтения z_score.json прервано", e);
-            }
+    public ZScoreEntry obtainBestPair(List<ZScoreEntry> zScoreEntries) {
+        if (zScoreEntries != null && !zScoreEntries.isEmpty()) {
+            log.info("Отобрано {} пар", zScoreEntries.size());
+            ZScoreEntry bestPair = getBestPairByCriteria(zScoreEntries);
+            log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f\n",
+                    bestPair.getLongticker(), bestPair.getShortticker(),
+                    bestPair.getPvalue(), bestPair.getAdfpvalue(), bestPair.getZscore(), bestPair.getCorrelation()
+            ));
+            return bestPair;
+        } else {
+            throw new IllegalArgumentException("Отобрано 0 пар");
         }
-
-        log.error("❌ Не удалось прочитать z_score.json после {} попыток", maxAttempts);
-        throw new RuntimeException("⚠️ z_score.json пустой или не найден после попыток");
     }
 
     public ZScoreEntry getFirstPair() {

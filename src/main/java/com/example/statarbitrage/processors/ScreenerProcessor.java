@@ -36,14 +36,15 @@ public class ScreenerProcessor {
         removePreviousFiles();
         Settings settings = settingsService.getSettings();
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles();
-        List<ZScoreEntry> zScoreEntry = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
+        List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
                         "settings", settings,
                         "candlesMap", candlesMap
                 ),
                 new TypeReference<>() {
                 });
-//        EntryData entryData = entryDataService.createEntryData(zScoreEntry, candlesMap);
-//        chartService.generateCombinedChartOls(chatId, candlesMap, zScoreEntry, entryData);
+        ZScoreEntry bestPair = zScoreService.obtainBestPair(zScoreEntries);
+        EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
+        chartService.generateCombinedChartOls(chatId, candlesMap, bestPair, entryData);
         logDuration(startTime);
     }
 
@@ -56,18 +57,22 @@ public class ScreenerProcessor {
         }
         try {
             Settings settings = settingsService.getSettings();
-            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.updateCandlesJsonForBestAndGet(zScoreService.obtainBestPair());
-
-            List<ZScoreEntry> zScoreEntry = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
+            EntryData entryData = entryDataService.getEntryData();
+            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(entryData, settings);
+            List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
                             "settings", settings,
                             "candlesMap", candlesMap
                     ),
                     new TypeReference<>() {
                     });
-            EntryData entryData = entryDataService.getEntryData();
-//            entryDataService.updateData(entryData, zScoreEntry, candlesMap);
-//            chartService.clearChartDir();
-//            chartService.generateCombinedChartOls(chatId, candlesMap, zScoreEntry, entryData);
+
+            if (zScoreEntries.size() > 1) {
+                throw new IllegalArgumentException("Size more then 1");
+            }
+            ZScoreEntry firstPair = zScoreEntries.get(0);
+            entryDataService.updateData(entryData, firstPair, candlesMap);
+            chartService.clearChartDir();
+            chartService.generateCombinedChartOls(chatId, candlesMap, firstPair, entryData);
         } finally {
             runningTrades.remove(chatId);
         }

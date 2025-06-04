@@ -3,8 +3,8 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreEntry;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.RequiredArgsConstructor;
@@ -42,9 +42,9 @@ public class CandlesService {
         return candlesMap;
     }
 
-    public ConcurrentHashMap<String, List<Candle>> updateCandlesJsonForBestAndGet(ZScoreEntry bestPair) {
+    public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData) {
         Settings settings = settingsService.getSettings();
-        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(bestPair.getLongticker(), bestPair.getShortticker()), settings);
+        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
         save(candlesMap);
         return candlesMap;
     }
@@ -68,5 +68,9 @@ public class CandlesService {
         save(candlesMap);
         log.info("Удалили цены тикеров из черного списка");
         return candlesMap;
+    }
+
+    public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData, Settings settings) {
+        return okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
     }
 }
