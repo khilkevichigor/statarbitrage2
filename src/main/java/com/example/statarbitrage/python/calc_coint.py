@@ -107,7 +107,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
         return None
 
 
-def analyze_pair_ols(a, b, candles_dict, chat_config):
+def analyze_pair_ols(a, b, candles_dict, chat_config, entryData=None):
     try:
         window = chat_config["windowSize"]
         significance = chat_config["significanceLevel"]
@@ -139,8 +139,14 @@ def analyze_pair_ols(a, b, candles_dict, chat_config):
         std = np.std(spread_series)
         z = (spread_value - mean) / std if std > 0 else 0
 
-        longticker = b if z > 0 else a
-        shortticker = a if z > 0 else b
+        # ✅ Проверка entryData
+        data = entryData.get(f"{a}-{b}", {}) if entryData else {}
+        if "longticker" in data and "shortticker" in data:
+            longticker = data["longticker"]
+            shortticker = data["shortticker"]
+        else:
+            longticker = b if z > 0 else a
+            shortticker = a if z > 0 else b
 
         long_price = candles_dict[longticker][-1]["close"]
         short_price = candles_dict[shortticker][-1]["close"]
@@ -181,10 +187,11 @@ def process_chunk(input_path, output_path):
     candles = data["candles"]
     config = data["config"]
     pairs = data["pairs"]
+    entryData = data.get("entryData")
 
     results = []
     for a, b in pairs:
-        result = analyze_pair_ols(a, b, candles, config)
+        result = analyze_pair_ols(a, b, candles, config, entryData)
         if result:
             results.append(result)
 
@@ -200,14 +207,15 @@ def main():
         print(f"❌ Ошибка чтения JSON: {e}", file=sys.stderr)
         sys.exit(1)
 
-    candles_dict = input_data.get("candlesMap")
-    settings_dict = input_data.get("settings")
+    settings = input_data.get("settings")
+    candles = input_data.get("candlesMap")
+    entryData = input_data.get("entryData")  # это
 
-    if not candles_dict or not settings_dict:
+    if not candles or not settings:
         print("❌ Не хватает данных: 'candles' или 'settings'", file=sys.stderr)
         sys.exit(1)
 
-    pairs = list(itertools.combinations(candles_dict.keys(), 2))
+    pairs = list(itertools.combinations(candles.keys(), 2))
     print(f"🔍 Всего пар для анализа: {len(pairs)}", file=sys.stderr)
 
     num_workers = min(cpu_count(), 8)
@@ -223,8 +231,8 @@ def main():
 
         with open(input_file, "w") as f:
             json.dump({
-                "candles": candles_dict,
-                "config": settings_dict,
+                "candles": candles,
+                "config": settings,
                 "pairs": chunk
             }, f)
 

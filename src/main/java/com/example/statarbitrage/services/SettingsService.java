@@ -47,7 +47,7 @@ public class SettingsService {
                 .leverage(10.0)
                 .feePctPerTrade(0.05)
                 .minCorrelation(0.8)
-                .minVolume(50_000_000.0)
+                .minVolume(10_000_000.0)
                 .build();
     }
 
