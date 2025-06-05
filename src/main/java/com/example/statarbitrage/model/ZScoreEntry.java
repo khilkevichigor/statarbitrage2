@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ZScoreEntry {
-    private String pair;
     private double zscore;
     private double pvalue;
     private double adfpvalue;

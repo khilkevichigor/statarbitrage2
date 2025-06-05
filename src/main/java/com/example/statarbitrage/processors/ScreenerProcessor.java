@@ -67,8 +67,7 @@ public class ScreenerProcessor {
                     PythonScripts.CALC_COINT.getName(),
                     Map.of(
                             "settings", settings,
-                            "candlesMap", candlesMap,
-                            "entryData", entryData
+                            "candlesMap", candlesMap
                     ),
                     new TypeReference<>() {
                     });

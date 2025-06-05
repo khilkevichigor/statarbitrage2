@@ -60,7 +60,7 @@ public class ChartService {
 
     public void sendChart(String chatId, File chartFile, String caption, boolean withLogging) {
         try {
-            eventSendService.sendAsPhoto(SendAsPhotoEvent.builder()
+            eventSendService.sendTelegramMessageAsPhotoEvent(SendAsPhotoEvent.builder()
                     .chatId(chatId)
                     .photo(chartFile)
                     .caption(caption)

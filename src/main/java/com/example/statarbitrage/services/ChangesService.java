@@ -1,11 +1,13 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.events.ResetProfitEvent;
 import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.utils.EntryDataUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,6 +24,16 @@ public class ChangesService {
     private long entryTime = -1;
     private long maxProfitTime = -1;
     private long minProfitTime = -1;
+
+    //todo получать эвент из TelegramBot на FIND что бы сбросить параметры профита
+    @EventListener
+    public void onResetProfitEvent(ResetProfitEvent event) {
+        maxProfit = null;
+        minProfit = null;
+        entryTime = -1;
+        maxProfitTime = -1;
+        minProfitTime = -1;
+    }
 
     public ChangesData calculateChanges(EntryData entryData, boolean isLasb) {
         Settings settings = settingsService.getSettings();

@@ -1,9 +1,11 @@
 package com.example.statarbitrage.bot;
 
+import com.example.statarbitrage.events.ResetProfitEvent;
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.processors.ScreenerProcessor;
+import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.SettingsService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,6 +42,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private SettingsService settingsService;
     @Autowired
     private FileService fileService;
+    @Autowired
+    private EventSendService eventSendService;
     private final BotConfig botConfig;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -164,7 +168,20 @@ public class TelegramBot extends TelegramLongPollingBot {
             testTradeTask.cancel(true);
         }
 
+        //todo слать эвент что бы сбросить параметры профита в ChangesService
+        resetProfit(true);
         sendMessage(chatId, "✅ Тест-трейд остановлен");
+    }
+
+    public void resetProfit(boolean withLogging) {
+        try {
+            eventSendService.sendResetProfitEvent(ResetProfitEvent.builder().build());
+            if (withLogging) {
+                log.info("Сбросили профит");
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при сбросе профита: {}", e.getMessage(), e);
+        }
     }
 
     @EventListener

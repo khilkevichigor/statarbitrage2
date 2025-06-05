@@ -1,5 +1,6 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.events.ResetProfitEvent;
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -13,11 +14,15 @@ public class EventSendService {
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
-    public void sendAsText(SendAsTextEvent event) {
+    public void sendTelegramMessageAsTextEvent(SendAsTextEvent event) {
         applicationEventPublisher.publishEvent(event);
     }
 
-    public void sendAsPhoto(SendAsPhotoEvent event) {
+    public void sendTelegramMessageAsPhotoEvent(SendAsPhotoEvent event) {
+        applicationEventPublisher.publishEvent(event);
+    }
+
+    public void sendResetProfitEvent(ResetProfitEvent event) {
         applicationEventPublisher.publishEvent(event);
     }
 }
