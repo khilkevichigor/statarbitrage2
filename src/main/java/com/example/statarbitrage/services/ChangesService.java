@@ -38,13 +38,28 @@ public class ChangesService {
         BigDecimal zScoreEntry = BigDecimal.valueOf(entryData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(entryData.getZScoreCurrent());
 
-        BigDecimal aReturnPct = aCurrent.subtract(aEntry)
-                .divide(aEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+        BigDecimal aReturnPct;
+        BigDecimal bReturnPct;
 
-        BigDecimal bReturnPct = bEntry.subtract(bCurrent)
-                .divide(bEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+        if (isLasb) {
+            // A - long, B - short
+            aReturnPct = aCurrent.subtract(aEntry)
+                    .divide(aEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            bReturnPct = bEntry.subtract(bCurrent) // шорт: считаем наоборот
+                    .divide(bEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+        } else {
+            // A - short, B - long
+            aReturnPct = aEntry.subtract(aCurrent) // шорт: считаем наоборот
+                    .divide(aEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            bReturnPct = bCurrent.subtract(bEntry)
+                    .divide(bEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+        }
 
         BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
         BigDecimal capitalShortBD = BigDecimal.valueOf(capitalShort);

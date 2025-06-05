@@ -97,6 +97,6 @@ public class ChartService {
 
     public void sendOneOnOneCharts(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
         OneOnOneCharts.create(candlesMap, bestPair, entryData);
-        sendChart(chatId, getChart(), "Profit " + entryData.getProfitStr(), true);
+        sendChart(chatId, getChart(), entryData.getProfitStr() != null ? "Profit " + entryData.getProfitStr() : "", true);
     }
 }
