@@ -28,8 +28,8 @@ public final class ComboTwoTrendsAndSpreadChart {
 
     public static void create(ConcurrentHashMap<String, List<Candle>> candlesMap,
                               ZScoreEntry bestPair, EntryData entryData) {
-        String longTicker = bestPair.getLongticker();
-        String shortTicker = bestPair.getShortticker();
+        String longTicker = bestPair.getA();
+        String shortTicker = bestPair.getB();
 
         List<Candle> longCandles = candlesMap.get(longTicker);
         List<Candle> shortCandles = candlesMap.get(shortTicker);
@@ -87,11 +87,11 @@ public final class ComboTwoTrendsAndSpreadChart {
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
 
-        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + entryData.getLongTickerCurrentPrice() + ")", timeAxis, normLong);
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + entryData.getATickerCurrentPrice() + ")", timeAxis, normLong);
         longSeries.setLineColor(java.awt.Color.GREEN);
         longSeries.setMarker(new None());
 
-        XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker + " (current " + entryData.getShortTickerCurrentPrice() + ")", timeAxis, normShort);
+        XYSeries shortSeries = topChart.addSeries("SHORT: " + shortTicker + " (current " + entryData.getBTickerCurrentPrice() + ")", timeAxis, normShort);
         shortSeries.setLineColor(java.awt.Color.RED);
         shortSeries.setMarker(new None());
 
@@ -125,14 +125,14 @@ public final class ComboTwoTrendsAndSpreadChart {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точки на график
-            XYSeries longEntryPoint = topChart.addSeries("Long Entry (" + entryData.getLongTickerEntryPrice() + ")", Collections.singletonList(entryDate),
+            XYSeries longEntryPoint = topChart.addSeries("Long Entry (" + entryData.getATickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(normLong.get(index)));
             longEntryPoint.setMarkerColor(Color.GREEN.darker());
             longEntryPoint.setLineColor(Color.GREEN.darker());
             longEntryPoint.setMarker(SeriesMarkers.CIRCLE);
             longEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
 
-            XYSeries shortEntryPoint = topChart.addSeries("Short Entry (" + entryData.getShortTickerEntryPrice() + ")", Collections.singletonList(entryDate),
+            XYSeries shortEntryPoint = topChart.addSeries("Short Entry (" + entryData.getBTickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(normShort.get(index)));
             shortEntryPoint.setMarkerColor(Color.RED.darker());
             shortEntryPoint.setLineColor(Color.RED.darker());

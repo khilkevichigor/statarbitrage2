@@ -8,6 +8,7 @@ import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYChartBuilder;
 import org.knowm.xchart.XYSeries;
+import org.knowm.xchart.style.Styler;
 import org.knowm.xchart.style.markers.None;
 import org.knowm.xchart.style.markers.SeriesMarkers;
 
@@ -30,44 +31,45 @@ public final class OneOnOneCharts {
     public static void create(ConcurrentHashMap<String, List<Candle>> candlesMap,
                               ZScoreEntry bestPair, EntryData entryData) {
 
-        String longTicker = bestPair.getLongticker();
-        String shortTicker = bestPair.getShortticker();
+        String aTicker = bestPair.getA();
+        String bTicker = bestPair.getB();
 
-        List<Candle> longCandles = candlesMap.get(longTicker);
-        List<Candle> shortCandles = candlesMap.get(shortTicker);
+        List<Candle> aCandles = candlesMap.get(aTicker);
+        List<Candle> bCandles = candlesMap.get(bTicker);
 
-        if (longCandles == null || shortCandles == null) {
-            log.warn("Не найдены свечи для тикеров {} или {}", longTicker, shortTicker);
+        if (aCandles == null || bCandles == null) {
+            log.warn("Не найдены свечи для тикеров {} или {}", aTicker, bTicker);
             return;
         }
 
         // Сортировка по времени
-        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
-        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        aCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        bCandles.sort(Comparator.comparing(Candle::getTimestamp));
 
         // Получение времени и цен
-        List<Date> timeAxis = longCandles.stream()
+        List<Date> timeAxis = aCandles.stream()
                 .map(c -> new Date(c.getTimestamp()))
                 .toList();
 
         // Дата и цены
-        List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
+        List<Date> timeA = aCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> aPrices = aCandles.stream().map(Candle::getClose).toList();
 
-        List<Date> timeShort = shortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> shortPrices = shortCandles.stream().map(Candle::getClose).toList();
+        List<Date> timeB = bCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> bPrices = bCandles.stream().map(Candle::getClose).toList();
 
         // График 1: первая монета (long)
         XYChart topChart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title("Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
+                .title("Price Chart: " + aTicker + " - " + bTicker)
                 .xAxisTitle("Time").yAxisTitle("Price")
                 .build();
-        topChart.getStyler().setLegendVisible(false);
+        topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда слева сверху
+        topChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
 
-        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + entryData.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
-        longSeries.setLineColor(Color.GREEN);
-        longSeries.setMarker(new None());
+        XYSeries aSeries = topChart.addSeries("A " + aTicker + " (current " + entryData.getATickerCurrentPrice() + ")", timeA, aPrices);
+        aSeries.setLineColor(Color.MAGENTA);
+        aSeries.setMarker(new None());
 
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
@@ -77,13 +79,15 @@ public final class OneOnOneCharts {
         // График 2: вторая монета (short)
         XYChart bottomChart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title("Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
+                .title("Price Chart: " + aTicker + " - " + bTicker)
                 .xAxisTitle("Time").yAxisTitle("Price")
                 .build();
-        bottomChart.getStyler().setLegendVisible(false);
 
-        XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + entryData.getShortTickerCurrentPrice() + ")", timeShort, shortPrices);
-        shortSeries.setLineColor(Color.RED);
+        bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);  // легенда слева сверху
+        bottomChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
+
+        XYSeries shortSeries = bottomChart.addSeries("B " + bTicker + " (current " + entryData.getBTickerCurrentPrice() + ")", timeB, bPrices);
+        shortSeries.setLineColor(Color.BLUE);
         shortSeries.setMarker(new None());
 
         bottomChart.getStyler().setYAxisTicksVisible(false);
@@ -96,16 +100,16 @@ public final class OneOnOneCharts {
             Date entryDate = new Date(entryData.getEntryTime());
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
 
-            double yMinTop = Collections.min(longPrices);
-            double yMaxTop = Collections.max(longPrices);
+            double yMinTop = Collections.min(aPrices);
+            double yMaxTop = Collections.max(aPrices);
             List<Double> lineYTop = Arrays.asList(yMinTop, yMaxTop);
             XYSeries entryLineTop = topChart.addSeries("Entry Point", lineX, lineYTop);
-            entryLineTop.setLineColor(java.awt.Color.BLUE);
+            entryLineTop.setLineColor(java.awt.Color.MAGENTA);
             entryLineTop.setMarker(new None());
             entryLineTop.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{4f, 4f}, 0));
 
-            double yMinBottom = Collections.min(shortPrices);
-            double yMaxBottom = Collections.max(shortPrices);
+            double yMinBottom = Collections.min(bPrices);
+            double yMaxBottom = Collections.max(bPrices);
             List<Double> lineYBottom = Arrays.asList(yMinBottom, yMaxBottom);
             XYSeries entryLineBottom = bottomChart.addSeries("Entry Point", lineX, lineYBottom);
             entryLineBottom.setLineColor(java.awt.Color.BLUE);
@@ -129,19 +133,19 @@ public final class OneOnOneCharts {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точки на график
-            XYSeries longEntryPoint = topChart.addSeries("Long Entry (" + entryData.getLongTickerEntryPrice() + ")", Collections.singletonList(entryDate),
-                    Collections.singletonList(longPrices.get(index)));
-            longEntryPoint.setMarkerColor(Color.GREEN.darker());
-            longEntryPoint.setLineColor(Color.GREEN.darker());
-            longEntryPoint.setMarker(SeriesMarkers.CIRCLE);
-            longEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
+            XYSeries aEntryPoint = topChart.addSeries("Entry (" + entryData.getATickerEntryPrice() + ")", Collections.singletonList(entryDate),
+                    Collections.singletonList(aPrices.get(index)));
+            aEntryPoint.setMarkerColor(Color.MAGENTA.darker());
+            aEntryPoint.setLineColor(Color.MAGENTA.darker());
+            aEntryPoint.setMarker(SeriesMarkers.CIRCLE);
+            aEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
 
-            XYSeries shortEntryPoint = bottomChart.addSeries("Short Entry (" + entryData.getShortTickerEntryPrice() + ")", Collections.singletonList(entryDate),
-                    Collections.singletonList(shortPrices.get(index)));
-            shortEntryPoint.setMarkerColor(Color.RED.darker());
-            shortEntryPoint.setLineColor(Color.RED.darker());
-            shortEntryPoint.setMarker(SeriesMarkers.CIRCLE);
-            shortEntryPoint.setLineStyle(new BasicStroke(0f));
+            XYSeries bEntryPoint = bottomChart.addSeries("Entry (" + entryData.getBTickerEntryPrice() + ")", Collections.singletonList(entryDate),
+                    Collections.singletonList(bPrices.get(index)));
+            bEntryPoint.setMarkerColor(Color.BLUE.darker());
+            bEntryPoint.setLineColor(Color.BLUE.darker());
+            bEntryPoint.setMarker(SeriesMarkers.CIRCLE);
+            bEntryPoint.setLineStyle(new BasicStroke(0f));
         }
 
         // Объединение 2 графиков
@@ -161,7 +165,7 @@ public final class OneOnOneCharts {
         g2.dispose();
 
         try {
-            String fileName = CHARTS_DIR + "/" + System.currentTimeMillis() + "_" + longTicker + "_" + shortTicker + ".png";
+            String fileName = CHARTS_DIR + "/" + System.currentTimeMillis() + "_" + aTicker + "_" + bTicker + ".png";
             File outputFile = new File(fileName);
             ImageIO.write(combinedImage, "png", outputFile);
             log.info("Сохранён график: {}", outputFile.getAbsolutePath());

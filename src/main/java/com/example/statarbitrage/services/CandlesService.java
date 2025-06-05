@@ -56,7 +56,7 @@ public class CandlesService {
 
     public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData) {
         Settings settings = settingsService.getSettings();
-        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
+        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(entryData.getA(), entryData.getB()), settings);
         save(candlesMap);
         return candlesMap;
     }
@@ -89,6 +89,6 @@ public class CandlesService {
     }
 
     public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData, Settings settings) {
-        return okxClient.getCandlesMap(Set.of(entryData.getLongticker(), entryData.getShortticker()), settings);
+        return okxClient.getCandlesMap(Set.of(entryData.getA(), entryData.getB()), settings);
     }
 }

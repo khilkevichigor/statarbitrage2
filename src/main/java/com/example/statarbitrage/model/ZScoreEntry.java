@@ -20,9 +20,9 @@ public class ZScoreEntry {
     private double spread;
     private double mean;
     private double std;
-    private String longticker;
-    private String shortticker;
-    private double longtickercurrentprice;
-    private double shorttickercurrentprice;
+    private String a;
+    private String b;
+    private double atickercurrentprice;
+    private double btickercurrentprice;
     private long timestamp;
 }

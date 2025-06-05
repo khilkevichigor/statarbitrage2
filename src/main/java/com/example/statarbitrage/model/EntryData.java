@@ -12,14 +12,14 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EntryData {
-    private String longticker;
-    private String shortticker;
+    private String a;
+    private String b;
 
-    private double longTickerEntryPrice;
-    private double longTickerCurrentPrice;
+    private double aTickerEntryPrice;
+    private double aTickerCurrentPrice;
 
-    private double shortTickerEntryPrice;
-    private double shortTickerCurrentPrice;
+    private double bTickerEntryPrice;
+    private double bTickerCurrentPrice;
 
     private double meanEntry;
     private double meanCurrent;

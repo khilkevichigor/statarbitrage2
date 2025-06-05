@@ -50,7 +50,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
-        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
+//        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
+        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE_L_A_S_B.getName(), "Старт тест-трейд long a, short b"));
+        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE_L_B_S_A.getName(), "Старт тест-трейд long b, short a"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
@@ -112,9 +114,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                 log.info("-> RESET_SETTINGS");
                 settingsService.resetSettings(chatId);
                 sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
-            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE.getName())) {
-                log.info("-> START_TEST_TRADE");
-                startTestTrade(chatIdStr);
+            }
+//            else if (Objects.equals(text, BotMenu.START_TEST_TRADE.getName())) {
+//                log.info("-> START_TEST_TRADE");
+//                startTestTrade(chatIdStr);
+//            }
+            else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_A_S_B.getName())) {
+                log.info("-> START_TEST_TRADE_L_A_S_B");
+                startTestTrade(chatIdStr, true);
+            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_B_S_A.getName())) {
+                log.info("-> START_TEST_TRADE_L_B_S_A");
+                startTestTrade(chatIdStr, false);
             } else if (Objects.equals(text, BotMenu.STOP_TEST_TRADE.getName())) {
                 log.info("-> STOP_TEST_TRADE");
                 stopTestTrade(chatIdStr);
@@ -125,7 +135,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void startTestTrade(String chatId) {
+    private void startTestTrade(String chatId, boolean isLasb) {
         if (isStartTestTradeRunning.get()) {
             sendMessage(chatId, "⏳ Тест-трейд уже запущен");
             return;
@@ -136,7 +146,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         testTradeTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                screenerProcessor.testTrade(chatId);
+                screenerProcessor.testTrade(chatId, isLasb);
             } catch (Exception e) {
                 log.error("Ошибка в testTrade()", e);
             }

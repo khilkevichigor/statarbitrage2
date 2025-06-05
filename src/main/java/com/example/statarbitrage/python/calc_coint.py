@@ -139,18 +139,18 @@ def analyze_pair_ols(a, b, candles_dict, chat_config, entryData=None):
         std = np.std(spread_series)
         z = (spread_value - mean) / std if std > 0 else 0
 
-        # ✅ Проверка entryData
-        data = entryData.get(f"{a}-{b}", {}) if entryData else {}
-        if "longticker" in data and "shortticker" in data:
-            longticker = data["longticker"]
-            shortticker = data["shortticker"]
-        else:
-            longticker = b if z > 0 else a
-            shortticker = a if z > 0 else b
+        # # ✅ Проверка entryData
+        # data = entryData.get(f"{a}-{b}", {}) if entryData else {}
+        # if "longticker" in data and "shortticker" in data:
+        #     longticker = data["longticker"]
+        #     shortticker = data["shortticker"]
+        # else:
+        #     longticker = b if z > 0 else a
+        #     shortticker = a if z > 0 else b
 
-        long_price = candles_dict[longticker][-1]["close"]
-        short_price = candles_dict[shortticker][-1]["close"]
-        timestamp_of_signal = candles_dict[longticker][-1]["timestamp"]
+        a_price = candles_dict[a][-1]["close"]
+        b_price = candles_dict[b][-1]["close"]
+        timestamp_of_signal = candles_dict[a][-1]["timestamp"]
 
         return {
             "pair": f"{a}-{b}",
@@ -163,10 +163,12 @@ def analyze_pair_ols(a, b, candles_dict, chat_config, entryData=None):
             "spread": spread_value,
             "mean": mean,
             "std": std,
-            "longticker": longticker,
-            "shortticker": shortticker,
-            "longtickercurrentprice": long_price,
-            "shorttickercurrentprice": short_price,
+            "a": a,
+            "b": b,
+            # "longticker": longticker,
+            # "shortticker": shortticker,
+            "atickercurrentprice": a_price,
+            "btickercurrentprice": b_price,
             "timestamp": timestamp_of_signal
         }
 

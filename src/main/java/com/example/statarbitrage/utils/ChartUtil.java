@@ -38,7 +38,7 @@ public final class ChartUtil {
 
     public static String getTitle(EntryData entryData) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Cointegration: LONG ").append(entryData.getLongticker()).append(" - SHORT ").append(entryData.getShortticker());
+        sb.append("Cointegration: LONG ").append(entryData.getA()).append(" - SHORT ").append(entryData.getB());
         if (entryData.getProfitStr() != null && !entryData.getProfitStr().isEmpty()) {
             sb.append(" Profit: ").append(entryData.getProfitStr());
         }

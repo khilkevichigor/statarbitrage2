@@ -22,7 +22,7 @@ public class ZScoreService {
             log.info("Отобрано {} пар", zScoreEntries.size());
             ZScoreEntry bestPair = getBestPairByCriteria(zScoreEntries);
             log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f\n",
-                    bestPair.getLongticker(), bestPair.getShortticker(),
+                    bestPair.getA(), bestPair.getB(),
                     bestPair.getPvalue(), bestPair.getAdfpvalue(), bestPair.getZscore(), bestPair.getCorrelation()
             ));
             return bestPair;

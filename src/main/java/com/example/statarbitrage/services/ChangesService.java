@@ -3,6 +3,7 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.utils.EntryDataUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ public class ChangesService {
     private long maxProfitTime = -1;
     private long minProfitTime = -1;
 
-    public ChangesData calculateChanges(EntryData entryData) {
+    public ChangesData calculateChanges(EntryData entryData, boolean isLasb) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
@@ -30,19 +31,19 @@ public class ChangesService {
         double leverage = settings.getLeverage();
         double feePctPerTrade = settings.getFeePctPerTrade();
 
-        BigDecimal longEntry = BigDecimal.valueOf(entryData.getLongTickerEntryPrice());
-        BigDecimal longCurrent = BigDecimal.valueOf(entryData.getLongTickerCurrentPrice());
-        BigDecimal shortEntry = BigDecimal.valueOf(entryData.getShortTickerEntryPrice());
-        BigDecimal shortCurrent = BigDecimal.valueOf(entryData.getShortTickerCurrentPrice());
+        BigDecimal aEntry = BigDecimal.valueOf(entryData.getATickerEntryPrice());
+        BigDecimal aCurrent = BigDecimal.valueOf(entryData.getATickerCurrentPrice());
+        BigDecimal bEntry = BigDecimal.valueOf(entryData.getBTickerEntryPrice());
+        BigDecimal bCurrent = BigDecimal.valueOf(entryData.getBTickerCurrentPrice());
         BigDecimal zScoreEntry = BigDecimal.valueOf(entryData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(entryData.getZScoreCurrent());
 
-        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-                .divide(longEntry, 10, RoundingMode.HALF_UP)
+        BigDecimal aReturnPct = aCurrent.subtract(aEntry)
+                .divide(aEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-                .divide(shortEntry, 10, RoundingMode.HALF_UP)
+        BigDecimal bReturnPct = bEntry.subtract(bCurrent)
+                .divide(bEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
         BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
@@ -54,10 +55,10 @@ public class ChangesService {
         BigDecimal effectiveLongCapital = capitalLongBD.multiply(leverageBD);
         BigDecimal effectiveShortCapital = capitalShortBD.multiply(leverageBD);
 
-        BigDecimal longPL = longReturnPct.multiply(effectiveLongCapital)
+        BigDecimal longPL = aReturnPct.multiply(effectiveLongCapital)
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
-        BigDecimal shortPL = shortReturnPct.multiply(effectiveShortCapital)
+        BigDecimal shortPL = bReturnPct.multiply(effectiveShortCapital)
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal totalPL = longPL.add(shortPL);
@@ -98,8 +99,8 @@ public class ChangesService {
         long timeSinceEntryToMax = (maxProfitTime - entryTime) / (1000 * 60); // в секундах
         long timeSinceEntryToMin = (minProfitTime - entryTime) / (1000 * 60);
 
-        BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal aReturnRounded = aReturnPct.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal bReturnRounded = bReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
         BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
@@ -107,19 +108,19 @@ public class ChangesService {
         StringBuilder sb = new StringBuilder();
         sb.append("Profit: ").append(profitStr).append("\n");
         sb.append("LONG ")
-                .append("(").append(entryData.getLongTickerEntryPrice()).append(")")
+                .append("(").append(EntryDataUtil.getLongTickerEntryPrice(entryData, isLasb)).append(")")
                 .append(" -> ")
-                .append(longReturnRounded)
+                .append(aReturnRounded)
                 .append("%")
                 .append(" -> ")
-                .append("(").append(entryData.getLongTickerCurrentPrice()).append(")")
+                .append("(").append(EntryDataUtil.getLongTickerCurrentPrice(entryData, isLasb)).append(")")
                 .append("\n");
         sb.append("SHORT ")
-                .append("(").append(entryData.getShortTickerEntryPrice()).append(")")
+                .append("(").append(EntryDataUtil.getShortTickerEntryPrice(entryData, isLasb)).append(")")
                 .append(" -> ")
-                .append(shortReturnRounded).append("%")
+                .append(bReturnRounded).append("%")
                 .append(" -> ")
-                .append("(").append(entryData.getShortTickerCurrentPrice()).append(")")
+                .append("(").append(EntryDataUtil.getShortTickerCurrentPrice(entryData, isLasb)).append(")")
                 .append("\n");
         sb.append("Z ")
                 .append("(").append(zScoreEntry).append(")")
@@ -130,11 +131,16 @@ public class ChangesService {
                 .append("\n");
 
         log.info("📊 LONG {{}}: Entry: {}, Current: {}, Changes: {}%",
-                entryData.getLongticker(), entryData.getLongTickerEntryPrice(), entryData.getLongTickerCurrentPrice(), longReturnRounded);
+                EntryDataUtil.getLongTicker(entryData, isLasb),
+                EntryDataUtil.getLongTickerEntryPrice(entryData, isLasb),
+                EntryDataUtil.getLongTickerCurrentPrice(entryData, isLasb),
+                EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded));
         log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Changes: {}%",
-                entryData.getShortticker(), entryData.getShortTickerEntryPrice(), entryData.getShortTickerCurrentPrice(), shortReturnRounded);
-        log.info("📊 Z : Entry: {}, Current: {}, Changes: {}%",
-                entryData.getZScoreEntry(), entryData.getZScoreCurrent(), zScoreRounded);
+                EntryDataUtil.getShortTicker(entryData, isLasb),
+                EntryDataUtil.getShortTickerEntryPrice(entryData, isLasb),
+                EntryDataUtil.getShortTickerCurrentPrice(entryData, isLasb),
+                EntryDataUtil.getShortReturnRounded(isLasb, aReturnRounded, bReturnRounded));
+        log.info("📊 Z : Entry: {}, Current: {}, Changes: {}%", entryData.getZScoreEntry(), entryData.getZScoreCurrent(), zScoreRounded);
 
         String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
         log.info(logMsg);
@@ -146,8 +152,8 @@ public class ChangesService {
         return ChangesData.builder()
                 .totalCapital(totalCapital)
 
-                .longReturnRounded(longReturnRounded)
-                .shortReturnRounded(shortReturnRounded)
+                .longReturnRounded(EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded))
+                .shortReturnRounded(EntryDataUtil.getShortReturnRounded(isLasb, aReturnRounded, bReturnRounded))
 
                 .profitRounded(profitRounded)
                 .profitStr(profitStr)

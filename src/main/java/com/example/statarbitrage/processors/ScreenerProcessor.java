@@ -53,7 +53,7 @@ public class ScreenerProcessor {
     }
 
     @Async
-    public void testTrade(String chatId) {
+    public void testTrade(String chatId, boolean isLasb) {
         AtomicBoolean isRunning = runningTrades.computeIfAbsent(chatId, k -> new AtomicBoolean(false));
         if (!isRunning.compareAndSet(false, true)) {
             log.warn("testTrade уже выполняется для chatId = {}", chatId);
@@ -78,7 +78,7 @@ public class ScreenerProcessor {
             }
             ZScoreEntry firstPair = zScoreEntries.get(0);
             validateCurrentPricesBeforeAndAfterScriptAndThrow(firstPair, candlesMap);
-            entryDataService.updateEntryDataAndSave(entryData, firstPair, candlesMap);
+            entryDataService.updateEntryDataAndSave(entryData, firstPair, candlesMap, isLasb);
             clearChartsDirectory();
             addToHistory(entryData);
             chartService.sendOneOnOneCharts(chatId, candlesMap, firstPair, entryData);
@@ -96,9 +96,9 @@ public class ScreenerProcessor {
     }
 
     private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candlesMap) {
-        List<Candle> longTickerCandles = candlesMap.get(firstPair.getLongticker());
-        double before = longTickerCandles.get(longTickerCandles.size() - 1).getClose();
-        double after = firstPair.getLongtickercurrentprice();
+        List<Candle> aTickerCandles = candlesMap.get(firstPair.getA());
+        double before = aTickerCandles.get(aTickerCandles.size() - 1).getClose();
+        double after = firstPair.getAtickercurrentprice();
         if (after != before) {
             log.error("Wrong current prices before {} and after {} script", before, after);
             throw new IllegalArgumentException("Wrong current prices before and after script");
