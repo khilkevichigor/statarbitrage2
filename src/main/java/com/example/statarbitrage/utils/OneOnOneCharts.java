@@ -72,6 +72,8 @@ public final class OneOnOneCharts {
         topChart.getStyler().setYAxisTicksVisible(false);
         topChart.getStyler().setYAxisTitleVisible(false);
 
+        topChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
+
         // График 2: вторая монета (short)
         XYChart bottomChart = new XYChartBuilder()
                 .width(1920).height(720)
@@ -86,6 +88,8 @@ public final class OneOnOneCharts {
 
         bottomChart.getStyler().setYAxisTicksVisible(false);
         bottomChart.getStyler().setYAxisTitleVisible(false);
+
+        bottomChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
 
         // Вертикальная линия по entryTime, если есть
         if (entryData.getEntryTime() > 0) {
