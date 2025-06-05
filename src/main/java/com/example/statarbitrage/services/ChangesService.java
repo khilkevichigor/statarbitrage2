@@ -16,6 +16,12 @@ import java.math.RoundingMode;
 public class ChangesService {
     private final SettingsService settingsService;
 
+    private BigDecimal maxProfit = null;
+    private BigDecimal minProfit = null;
+    private long entryTime = -1;
+    private long maxProfitTime = -1;
+    private long minProfitTime = -1;
+
     public ChangesData calculateChanges(EntryData entryData) {
         Settings settings = settingsService.getSettings();
 
@@ -69,6 +75,29 @@ public class ChangesService {
                 .divide(totalCapital, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
+        // === 💾 Сохраняем entryTime при первом вызове
+        if (entryTime == -1) {
+            entryTime = System.currentTimeMillis();
+            maxProfit = profitPercentFromTotal;
+            minProfit = profitPercentFromTotal;
+            maxProfitTime = entryTime;
+            minProfitTime = entryTime;
+        }
+
+        // === 🔄 Обновляем максимум и минимум
+        if (profitPercentFromTotal.compareTo(maxProfit) > 0) {
+            maxProfit = profitPercentFromTotal;
+            maxProfitTime = System.currentTimeMillis();
+        }
+
+        if (profitPercentFromTotal.compareTo(minProfit) < 0) {
+            minProfit = profitPercentFromTotal;
+            minProfitTime = System.currentTimeMillis();
+        }
+
+        long timeSinceEntryToMax = (maxProfitTime - entryTime) / (1000 * 60); // в секундах
+        long timeSinceEntryToMin = (minProfitTime - entryTime) / (1000 * 60);
+
         BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
@@ -110,6 +139,9 @@ public class ChangesService {
         String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
         log.info(logMsg);
 
+        // 📝 Логируем максимум, минимум и время
+        log.info("📈 Максимальный профит: {}%, минимальный: {}%", maxProfit.setScale(2, RoundingMode.HALF_UP), minProfit.setScale(2, RoundingMode.HALF_UP));
+        log.info("⏱ Время до максимального профита: {} минут, до минимального: {} минут", timeSinceEntryToMax, timeSinceEntryToMin);
 
         return ChangesData.builder()
                 .totalCapital(totalCapital)
