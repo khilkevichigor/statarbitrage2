@@ -134,7 +134,7 @@ public class ChangesService {
                 EntryDataUtil.getLongTicker(entryData, isLasb),
                 EntryDataUtil.getLongTickerEntryPrice(entryData, isLasb),
                 EntryDataUtil.getLongTickerCurrentPrice(entryData, isLasb),
-                EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded));
+                EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded)); //todo 📊 LONG {CSPR-USDT-SWAP}: Entry: 0.011962, Current: 0.011942, Changes: 0.17% -> 0.17% без минуса!!!!
         log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Changes: {}%",
                 EntryDataUtil.getShortTicker(entryData, isLasb),
                 EntryDataUtil.getShortTickerEntryPrice(entryData, isLasb),
