@@ -110,10 +110,7 @@ def analyze_pair(a, b, candles_dict, chat_config):
 def analyze_pair_ols(a, b, candles_dict, chat_config):
     try:
         window = chat_config["windowSize"]
-        zscore_entry = chat_config["zscoreEntry"]
         significance = chat_config["significanceLevel"]
-        adf_significance = chat_config.get("adfSignificanceLevel")
-        min_corr = chat_config.get("minCorrelation")
 
         candles_a = np.array([c["close"] for c in candles_dict.get(a)])
         candles_b = np.array([c["close"] for c in candles_dict.get(b)])

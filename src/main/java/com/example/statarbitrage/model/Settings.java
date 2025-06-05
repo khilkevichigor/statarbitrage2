@@ -13,15 +13,13 @@ public class Settings {
     private String timeframe;
     private int candleLimit;
     private int windowSize;
-    private double zscoreEntry;
-    private double zscoreExit;
     private double significanceLevel;
     private double adfSignificanceLevel;
     private int checkInterval;
-
     private double capitalLong;
     private double capitalShort;
     private double leverage;
     private double feePctPerTrade;
     private double minCorrelation;
+    private double minVolume;
 }

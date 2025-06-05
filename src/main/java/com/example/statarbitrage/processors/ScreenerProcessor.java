@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,8 +36,11 @@ public class ScreenerProcessor {
         removePreviousFiles();
         history.clear();
         Settings settings = settingsService.getSettings();
-        ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles();
-        List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CREATE_Z_SCORE_FILE.getName(), Map.of(
+        Set<String> applicableTickers = candlesService.getApplicableTickers("1D", settings.getCandleLimit(), settings.getMinVolume());
+        log.info("Всего отобрано {} тикеров", applicableTickers.size());
+
+        ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers);
+        List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_COINT.getName(), Map.of(
                         "settings", settings,
                         "candlesMap", candlesMap
                 ),
@@ -60,7 +64,7 @@ public class ScreenerProcessor {
             EntryData entryData = entryDataService.getEntryData();
             ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(entryData, settings);
             List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(
-                    PythonScripts.CREATE_Z_SCORE_FILE.getName(),
+                    PythonScripts.CALC_COINT.getName(),
                     Map.of(
                             "settings", settings,
                             "candlesMap", candlesMap

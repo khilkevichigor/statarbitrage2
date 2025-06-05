@@ -36,19 +36,18 @@ public class SettingsService {
 
     private static Settings getDefaultSettings() {
         return Settings.builder()
-                .timeframe("15m")
+                .timeframe("1m")
                 .candleLimit(300)
-                .significanceLevel(0.05)
-                .adfSignificanceLevel(0.05)
-                .zscoreEntry(2.0)
-                .zscoreExit(0.5)
-                .windowSize(20)
+                .windowSize(250)
+                .significanceLevel(0.01)
+                .adfSignificanceLevel(0.01)
                 .checkInterval(1)
                 .capitalLong(1000.0)
                 .capitalShort(1000.0)
                 .leverage(10.0)
                 .feePctPerTrade(0.05)
                 .minCorrelation(0.8)
+                .minVolume(50_000_000.0)
                 .build();
     }
 

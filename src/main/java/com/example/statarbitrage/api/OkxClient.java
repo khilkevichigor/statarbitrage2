@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -25,7 +26,7 @@ public class OkxClient {
     private static final OkHttpClient client = new OkHttpClient();
     private static final String BASE_URL = "https://www.okx.com";
 
-    public Set<String> getSwapTickers() {
+    public Set<String> getAllSwapTickers() {
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/public/instruments?instType=SWAP")
                 .build();
@@ -126,5 +127,34 @@ public class OkxClient {
         }
         log.info("Собрали цены для {} монет", candlesMap.size());
         return candlesMap;
+    }
+
+    public Set<String> getValidTickers(Set<String> swapTickers, String timeFrame, int limit, double minVolume) {
+        AtomicInteger count = new AtomicInteger();
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+        Set<String> result = new HashSet<>();
+        try {
+            List<CompletableFuture<Void>> futures = swapTickers.stream()
+                    .map(symbol -> CompletableFuture.runAsync(() -> {
+                        try {
+                            List<Candle> candles = getCandleList(symbol, timeFrame, limit);
+                            if (candles.get(0).getVolume() >= minVolume) {
+                                result.add(symbol);
+                            } else {
+                                count.getAndIncrement();
+                            }
+                        } catch (Exception e) {
+                            log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+                        }
+                    }, executor))
+                    .toList();
+
+            // Ожидаем завершения всех задач
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } finally {
+            executor.shutdown();
+        }
+        log.info("Всего откинули {} тикера с низким volume", count.intValue());
+        return result;
     }
 }

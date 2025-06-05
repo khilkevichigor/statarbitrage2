@@ -30,7 +30,7 @@ public class CandlesService {
 
     public ConcurrentHashMap<String, List<Candle>> getCandles() {
         Settings settings = settingsService.getSettings();
-        Set<String> swapTickers = okxClient.getSwapTickers();
+        Set<String> swapTickers = okxClient.getAllSwapTickers();
         ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
         return filterByBlackList(candlesMap);
     }
@@ -38,9 +38,21 @@ public class CandlesService {
     public ConcurrentHashMap<String, List<Candle>> getCandles(Set<String> swapTickers) {
         Settings settings = settingsService.getSettings();
         ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
-        save(candlesMap);
-        return candlesMap;
+        return filterByBlackList(candlesMap);
     }
+
+    public Set<String> getApplicableTickers(String timeFrame, int limit, double minVolume) {
+        Set<String> swapTickers = okxClient.getAllSwapTickers();
+        swapTickers = filterByBlackList(swapTickers);
+        return okxClient.getValidTickers(swapTickers, timeFrame, limit, minVolume);
+    }
+
+//    public ConcurrentHashMap<String, List<Candle>> getCandles(Set<String> swapTickers) {
+//        Settings settings = settingsService.getSettings();
+//        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
+//        save(candlesMap);
+//        return candlesMap;
+//    }
 
     public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData) {
         Settings settings = settingsService.getSettings();
@@ -68,6 +80,12 @@ public class CandlesService {
         save(candlesMap);
         log.info("Удалили цены тикеров из черного списка");
         return candlesMap;
+    }
+
+    public Set<String> filterByBlackList(Set<String> swapTickers) {
+        BLACK_LIST.forEach(swapTickers::remove);
+        log.info("Убрали тикеры из черного списка");
+        return swapTickers;
     }
 
     public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData, Settings settings) {

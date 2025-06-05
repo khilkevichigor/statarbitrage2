@@ -95,7 +95,7 @@ public class ChangesService {
         sb.append("Z ")
                 .append("(").append(zScoreEntry).append(")")
                 .append(" -> ")
-                .append(zScoreRounded).append("%") //todo при открытии сделок большой процент хотя должен быть 0
+                .append(zScoreRounded).append("%")
                 .append(" -> ")
                 .append("(").append(zScoreCurrent).append(")")
                 .append("\n");
