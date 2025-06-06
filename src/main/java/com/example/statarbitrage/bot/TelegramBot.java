@@ -134,7 +134,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 stopTestTrade(chatIdStr);
             } else if (Objects.equals(text, BotMenu.DELETE_FILES.getName())) {
                 log.info("-> DELETE_FILES");
-                fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "candles.json"));
+                fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
             }
         }
     }
@@ -168,7 +168,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             testTradeTask.cancel(true);
         }
 
-        //todo слать эвент что бы сбросить параметры профита в ChangesService
         resetProfit(true);
         sendMessage(chatId, "✅ Тест-трейд остановлен");
     }

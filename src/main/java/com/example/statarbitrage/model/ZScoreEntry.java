@@ -21,6 +21,8 @@ public class ZScoreEntry {
     private double std;
     private String a;
     private String b;
+    private String longticker;
+    private String shortticker;
     private double atickercurrentprice;
     private double btickercurrentprice;
     private long timestamp;

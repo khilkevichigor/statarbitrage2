@@ -1,29 +1,26 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.ZScoreEntry;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.statarbitrage.model.ZScoreTimeSeries;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ZScoreService {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String Z_SCORE_JSON_FILE_PATH = "z_score.json";
 
-    public ZScoreEntry obtainBestPair(List<ZScoreEntry> zScoreEntries) {
-        if (zScoreEntries != null && !zScoreEntries.isEmpty()) {
-            log.info("Отобрано {} пар", zScoreEntries.size());
-            ZScoreEntry bestPair = getBestPairByCriteria(zScoreEntries);
-            log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f\n",
+    public ZScoreTimeSeries obtainBest(List<ZScoreTimeSeries> zScoreTimeSeries) {
+        if (zScoreTimeSeries != null && !zScoreTimeSeries.isEmpty()) {
+            log.info("Отобрано {} пар", zScoreTimeSeries.size());
+            ZScoreTimeSeries bestPair = getBestPairByCriteria(zScoreTimeSeries);
+            ZScoreEntry entry = bestPair.getEntries().get(bestPair.getEntries().size() - 1); // последний entry
+            log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                     bestPair.getA(), bestPair.getB(),
-                    bestPair.getPvalue(), bestPair.getAdfpvalue(), bestPair.getZscore(), bestPair.getCorrelation()
+                    entry.getPvalue(), entry.getAdfpvalue(), entry.getZscore(), entry.getCorrelation()
             ));
             return bestPair;
         } else {
@@ -31,57 +28,57 @@ public class ZScoreService {
         }
     }
 
-    public ZScoreEntry getFirstPair() {
-        int maxAttempts = 5;
-        int waitMillis = 300;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            List<ZScoreEntry> zScores = loadZscore();
-            if (zScores != null && !zScores.isEmpty()) {
-                return zScores.get(0);
+    private ZScoreTimeSeries getBestPairByCriteria(List<ZScoreTimeSeries> zScoreTimeSeries) {
+        ZScoreTimeSeries best = null;
+
+        for (ZScoreTimeSeries z : zScoreTimeSeries) {
+            if (z.getEntries() == null || z.getEntries().isEmpty()) {
+                continue;
             }
-            log.warn("Попытка {}: z_score.json пустой или не найден", attempt);
-            try {
-                Thread.sleep(waitMillis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Ожидание чтения z_score.json прервано", e);
+            ZScoreEntry lastEntry = z.getEntries().get(z.getEntries().size() - 1);
+
+            if (best == null) {
+                best = z;
+                continue;
+            }
+
+            ZScoreEntry bestEntry = best.getEntries().get(best.getEntries().size() - 1);
+
+            // Сравниваем по критериям:
+
+            // Больше |zscore| — лучше
+            if (Math.abs(lastEntry.getZscore()) > Math.abs(bestEntry.getZscore())) {
+                best = z;
+                continue;
+            }
+            if (Math.abs(lastEntry.getZscore()) < Math.abs(bestEntry.getZscore())) {
+                continue;
+            }
+
+            // Меньше pvalue — лучше
+            if (lastEntry.getPvalue() < bestEntry.getPvalue()) {
+                best = z;
+                continue;
+            }
+            if (lastEntry.getPvalue() > bestEntry.getPvalue()) {
+                continue;
+            }
+
+            // Меньше adfpvalue — лучше
+            if (lastEntry.getAdfpvalue() < bestEntry.getAdfpvalue()) {
+                best = z;
+                continue;
+            }
+            if (lastEntry.getAdfpvalue() > bestEntry.getAdfpvalue()) {
+                continue;
+            }
+
+            // Больше корреляция — лучше
+            if (lastEntry.getCorrelation() > bestEntry.getCorrelation()) {
+                best = z;
             }
         }
 
-        log.error("❌ Не удалось прочитать z_score.json после {} попыток", maxAttempts);
-        throw new RuntimeException("⚠️ z_score.json пустой или не найден после попыток");
-    }
-
-    private void save(List<ZScoreEntry> entries) {
-        try {
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(Z_SCORE_JSON_FILE_PATH), entries);
-        } catch (Exception e) {
-            log.error("Ошибка при записи z_score.json: {}", e.getMessage(), e);
-        }
-    }
-
-    private ZScoreEntry getBestPairByCriteria(List<ZScoreEntry> zScores) {
-        return zScores.stream()
-                .min(Comparator
-                        .comparingDouble(ZScoreEntry::getPvalue)
-                        .thenComparingDouble(ZScoreEntry::getAdfpvalue)
-                        .thenComparing((e1, e2) ->
-                                Double.compare(Math.abs(e2.getZscore()), Math.abs(e1.getZscore())))
-                        .thenComparingDouble(ZScoreEntry::getCorrelation) // максимальная корреляция
-                )
-                .orElse(null);
-    }
-
-    private List<ZScoreEntry> loadZscore() {
-        try {
-            File zFile = new File(Z_SCORE_JSON_FILE_PATH);
-            if (zFile.exists()) {
-                return List.of(MAPPER.readValue(zFile, ZScoreEntry[].class));
-            }
-            return null;
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении z_score.json: {}", e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
+        return best;
     }
 }

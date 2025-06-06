@@ -3,7 +3,6 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.EntryData;
 import com.example.statarbitrage.model.Settings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -41,24 +40,11 @@ public class CandlesService {
         return filterByBlackList(candlesMap);
     }
 
-    public Set<String> getApplicableTickers(String timeFrame, int limit, double minVolume) {
+    public Set<String> getApplicableTickers(String timeFrame) {
+        Settings settings = settingsService.getSettings();
         Set<String> swapTickers = okxClient.getAllSwapTickers();
         swapTickers = filterByBlackList(swapTickers);
-        return okxClient.getValidTickers(swapTickers, timeFrame, limit, minVolume);
-    }
-
-//    public ConcurrentHashMap<String, List<Candle>> getCandles(Set<String> swapTickers) {
-//        Settings settings = settingsService.getSettings();
-//        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
-//        save(candlesMap);
-//        return candlesMap;
-//    }
-
-    public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData) {
-        Settings settings = settingsService.getSettings();
-        ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(Set.of(entryData.getA(), entryData.getB()), settings);
-        save(candlesMap);
-        return candlesMap;
+        return okxClient.getValidTickers(swapTickers, timeFrame, settings.getCandleLimit(), settings.getMinVolume() * 1_000_000);
     }
 
     public void save(Map<String, List<Candle>> candles) {
@@ -86,9 +72,5 @@ public class CandlesService {
         BLACK_LIST.forEach(swapTickers::remove);
         log.info("Убрали тикеры из черного списка");
         return swapTickers;
-    }
-
-    public ConcurrentHashMap<String, List<Candle>> getCandles(EntryData entryData, Settings settings) {
-        return okxClient.getCandlesMap(Set.of(entryData.getA(), entryData.getB()), settings);
     }
 }
