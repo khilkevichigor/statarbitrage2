@@ -55,4 +55,5 @@ public class EntryData {
 
     private long entryTime;
     private String chartProfitMessage;
+    private String logMessage;
 }

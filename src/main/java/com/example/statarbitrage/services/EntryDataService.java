@@ -152,6 +152,7 @@ public class EntryDataService {
         entryData.setProfit(changesData.getProfitRounded());
         entryData.setZScoreChanges(changesData.getZScoreRounded());
         entryData.setChartProfitMessage(changesData.getChartProfitMessage());
+        entryData.setLogMessage(changesData.getLogMessage());
     }
 
     public void updateCurrentCointParams(EntryData entryData, ZScoreEntry firstPair) {

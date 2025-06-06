@@ -100,7 +100,7 @@ public class ChartService {
 //        sendChart(chatId, getChart(), entryData.getProfitStr() != null ? "Profit " + entryData.getProfitStr() : "", true);
 
         OneOnOneCharts.createLogarithmic(candlesMap, bestPair, entryData);
-        sendChart(chatId, getChart(), entryData.getProfitStr() != null ? "Profit " + entryData.getProfitStr() : "", true);
+        sendChart(chatId, getChart(), entryData.getLogMessage() != null ? entryData.getLogMessage() : "", true);
 
     }
 }

@@ -132,9 +132,9 @@ public class ChangesService {
         BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
         String profitStr = profitRounded + "%";
-        StringBuilder sb = new StringBuilder();
-        sb.append("Profit: ").append(profitStr).append("\n");
-        sb.append("LONG ")
+        StringBuilder sb1 = new StringBuilder();
+        sb1.append("Profit: ").append(profitStr).append("\n");
+        sb1.append("LONG ")
                 .append("(").append(EntryDataUtil.getLongTickerEntryPrice(entryData, isLasb)).append(")")
                 .append(" -> ")
                 .append(aReturnRounded)
@@ -142,14 +142,14 @@ public class ChangesService {
                 .append(" -> ")
                 .append("(").append(EntryDataUtil.getLongTickerCurrentPrice(entryData, isLasb)).append(")")
                 .append("\n");
-        sb.append("SHORT ")
+        sb1.append("SHORT ")
                 .append("(").append(EntryDataUtil.getShortTickerEntryPrice(entryData, isLasb)).append(")")
                 .append(" -> ")
                 .append(bReturnRounded).append("%")
                 .append(" -> ")
                 .append("(").append(EntryDataUtil.getShortTickerCurrentPrice(entryData, isLasb)).append(")")
                 .append("\n");
-        sb.append("Z ")
+        sb1.append("Z ")
                 .append("(").append(zScoreEntry).append(")")
                 .append(" -> ")
                 .append(zScoreRounded).append("%")
@@ -157,24 +157,57 @@ public class ChangesService {
                 .append("(").append(zScoreCurrent).append(")")
                 .append("\n");
 
-        log.info("📊 LONG {{}}: Entry: {}, Current: {}, Changes: {}%",
+        String longLogMessage = String.format(
+                "📊 LONG %s: Entry: %s, Current: %s, Changes: %s%%",
                 EntryDataUtil.getLongTicker(entryData, isLasb),
                 EntryDataUtil.getLongTickerEntryPrice(entryData, isLasb),
                 EntryDataUtil.getLongTickerCurrentPrice(entryData, isLasb),
-                EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded)); //todo 📊 LONG {CSPR-USDT-SWAP}: Entry: 0.011962, Current: 0.011942, Changes: 0.17% -> 0.17% без минуса!!!!
-        log.info("📊 SHORT {{}}: Entry: {}, Current: {}, Changes: {}%",
+                EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded)
+        );
+        log.info(longLogMessage);
+
+        String shortLogMessage = String.format(
+                "📉 SHORT %s: Entry: %s, Current: %s, Changes: %s%%",
                 EntryDataUtil.getShortTicker(entryData, isLasb),
                 EntryDataUtil.getShortTickerEntryPrice(entryData, isLasb),
                 EntryDataUtil.getShortTickerCurrentPrice(entryData, isLasb),
-                EntryDataUtil.getShortReturnRounded(isLasb, aReturnRounded, bReturnRounded));
-        log.info("📊 Z : Entry: {}, Current: {}, Changes: {}%", entryData.getZScoreEntry(), entryData.getZScoreCurrent(), zScoreRounded);
+                EntryDataUtil.getShortReturnRounded(isLasb, aReturnRounded, bReturnRounded)
+        );
+        log.info(shortLogMessage);
 
-        String logMsg = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
-        log.info(logMsg);
+        String zLogMessage = String.format(
+                "📊 Z : Entry: %s, Current: %s, Changes: %s%%",
+                entryData.getZScoreEntry(),
+                entryData.getZScoreCurrent(),
+                zScoreRounded
+        );
+        log.info(zLogMessage);
+
+        String profitLogMessage = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s", leverage, feePctPerTrade, totalCapital, profitStr);
+        log.info(profitLogMessage);
 
         // 📝 Логируем максимум, минимум и время
-        log.info("📈 Максимальный профит: {}%, минимальный: {}%", maxProfit.setScale(2, RoundingMode.HALF_UP), minProfit.setScale(2, RoundingMode.HALF_UP));
-        log.info("⏱ Время до максимального профита: {} минут, до минимального: {} минут", timeSinceEntryToMax, timeSinceEntryToMin);
+        String minMaxProfitLogMessage = String.format(
+                "📈 Максимальный профит: %s%%, минимальный: %s%%",
+                maxProfit.setScale(2, RoundingMode.HALF_UP),
+                minProfit.setScale(2, RoundingMode.HALF_UP)
+        );
+        log.info(minMaxProfitLogMessage);
+
+        String timeToProfitLogMessage = String.format(
+                "⏱ Время до максимального профита: %d минут, до минимального: %d минут",
+                timeSinceEntryToMax,
+                timeSinceEntryToMin
+        );
+        log.info(timeToProfitLogMessage);
+
+        StringBuilder sb2 = new StringBuilder();
+        sb2.append(longLogMessage).append("\n");
+        sb2.append(shortLogMessage).append("\n");
+        sb2.append(zLogMessage).append("\n");
+        sb2.append(profitLogMessage).append("\n");
+        sb2.append(minMaxProfitLogMessage).append("\n");
+        sb2.append(timeToProfitLogMessage).append("\n");
 
         return ChangesData.builder()
                 .totalCapital(totalCapital)
@@ -188,8 +221,8 @@ public class ChangesService {
                 .zScoreRounded(zScoreRounded)
                 .zScoreStr(zScoreRounded + "%")
 
-                .chartProfitMessage(sb.toString())
-                .logMessage(logMsg)
+                .chartProfitMessage(sb1.toString())
+                .logMessage(sb2.toString())
                 .build();
     }
 }
