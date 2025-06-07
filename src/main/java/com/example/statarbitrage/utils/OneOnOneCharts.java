@@ -1,7 +1,7 @@
 package com.example.statarbitrage.utils;
 
 import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.EntryData;
+import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
@@ -29,7 +29,7 @@ public final class OneOnOneCharts {
     }
 
     public static void create(ConcurrentHashMap<String, List<Candle>> candlesMap,
-                              ZScoreEntry bestPair, EntryData entryData) {
+                              ZScoreEntry bestPair, PairData pairData) {
 
         String aTicker = bestPair.getA();
         String bTicker = bestPair.getB();
@@ -67,7 +67,7 @@ public final class OneOnOneCharts {
         topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда слева сверху
         topChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
 
-        XYSeries aSeries = topChart.addSeries("A " + aTicker + " (current " + entryData.getATickerCurrentPrice() + ")", timeA, aPrices);
+        XYSeries aSeries = topChart.addSeries("A " + aTicker + " (current " + pairData.getATickerCurrentPrice() + ")", timeA, aPrices);
         aSeries.setLineColor(Color.MAGENTA);
         aSeries.setMarker(new None());
 
@@ -86,7 +86,7 @@ public final class OneOnOneCharts {
         bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);  // легенда слева сверху
         bottomChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
 
-        XYSeries shortSeries = bottomChart.addSeries("B " + bTicker + " (current " + entryData.getBTickerCurrentPrice() + ")", timeB, bPrices);
+        XYSeries shortSeries = bottomChart.addSeries("B " + bTicker + " (current " + pairData.getBTickerCurrentPrice() + ")", timeB, bPrices);
         shortSeries.setLineColor(Color.BLUE);
         shortSeries.setMarker(new None());
 
@@ -96,8 +96,8 @@ public final class OneOnOneCharts {
         bottomChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
 
         // Вертикальная линия по entryTime, если есть
-        if (entryData.getEntryTime() > 0) {
-            Date entryDate = new Date(entryData.getEntryTime());
+        if (pairData.getEntryTime() > 0) {
+            Date entryDate = new Date(pairData.getEntryTime());
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
 
             double yMinTop = Collections.min(aPrices);
@@ -118,8 +118,8 @@ public final class OneOnOneCharts {
         }
 
         //точки
-        if (entryData.getEntryTime() > 0) {
-            long entryTime = entryData.getEntryTime();
+        if (pairData.getEntryTime() > 0) {
+            long entryTime = pairData.getEntryTime();
 
             // Найти ближайший индекс к entryTime
             int index = 0;
@@ -133,14 +133,14 @@ public final class OneOnOneCharts {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точки на график
-            XYSeries aEntryPoint = topChart.addSeries("Entry (" + entryData.getATickerEntryPrice() + ")", Collections.singletonList(entryDate),
+            XYSeries aEntryPoint = topChart.addSeries("Entry (" + pairData.getATickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(aPrices.get(index)));
             aEntryPoint.setMarkerColor(Color.MAGENTA.darker());
             aEntryPoint.setLineColor(Color.MAGENTA.darker());
             aEntryPoint.setMarker(SeriesMarkers.CIRCLE);
             aEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
 
-            XYSeries bEntryPoint = bottomChart.addSeries("Entry (" + entryData.getBTickerEntryPrice() + ")", Collections.singletonList(entryDate),
+            XYSeries bEntryPoint = bottomChart.addSeries("Entry (" + pairData.getBTickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(bPrices.get(index)));
             bEntryPoint.setMarkerColor(Color.BLUE.darker());
             bEntryPoint.setLineColor(Color.BLUE.darker());
@@ -175,7 +175,7 @@ public final class OneOnOneCharts {
     }
 
     public static void createLogarithmic(ConcurrentHashMap<String, List<Candle>> candlesMap,
-                                         ZScoreEntry bestPair, EntryData entryData) {
+                                         ZScoreEntry bestPair, PairData pairData) {
         String aTicker = bestPair.getA();
         String bTicker = bestPair.getB();
 
@@ -212,7 +212,7 @@ public final class OneOnOneCharts {
         topChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);  // легенда слева сверху
         topChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
 
-        XYSeries aSeries = topChart.addSeries("Log A " + aTicker + " (current " + entryData.getATickerCurrentPrice() + ")", timeA, aPrices);
+        XYSeries aSeries = topChart.addSeries("Log A " + aTicker + " (current " + pairData.getATickerCurrentPrice() + ")", timeA, aPrices);
         aSeries.setLineColor(Color.MAGENTA);
         aSeries.setMarker(new None());
 
@@ -231,7 +231,7 @@ public final class OneOnOneCharts {
         bottomChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);  // легенда слева сверху
         bottomChart.getStyler().setLegendVisible(true);  // полностью скрыть легенду
 
-        XYSeries shortSeries = bottomChart.addSeries("Log B " + bTicker + " (current " + entryData.getBTickerCurrentPrice() + ")", timeB, bPrices);
+        XYSeries shortSeries = bottomChart.addSeries("Log B " + bTicker + " (current " + pairData.getBTickerCurrentPrice() + ")", timeB, bPrices);
         shortSeries.setLineColor(Color.BLUE);
         shortSeries.setMarker(new None());
 
@@ -241,8 +241,8 @@ public final class OneOnOneCharts {
         bottomChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
 
         // Вертикальная линия по entryTime, если есть
-        if (entryData.getEntryTime() > 0) {
-            Date entryDate = new Date(entryData.getEntryTime());
+        if (pairData.getEntryTime() > 0) {
+            Date entryDate = new Date(pairData.getEntryTime());
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
 
             double yMinTop = Collections.min(aPrices);
@@ -263,8 +263,8 @@ public final class OneOnOneCharts {
         }
 
         //точки
-        if (entryData.getEntryTime() > 0) {
-            long entryTime = entryData.getEntryTime();
+        if (pairData.getEntryTime() > 0) {
+            long entryTime = pairData.getEntryTime();
 
             // Найти ближайший индекс к entryTime
             int index = 0;
@@ -278,14 +278,14 @@ public final class OneOnOneCharts {
             Date entryDate = timeAxis.get(index);
 
             // Добавляем точки на график
-            XYSeries aEntryPoint = topChart.addSeries("Entry (" + entryData.getATickerEntryPrice() + ")", Collections.singletonList(entryDate),
+            XYSeries aEntryPoint = topChart.addSeries("Entry (" + pairData.getATickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(aPrices.get(index)));
             aEntryPoint.setMarkerColor(Color.MAGENTA.darker());
             aEntryPoint.setLineColor(Color.MAGENTA.darker());
             aEntryPoint.setMarker(SeriesMarkers.CIRCLE);
             aEntryPoint.setLineStyle(new BasicStroke(0f)); // линия не рисуется
 
-            XYSeries bEntryPoint = bottomChart.addSeries("Entry (" + entryData.getBTickerEntryPrice() + ")", Collections.singletonList(entryDate),
+            XYSeries bEntryPoint = bottomChart.addSeries("Entry (" + pairData.getBTickerEntryPrice() + ")", Collections.singletonList(entryDate),
                     Collections.singletonList(bPrices.get(index)));
             bEntryPoint.setMarkerColor(Color.BLUE.darker());
             bEntryPoint.setLineColor(Color.BLUE.darker());

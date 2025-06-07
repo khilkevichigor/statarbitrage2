@@ -1,6 +1,9 @@
 package com.example.statarbitrage.processors;
 
-import com.example.statarbitrage.model.*;
+import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.ZScoreTimeSeries;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
@@ -10,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,34 +23,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 @RequiredArgsConstructor
 public class ScreenerProcessor {
-    private final EntryDataService entryDataService;
+    private final PairDataService pairDataService;
     private final ChartService chartService;
     private final ZScoreService zScoreService;
     private final CandlesService candlesService;
     private final FileService fileService;
     private final SettingsService settingsService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
-    private final List<ZScorePoint> history = new ArrayList<>();
 
     @Async
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
-        history.clear();
-        Settings settings = settingsService.getSettings();
-        Set<String> applicableTickers = candlesService.getApplicableTickers("1D", settings.getCandleLimit(), settings.getMinVolume());
+        Set<String> applicableTickers = candlesService.getApplicableTickers("1D");
         log.info("Всего отобрано {} тикеров", applicableTickers.size());
 
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers);
-        List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_COINT.getName(), Map.of(
-                        "settings", settings,
-                        "candlesMap", candlesMap
+        List<ZScoreTimeSeries> zScoreTimeSeries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
+                        "settings", settingsService.getSettings(),
+                        "candlesMap", candlesMap,
+                        "mode", "sendBestChart" //что бы фильтровать плохие пары
                 ),
                 new TypeReference<>() {
                 });
-        ZScoreEntry bestPair = zScoreService.obtainBestPair(zScoreEntries);
-        EntryData entryData = entryDataService.createEntryData(bestPair, candlesMap);
-        chartService.sendOneOnOneCharts(chatId, candlesMap, bestPair, entryData);
+        ZScoreTimeSeries bestZScoreTimeSeries = zScoreService.obtainBest(zScoreTimeSeries);
+        PairData pairData = pairDataService.createPairData(bestZScoreTimeSeries.getEntries().get(0), candlesMap);
+        chartService.createAndSend(chatId, bestZScoreTimeSeries.getEntries(), pairData);
         logDuration(startTime);
     }
 
@@ -60,29 +60,30 @@ public class ScreenerProcessor {
             return;
         }
         try {
-            Settings settings = settingsService.getSettings();
-            EntryData entryData = entryDataService.getEntryData();
-            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(entryData, settings);
-            List<ZScoreEntry> zScoreEntries = PythonScriptsExecuter.executeAndReturnObject(
-                    PythonScripts.CALC_COINT.getName(),
-                    Map.of(
-                            "settings", settings,
-                            "candlesMap", candlesMap
+            PairData pairData = pairDataService.getPairData();
+            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(pairData.getLongTicker(), pairData.getShortTicker()));
+            List<ZScoreTimeSeries> zScoreTimeSeries = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
+                            "settings", settingsService.getSettings(),
+                            "candlesMap", candlesMap,
+                            "mode", "testTrade" //чтобы не отфильтровать нашу уже отобранную лучшую пару
                     ),
                     new TypeReference<>() {
                     });
 
-            if (zScoreEntries.size() > 1) {
-                throw new IllegalArgumentException("Size more then 1");
-            }
-            ZScoreEntry firstPair = zScoreEntries.get(0);
-            validateCurrentPricesBeforeAndAfterScriptAndThrow(firstPair, candlesMap);
-            entryDataService.updateEntryDataAndSave(entryData, firstPair, candlesMap, isLasb);
+            validateSizeOfPairsAndThrow(zScoreTimeSeries);
+            ZScoreTimeSeries firstPair = zScoreTimeSeries.get(0);
+            validateCurrentPricesBeforeAndAfterScriptAndThrow(firstPair.getEntries().get(firstPair.getEntries().size() - 1), candlesMap);
+            pairDataService.updatePairDataAndSave(pairData, firstPair.getEntries().get(0), candlesMap, isLasb);
             clearChartsDirectory();
-            addToHistory(entryData);
-            chartService.sendOneOnOneCharts(chatId, candlesMap, firstPair, entryData);
+            chartService.createAndSend(chatId, firstPair.getEntries(), pairData);
         } finally {
             runningTrades.remove(chatId);
+        }
+    }
+
+    private static void validateSizeOfPairsAndThrow(List<ZScoreTimeSeries> zScoreTimeSeries) {
+        if (zScoreTimeSeries.size() != 1) {
+            throw new IllegalArgumentException("Size not equal 1!");
         }
     }
 
@@ -90,16 +91,12 @@ public class ScreenerProcessor {
         chartService.clearChartDir();
     }
 
-    private void addToHistory(EntryData entryData) {
-        history.add(new ZScorePoint(System.currentTimeMillis(), entryData.getZScoreChanges(), entryData.getProfit()));
-    }
-
-    private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candlesMap) {
-        List<Candle> aTickerCandles = candlesMap.get(firstPair.getA());
+    private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreEntry entry, ConcurrentHashMap<String, List<Candle>> candlesMap) {
+        List<Candle> aTickerCandles = candlesMap.get(entry.getA());
         double before = aTickerCandles.get(aTickerCandles.size() - 1).getClose();
-        double after = firstPair.getAtickercurrentprice();
+        double after = entry.getAtickercurrentprice();
         if (after != before) {
-            log.error("Wrong current prices before {} and after {} script", before, after);
+            log.error("Wrong current prices before {{}} and after {{}} script", before, after);
             throw new IllegalArgumentException("Wrong current prices before and after script");
         }
     }
@@ -112,7 +109,7 @@ public class ScreenerProcessor {
     }
 
     private void removePreviousFiles() {
-        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "entry_data.json", "candles.json"));
+        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
         chartService.clearChartDir();
     }
 }

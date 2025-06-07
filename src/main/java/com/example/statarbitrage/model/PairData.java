@@ -11,9 +11,12 @@ import java.math.BigDecimal;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class EntryData {
+public class PairData {
     private String a;
     private String b;
+
+    private String longTicker;
+    private String shortTicker;
 
     private double aTickerEntryPrice;
     private double aTickerCurrentPrice;
@@ -48,12 +51,14 @@ public class EntryData {
     private double stdEntry;
     private double stdCurrent;
 
-    private String profitStr;
-    private BigDecimal profit;
-
     private BigDecimal zScoreChanges;
 
+    private BigDecimal longChanges;
+    private BigDecimal shortChanges;
+    private BigDecimal profitChanges;
+
+    private long timeInMinutesSinceEntryToMin;
+    private long timeInMinutesSinceEntryToMax;
+
     private long entryTime;
-    private String chartProfitMessage;
-    private String logMessage;
 }

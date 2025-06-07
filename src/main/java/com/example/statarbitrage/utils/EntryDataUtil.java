@@ -1,6 +1,6 @@
 package com.example.statarbitrage.utils;
 
-import com.example.statarbitrage.model.EntryData;
+import com.example.statarbitrage.model.PairData;
 
 import java.math.BigDecimal;
 
@@ -16,27 +16,27 @@ public final class EntryDataUtil {
         return isLasb ? bReturnRounded : aReturnRounded;
     }
 
-    public static double getLongTickerCurrentPrice(EntryData entryData, boolean isLasb) {
-        return isLasb ? entryData.getATickerCurrentPrice() : entryData.getBTickerCurrentPrice();
+    public static double getLongTickerCurrentPrice(PairData pairData, boolean isLasb) {
+        return isLasb ? pairData.getATickerCurrentPrice() : pairData.getBTickerCurrentPrice();
     }
 
-    public static double getShortTickerCurrentPrice(EntryData entryData, boolean isLasb) {
-        return isLasb ? entryData.getBTickerCurrentPrice() : entryData.getATickerCurrentPrice();
+    public static double getShortTickerCurrentPrice(PairData pairData, boolean isLasb) {
+        return isLasb ? pairData.getBTickerCurrentPrice() : pairData.getATickerCurrentPrice();
     }
 
-    public static String getLongTicker(EntryData entryData, boolean isLasb) {
-        return isLasb ? entryData.getA() : entryData.getB();
+    public static String getLongTicker(PairData pairData, boolean isLasb) {
+        return isLasb ? pairData.getA() : pairData.getB();
     }
 
-    public static String getShortTicker(EntryData entryData, boolean isLasb) {
-        return isLasb ? entryData.getB() : entryData.getA();
+    public static String getShortTicker(PairData pairData, boolean isLasb) {
+        return isLasb ? pairData.getB() : pairData.getA();
     }
 
-    public static double getLongTickerEntryPrice(EntryData entryData, boolean isLasb) {
-        return isLasb ? entryData.getATickerEntryPrice() : entryData.getBTickerEntryPrice();
+    public static double getLongTickerEntryPrice(PairData pairData, boolean isLasb) {
+        return isLasb ? pairData.getATickerEntryPrice() : pairData.getBTickerEntryPrice();
     }
 
-    public static double getShortTickerEntryPrice(EntryData entryData, boolean isLasb) {
-        return isLasb ? entryData.getBTickerEntryPrice() : entryData.getATickerEntryPrice();
+    public static double getShortTickerEntryPrice(PairData pairData, boolean isLasb) {
+        return isLasb ? pairData.getBTickerEntryPrice() : pairData.getATickerEntryPrice();
     }
 }

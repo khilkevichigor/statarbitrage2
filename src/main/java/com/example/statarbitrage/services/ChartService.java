@@ -1,23 +1,17 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.events.SendAsPhotoEvent;
-import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.EntryData;
+import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreEntry;
-import com.example.statarbitrage.model.ZScorePoint;
-import com.example.statarbitrage.utils.ComboProfitAndZChart;
-import com.example.statarbitrage.utils.ComboTwoTrendsAndSpreadChart;
-import com.example.statarbitrage.utils.OneOnOneCharts;
+import com.example.statarbitrage.utils.ZScoreChart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -73,34 +67,8 @@ public class ChartService {
         }
     }
 
-    public void generateCombinedChartOls(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
-        ComboTwoTrendsAndSpreadChart.create(candlesMap, bestPair, entryData);
-        sendChart(chatId, getChart(), "Stat Arbitrage Combined Chart", true);
-    }
-
-    public void sendCombinedChartProfitVsZ(String chatId, List<ZScorePoint> history) {
-
-        ComboProfitAndZChart.create(history);
-
-        BigDecimal profit = history.stream()
-                .map(ZScorePoint::profit)
-                .reduce((first, second) -> second)
-                .orElseThrow(RuntimeException::new);
-
-        BigDecimal zChanges = history.stream()
-                .map(ZScorePoint::zScoreChanges)
-                .reduce((first, second) -> second)
-                .orElseThrow(RuntimeException::new);
-
-        sendChart(chatId, getChart(), "Profit:" + profit + "%, z:" + zChanges + "%", true);
-    }
-
-    public void sendOneOnOneCharts(String chatId, ConcurrentHashMap<String, List<Candle>> candlesMap, ZScoreEntry bestPair, EntryData entryData) {
-//        OneOnOneCharts.create(candlesMap, bestPair, entryData);
-//        sendChart(chatId, getChart(), entryData.getProfitStr() != null ? "Profit " + entryData.getProfitStr() : "", true);
-
-        OneOnOneCharts.createLogarithmic(candlesMap, bestPair, entryData);
-        sendChart(chatId, getChart(), entryData.getLogMessage() != null ? entryData.getLogMessage() : "", true);
-
+    public void createAndSend(String chatId, List<ZScoreEntry> zScoreEntries, PairData pairData) {
+        ZScoreChart.create(zScoreEntries, pairData);
+        sendChart(chatId, getChart(), pairData.getProfitChanges() != null ? "Profit " + pairData.getProfitChanges() + "%" : "", true);
     }
 }

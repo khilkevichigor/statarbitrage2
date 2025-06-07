@@ -10,11 +10,20 @@ import java.math.BigDecimal;
 public class ChangesData {
     private BigDecimal longReturnRounded;
     private BigDecimal shortReturnRounded;
+
     private BigDecimal profitRounded;
+
+    private BigDecimal maxProfitRounded;
+    private BigDecimal minProfitRounded;
+
+    private long timeInMinutesSinceEntryToMin;
+    private long timeInMinutesSinceEntryToMax;
+
     private BigDecimal zScoreRounded;
-    private String zScoreStr;
-    private String profitStr;
-    private String chartProfitMessage;
+
     private BigDecimal totalCapital;
-    private String logMessage;
+
+    private String chartProfitMessage;
+    private String allLogMessage;
+
 }
