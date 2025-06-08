@@ -1,5 +1,6 @@
 package com.example.statarbitrage.processors;
 
+import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreEntry;
@@ -53,7 +54,7 @@ public class ScreenerProcessor {
     }
 
     @Async
-    public void testTrade(String chatId, boolean isLasb) {
+    public void testTrade(String chatId, TradeType tradeType) {
         AtomicBoolean isRunning = runningTrades.computeIfAbsent(chatId, k -> new AtomicBoolean(false));
         if (!isRunning.compareAndSet(false, true)) {
             log.warn("testTrade уже выполняется для chatId = {}", chatId);
@@ -69,11 +70,10 @@ public class ScreenerProcessor {
                     ),
                     new TypeReference<>() {
                     });
-
             validateSizeOfPairsAndThrow(zScoreTimeSeries);
             ZScoreTimeSeries firstPair = zScoreTimeSeries.get(0);
             validateCurrentPricesBeforeAndAfterScriptAndThrow(firstPair.getEntries().get(firstPair.getEntries().size() - 1), candlesMap);
-            pairDataService.updatePairDataAndSave(pairData, firstPair.getEntries().get(0), candlesMap, isLasb);
+            pairDataService.updatePairDataAndSave(pairData, firstPair.getEntries().get(0), candlesMap, tradeType);
             clearChartsDirectory();
             chartService.createAndSend(chatId, firstPair.getEntries(), pairData);
         } finally {

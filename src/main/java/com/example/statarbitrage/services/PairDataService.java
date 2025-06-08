@@ -1,5 +1,6 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.PairData;
@@ -29,7 +30,7 @@ public class PairDataService {
         pairData.setA(bestPair.getA());
         pairData.setB(bestPair.getB());
 
-        pairData.setLongTicker(bestPair.getLongticker());
+        pairData.setLongTicker(bestPair.getLongticker()); //todo странно почему чарт z ниже 0 но лонг A! по идее z<0 -> лонг B!!!
         pairData.setShortTicker(bestPair.getShortticker());
 
         List<Candle> aTickerCandles = candlesMap.get(bestPair.getA());
@@ -88,11 +89,11 @@ public class PairDataService {
         }
     }
 
-    public void updatePairDataAndSave(PairData pairData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles, boolean isLasb) {
+    public void updatePairDataAndSave(PairData pairData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles, TradeType tradeType) {
         updateCurrentPrices(pairData, candles);
         updateCurrentCointParams(pairData, firstPair);
-        setupEntryPointsIfNeeded(pairData, candles, isLasb);
-        calculateAndSetChanges(pairData, isLasb);
+        setupEntryPointsIfNeeded(pairData, candles, tradeType);
+        calculateAndSetChanges(pairData, tradeType);
         save(pairData);
     }
 
@@ -111,7 +112,7 @@ public class PairDataService {
         }
     }
 
-    public void setupEntryPointsIfNeeded(PairData pairData, ConcurrentHashMap<String, List<Candle>> candles, boolean isLasb) {
+    public void setupEntryPointsIfNeeded(PairData pairData, ConcurrentHashMap<String, List<Candle>> candles, TradeType tradeType) {
         if (pairData.getATickerEntryPrice() == 0.0 || pairData.getBTickerEntryPrice() == 0.0) {
             pairData.setATickerEntryPrice(pairData.getATickerCurrentPrice());
             pairData.setBTickerEntryPrice(pairData.getBTickerCurrentPrice());
@@ -130,8 +131,8 @@ public class PairDataService {
             pairData.setEntryTime(getEntryTime(pairData.getA(), candles));
 
             log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                    EntryDataUtil.getLongTicker(pairData, isLasb), EntryDataUtil.getLongTickerEntryPrice(pairData, isLasb),
-                    EntryDataUtil.getShortTicker(pairData, isLasb), EntryDataUtil.getShortTickerEntryPrice(pairData, isLasb),
+                    EntryDataUtil.getLongTicker(pairData, tradeType), EntryDataUtil.getLongTickerEntryPrice(pairData, tradeType),
+                    EntryDataUtil.getShortTicker(pairData, tradeType), EntryDataUtil.getShortTickerEntryPrice(pairData, tradeType),
                     pairData.getZScoreEntry());
         }
     }
@@ -142,8 +143,8 @@ public class PairDataService {
         return longCandle.getTimestamp();
     }
 
-    public void calculateAndSetChanges(PairData pairData, boolean isLasb) {
-        ChangesData changesData = changesService.calculate(pairData, isLasb);
+    public void calculateAndSetChanges(PairData pairData, TradeType tradeType) {
+        ChangesData changesData = changesService.calculate(pairData, tradeType);
 
         pairData.setLongChanges(changesData.getLongReturnRounded());
         pairData.setShortChanges(changesData.getShortReturnRounded());

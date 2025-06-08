@@ -1,5 +1,6 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.events.ResetProfitEvent;
 import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.PairData;
@@ -38,7 +39,7 @@ public class ChangesService {
         minProfitTime = -1;
     }
 
-    public ChangesData calculate(PairData pairData, boolean isLasb) {
+    public ChangesData calculate(PairData pairData, TradeType tradeType) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
@@ -56,7 +57,27 @@ public class ChangesService {
         BigDecimal aReturnPct;
         BigDecimal bReturnPct;
 
-        if (isLasb) {
+        if (tradeType.equals(TradeType.GENERAL)) {
+            if (pairData.getLongTicker().equals(pairData.getA())) {
+                // A - long, B - short
+                aReturnPct = aCurrent.subtract(aEntry)
+                        .divide(aEntry, 10, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+
+                bReturnPct = bEntry.subtract(bCurrent) // шорт: считаем наоборот
+                        .divide(bEntry, 10, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+            } else {
+                // A - short, B - long
+                aReturnPct = aEntry.subtract(aCurrent) // шорт: считаем наоборот
+                        .divide(aEntry, 10, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+
+                bReturnPct = bCurrent.subtract(bEntry)
+                        .divide(bEntry, 10, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+            }
+        } else if (tradeType.equals(TradeType.LASB)) {
             // A - long, B - short
             aReturnPct = aCurrent.subtract(aEntry)
                     .divide(aEntry, 10, RoundingMode.HALF_UP)
@@ -65,7 +86,7 @@ public class ChangesService {
             bReturnPct = bEntry.subtract(bCurrent) // шорт: считаем наоборот
                     .divide(bEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
-        } else {
+        } else if (tradeType.equals(TradeType.LBSA)) {
             // A - short, B - long
             aReturnPct = aEntry.subtract(aCurrent) // шорт: считаем наоборот
                     .divide(aEntry, 10, RoundingMode.HALF_UP)
@@ -74,6 +95,8 @@ public class ChangesService {
             bReturnPct = bCurrent.subtract(bEntry)
                     .divide(bEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
+        } else {
+            throw new IllegalStateException("Unknown tradeType: " + tradeType);
         }
 
         BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
@@ -136,19 +159,19 @@ public class ChangesService {
 
         String longLogMessage = String.format(
                 "📊 LONG %s: Entry: %s, Current: %s, Changes: %s%%",
-                EntryDataUtil.getLongTicker(pairData, isLasb),
-                EntryDataUtil.getLongTickerEntryPrice(pairData, isLasb),
-                EntryDataUtil.getLongTickerCurrentPrice(pairData, isLasb),
-                EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded)
+                EntryDataUtil.getLongTicker(pairData, tradeType),
+                EntryDataUtil.getLongTickerEntryPrice(pairData, tradeType),
+                EntryDataUtil.getLongTickerCurrentPrice(pairData, tradeType),
+                EntryDataUtil.getLongReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded)
         );
         log.info(longLogMessage);
 
         String shortLogMessage = String.format(
                 "📉 SHORT %s: Entry: %s, Current: %s, Changes: %s%%",
-                EntryDataUtil.getShortTicker(pairData, isLasb),
-                EntryDataUtil.getShortTickerEntryPrice(pairData, isLasb),
-                EntryDataUtil.getShortTickerCurrentPrice(pairData, isLasb),
-                EntryDataUtil.getShortReturnRounded(isLasb, aReturnRounded, bReturnRounded)
+                EntryDataUtil.getShortTicker(pairData, tradeType),
+                EntryDataUtil.getShortTickerEntryPrice(pairData, tradeType),
+                EntryDataUtil.getShortTickerCurrentPrice(pairData, tradeType),
+                EntryDataUtil.getShortReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded)
         );
         log.info(shortLogMessage);
 
@@ -182,8 +205,8 @@ public class ChangesService {
 
         return ChangesData.builder()
 
-                .longReturnRounded(EntryDataUtil.getLongReturnRounded(isLasb, aReturnRounded, bReturnRounded))
-                .shortReturnRounded(EntryDataUtil.getShortReturnRounded(isLasb, aReturnRounded, bReturnRounded))
+                .longReturnRounded(EntryDataUtil.getLongReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded))
+                .shortReturnRounded(EntryDataUtil.getShortReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded))
 
                 .profitRounded(profitRounded)
 
