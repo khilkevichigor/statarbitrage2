@@ -7,19 +7,24 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class PairData {
+
     private String a;
     private String b;
 
-    private List<ZScoreEntry> entries;
+    private List<ZScoreParam> zScoreParams;
+    private ConcurrentHashMap<String, List<Candle>> candles;
 
     private String longTicker;
     private String shortTicker;
+
+    private String tradeType;
 
     private double aTickerEntryPrice;
     private double aTickerCurrentPrice;

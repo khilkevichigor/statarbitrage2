@@ -43,7 +43,7 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
             if not is_coint:
                 return None
 
-        entries = []
+        zscoreParams = []
 
         for i in range(window, len(closes_a)):
             a_window = closes_a[i - window:i]
@@ -69,7 +69,7 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
             longticker = a if z > 0 else b  # пусть всегда считает - мы все равно сетим это только когда создаем pairData
             shortticker = b if z > 0 else a
 
-            entries.append({
+            zscoreParams.append({
                 "zscore": z,
                 "pvalue": pvalue,
                 "adfpvalue": adf_pvalue,
@@ -91,7 +91,7 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
         return {
             "a": a,
             "b": b,
-            "entries": entries
+            "zscoreParams": zscoreParams
         }
 
     except Exception as e:

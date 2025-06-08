@@ -11,8 +11,8 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ZScoreTimeSeries {
+public class ZScoreData {
     private String a;
     private String b;
-    private List<ZScoreEntry> entries;
+    private List<ZScoreParam> zscoreParams;
 }

@@ -1,11 +1,12 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.ZScoreEntry;
-import com.example.statarbitrage.model.ZScoreTimeSeries;
+import com.example.statarbitrage.model.ZScoreData;
+import com.example.statarbitrage.model.ZScoreParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -13,72 +14,87 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ZScoreService {
 
-    public ZScoreTimeSeries obtainBest(List<ZScoreTimeSeries> zScoreTimeSeries) {
-        if (zScoreTimeSeries != null && !zScoreTimeSeries.isEmpty()) {
-            log.info("Отобрано {} пар", zScoreTimeSeries.size());
-            ZScoreTimeSeries bestPair = getBestPairByCriteria(zScoreTimeSeries);
-            ZScoreEntry entry = bestPair.getEntries().get(bestPair.getEntries().size() - 1); // последний entry
+    public ZScoreData obtainBest(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList != null && !zScoreDataList.isEmpty()) {
+            log.info("Отобрано {} пар", zScoreDataList.size());
+            ZScoreData best = getBestByCriteria(zScoreDataList);
+            ZScoreParam latest = best.getZscoreParams().get(best.getZscoreParams().size() - 1); // последние params
             log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                    bestPair.getA(), bestPair.getB(),
-                    entry.getPvalue(), entry.getAdfpvalue(), entry.getZscore(), entry.getCorrelation()
+                    latest.getA(), latest.getB(),
+                    latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
             ));
-            return bestPair;
+            return best;
         } else {
             throw new IllegalArgumentException("Отобрано 0 пар");
         }
     }
 
-    private ZScoreTimeSeries getBestPairByCriteria(List<ZScoreTimeSeries> zScoreTimeSeries) {
-        ZScoreTimeSeries best = null;
+    private ZScoreData getBestByCriteria(List<ZScoreData> zScoreData) {
+        ZScoreData best = null;
 
-        for (ZScoreTimeSeries z : zScoreTimeSeries) {
-            if (z.getEntries() == null || z.getEntries().isEmpty()) {
+        for (ZScoreData z : zScoreData) {
+            if (z.getZscoreParams() == null || z.getZscoreParams().isEmpty()) {
                 continue;
             }
-            ZScoreEntry lastEntry = z.getEntries().get(z.getEntries().size() - 1);
+            ZScoreParam last = z.getZscoreParams().get(z.getZscoreParams().size() - 1); //уже отсортирован
 
             if (best == null) {
                 best = z;
                 continue;
             }
 
-            ZScoreEntry bestEntry = best.getEntries().get(best.getEntries().size() - 1);
+            ZScoreParam bestParam = best.getZscoreParams().get(best.getZscoreParams().size() - 1);
 
             // Сравниваем по критериям:
 
             // Больше |zscore| — лучше
-            if (Math.abs(lastEntry.getZscore()) > Math.abs(bestEntry.getZscore())) {
+            if (Math.abs(last.getZscore()) > Math.abs(bestParam.getZscore())) {
                 best = z;
                 continue;
             }
-            if (Math.abs(lastEntry.getZscore()) < Math.abs(bestEntry.getZscore())) {
+            if (Math.abs(last.getZscore()) < Math.abs(bestParam.getZscore())) {
                 continue;
             }
 
             // Меньше pvalue — лучше
-            if (lastEntry.getPvalue() < bestEntry.getPvalue()) {
+            if (last.getPvalue() < bestParam.getPvalue()) {
                 best = z;
                 continue;
             }
-            if (lastEntry.getPvalue() > bestEntry.getPvalue()) {
+            if (last.getPvalue() > bestParam.getPvalue()) {
                 continue;
             }
 
             // Меньше adfpvalue — лучше
-            if (lastEntry.getAdfpvalue() < bestEntry.getAdfpvalue()) {
+            if (last.getAdfpvalue() < bestParam.getAdfpvalue()) {
                 best = z;
                 continue;
             }
-            if (lastEntry.getAdfpvalue() > bestEntry.getAdfpvalue()) {
+            if (last.getAdfpvalue() > bestParam.getAdfpvalue()) {
                 continue;
             }
 
             // Больше корреляция — лучше
-            if (lastEntry.getCorrelation() > bestEntry.getCorrelation()) {
+            if (last.getCorrelation() > bestParam.getCorrelation()) {
                 best = z;
             }
         }
 
         return best;
     }
+
+    public void sortByTickers(List<ZScoreData> zScoreDataList) {
+        List<ZScoreData> filtered = zScoreDataList.stream()
+                .filter(data -> data.getA().compareTo(data.getB()) < 0) //оставит btc-eth, и откинет eth-btc
+                .toList();
+
+        zScoreDataList.clear();
+        zScoreDataList.addAll(filtered);
+    }
+
+    public void sortParamsByTimestamp(List<ZScoreData> zScoreDataList) {
+        zScoreDataList.forEach(zScoreData -> zScoreData.getZscoreParams().sort(Comparator.comparingLong(ZScoreParam::getTimestamp)));
+    }
+
+
 }

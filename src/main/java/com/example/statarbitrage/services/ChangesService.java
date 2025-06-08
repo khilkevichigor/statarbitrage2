@@ -39,7 +39,7 @@ public class ChangesService {
         minProfitTime = -1;
     }
 
-    public ChangesData calculate(PairData pairData, TradeType tradeType) {
+    public ChangesData calculate(PairData pairData) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
@@ -57,7 +57,7 @@ public class ChangesService {
         BigDecimal aReturnPct;
         BigDecimal bReturnPct;
 
-        if (tradeType.equals(TradeType.GENERAL)) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             if (pairData.getLongTicker().equals(pairData.getA())) {
                 // A - long, B - short
                 aReturnPct = aCurrent.subtract(aEntry)
@@ -77,7 +77,7 @@ public class ChangesService {
                         .divide(bEntry, 10, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100));
             }
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             // A - long, B - short
             aReturnPct = aCurrent.subtract(aEntry)
                     .divide(aEntry, 10, RoundingMode.HALF_UP)
@@ -86,7 +86,7 @@ public class ChangesService {
             bReturnPct = bEntry.subtract(bCurrent) // шорт: считаем наоборот
                     .divide(bEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             // A - short, B - long
             aReturnPct = aEntry.subtract(aCurrent) // шорт: считаем наоборот
                     .divide(aEntry, 10, RoundingMode.HALF_UP)
@@ -96,7 +96,7 @@ public class ChangesService {
                     .divide(bEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
         } else {
-            throw new IllegalStateException("Unknown tradeType: " + tradeType);
+            throw new IllegalStateException("Unknown tradeType: " + pairData.getTradeType());
         }
 
         BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
@@ -159,19 +159,19 @@ public class ChangesService {
 
         String longLogMessage = String.format(
                 "📊 LONG %s: Entry: %s, Current: %s, Changes: %s%%",
-                EntryDataUtil.getLongTicker(pairData, tradeType),
-                EntryDataUtil.getLongTickerEntryPrice(pairData, tradeType),
-                EntryDataUtil.getLongTickerCurrentPrice(pairData, tradeType),
-                EntryDataUtil.getLongReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded)
+                EntryDataUtil.getLongTicker(pairData),
+                EntryDataUtil.getLongTickerEntryPrice(pairData),
+                EntryDataUtil.getLongTickerCurrentPrice(pairData),
+                EntryDataUtil.getLongReturnRounded(pairData, aReturnRounded, bReturnRounded)
         );
         log.info(longLogMessage);
 
         String shortLogMessage = String.format(
                 "📉 SHORT %s: Entry: %s, Current: %s, Changes: %s%%",
-                EntryDataUtil.getShortTicker(pairData, tradeType),
-                EntryDataUtil.getShortTickerEntryPrice(pairData, tradeType),
-                EntryDataUtil.getShortTickerCurrentPrice(pairData, tradeType),
-                EntryDataUtil.getShortReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded)
+                EntryDataUtil.getShortTicker(pairData),
+                EntryDataUtil.getShortTickerEntryPrice(pairData),
+                EntryDataUtil.getShortTickerCurrentPrice(pairData),
+                EntryDataUtil.getShortReturnRounded(pairData, aReturnRounded, bReturnRounded)
         );
         log.info(shortLogMessage);
 
@@ -205,8 +205,8 @@ public class ChangesService {
 
         return ChangesData.builder()
 
-                .longReturnRounded(EntryDataUtil.getLongReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded))
-                .shortReturnRounded(EntryDataUtil.getShortReturnRounded(pairData, tradeType, aReturnRounded, bReturnRounded))
+                .longReturnRounded(EntryDataUtil.getLongReturnRounded(pairData, aReturnRounded, bReturnRounded))
+                .shortReturnRounded(EntryDataUtil.getShortReturnRounded(pairData, aReturnRounded, bReturnRounded))
 
                 .profitRounded(profitRounded)
 

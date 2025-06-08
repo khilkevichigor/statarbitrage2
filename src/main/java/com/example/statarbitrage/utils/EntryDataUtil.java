@@ -9,91 +9,91 @@ public final class EntryDataUtil {
     private EntryDataUtil() {
     }
 
-    public static BigDecimal getLongReturnRounded(PairData pairData, TradeType tradeType, BigDecimal aReturnRounded, BigDecimal bReturnRounded) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static BigDecimal getLongReturnRounded(PairData pairData, BigDecimal aReturnRounded, BigDecimal bReturnRounded) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getLongTicker().equals(pairData.getA()) ? aReturnRounded : bReturnRounded;
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return aReturnRounded;
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return bReturnRounded;
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static BigDecimal getShortReturnRounded(PairData pairData, TradeType tradeType, BigDecimal aReturnRounded, BigDecimal bReturnRounded) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static BigDecimal getShortReturnRounded(PairData pairData, BigDecimal aReturnRounded, BigDecimal bReturnRounded) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getShortTicker().equals(pairData.getA()) ? aReturnRounded : bReturnRounded;
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return bReturnRounded;
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return aReturnRounded;
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static double getLongTickerCurrentPrice(PairData pairData, TradeType tradeType) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static double getLongTickerCurrentPrice(PairData pairData) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getLongTicker().equals(pairData.getA()) ? pairData.getATickerCurrentPrice() : pairData.getBTickerCurrentPrice();
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return pairData.getATickerCurrentPrice();
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return pairData.getBTickerCurrentPrice();
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static double getShortTickerCurrentPrice(PairData pairData, TradeType tradeType) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static double getShortTickerCurrentPrice(PairData pairData) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getShortTicker().equals(pairData.getA()) ? pairData.getATickerCurrentPrice() : pairData.getBTickerCurrentPrice();
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return pairData.getBTickerCurrentPrice();
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return pairData.getATickerCurrentPrice();
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static String getLongTicker(PairData pairData, TradeType tradeType) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static String getLongTicker(PairData pairData) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getLongTicker();
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return pairData.getA();
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return pairData.getB();
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static String getShortTicker(PairData pairData, TradeType tradeType) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static String getShortTicker(PairData pairData) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getShortTicker();
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return pairData.getB();
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return pairData.getA();
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static double getLongTickerEntryPrice(PairData pairData, TradeType tradeType) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static double getLongTickerEntryPrice(PairData pairData) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getLongTicker().equals(pairData.getA()) ? pairData.getATickerEntryPrice() : pairData.getBTickerEntryPrice();
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return pairData.getATickerEntryPrice();
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return pairData.getBTickerEntryPrice();
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 
-    public static double getShortTickerEntryPrice(PairData pairData, TradeType tradeType) {
-        if (tradeType.equals(TradeType.GENERAL)) {
+    public static double getShortTickerEntryPrice(PairData pairData) {
+        if (pairData.getTradeType().equals(TradeType.GENERAL.name())) {
             return pairData.getShortTicker().equals(pairData.getA()) ? pairData.getATickerEntryPrice() : pairData.getBTickerEntryPrice();
-        } else if (tradeType.equals(TradeType.LASB)) {
+        } else if (pairData.getTradeType().equals(TradeType.LASB.name())) {
             return pairData.getBTickerEntryPrice();
-        } else if (tradeType.equals(TradeType.LBSA)) {
+        } else if (pairData.getTradeType().equals(TradeType.LBSA.name())) {
             return pairData.getATickerEntryPrice();
         }
-        throw new IllegalArgumentException("Unknown tradeType: " + tradeType);
+        throw new IllegalArgumentException("Unknown tradeType: " + pairData.getTradeType());
     }
 }

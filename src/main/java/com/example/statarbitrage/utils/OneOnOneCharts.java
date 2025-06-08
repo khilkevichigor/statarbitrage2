@@ -2,7 +2,7 @@ package com.example.statarbitrage.utils;
 
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.ZScoreParam;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.XYChart;
@@ -29,7 +29,7 @@ public final class OneOnOneCharts {
     }
 
     public static void create(ConcurrentHashMap<String, List<Candle>> candlesMap,
-                              ZScoreEntry bestPair, PairData pairData) {
+                              ZScoreParam bestPair, PairData pairData) {
 
         String aTicker = bestPair.getA();
         String bTicker = bestPair.getB();
@@ -175,7 +175,7 @@ public final class OneOnOneCharts {
     }
 
     public static void createLogarithmic(ConcurrentHashMap<String, List<Candle>> candlesMap,
-                                         ZScoreEntry bestPair, PairData pairData) {
+                                         ZScoreParam bestPair, PairData pairData) {
         String aTicker = bestPair.getA();
         String bTicker = bestPair.getB();
 

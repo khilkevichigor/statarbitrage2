@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,46 +22,51 @@ public class PairDataService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String PAIR_DATA_JSON_FILE_PATH = "pair_data.json";
 
-    public PairData createPairData(ZScoreTimeSeries bestZscoreTimeSeria, ConcurrentHashMap<String, List<Candle>> candlesMap) {
+    public PairData createPairData(ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candlesMap) {
         PairData pairData = new PairData();
 
-        List<ZScoreEntry> entries = bestZscoreTimeSeria.getEntries();
-        pairData.setEntries(entries);
+        pairData.setZScoreParams(zScoreData.getZscoreParams());
 
-        ZScoreEntry lastZscoreEntry = entries.get(entries.size() - 1); //todo fix
+        pairData.setCandles(candlesMap);
 
-        pairData.setA(bestZscoreTimeSeria.getA());
-        pairData.setB(bestZscoreTimeSeria.getB());
+        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
 
-        pairData.setLongTicker(lastZscoreEntry.getLongticker()); //todo странно почему чарт z ниже 0 но лонг A! по идее z<0 -> лонг B!!!
-        pairData.setShortTicker(lastZscoreEntry.getShortticker());
+        pairData.setA(zScoreData.getA());
+        pairData.setB(zScoreData.getB());
 
-        List<Candle> aTickerCandles = candlesMap.get(bestZscoreTimeSeria.getA());
-        List<Candle> bTickerCandles = candlesMap.get(bestZscoreTimeSeria.getB());
+        pairData.setLongTicker(latestParam.getLongticker());
+        pairData.setShortTicker(latestParam.getShortticker());
+
+        List<Candle> aTickerCandles = candlesMap.get(zScoreData.getA());
+        List<Candle> bTickerCandles = candlesMap.get(zScoreData.getB());
 
         if (aTickerCandles == null || aTickerCandles.isEmpty() ||
                 bTickerCandles == null || bTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}", bestZscoreTimeSeria.getA(), bestZscoreTimeSeria.getB());
+            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getA(), zScoreData.getB());
         }
 
         pairData.setATickerCurrentPrice(aTickerCandles.get(aTickerCandles.size() - 1).getClose());
         pairData.setBTickerCurrentPrice(bTickerCandles.get(bTickerCandles.size() - 1).getClose());
 
-        pairData.setZScoreCurrent(lastZscoreEntry.getZscore());
-        pairData.setCorrelationCurrent(lastZscoreEntry.getCorrelation());
-        pairData.setAdfPvalueCurrent(lastZscoreEntry.getAdfpvalue());
-        pairData.setPValueCurrent(lastZscoreEntry.getPvalue());
-        pairData.setMeanCurrent(lastZscoreEntry.getMean());
-        pairData.setStdCurrent(lastZscoreEntry.getStd());
-        pairData.setSpreadCurrent(lastZscoreEntry.getSpread());
-        pairData.setAlphaCurrent(lastZscoreEntry.getAlpha());
-        pairData.setBetaCurrent(lastZscoreEntry.getBeta());
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
 
         save(pairData);
 
         log.info("Создали pair_data.json");
 
         return pairData;
+    }
+
+    private static void sortByTimestamp(List<ZScoreParam> zScoreTimeSeries) {
+        zScoreTimeSeries.sort(Comparator.comparingLong(ZScoreParam::getTimestamp)); //от раннего к позднему
     }
 
     public PairData getPairData() {
@@ -91,82 +97,68 @@ public class PairDataService {
         }
     }
 
-    public void updatePairDataAndSave(PairData pairData, ZScoreEntry firstPair, ConcurrentHashMap<String, List<Candle>> candles, TradeType tradeType) {
-        updateCurrentPrices(pairData, candles);
-        updateCurrentCointParams(pairData, firstPair);
-        setupEntryPointsIfNeeded(pairData, candles, tradeType);
-        calculateAndSetChanges(pairData, tradeType);
-        save(pairData);
-    }
+    public void update(PairData pairData, ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candles, TradeType tradeType) {
+        pairData.setCandles(candles);
+        pairData.setTradeType(tradeType.name());
 
-    public void updateCurrentPrices(PairData pairData, ConcurrentHashMap<String, List<Candle>> candles) {
-        try {
-            List<Candle> aTickerCandles = candles.get(pairData.getA());
-            List<Candle> bTickerCandles = candles.get(pairData.getB());
+        //updateCurrentPrices
+        List<Candle> aTickerCandles = candles.get(pairData.getA());
+        List<Candle> bTickerCandles = candles.get(pairData.getB());
 
-            double aPrice = aTickerCandles.get(aTickerCandles.size() - 1).getClose();
-            double bPrice = bTickerCandles.get(bTickerCandles.size() - 1).getClose();
+        double aCurrentPrice = aTickerCandles.get(aTickerCandles.size() - 1).getClose();
+        double bCurrentPrice = bTickerCandles.get(bTickerCandles.size() - 1).getClose();
 
-            pairData.setATickerCurrentPrice(aPrice);
-            pairData.setBTickerCurrentPrice(bPrice);
-        } catch (Exception e) {
-            log.error("Ошибка при обновлении текущих цен: {}", e.getMessage(), e);
-        }
-    }
+        pairData.setATickerCurrentPrice(aCurrentPrice);
+        pairData.setBTickerCurrentPrice(bCurrentPrice);
 
-    public void setupEntryPointsIfNeeded(PairData pairData, ConcurrentHashMap<String, List<Candle>> candles, TradeType tradeType) {
+        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
+
+        //setupEntryPointsIfNeeded
         if (pairData.getATickerEntryPrice() == 0.0 || pairData.getBTickerEntryPrice() == 0.0) {
-            pairData.setATickerEntryPrice(pairData.getATickerCurrentPrice());
-            pairData.setBTickerEntryPrice(pairData.getBTickerCurrentPrice());
+            pairData.setATickerEntryPrice(aCurrentPrice);
+            pairData.setBTickerEntryPrice(bCurrentPrice);
 
-            pairData.setZScoreEntry(pairData.getZScoreCurrent());
-            pairData.setCorrelationEntry(pairData.getCorrelationCurrent());
-            pairData.setAdfPvalueEntry(pairData.getAdfPvalueCurrent());
-            pairData.setPValueEntry(pairData.getPValueCurrent());
-            pairData.setMeanEntry(pairData.getMeanCurrent());
-            pairData.setStdEntry(pairData.getStdCurrent());
-            pairData.setSpreadEntry(pairData.getSpreadCurrent());
-            pairData.setAlphaEntry(pairData.getAlphaCurrent());
-            pairData.setBetaEntry(pairData.getBetaCurrent());
+            pairData.setZScoreEntry(latestParam.getZscore());
+            pairData.setCorrelationEntry(latestParam.getCorrelation());
+            pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
+            pairData.setPValueEntry(latestParam.getPvalue());
+            pairData.setMeanEntry(latestParam.getMean());
+            pairData.setStdEntry(latestParam.getStd());
+            pairData.setSpreadEntry(latestParam.getSpread());
+            pairData.setAlphaEntry(latestParam.getAlpha());
+            pairData.setBetaEntry(latestParam.getBeta());
 
             // Ставим время открытия по long-свечке
-            pairData.setEntryTime(getEntryTime(pairData.getA(), candles));
+            pairData.setEntryTime(latestParam.getTimestamp());
 
             log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                    EntryDataUtil.getLongTicker(pairData, tradeType), EntryDataUtil.getLongTickerEntryPrice(pairData, tradeType),
-                    EntryDataUtil.getShortTicker(pairData, tradeType), EntryDataUtil.getShortTickerEntryPrice(pairData, tradeType),
+                    EntryDataUtil.getLongTicker(pairData), EntryDataUtil.getLongTickerEntryPrice(pairData), //todo перенести внутрь PairData.class
+                    EntryDataUtil.getShortTicker(pairData), EntryDataUtil.getShortTickerEntryPrice(pairData),
                     pairData.getZScoreEntry());
         }
-    }
 
-    private long getEntryTime(String longticker, ConcurrentHashMap<String, List<Candle>> candles) {
-        List<Candle> longTickerCandles = candles.get(longticker);
-        Candle longCandle = longTickerCandles.get(longTickerCandles.size() - 1);
-        return longCandle.getTimestamp();
-    }
+        //updateCurrentCointParams
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
 
-    public void calculateAndSetChanges(PairData pairData, TradeType tradeType) {
-        ChangesData changesData = changesService.calculate(pairData, tradeType);
-
+        //calculateAndSetChanges
+        ChangesData changesData = changesService.calculate(pairData);
         pairData.setLongChanges(changesData.getLongReturnRounded());
         pairData.setShortChanges(changesData.getShortReturnRounded());
-
         pairData.setProfitChanges(changesData.getProfitRounded());
         pairData.setZScoreChanges(changesData.getZScoreRounded());
-
         pairData.setTimeInMinutesSinceEntryToMin(changesData.getTimeInMinutesSinceEntryToMin());
         pairData.setTimeInMinutesSinceEntryToMax(changesData.getTimeInMinutesSinceEntryToMax());
-    }
 
-    public void updateCurrentCointParams(PairData pairData, ZScoreEntry firstPair) {
-        pairData.setZScoreCurrent(firstPair.getZscore());
-        pairData.setCorrelationCurrent(firstPair.getCorrelation());
-        pairData.setAdfPvalueCurrent(firstPair.getAdfpvalue());
-        pairData.setPValueCurrent(firstPair.getPvalue());
-        pairData.setMeanCurrent(firstPair.getMean());
-        pairData.setStdCurrent(firstPair.getStd());
-        pairData.setSpreadCurrent(firstPair.getSpread());
-        pairData.setAlphaCurrent(firstPair.getAlpha());
-        pairData.setBetaCurrent(firstPair.getBeta());
+        pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
+
+        save(pairData);
     }
 }

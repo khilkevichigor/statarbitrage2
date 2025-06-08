@@ -1,7 +1,7 @@
 package com.example.statarbitrage.utils;
 
 import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.ZScoreParam;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.XYChart;
@@ -23,23 +23,21 @@ public final class ZScoreChart {
     private ZScoreChart() {
     }
 
-    public static void create(List<ZScoreEntry> zScoreEntries, PairData pairData) {
-        if (zScoreEntries == null || zScoreEntries.isEmpty()) {
-            log.warn("Список ZScoreEntry пуст — нечего рисовать.");
+    public static void create(PairData pairData) {
+        List<ZScoreParam> params = pairData.getZScoreParams();
+        if (params == null || params.isEmpty()) {
+            log.warn("Список params пуст — нечего рисовать.");
             return;
         }
 
-        // 🔽 Добавь сортировку по времени
-        zScoreEntries.sort(Comparator.comparingLong(ZScoreEntry::getTimestamp));
-
-        // Извлекаем timestamps и zScores из списка zScoreEntries
-        List<Long> timestamps = zScoreEntries.stream()
-                .map(ZScoreEntry::getTimestamp)
+        // Извлекаем timestamps и zScores из списка ZScoreParam
+        List<Long> timestamps = params.stream()
+                .map(ZScoreParam::getTimestamp)
                 .collect(Collectors.toList());
-        log.info("Временной диапазон графика: {} - {}", new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
+        log.info("Временной диапазон графика от: {} - до: {}", new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
 
-        List<Double> zScores = zScoreEntries.stream()
-                .map(ZScoreEntry::getZscore)
+        List<Double> zScores = params.stream()
+                .map(ZScoreParam::getZscore)
                 .collect(Collectors.toList());
         log.info("Первые 5 Z-значений: {}", zScores.stream().limit(5).collect(Collectors.toList()));
         log.info("Последние 5 Z-значений: {}", zScores.stream().skip(Math.max(0, zScores.size() - 5)).collect(Collectors.toList()));

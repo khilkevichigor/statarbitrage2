@@ -2,7 +2,6 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.utils.ZScoreChart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -68,16 +66,15 @@ public class ChartService {
         }
     }
 
-    public void createAndSend(String chatId, List<ZScoreEntry> zScoreEntries, PairData pairData) {
-        ZScoreChart.create(zScoreEntries, pairData);
+    public void createAndSend(String chatId, PairData pairData) {
+        clearChartDir();
+        ZScoreChart.create(pairData);
         sendChart(chatId, getChart(), getCaption(pairData), true);
     }
 
     @NotNull
     private static String getCaption(PairData pairData) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(pairData.getProfitChanges() != null ? "Profit " + pairData.getProfitChanges() + "%\n" : "");
-        sb.append("Z = " + pairData.getEntries().get(pairData.getEntries().size() - 1).getZscore());
-        return sb.toString();
+        return (pairData.getProfitChanges() != null ? "Profit " + pairData.getProfitChanges() + "%\n" : "") +
+                "Z = " + pairData.getZScoreCurrent();
     }
 }

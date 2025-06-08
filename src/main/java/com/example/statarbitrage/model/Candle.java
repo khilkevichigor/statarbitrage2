@@ -1,11 +1,15 @@
 package com.example.statarbitrage.model;
 
 import com.google.gson.JsonArray;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Candle {
     private long timestamp;
     private double open;
