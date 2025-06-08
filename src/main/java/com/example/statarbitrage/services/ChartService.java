@@ -74,7 +74,8 @@ public class ChartService {
 
     @NotNull
     private static String getCaption(PairData pairData) {
-        return (pairData.getProfitChanges() != null ? "Profit " + pairData.getProfitChanges() + "%\n" : "") +
-                "Z = " + pairData.getZScoreCurrent();
+        return String.format("%s/%s\nprofit=%s%%\nlongCh=%s%% | shortCh=%s%%\nz=%.2f | corr=%.2f",
+                pairData.getA(), pairData.getB(), pairData.getProfitChanges(), pairData.getLongChanges(), pairData.getShortChanges(), pairData.getZScoreCurrent(), pairData.getCorrelationCurrent()
+        );
     }
 }
