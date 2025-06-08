@@ -1,10 +1,7 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.bot.TradeType;
-import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.ChangesData;
-import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreEntry;
+import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.utils.EntryDataUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,35 +21,40 @@ public class PairDataService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String PAIR_DATA_JSON_FILE_PATH = "pair_data.json";
 
-    public PairData createPairData(ZScoreEntry bestPair, ConcurrentHashMap<String, List<Candle>> candlesMap) {
+    public PairData createPairData(ZScoreTimeSeries bestZscoreTimeSeria, ConcurrentHashMap<String, List<Candle>> candlesMap) {
         PairData pairData = new PairData();
 
-        pairData.setA(bestPair.getA());
-        pairData.setB(bestPair.getB());
+        List<ZScoreEntry> entries = bestZscoreTimeSeria.getEntries();
+        pairData.setEntries(entries);
 
-        pairData.setLongTicker(bestPair.getLongticker()); //todo странно почему чарт z ниже 0 но лонг A! по идее z<0 -> лонг B!!!
-        pairData.setShortTicker(bestPair.getShortticker());
+        ZScoreEntry lastZscoreEntry = entries.get(entries.size() - 1); //todo fix
 
-        List<Candle> aTickerCandles = candlesMap.get(bestPair.getA());
-        List<Candle> bTickerCandles = candlesMap.get(bestPair.getB());
+        pairData.setA(bestZscoreTimeSeria.getA());
+        pairData.setB(bestZscoreTimeSeria.getB());
+
+        pairData.setLongTicker(lastZscoreEntry.getLongticker()); //todo странно почему чарт z ниже 0 но лонг A! по идее z<0 -> лонг B!!!
+        pairData.setShortTicker(lastZscoreEntry.getShortticker());
+
+        List<Candle> aTickerCandles = candlesMap.get(bestZscoreTimeSeria.getA());
+        List<Candle> bTickerCandles = candlesMap.get(bestZscoreTimeSeria.getB());
 
         if (aTickerCandles == null || aTickerCandles.isEmpty() ||
                 bTickerCandles == null || bTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}", bestPair.getA(), bestPair.getB());
+            log.warn("Нет данных по свечам для пары: {} - {}", bestZscoreTimeSeria.getA(), bestZscoreTimeSeria.getB());
         }
 
         pairData.setATickerCurrentPrice(aTickerCandles.get(aTickerCandles.size() - 1).getClose());
         pairData.setBTickerCurrentPrice(bTickerCandles.get(bTickerCandles.size() - 1).getClose());
 
-        pairData.setZScoreCurrent(bestPair.getZscore());
-        pairData.setCorrelationCurrent(bestPair.getCorrelation());
-        pairData.setAdfPvalueCurrent(bestPair.getAdfpvalue());
-        pairData.setPValueCurrent(bestPair.getPvalue());
-        pairData.setMeanCurrent(bestPair.getMean());
-        pairData.setStdCurrent(bestPair.getStd());
-        pairData.setSpreadCurrent(bestPair.getSpread());
-        pairData.setAlphaCurrent(bestPair.getAlpha());
-        pairData.setBetaCurrent(bestPair.getBeta());
+        pairData.setZScoreCurrent(lastZscoreEntry.getZscore());
+        pairData.setCorrelationCurrent(lastZscoreEntry.getCorrelation());
+        pairData.setAdfPvalueCurrent(lastZscoreEntry.getAdfpvalue());
+        pairData.setPValueCurrent(lastZscoreEntry.getPvalue());
+        pairData.setMeanCurrent(lastZscoreEntry.getMean());
+        pairData.setStdCurrent(lastZscoreEntry.getStd());
+        pairData.setSpreadCurrent(lastZscoreEntry.getSpread());
+        pairData.setAlphaCurrent(lastZscoreEntry.getAlpha());
+        pairData.setBetaCurrent(lastZscoreEntry.getBeta());
 
         save(pairData);
 

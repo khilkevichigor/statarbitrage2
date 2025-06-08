@@ -6,6 +6,7 @@ import com.example.statarbitrage.model.ZScoreEntry;
 import com.example.statarbitrage.utils.ZScoreChart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -69,6 +70,14 @@ public class ChartService {
 
     public void createAndSend(String chatId, List<ZScoreEntry> zScoreEntries, PairData pairData) {
         ZScoreChart.create(zScoreEntries, pairData);
-        sendChart(chatId, getChart(), pairData.getProfitChanges() != null ? "Profit " + pairData.getProfitChanges() + "%" : "", true);
+        sendChart(chatId, getChart(), getCaption(pairData), true);
+    }
+
+    @NotNull
+    private static String getCaption(PairData pairData) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(pairData.getProfitChanges() != null ? "Profit " + pairData.getProfitChanges() + "%\n" : "");
+        sb.append("Z = " + pairData.getEntries().get(pairData.getEntries().size() - 1).getZscore());
+        return sb.toString();
     }
 }

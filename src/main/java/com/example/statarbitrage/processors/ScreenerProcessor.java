@@ -48,7 +48,7 @@ public class ScreenerProcessor {
                 new TypeReference<>() {
                 });
         ZScoreTimeSeries bestZScoreTimeSeries = zScoreService.obtainBest(zScoreTimeSeries);
-        PairData pairData = pairDataService.createPairData(bestZScoreTimeSeries.getEntries().get(0), candlesMap);
+        PairData pairData = pairDataService.createPairData(bestZScoreTimeSeries, candlesMap);
         chartService.createAndSend(chatId, bestZScoreTimeSeries.getEntries(), pairData);
         logDuration(startTime);
     }
