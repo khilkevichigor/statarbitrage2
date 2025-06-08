@@ -26,7 +26,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -55,6 +54,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
         listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд")); //авто определение по лонг/шорт тикеру от пайтон
+        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции")); //запуск симуляции по всем парам сразу
 //        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE_L_A_S_B.getName(), "Старт тест-трейд long a, short b")); //расскоменти если нужно в ручную управлять что лонг что шорт
 //        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE_L_B_S_A.getName(), "Старт тест-трейд long b, short a"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
@@ -86,54 +86,130 @@ public class TelegramBot extends TelegramLongPollingBot {
             Message message = update.getMessage();
             String text = message.getText();
 
-            if (Objects.equals(text, BotMenu.FIND.getName())) {
-                log.info("-> FIND");
-                stopTestTrade(chatIdStr);
-                sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
-                screenerProcessor.sendBestChart(chatIdStr);
-            } else if (Objects.equals(text, BotMenu.GET_SETTINGS.getName())) {
-                log.info("-> GET_SETTINGS");
-                Settings settings = settingsService.getSettings();
-                String json;
-                try {
-                    json = new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(settings);
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
-                sendMessage(chatIdStr, "```json\n" + json + "\n```");
+//            if (Objects.equals(text, BotMenu.FIND.getName())) {
+//                log.info("-> " + BotMenu.FIND.name());
+//                stopTestTrade(chatIdStr);
+//                sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
+//                screenerProcessor.sendBestChart(chatIdStr);
+//            } else if (Objects.equals(text, BotMenu.GET_SETTINGS.getName())) {
+//                log.info("-> " + BotMenu.GET_SETTINGS.name());
+//                sendSettings(chatIdStr);
+//            } else if (Objects.equals(text, BotMenu.RESET_SETTINGS.getName())) {
+//                log.info("-> " + BotMenu.RESET_SETTINGS.name());
+//                settingsService.resetSettings(chatId);
+//                sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
+//            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE.getName())) {
+//                log.info("-> " + BotMenu.START_TEST_TRADE.name());
+//                startTestTrade(chatIdStr, TradeType.GENERAL);
+//            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_A_S_B.getName())) {
+//                log.info("-> " + BotMenu.START_TEST_TRADE_L_A_S_B.name());
+//                startTestTrade(chatIdStr, TradeType.LASB);
+//            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_B_S_A.getName())) {
+//                log.info("-> " + BotMenu.START_TEST_TRADE_L_B_S_A.name());
+//                startTestTrade(chatIdStr, TradeType.LBSA);
+//            } else if (Objects.equals(text, BotMenu.STOP_TEST_TRADE.getName())) {
+//                log.info("-> " + BotMenu.STOP_TEST_TRADE.name());
+//                stopTestTrade(chatIdStr);
+//            } else if (Objects.equals(text, BotMenu.DELETE_FILES.getName())) {
+//                log.info("-> " + BotMenu.DELETE_FILES.name());
+//                fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
+//            } else if (Objects.equals(text, BotMenu.START_SIMULATION.getName())) {
+//                log.info("-> " + BotMenu.START_SIMULATION.name());
+//                startSimulation(chatIdStr, TradeType.GENERAL);
+//            } else if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
+//                log.info("-> SET_SETTINGS");
+//                setSettings(text, chatId, chatIdStr);
+//            }
 
-            } else if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
-                log.info("-> SET_SETTINGS");
-                try {
-                    String jsonPart = text.replace(text.startsWith("/set_settings") ? "/set_settings" : "/ss", "").trim();
-                    Settings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, Settings.class);
-                    settingsService.updateAllSettings(chatId, newSettings);
-                    sendMessage(chatIdStr, "✅ Настройки успешно обновлены!");
-                } catch (Exception e) {
-                    log.warn("❌ Ошибка разбора JSON: {}", e.getMessage());
-                    sendMessage(chatIdStr, "❌ Ошибка разбора JSON: " + e.getMessage());
+            switch (text) {
+                case "/find" -> {
+                    log.info("-> " + BotMenu.FIND.name());
+                    stopTestTrade(chatIdStr);
+                    sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
+                    screenerProcessor.sendBestChart(chatIdStr);
                 }
-            } else if (Objects.equals(text, BotMenu.RESET_SETTINGS.getName())) {
-                log.info("-> RESET_SETTINGS");
-                settingsService.resetSettings(chatId);
-                sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
-            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE.getName())) {
-                log.info("-> START_TEST_TRADE");
-                startTestTrade(chatIdStr, TradeType.GENERAL);
-            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_A_S_B.getName())) {
-                log.info("-> START_TEST_TRADE_L_A_S_B");
-                startTestTrade(chatIdStr, TradeType.LASB);
-            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_B_S_A.getName())) {
-                log.info("-> START_TEST_TRADE_L_B_S_A");
-                startTestTrade(chatIdStr, TradeType.LBSA);
-            } else if (Objects.equals(text, BotMenu.STOP_TEST_TRADE.getName())) {
-                log.info("-> STOP_TEST_TRADE");
-                stopTestTrade(chatIdStr);
-            } else if (Objects.equals(text, BotMenu.DELETE_FILES.getName())) {
-                log.info("-> DELETE_FILES");
-                fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
+                case "/get_settings" -> {
+                    log.info("-> " + BotMenu.GET_SETTINGS.name());
+                    sendSettings(chatIdStr);
+                }
+                case "/reset_settings" -> {
+                    log.info("-> " + BotMenu.RESET_SETTINGS.name());
+                    settingsService.resetSettings(chatId);
+                    sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
+                }
+                case "/start_test_trade" -> {
+                    log.info("-> " + BotMenu.START_TEST_TRADE.name());
+                    startTestTrade(chatIdStr, TradeType.GENERAL);
+                }
+                case "/start_test_trade_l_a_s_b" -> {
+                    log.info("-> " + BotMenu.START_TEST_TRADE_L_A_S_B.name());
+                    startTestTrade(chatIdStr, TradeType.LASB);
+                }
+                case "/start_test_trade_l_b_s_a" -> {
+                    log.info("-> " + BotMenu.START_TEST_TRADE_L_B_S_A.name());
+                    startTestTrade(chatIdStr, TradeType.LBSA);
+                }
+                case "/stop_test_trade" -> {
+                    log.info("-> " + BotMenu.STOP_TEST_TRADE.name());
+                    stopTestTrade(chatIdStr);
+                }
+                case "/delete_files" -> {
+                    log.info("-> " + BotMenu.DELETE_FILES.name());
+                    fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
+                }
+                case "/start_simulation" -> {
+                    log.info("-> " + BotMenu.START_SIMULATION.name());
+                    startSimulation(chatIdStr, TradeType.GENERAL);
+                }
+                default -> {
+                    if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
+                        log.info("-> SET_SETTINGS");
+                        setSettings(text, chatId, chatIdStr);
+                    }
+                }
             }
         }
+    }
+
+    private void setSettings(String text, long chatId, String chatIdStr) {
+        try {
+            String jsonPart = text.replace(text.startsWith("/set_settings") ? "/set_settings" : "/ss", "").trim();
+            Settings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, Settings.class);
+            settingsService.updateAllSettings(chatId, newSettings);
+            sendMessage(chatIdStr, "✅ Настройки успешно обновлены!");
+        } catch (Exception e) {
+            log.warn("❌ Ошибка разбора JSON: {}", e.getMessage());
+            sendMessage(chatIdStr, "❌ Ошибка разбора JSON: " + e.getMessage());
+        }
+    }
+
+    private void sendSettings(String chatIdStr) {
+        Settings settings = settingsService.getSettings();
+        String json;
+        try {
+            json = new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(settings);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        sendMessage(chatIdStr, "```json\n" + json + "\n```");
+    }
+
+    private void startSimulation(String chatId, TradeType tradeType) {
+        if (isStartTestTradeRunning.get()) {
+            sendMessage(chatId, "⏳ Симуляция уже запущена");
+            return;
+        }
+
+        isStartTestTradeRunning.set(true);
+        sendMessage(chatId, "🔍 Симуляция запущена...");
+
+        testTradeTask = scheduler.scheduleAtFixedRate(() -> {
+            try {
+                screenerProcessor.simulation(chatId, tradeType);
+            } catch (Exception e) {
+                log.error("Ошибка в startSimulation()", e);
+            }
+        }, 0, 60L * settingsService.getSettings().getCheckInterval(), TimeUnit.SECONDS);
     }
 
     private void startTestTrade(String chatId, TradeType tradeType) {

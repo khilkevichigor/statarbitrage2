@@ -84,6 +84,10 @@ public class ScreenerProcessor {
         }
     }
 
+    public void simulation(String chatId, TradeType tradeType) {
+
+    }
+
     private static void logData(ZScoreData first) {
         ZScoreParam latest = first.getZscoreParams().get(first.getZscoreParams().size() - 1); // последние params
         log.info(String.format("Наша пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
