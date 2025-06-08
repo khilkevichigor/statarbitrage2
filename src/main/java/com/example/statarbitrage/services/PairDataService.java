@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -63,10 +62,6 @@ public class PairDataService {
         log.info("Создали pair_data.json");
 
         return pairData;
-    }
-
-    private static void sortByTimestamp(List<ZScoreParam> zScoreTimeSeries) {
-        zScoreTimeSeries.sort(Comparator.comparingLong(ZScoreParam::getTimestamp)); //от раннего к позднему
     }
 
     public PairData getPairData() {
