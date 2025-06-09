@@ -149,8 +149,10 @@ public class PairDataService {
         pairData.setShortChanges(changesData.getShortReturnRounded());
         pairData.setProfitChanges(changesData.getProfitRounded());
         pairData.setZScoreChanges(changesData.getZScoreRounded());
-        pairData.setTimeInMinutesSinceEntryToMin(changesData.getTimeInMinutesSinceEntryToMin());
         pairData.setTimeInMinutesSinceEntryToMax(changesData.getTimeInMinutesSinceEntryToMax());
+        pairData.setTimeInMinutesSinceEntryToMin(changesData.getTimeInMinutesSinceEntryToMin());
+        pairData.setMinProfitRounded(changesData.getMinProfitRounded());
+        pairData.setMaxProfitRounded(changesData.getMaxProfitRounded());
 
         pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
 

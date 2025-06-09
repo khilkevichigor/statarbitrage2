@@ -215,6 +215,9 @@ public class ChangesService {
 
                 .zScoreRounded(zScoreRounded)
 
+                .timeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax)
+                .timeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin)
+
                 .build();
     }
 }

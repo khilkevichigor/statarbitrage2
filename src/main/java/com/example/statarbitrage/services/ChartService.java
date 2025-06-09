@@ -82,7 +82,10 @@ public class ChartService {
         if (pairData.getLongChanges() != null && pairData.getShortChanges() != null) {
             sb.append("longCh=").append(pairData.getLongChanges()).append("%").append(" | ").append("shortCh=").append(pairData.getShortChanges()).append("%").append("\n");
         }
-        sb.append("z=").append(String.format("%.2f", pairData.getZScoreCurrent())).append(" | ").append("corr=").append(String.format("%.2f", pairData.getCorrelationCurrent()));
+        sb.append("z=").append(String.format("%.2f", pairData.getZScoreCurrent())).append(" | ").append("corr=").append(String.format("%.2f", pairData.getCorrelationCurrent())).append("\n");
+        if (pairData.getMaxProfitRounded() != null && pairData.getMinProfitRounded() != null) {
+            sb.append("maxProfit=").append(pairData.getMaxProfitRounded()).append("%(").append(pairData.getTimeInMinutesSinceEntryToMax()).append("min)").append(" | ").append("minProfit=").append(pairData.getMinProfitRounded()).append("%(").append(pairData.getTimeInMinutesSinceEntryToMin()).append("min)").append("\n");
+        }
         return sb.toString();
     }
 }

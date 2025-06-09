@@ -68,5 +68,8 @@ public class PairData {
     private long timeInMinutesSinceEntryToMin;
     private long timeInMinutesSinceEntryToMax;
 
+    private BigDecimal maxProfitRounded;
+    private BigDecimal minProfitRounded;
+
     private long entryTime;
 }

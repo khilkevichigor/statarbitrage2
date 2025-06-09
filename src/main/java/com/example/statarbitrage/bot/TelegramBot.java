@@ -86,41 +86,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             Message message = update.getMessage();
             String text = message.getText();
 
-//            if (Objects.equals(text, BotMenu.FIND.getName())) {
-//                log.info("-> " + BotMenu.FIND.name());
-//                stopTestTrade(chatIdStr);
-//                sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
-//                screenerProcessor.sendBestChart(chatIdStr);
-//            } else if (Objects.equals(text, BotMenu.GET_SETTINGS.getName())) {
-//                log.info("-> " + BotMenu.GET_SETTINGS.name());
-//                sendSettings(chatIdStr);
-//            } else if (Objects.equals(text, BotMenu.RESET_SETTINGS.getName())) {
-//                log.info("-> " + BotMenu.RESET_SETTINGS.name());
-//                settingsService.resetSettings(chatId);
-//                sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
-//            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE.getName())) {
-//                log.info("-> " + BotMenu.START_TEST_TRADE.name());
-//                startTestTrade(chatIdStr, TradeType.GENERAL);
-//            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_A_S_B.getName())) {
-//                log.info("-> " + BotMenu.START_TEST_TRADE_L_A_S_B.name());
-//                startTestTrade(chatIdStr, TradeType.LASB);
-//            } else if (Objects.equals(text, BotMenu.START_TEST_TRADE_L_B_S_A.getName())) {
-//                log.info("-> " + BotMenu.START_TEST_TRADE_L_B_S_A.name());
-//                startTestTrade(chatIdStr, TradeType.LBSA);
-//            } else if (Objects.equals(text, BotMenu.STOP_TEST_TRADE.getName())) {
-//                log.info("-> " + BotMenu.STOP_TEST_TRADE.name());
-//                stopTestTrade(chatIdStr);
-//            } else if (Objects.equals(text, BotMenu.DELETE_FILES.getName())) {
-//                log.info("-> " + BotMenu.DELETE_FILES.name());
-//                fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
-//            } else if (Objects.equals(text, BotMenu.START_SIMULATION.getName())) {
-//                log.info("-> " + BotMenu.START_SIMULATION.name());
-//                startSimulation(chatIdStr, TradeType.GENERAL);
-//            } else if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
-//                log.info("-> SET_SETTINGS");
-//                setSettings(text, chatId, chatIdStr);
-//            }
-
             switch (text) {
                 case "/find" -> {
                     log.info("-> " + BotMenu.FIND.name());
@@ -195,21 +160,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startSimulation(String chatId, TradeType tradeType) {
-        if (isStartTestTradeRunning.get()) {
-            sendMessage(chatId, "⏳ Симуляция уже запущена");
-            return;
-        }
 
-        isStartTestTradeRunning.set(true);
-        sendMessage(chatId, "🔍 Симуляция запущена...");
-
-        testTradeTask = scheduler.scheduleAtFixedRate(() -> {
-            try {
-                screenerProcessor.simulation(chatId, tradeType);
-            } catch (Exception e) {
-                log.error("Ошибка в startSimulation()", e);
-            }
-        }, 0, 60L * settingsService.getSettings().getCheckInterval(), TimeUnit.SECONDS);
     }
 
     private void startTestTrade(String chatId, TradeType tradeType) {
