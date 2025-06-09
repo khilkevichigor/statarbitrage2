@@ -74,8 +74,15 @@ public class ChartService {
 
     @NotNull
     private static String getCaption(PairData pairData) {
-        return String.format("%s/%s\nprofit=%s%%\nlongCh=%s%% | shortCh=%s%%\nz=%.2f | corr=%.2f",
-                pairData.getA(), pairData.getB(), pairData.getProfitChanges(), pairData.getLongChanges(), pairData.getShortChanges(), pairData.getZScoreCurrent(), pairData.getCorrelationCurrent()
-        );
+        StringBuilder sb = new StringBuilder();
+        sb.append(pairData.getA()).append(" / ").append(pairData.getB()).append("\n");
+        if (pairData.getProfitChanges() != null) {
+            sb.append("profit=").append(pairData.getProfitChanges()).append("%").append("\n");
+        }
+        if (pairData.getLongChanges() != null && pairData.getShortChanges() != null) {
+            sb.append("longCh=").append(pairData.getLongChanges()).append("%").append(" | ").append("shortCh=").append(pairData.getShortChanges()).append("%").append("\n");
+        }
+        sb.append("z=").append(String.format("%.2f", pairData.getZScoreCurrent())).append(" | ").append("corr=").append(String.format("%.2f", pairData.getCorrelationCurrent()));
+        return sb.toString();
     }
 }

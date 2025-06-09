@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -84,12 +86,22 @@ public class ZScoreService {
     }
 
     public void sortByTickers(List<ZScoreData> zScoreDataList) {
-        List<ZScoreData> filtered = zScoreDataList.stream()
-                .filter(data -> data.getA().compareTo(data.getB()) < 0) //оставит btc-eth, и откинет eth-btc
-                .toList();
+        Map<String, ZScoreData> uniquePairs = new HashMap<>();
+
+        for (ZScoreData data : zScoreDataList) {
+            String a = data.getA();
+            String b = data.getB();
+
+            String key = a.compareTo(b) < 0 ? a + "-" + b : b + "-" + a;
+
+            // если пары ещё нет или текущая упорядочена по алфавиту — кладём в мапу
+            if (!uniquePairs.containsKey(key) || a.compareTo(b) < 0) {
+                uniquePairs.put(key, data);
+            }
+        }
 
         zScoreDataList.clear();
-        zScoreDataList.addAll(filtered);
+        zScoreDataList.addAll(uniquePairs.values());
     }
 
     public void sortParamsByTimestamp(List<ZScoreData> zScoreDataList) {

@@ -43,7 +43,7 @@ public class ScreenerProcessor {
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                         "settings", settingsService.getSettings(),
                         "candlesMap", candlesMap,
-                        "mode", "sendBestChart" //что бы фильтровать плохие пары
+                        "mode", "sendBestChart" //чтобы отфильтровать плохие пары
                 ),
                 new TypeReference<>() {
                 });
@@ -72,6 +72,7 @@ public class ScreenerProcessor {
                     ),
                     new TypeReference<>() {
                     });
+            zScoreService.sortByTickers(zScoreDataList);
             zScoreService.sortParamsByTimestamp(zScoreDataList);
             validateSizeOfPairsAndThrow(zScoreDataList);
             ZScoreData first = zScoreDataList.get(0);
@@ -96,8 +97,8 @@ public class ScreenerProcessor {
         ));
     }
 
-    private static void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreTimeSeries) {
-        if (zScoreTimeSeries.size() != 1) {
+    private static void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList.size() != 1) {
             throw new IllegalArgumentException("Size not equal 1!");
         }
     }
