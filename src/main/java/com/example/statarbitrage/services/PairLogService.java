@@ -29,7 +29,7 @@ public class PairLogService {
             List<String> lines = new ArrayList<>();
             boolean updated = false;
 
-            String key = pairData.getA() + "," + pairData.getB();
+            String key = pairData.getLongTicker() + "," + pairData.getShortTicker();
             String newRow = getRowForCsv(pairData);
 
             if (Files.exists(path)) {
@@ -62,20 +62,20 @@ public class PairLogService {
     }
 
     private static String getRowForCsv(PairData pairData) {
-        String a = pairData.getA();
-        String b = pairData.getB();
-        String profit = String.format("%.2f", pairData.getProfitChanges());
-        String longCh = String.format("%.2f", pairData.getLongChanges());
-        String shortCh = String.format("%.2f", pairData.getShortChanges());
-        String z = String.format("%.2f", pairData.getZScoreCurrent());
-        String corr = String.format("%.2f", pairData.getCorrelationCurrent());
-        String maxProfit = String.format("%.2f", pairData.getMaxProfitRounded());
-        String timeToMax = pairData.getTimeInMinutesSinceEntryToMax() + "min";
-        String minProfit = String.format("%.2f", pairData.getMinProfitRounded());
-        String timeToMin = pairData.getTimeInMinutesSinceEntryToMin() + "min";
-        String timestamp = LocalDateTime.now().toString();
+        String longTicker = "long=" + pairData.getLongTicker();
+        String shortTicker = "short=" + pairData.getShortTicker();
+        String profit = "profit=" + String.format("%.2f", pairData.getProfitChanges());
+        String longCh = "longCh=" + String.format("%.2f", pairData.getLongChanges());
+        String shortCh = "shortCh=" + String.format("%.2f", pairData.getShortChanges());
+        String z = "z=" + String.format("%.2f", pairData.getZScoreCurrent());
+        String corr = "corr=" + String.format("%.2f", pairData.getCorrelationCurrent());
+        String maxProfit = "maxProfit=" + String.format("%.2f", pairData.getMaxProfitRounded());
+        String timeToMax = "timeToMaxProfit=" + pairData.getTimeInMinutesSinceEntryToMax() + "min";
+        String minProfit = "minProfit=" + String.format("%.2f", pairData.getMinProfitRounded());
+        String timeToMin = "timeToMinProfit=" + pairData.getTimeInMinutesSinceEntryToMin() + "min";
+        String timestamp = "timestamp=" + LocalDateTime.now();
 
-        return String.join(",", a, b, profit, longCh, shortCh, z, corr, maxProfit, timeToMax, minProfit, timeToMin, timestamp);
+        return String.join(",", longTicker, shortTicker, profit, longCh, shortCh, z, corr, maxProfit, timeToMax, minProfit, timeToMin, timestamp);
     }
 
 }
