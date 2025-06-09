@@ -16,9 +16,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -37,7 +37,7 @@ public class ScreenerProcessor {
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
-        Set<String> applicableTickers = candlesService.getApplicableTickers("1D");
+        List<String> applicableTickers = candlesService.getApplicableTickers("1D");
         log.info("Всего отобрано {} тикеров", applicableTickers.size());
 
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers);
@@ -48,7 +48,7 @@ public class ScreenerProcessor {
                 ),
                 new TypeReference<>() {
                 });
-        zScoreService.sortByTickers(zScoreDataList);
+        zScoreService.reduceDuplicates(zScoreDataList);
         zScoreService.sortParamsByTimestamp(zScoreDataList);
         ZScoreData best = zScoreService.obtainBest(zScoreDataList);
         PairData pairData = pairDataService.createPairData(best, candlesMap);
@@ -65,7 +65,7 @@ public class ScreenerProcessor {
         }
         try {
             PairData pairData = pairDataService.getPairData();
-            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Set.of(pairData.getLongTicker(), pairData.getShortTicker()));
+            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Stream.of(pairData.getLongTicker(), pairData.getShortTicker()).sorted().toList());
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                             "settings", settingsService.getSettings(),
                             "candlesMap", candlesMap,
@@ -73,7 +73,7 @@ public class ScreenerProcessor {
                     ),
                     new TypeReference<>() {
                     });
-            zScoreService.sortByTickers(zScoreDataList);
+            zScoreService.reduceDuplicates(zScoreDataList);
             zScoreService.sortParamsByTimestamp(zScoreDataList);
             validateSizeOfPairsAndThrow(zScoreDataList);
             ZScoreData first = zScoreDataList.get(0);

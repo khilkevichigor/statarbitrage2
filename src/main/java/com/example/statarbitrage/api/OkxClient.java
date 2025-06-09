@@ -13,7 +13,9 @@ import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -26,7 +28,7 @@ public class OkxClient {
     private static final OkHttpClient client = new OkHttpClient();
     private static final String BASE_URL = "https://www.okx.com";
 
-    public Set<String> getAllSwapTickers() {
+    public List<String> getAllSwapTickers() {
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/public/instruments?instType=SWAP")
                 .build();
@@ -37,7 +39,7 @@ public class OkxClient {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             JsonArray data = obj.getAsJsonArray("data");
 
-            Set<String> result = new HashSet<>();
+            List<String> result = new ArrayList<>();
             for (JsonElement el : data) {
                 String instId = el.getAsJsonObject().get("instId").getAsString();
                 if (instId.endsWith("-USDT-SWAP")) {
@@ -105,7 +107,7 @@ public class OkxClient {
         }
     }
 
-    public ConcurrentHashMap<String, List<Candle>> getCandlesMap(Set<String> swapTickers, Settings settings) {
+    public ConcurrentHashMap<String, List<Candle>> getCandlesMap(List<String> swapTickers, Settings settings) {
         ExecutorService executor = Executors.newFixedThreadPool(5);
         ConcurrentHashMap<String, List<Candle>> candlesMap = new ConcurrentHashMap<>();
         try {
@@ -129,10 +131,10 @@ public class OkxClient {
         return candlesMap;
     }
 
-    public Set<String> getValidTickers(Set<String> swapTickers, String timeFrame, int limit, double minVolume) {
+    public List<String> getValidTickers(List<String> swapTickers, String timeFrame, int limit, double minVolume) {
         AtomicInteger count = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(5);
-        Set<String> result = new HashSet<>();
+        List<String> result = new ArrayList<>();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -155,6 +157,8 @@ public class OkxClient {
             executor.shutdown();
         }
         log.info("Всего откинули {} тикера с низким volume", count.intValue());
-        return result;
+        return result.stream()
+                .sorted()
+                .toList();
     }
 }

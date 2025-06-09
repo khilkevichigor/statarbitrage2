@@ -29,20 +29,20 @@ public class CandlesService {
 
     public ConcurrentHashMap<String, List<Candle>> getCandles() {
         Settings settings = settingsService.getSettings();
-        Set<String> swapTickers = okxClient.getAllSwapTickers();
+        List<String> swapTickers = okxClient.getAllSwapTickers();
         ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
         return filterByBlackList(candlesMap);
     }
 
-    public ConcurrentHashMap<String, List<Candle>> getCandles(Set<String> swapTickers) {
+    public ConcurrentHashMap<String, List<Candle>> getCandles(List<String> swapTickers) {
         Settings settings = settingsService.getSettings();
         ConcurrentHashMap<String, List<Candle>> candlesMap = okxClient.getCandlesMap(swapTickers, settings);
         return filterByBlackList(candlesMap);
     }
 
-    public Set<String> getApplicableTickers(String timeFrame) {
+    public List<String> getApplicableTickers(String timeFrame) {
         Settings settings = settingsService.getSettings();
-        Set<String> swapTickers = okxClient.getAllSwapTickers();
+        List<String> swapTickers = okxClient.getAllSwapTickers();
         swapTickers = filterByBlackList(swapTickers);
         return okxClient.getValidTickers(swapTickers, timeFrame, settings.getCandleLimit(), settings.getMinVolume() * 1_000_000);
     }
@@ -68,7 +68,7 @@ public class CandlesService {
         return candlesMap;
     }
 
-    public Set<String> filterByBlackList(Set<String> swapTickers) {
+    public List<String> filterByBlackList(List<String> swapTickers) {
         BLACK_LIST.forEach(swapTickers::remove);
         log.info("Убрали тикеры из черного списка");
         return swapTickers;

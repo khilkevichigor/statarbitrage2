@@ -85,7 +85,7 @@ public class ZScoreService {
         return best;
     }
 
-    public void sortByTickers(List<ZScoreData> zScoreDataList) {
+    public void reduceDuplicates(List<ZScoreData> zScoreDataList) {
         Map<String, ZScoreData> uniquePairs = new HashMap<>();
 
         for (ZScoreData data : zScoreDataList) {
