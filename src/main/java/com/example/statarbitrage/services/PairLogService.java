@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +19,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PairLogService {
-    private static final String CSV_HEADER = "A,B,Profit,LongCh,ShortCh,Z,Corr,MaxProfit,TimeToMax,MinProfit,TimeToMin,Timestamp";
+    private static final String CSV_HEADER = "Long,Short,Profit %,LongCh %,ShortCh %,Z,Corr,MaxProfit %,TimeToMax min,MinProfit %,TimeToMin min,Timestamp";
     private static final String FILE_PATH = "logs/pairs.csv";
 
     public void logOrUpdatePair(PairData pairData) {
@@ -36,7 +37,7 @@ public class PairLogService {
                 List<String> existingLines = Files.readAllLines(path);
                 for (int i = 0; i < existingLines.size(); i++) {
                     String line = existingLines.get(i);
-                    if (line.startsWith("A,")) {
+                    if (line.equals(CSV_HEADER)) {
                         lines.add(line); // заголовок
                     } else if (line.startsWith(key)) {
                         lines.add(newRow); // обновляем
@@ -62,18 +63,19 @@ public class PairLogService {
     }
 
     private static String getRowForCsv(PairData pairData) {
-        String longTicker = "long=" + pairData.getLongTicker();
-        String shortTicker = "short=" + pairData.getShortTicker();
-        String profit = "profit=" + String.format("%.2f", pairData.getProfitChanges());
-        String longCh = "longCh=" + String.format("%.2f", pairData.getLongChanges());
-        String shortCh = "shortCh=" + String.format("%.2f", pairData.getShortChanges());
-        String z = "z=" + String.format("%.2f", pairData.getZScoreCurrent());
-        String corr = "corr=" + String.format("%.2f", pairData.getCorrelationCurrent());
-        String maxProfit = "maxProfit=" + String.format("%.2f", pairData.getMaxProfitRounded());
-        String timeToMax = "timeToMaxProfit=" + pairData.getTimeInMinutesSinceEntryToMax() + "min";
-        String minProfit = "minProfit=" + String.format("%.2f", pairData.getMinProfitRounded());
-        String timeToMin = "timeToMinProfit=" + pairData.getTimeInMinutesSinceEntryToMin() + "min";
-        String timestamp = "timestamp=" + LocalDateTime.now();
+        String longTicker = pairData.getLongTicker();
+        String shortTicker = pairData.getShortTicker();
+        String profit = String.format("%.2f", pairData.getProfitChanges());
+        String longCh = String.format("%.2f", pairData.getLongChanges());
+        String shortCh = String.format("%.2f", pairData.getShortChanges());
+        String z = String.format("%.2f", pairData.getZScoreCurrent());
+        String corr = String.format("%.2f", pairData.getCorrelationCurrent());
+        String maxProfit = String.format("%.2f", pairData.getMaxProfitRounded());
+        String timeToMax = pairData.getTimeInMinutesSinceEntryToMax() + "min";
+        String minProfit = String.format("%.2f", pairData.getMinProfitRounded());
+        String timeToMin = pairData.getTimeInMinutesSinceEntryToMin() + "min";
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        ;
 
         return String.join(",", longTicker, shortTicker, profit, longCh, shortCh, z, corr, maxProfit, timeToMax, minProfit, timeToMin, timestamp);
     }

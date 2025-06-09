@@ -54,8 +54,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
         listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд")); //авто определение по лонг/шорт тикеру от пайтон
-        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции")); //запуск симуляции по всем парам сразу
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
+        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции")); //запуск симуляции по всем парам сразу
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.DELETE_FILES.getName(), "Удалить файлы"));

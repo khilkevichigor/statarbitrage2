@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -43,8 +42,8 @@ public class ScreenerProcessor {
         ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                         "settings", settingsService.getSettings(),
-                        "candlesMap", candlesMap,
-                        "mode", "sendBestChart" //чтобы отфильтровать плохие пары
+                        "candles_map", candlesMap,
+                        "mode", "send_best_chart" //чтобы отфильтровать плохие пары
                 ),
                 new TypeReference<>() {
                 });
@@ -65,22 +64,22 @@ public class ScreenerProcessor {
         }
         try {
             PairData pairData = pairDataService.getPairData();
-            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(Stream.of(pairData.getLongTicker(), pairData.getShortTicker()).sorted().toList());
+            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                             "settings", settingsService.getSettings(),
-                            "candlesMap", candlesMap,
-                            "mode", "testTrade" //чтобы не отфильтровать нашу уже отобранную на FIND лучшую пару
+                            "candles_map", candlesMap,
+                            "mode", "test_trade",
+                            "long_ticker", pairData.getLongTicker(),
+                            "short_ticker", pairData.getShortTicker()
                     ),
                     new TypeReference<>() {
                     });
-            zScoreService.reduceDuplicates(zScoreDataList);
+//            zScoreService.reduceDuplicates(zScoreDataList);
             zScoreService.sortParamsByTimestamp(zScoreDataList);
             validateSizeOfPairsAndThrow(zScoreDataList);
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
-            validateCurrentPricesBeforeAndAfterScriptAndThrow(first, candlesMap);
             pairDataService.update(pairData, first, candlesMap);
-            //обновлять строку в csv
             pairLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
         } finally {
@@ -95,7 +94,7 @@ public class ScreenerProcessor {
     private static void logData(ZScoreData first) {
         ZScoreParam latest = first.getZscoreParams().get(first.getZscoreParams().size() - 1); // последние params
         log.info(String.format("Наша пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                latest.getLongticker(), latest.getShortticker(),
+                first.getLongTicker(), first.getShortTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));
     }
@@ -103,17 +102,6 @@ public class ScreenerProcessor {
     private static void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList.size() != 1) {
             throw new IllegalArgumentException("Size not equal 1!");
-        }
-    }
-
-    private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candlesMap) {
-        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
-        List<Candle> longTickerCandles = candlesMap.get(latestParam.getLongticker());
-        double before = longTickerCandles.get(longTickerCandles.size() - 1).getClose(); //последний из свечей
-        double after = latestParam.getLongtickercurrentprice(); //последний от скрипта
-        if (after != before) {
-            log.error("Wrong current prices before {{}} and after {{}} script", before, after);
-            throw new IllegalArgumentException("Wrong current prices before and after script");
         }
     }
 

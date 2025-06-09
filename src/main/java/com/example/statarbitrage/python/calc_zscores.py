@@ -20,30 +20,34 @@ def is_cointegrated(s1, s2, significance):
         return False, 1.0
 
 
-def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
+def analyze_pair_timeseries(a, b, candles_dict, settings, mode, long_ticker, short_ticker):
     try:
-        window = chat_config["windowSize"]
-        significance = chat_config["significanceLevel"]
-        min_corr = chat_config.get("minCorrelation")
+        window = settings["windowSize"]
+        significance = settings["significanceLevel"]
+        min_corr = settings.get("minCorrelation")
 
         closes_a = np.array([c["close"] for c in candles_dict[a]])
         closes_b = np.array([c["close"] for c in candles_dict[b]])
-        timestamps = [c["timestamp"] for c in candles_dict[a]]  # лишнее?
+        timestamps = [c["timestamp"] for c in candles_dict[a]]
 
         if len(closes_a) != len(closes_b):
             return None
 
         corr = np.corrcoef(closes_a, closes_b)[0, 1]
-        if mode == "sendBestChart":
-            if abs(corr) < min_corr:
-                return None
+        if mode == "sendBestChart" and abs(corr) < min_corr:
+            return None
 
         is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
-        if mode == "sendBestChart":
-            if not is_coint:
-                return None
+        if mode == "sendBestChart" and not is_coint:
+            return None
 
-        zscoreParams = []
+        zscore_params = []
+
+        # ← сначала инициализируем тикеры
+        long_ticker = long_ticker if mode == "test_trade" else None
+        short_ticker = short_ticker if mode == "test_trade" else None
+
+        first_zscore = None
 
         for i in range(window, len(closes_a)):
             a_window = closes_a[i - window:i]
@@ -59,19 +63,16 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
 
             current_a = closes_a[i]
             current_b = closes_b[i]
-            spread_value = current_b - (beta * current_a + alpha)
 
+            spread_value = current_b - (beta * current_a + alpha)
             mean = np.mean(spread_series)
             std = np.std(spread_series)
             z = (spread_value - mean) / std if std > 0 else 0
 
-            # пусть всегда считает - мы все равно сетим это только когда создаем pairData
-            longticker = a if z > 0 else b
-            shortticker = b if z > 0 else a
-            longtickercurrentprice = current_a if z > 0 else current_b
-            shorttickercurrentprice = current_b if z > 0 else current_a
+            if first_zscore is None:
+                first_zscore = z
 
-            zscoreParams.append({
+            zscore_params.append({
                 "zscore": z,
                 "pvalue": pvalue,
                 "adfpvalue": adf_pvalue,
@@ -81,21 +82,22 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
                 "spread": spread_value,
                 "mean": mean,
                 "std": std,
-                "longticker": longticker,
-                "shortticker": shortticker,
-                "longtickercurrentprice": longtickercurrentprice,
-                "shorttickercurrentprice": shorttickercurrentprice,
                 "timestamp": timestamps[i]
             })
 
+        # ← определим тикеры, если мы в режиме sendBestChart
+        if mode == "send_best_chart" and zscore_params:
+            long_ticker = a if first_zscore > 0 else b
+            short_ticker = b if first_zscore > 0 else a
+
         return {
-            "longticker": longticker,
-            "shortticker": shortticker,
-            "zscoreParams": zscoreParams
+            "longTicker": long_ticker,
+            "shortTicker": short_ticker,
+            "zscoreParams": zscore_params
         }
 
     except Exception as e:
-        print(f"❌ Ошибка в timeseries анализе пары {a}-{b}: {e}")
+        print(f"❌ Ошибка в timeseries анализе пары {a}-{b}: {e}", file=sys.stderr)
         return None
 
 
@@ -108,15 +110,17 @@ def process_chunk(input_path, output_path):
     with open(input_path) as f:
         data = json.load(f)
 
-    candles = data["candles"]
-    config = data["config"]
+    candles_map = data["candles_map"]
+    settings = data["settings"]
     mode = data["mode"]
+    long_ticker = data["long_ticker"]
+    short_ticker = data["short_ticker"]
     pairs = data["pairs"]
 
     all_results = []
 
     for a, b in pairs:
-        result = analyze_pair_timeseries(a, b, candles, config, mode)
+        result = analyze_pair_timeseries(a, b, candles_map, settings, mode, long_ticker, short_ticker)
         if result:
             all_results.append(result)
 
@@ -132,14 +136,20 @@ def main():
         sys.exit(1)
 
     settings = input_data.get("settings")
-    candles = input_data.get("candlesMap")
+    candles_map = input_data.get("candles_map")
     mode = input_data.get("mode")
+    long_ticker = input_data.get("long_ticker")
+    short_ticker = input_data.get("short_ticker")
 
-    if not candles or not settings:
-        print("❌ Не хватает данных: 'candles' или 'settings'", file=sys.stderr)
+    if not candles_map:
+        print("❌ Не хватает данных: 'candles_map'", file=sys.stderr)
         sys.exit(1)
 
-    pairs = list(itertools.combinations(candles.keys(), 2))
+    if not settings:
+        print("❌ Не хватает данных: 'settings'", file=sys.stderr)
+        sys.exit(1)
+
+    pairs = list(itertools.combinations(candles_map.keys(), 2))
     num_workers = min(cpu_count(), 8)
     chunks = split_into_chunks(pairs, num_workers)
     processes = []
@@ -153,9 +163,11 @@ def main():
 
         with open(input_file, "w") as f:
             json.dump({
-                "candles": candles,
-                "config": settings,
+                "candles_map": candles_map,
+                "settings": settings,
                 "mode": mode,
+                "long_ticker": long_ticker,
+                "short_ticker": short_ticker,
                 "pairs": chunk
             }, f)
 

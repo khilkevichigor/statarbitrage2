@@ -19,9 +19,5 @@ public class ZScoreParam {
     private double spread;
     private double mean;
     private double std;
-    private String longticker;
-    private String shortticker;
-    private double longtickercurrentprice;
-    private double shorttickercurrentprice;
     private long timestamp;
 }

@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ZScoreData {
-    private String longticker;
-    private String shortticker;
+    private String longTicker;
+    private String shortTicker;
     private List<ZScoreParam> zscoreParams;
 }

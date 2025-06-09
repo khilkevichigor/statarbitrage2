@@ -28,15 +28,15 @@ public class PairDataService {
 
         ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
 
-        pairData.setLongTicker(latestParam.getLongticker());
-        pairData.setShortTicker(latestParam.getShortticker());
+        pairData.setLongTicker(zScoreData.getLongTicker());
+        pairData.setShortTicker(zScoreData.getShortTicker());
 
-        List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongticker());
-        List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortticker());
+        List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
 
         if (longTickerCandles == null || longTickerCandles.isEmpty() ||
                 shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getLongticker(), zScoreData.getShortticker());
+            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getLongTicker(), zScoreData.getShortTicker());
         }
 
         pairData.setLongTickerCurrentPrice(longTickerCandles.get(longTickerCandles.size() - 1).getClose());
