@@ -55,8 +55,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
         listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд")); //авто определение по лонг/шорт тикеру от пайтон
         listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции")); //запуск симуляции по всем парам сразу
-//        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE_L_A_S_B.getName(), "Старт тест-трейд long a, short b")); //расскоменти если нужно в ручную управлять что лонг что шорт
-//        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE_L_B_S_A.getName(), "Старт тест-трейд long b, short a"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
@@ -104,15 +102,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "/start_test_trade" -> {
                     log.info("-> " + BotMenu.START_TEST_TRADE.name());
-                    startTestTrade(chatIdStr, TradeType.GENERAL);
-                }
-                case "/start_test_trade_l_a_s_b" -> {
-                    log.info("-> " + BotMenu.START_TEST_TRADE_L_A_S_B.name());
-                    startTestTrade(chatIdStr, TradeType.LASB);
-                }
-                case "/start_test_trade_l_b_s_a" -> {
-                    log.info("-> " + BotMenu.START_TEST_TRADE_L_B_S_A.name());
-                    startTestTrade(chatIdStr, TradeType.LBSA);
+                    startTestTrade(chatIdStr);
                 }
                 case "/stop_test_trade" -> {
                     log.info("-> " + BotMenu.STOP_TEST_TRADE.name());
@@ -163,7 +153,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
-    private void startTestTrade(String chatId, TradeType tradeType) {
+    private void startTestTrade(String chatId) {
         if (isStartTestTradeRunning.get()) {
             sendMessage(chatId, "⏳ Тест-трейд уже запущен");
             return;
@@ -174,7 +164,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         testTradeTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                screenerProcessor.testTrade(chatId, tradeType);
+                screenerProcessor.testTrade(chatId);
             } catch (Exception e) {
                 log.error("Ошибка в testTrade()", e);
             }

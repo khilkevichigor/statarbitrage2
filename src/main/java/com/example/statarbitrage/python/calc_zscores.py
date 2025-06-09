@@ -65,9 +65,11 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
             std = np.std(spread_series)
             z = (spread_value - mean) / std if std > 0 else 0
 
-            # if mode == "sendBestChart":  #говорим что лонг а что шорт только 1 раз что бы не ломать тестТрейд
-            longticker = a if z > 0 else b  # пусть всегда считает - мы все равно сетим это только когда создаем pairData
+            # пусть всегда считает - мы все равно сетим это только когда создаем pairData
+            longticker = a if z > 0 else b
             shortticker = b if z > 0 else a
+            longtickercurrentprice = current_a if z > 0 else current_b
+            shorttickercurrentprice = current_b if z > 0 else current_a
 
             zscoreParams.append({
                 "zscore": z,
@@ -79,18 +81,16 @@ def analyze_pair_timeseries(a, b, candles_dict, chat_config, mode):
                 "spread": spread_value,
                 "mean": mean,
                 "std": std,
-                "a": a,
-                "b": b,
                 "longticker": longticker,
                 "shortticker": shortticker,
-                "atickercurrentprice": current_a,
-                "btickercurrentprice": current_b,
+                "longtickercurrentprice": longtickercurrentprice,
+                "shorttickercurrentprice": shorttickercurrentprice,
                 "timestamp": timestamps[i]
             })
 
         return {
-            "a": a,
-            "b": b,
+            "longticker": longticker,
+            "shortticker": shortticker,
             "zscoreParams": zscoreParams
         }
 

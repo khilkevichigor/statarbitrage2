@@ -1,8 +1,6 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.model.*;
-import com.example.statarbitrage.utils.EntryDataUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,22 +28,19 @@ public class PairDataService {
 
         ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
 
-        pairData.setA(zScoreData.getA());
-        pairData.setB(zScoreData.getB());
-
         pairData.setLongTicker(latestParam.getLongticker());
         pairData.setShortTicker(latestParam.getShortticker());
 
-        List<Candle> aTickerCandles = candlesMap.get(zScoreData.getA());
-        List<Candle> bTickerCandles = candlesMap.get(zScoreData.getB());
+        List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongticker());
+        List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortticker());
 
-        if (aTickerCandles == null || aTickerCandles.isEmpty() ||
-                bTickerCandles == null || bTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getA(), zScoreData.getB());
+        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
+                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
+            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getLongticker(), zScoreData.getShortticker());
         }
 
-        pairData.setATickerCurrentPrice(aTickerCandles.get(aTickerCandles.size() - 1).getClose());
-        pairData.setBTickerCurrentPrice(bTickerCandles.get(bTickerCandles.size() - 1).getClose());
+        pairData.setLongTickerCurrentPrice(longTickerCandles.get(longTickerCandles.size() - 1).getClose());
+        pairData.setShortTickerCurrentPrice(shortTickerCandles.get(shortTickerCandles.size() - 1).getClose());
 
         pairData.setZScoreCurrent(latestParam.getZscore());
         pairData.setCorrelationCurrent(latestParam.getCorrelation());
@@ -92,26 +87,25 @@ public class PairDataService {
         }
     }
 
-    public void update(PairData pairData, ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candles, TradeType tradeType) {
+    public void update(PairData pairData, ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candles) {
         pairData.setCandles(candles);
-        pairData.setTradeType(tradeType.name());
 
         //updateCurrentPrices
-        List<Candle> aTickerCandles = candles.get(pairData.getA());
-        List<Candle> bTickerCandles = candles.get(pairData.getB());
+        List<Candle> longTickerCandles = candles.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candles.get(pairData.getShortTicker());
 
-        double aCurrentPrice = aTickerCandles.get(aTickerCandles.size() - 1).getClose();
-        double bCurrentPrice = bTickerCandles.get(bTickerCandles.size() - 1).getClose();
+        double aCurrentPrice = longTickerCandles.get(longTickerCandles.size() - 1).getClose();
+        double bCurrentPrice = shortTickerCandles.get(shortTickerCandles.size() - 1).getClose();
 
-        pairData.setATickerCurrentPrice(aCurrentPrice);
-        pairData.setBTickerCurrentPrice(bCurrentPrice);
+        pairData.setLongTickerCurrentPrice(aCurrentPrice);
+        pairData.setShortTickerCurrentPrice(bCurrentPrice);
 
         ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
 
         //setupEntryPointsIfNeeded
-        if (pairData.getATickerEntryPrice() == 0.0 || pairData.getBTickerEntryPrice() == 0.0) {
-            pairData.setATickerEntryPrice(aCurrentPrice);
-            pairData.setBTickerEntryPrice(bCurrentPrice);
+        if (pairData.getLongTickerEntryPrice() == 0.0 || pairData.getShortTickerEntryPrice() == 0.0) {
+            pairData.setLongTickerEntryPrice(aCurrentPrice);
+            pairData.setShortTickerEntryPrice(bCurrentPrice);
 
             pairData.setZScoreEntry(latestParam.getZscore());
             pairData.setCorrelationEntry(latestParam.getCorrelation());
@@ -127,8 +121,8 @@ public class PairDataService {
             pairData.setEntryTime(latestParam.getTimestamp());
 
             log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                    EntryDataUtil.getLongTicker(pairData), EntryDataUtil.getLongTickerEntryPrice(pairData), //todo перенести внутрь PairData.class
-                    EntryDataUtil.getShortTicker(pairData), EntryDataUtil.getShortTickerEntryPrice(pairData),
+                    pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
+                    pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
                     pairData.getZScoreEntry());
         }
 

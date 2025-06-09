@@ -57,7 +57,7 @@ public class ScreenerProcessor {
     }
 
     @Async
-    public void testTrade(String chatId, TradeType tradeType) {
+    public void testTrade(String chatId) {
         AtomicBoolean isRunning = runningTrades.computeIfAbsent(chatId, k -> new AtomicBoolean(false));
         if (!isRunning.compareAndSet(false, true)) {
             log.warn("testTrade уже выполняется для chatId = {}", chatId);
@@ -79,7 +79,7 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             validateCurrentPricesBeforeAndAfterScriptAndThrow(first, candlesMap);
-            pairDataService.update(pairData, first, candlesMap, tradeType);
+            pairDataService.update(pairData, first, candlesMap);
             //обновлять строку в csv
             pairLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
@@ -95,7 +95,7 @@ public class ScreenerProcessor {
     private static void logData(ZScoreData first) {
         ZScoreParam latest = first.getZscoreParams().get(first.getZscoreParams().size() - 1); // последние params
         log.info(String.format("Наша пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                latest.getA(), latest.getB(),
+                latest.getLongticker(), latest.getShortticker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));
     }
@@ -108,9 +108,9 @@ public class ScreenerProcessor {
 
     private static void validateCurrentPricesBeforeAndAfterScriptAndThrow(ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candlesMap) {
         ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
-        List<Candle> aTickerCandles = candlesMap.get(latestParam.getA());
-        double before = aTickerCandles.get(aTickerCandles.size() - 1).getClose(); //последний из свечей
-        double after = latestParam.getAtickercurrentprice(); //последний от скрипта
+        List<Candle> longTickerCandles = candlesMap.get(latestParam.getLongticker());
+        double before = longTickerCandles.get(longTickerCandles.size() - 1).getClose(); //последний из свечей
+        double after = latestParam.getLongtickercurrentprice(); //последний от скрипта
         if (after != before) {
             log.error("Wrong current prices before {{}} and after {{}} script", before, after);
             throw new IllegalArgumentException("Wrong current prices before and after script");

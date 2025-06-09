@@ -75,7 +75,7 @@ public class ChartService {
     @NotNull
     private static String getCaption(PairData pairData) {
         StringBuilder sb = new StringBuilder();
-        sb.append(pairData.getA()).append(" / ").append(pairData.getB()).append("\n");
+        sb.append(pairData.getLongTicker()).append(" / ").append(pairData.getShortTicker()).append("\n");
         if (pairData.getProfitChanges() != null) {
             sb.append("profit=").append(pairData.getProfitChanges()).append("%").append("\n");
         }

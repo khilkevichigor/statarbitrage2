@@ -15,22 +15,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @NoArgsConstructor
 public class PairData {
 
-    private String a;
-    private String b;
-
     private List<ZScoreParam> zScoreParams;
     private ConcurrentHashMap<String, List<Candle>> candles;
 
     private String longTicker;
     private String shortTicker;
 
-    private String tradeType;
+    private double longTickerEntryPrice;
+    private double longTickerCurrentPrice;
 
-    private double aTickerEntryPrice;
-    private double aTickerCurrentPrice;
-
-    private double bTickerEntryPrice;
-    private double bTickerCurrentPrice;
+    private double shortTickerEntryPrice;
+    private double shortTickerCurrentPrice;
 
     private double meanEntry;
     private double meanCurrent;

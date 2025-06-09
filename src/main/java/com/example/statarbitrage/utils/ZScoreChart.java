@@ -52,7 +52,7 @@ public final class ZScoreChart {
 
         XYChart chart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title("Z-Score " + pairData.getA() + " - " + pairData.getB())
+                .title("Z-Score LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
                 .xAxisTitle("Time").yAxisTitle("Z-Score")
                 .build();
 

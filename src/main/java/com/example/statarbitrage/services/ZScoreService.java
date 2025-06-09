@@ -22,7 +22,7 @@ public class ZScoreService {
             ZScoreData best = getBestByCriteria(zScoreDataList);
             ZScoreParam latest = best.getZscoreParams().get(best.getZscoreParams().size() - 1); // последние params
             log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                    latest.getA(), latest.getB(),
+                    latest.getLongticker(), latest.getShortticker(),
                     latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
             ));
             return best;
@@ -89,13 +89,13 @@ public class ZScoreService {
         Map<String, ZScoreData> uniquePairs = new HashMap<>();
 
         for (ZScoreData data : zScoreDataList) {
-            String a = data.getA();
-            String b = data.getB();
+            String longTicker = data.getLongticker();
+            String shortTicker = data.getShortticker();
 
-            String key = a.compareTo(b) < 0 ? a + "-" + b : b + "-" + a;
+            String key = longTicker.compareTo(shortTicker) < 0 ? longTicker + "-" + shortTicker : shortTicker + "-" + longTicker;
 
             // если пары ещё нет или текущая упорядочена по алфавиту — кладём в мапу
-            if (!uniquePairs.containsKey(key) || a.compareTo(b) < 0) {
+            if (!uniquePairs.containsKey(key) || longTicker.compareTo(shortTicker) < 0) {
                 uniquePairs.put(key, data);
             }
         }

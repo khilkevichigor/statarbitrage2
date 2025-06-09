@@ -1,6 +1,5 @@
 package com.example.statarbitrage.utils;
 
-import com.example.statarbitrage.model.PairData;
 import lombok.extern.slf4j.Slf4j;
 
 import java.awt.*;
@@ -34,15 +33,6 @@ public final class ChartUtil {
 
         g.dispose();
         return combined;
-    }
-
-    public static String getTitle(PairData pairData) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Cointegration: LONG ").append(pairData.getA()).append(" - SHORT ").append(pairData.getB());
-        if (pairData.getProfitChanges() != null) {
-            sb.append(" Profit: ").append(pairData.getProfitChanges()).append("%");
-        }
-        return sb.toString();
     }
 
     public static List<Double> normalize(List<Double> series) {
