@@ -30,6 +30,7 @@ public class ScreenerProcessor {
     private final FileService fileService;
     private final SettingsService settingsService;
     private final PairLogService pairLogService;
+    private final ValidateService validateService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
@@ -37,9 +38,8 @@ public class ScreenerProcessor {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
-        log.info("Всего отобрано {} тикеров", applicableTickers.size());
-
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
+        validateCandlesSizeAndThrow(candlesMap);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                         "settings", settingsService.getSettings(),
                         "candles_map", candlesMap,
@@ -66,6 +66,7 @@ public class ScreenerProcessor {
         try {
             PairData pairData = pairDataService.getPairData();
             Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
+            validateCandlesSizeAndThrow(candlesMap);
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                             "settings", settingsService.getSettings(),
                             "candles_map", candlesMap,
@@ -75,9 +76,8 @@ public class ScreenerProcessor {
                     ),
                     new TypeReference<>() {
                     });
-//            zScoreService.reduceDuplicates(zScoreDataList);
             zScoreService.sortParamsByTimestamp(zScoreDataList);
-            validateSizeOfPairsAndThrow(zScoreDataList);
+            validateSizeOfPairsAndThrow(zScoreDataList, 1);
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
@@ -86,6 +86,10 @@ public class ScreenerProcessor {
         } finally {
             runningTrades.remove(chatId);
         }
+    }
+
+    private void validateCandlesSizeAndThrow(Map<String, List<Candle>> candlesMap) {
+        validateService.validateCandlesAndThrow(candlesMap);
     }
 
     public void simulation(String chatId, TradeType tradeType) {
@@ -103,10 +107,8 @@ public class ScreenerProcessor {
         ));
     }
 
-    private static void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreDataList) {
-        if (zScoreDataList.size() != 1) {
-            throw new IllegalArgumentException("Size not equal 1!");
-        }
+    private void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreDataList, int size) {
+        validateService.validateSizeOfPairsAndThrow(zScoreDataList, size);
     }
 
     private static void logDuration(long startTime) {

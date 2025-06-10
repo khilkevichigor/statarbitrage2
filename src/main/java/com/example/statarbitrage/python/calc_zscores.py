@@ -64,7 +64,7 @@ def analyze_pair_for_best(a, b, candles_dict, settings):
         std = np.std(spread_series)
         z = (spread_value - mean) / std if std > 0 else 0
 
-        first_zscore = z  # сетим все до последнего по которому и будем определять лонг или шорт
+        first_zscore = z  # сетим все до последней свечи по которому и будем определять лонг или шорт
 
         zscore_params.append({
             "zscore": z,
@@ -97,12 +97,9 @@ def analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings):
     closes_short = np.array([c["close"] for c in candles_dict[short_ticker]])
     timestamps = [c["timestamp"] for c in candles_dict[long_ticker]]
 
-    if len(closes_long) != len(closes_short):
-        return None
+    corr = np.corrcoef(closes_long, closes_short)[0, 1]
 
     is_coint, pvalue = is_cointegrated(closes_long, closes_short, significance)
-    if not is_coint:
-        return None
 
     zscore_params = []
 
@@ -130,6 +127,7 @@ def analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings):
             "zscore": z,
             "pvalue": pvalue,
             "adfpvalue": adf_pvalue,
+            "correlation": corr,
             "alpha": alpha,
             "beta": beta,
             "spread": spread_value,

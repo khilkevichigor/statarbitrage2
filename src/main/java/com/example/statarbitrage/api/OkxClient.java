@@ -113,12 +113,16 @@ public class OkxClient {
         if (isSorted) {
             swapTickers = swapTickers.stream().sorted().toList();
         }
+        int candleLimit = settings.getCandleLimit();
+        String timeframe = settings.getTimeframe();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
                         try {
-                            List<Candle> candles = getCandleList(symbol, settings.getTimeframe(), settings.getCandleLimit());
-                            candlesMap.put(symbol, candles);
+                            List<Candle> candles = getCandleList(symbol, timeframe, candleLimit);
+                            if (candles.size() == candleLimit) {
+                                candlesMap.put(symbol, candles);
+                            }
                         } catch (Exception e) {
                             log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
                         }
@@ -161,7 +165,7 @@ public class OkxClient {
             executor.shutdown();
         }
         log.info("Всего откинули {} тикера с низким volume", count.intValue());
-
+        log.info("Всего отобрано {} тикеров", result.size());
         if (isSorted) {
             return result.stream().sorted().toList();
         }

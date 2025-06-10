@@ -1,0 +1,53 @@
+package com.example.statarbitrage.services;
+
+import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.ZScoreData;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ValidateService {
+    private final SettingsService settingsService;
+
+    public void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreDataList, int size) {
+        if (zScoreDataList.size() != size) {
+            log.error("Size {} of pair {} not equal 1", zScoreDataList.size(), zScoreDataList);
+            throw new IllegalArgumentException(String.format("Size %s not equal 1!", zScoreDataList.size()));
+        }
+    }
+
+    public void validateCandlesAndThrow(Map<String, List<Candle>> candlesMap) {
+        if (candlesMap == null) {
+            throw new IllegalArgumentException("Candles map cannot be null!");
+        }
+
+        Settings settings = settingsService.getSettings();
+        int candleLimit = settings.getCandleLimit();
+
+        candlesMap.forEach((ticker, candles) -> {
+            if (candles == null) {
+                log.error("Candles list for ticker {} is null!", ticker);
+                throw new IllegalArgumentException("Candles list cannot be null for ticker: " + ticker);
+            }
+            if (candles.size() != candleLimit) {
+                log.error(
+                        "Candles size {} for ticker {} does not match limit {}",
+                        candles.size(), ticker, candleLimit
+                );
+                throw new IllegalArgumentException(
+                        String.format(
+                                "Candles size for ticker %s is %d, but expected %d",
+                                ticker, candles.size(), candleLimit
+                        )
+                );
+            }
+        });
+    }
+}
