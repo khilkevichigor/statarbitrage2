@@ -20,84 +20,142 @@ def is_cointegrated(s1, s2, significance):
         return False, 1.0
 
 
+def analyze_pair_for_best(a, b, candles_dict, settings):
+    window = settings["windowSize"]
+    significance = settings["significanceLevel"]
+    min_corr = settings.get("minCorrelation")
+
+    closes_a = np.array([c["close"] for c in candles_dict[a]])
+    closes_b = np.array([c["close"] for c in candles_dict[b]])
+    timestamps = [c["timestamp"] for c in candles_dict[a]]
+
+    if len(closes_a) != len(closes_b):
+        return None
+
+    corr = np.corrcoef(closes_a, closes_b)[0, 1]
+    if abs(corr) < min_corr:
+        return None
+
+    is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
+    if not is_coint:
+        return None
+
+    zscore_params = []
+
+    first_zscore = None
+
+    for i in range(window, len(closes_a)):
+        a_window = closes_a[i - window:i]
+        b_window = closes_b[i - window:i]
+
+        X = add_constant(a_window)
+        model = OLS(b_window, X).fit()
+        alpha = model.params[0]
+        beta = model.params[1]
+
+        spread_series = b_window - (beta * a_window + alpha)
+        adf_pvalue = adfuller(spread_series)[1]
+
+        current_a = closes_a[i]
+        current_b = closes_b[i]
+
+        spread_value = current_b - (beta * current_a + alpha)
+        mean = np.mean(spread_series)
+        std = np.std(spread_series)
+        z = (spread_value - mean) / std if std > 0 else 0
+
+        first_zscore = z  # сетим все до последнего по которому и будем определять лонг или шорт
+
+        zscore_params.append({
+            "zscore": z,
+            "pvalue": pvalue,
+            "adfpvalue": adf_pvalue,
+            "correlation": corr,
+            "alpha": alpha,
+            "beta": beta,
+            "spread": spread_value,
+            "mean": mean,
+            "std": std,
+            "timestamp": timestamps[i]
+        })
+
+    long_ticker = a if first_zscore > 0 else b
+    short_ticker = b if first_zscore > 0 else a
+
+    return {
+        "longTicker": long_ticker,
+        "shortTicker": short_ticker,
+        "zscoreParams": zscore_params
+    }
+
+
+def analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings):
+    window = settings["windowSize"]
+    significance = settings["significanceLevel"]
+
+    closes_long = np.array([c["close"] for c in candles_dict[long_ticker]])
+    closes_short = np.array([c["close"] for c in candles_dict[short_ticker]])
+    timestamps = [c["timestamp"] for c in candles_dict[long_ticker]]
+
+    if len(closes_long) != len(closes_short):
+        return None
+
+    is_coint, pvalue = is_cointegrated(closes_long, closes_short, significance)
+    if not is_coint:
+        return None
+
+    zscore_params = []
+
+    for i in range(window, len(closes_long)):
+        a_window = closes_long[i - window:i]
+        b_window = closes_short[i - window:i]
+
+        X = add_constant(a_window)
+        model = OLS(b_window, X).fit()
+        alpha = model.params[0]
+        beta = model.params[1]
+
+        spread_series = b_window - (beta * a_window + alpha)
+        adf_pvalue = adfuller(spread_series)[1]
+
+        current_a = closes_long[i]
+        current_b = closes_short[i]
+
+        spread_value = current_b - (beta * current_a + alpha)
+        mean = np.mean(spread_series)
+        std = np.std(spread_series)
+        z = (spread_value - mean) / std if std > 0 else 0
+
+        zscore_params.append({
+            "zscore": z,
+            "pvalue": pvalue,
+            "adfpvalue": adf_pvalue,
+            "alpha": alpha,
+            "beta": beta,
+            "spread": spread_value,
+            "mean": mean,
+            "std": std,
+            "timestamp": timestamps[i]
+        })
+
+    return {
+        "longTicker": long_ticker,
+        "shortTicker": short_ticker,
+        "zscoreParams": zscore_params
+    }
+
+
 def analyze_pair_timeseries(a, b, candles_dict, settings, mode, long_ticker, short_ticker):
     try:
-        window = settings["windowSize"]
-        significance = settings["significanceLevel"]
-        min_corr = settings.get("minCorrelation")
-
-        closes_a = np.array([c["close"] for c in candles_dict[a]])
-        closes_b = np.array([c["close"] for c in candles_dict[b]])
-        timestamps = [c["timestamp"] for c in candles_dict[a]]
-
-        if len(closes_a) != len(closes_b):
+        if mode == "send_best_chart":
+            return analyze_pair_for_best(a, b, candles_dict, settings)
+        elif mode == "test_trade":
+            return analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings)
+        else:
+            print(f"❌ Неизвестный режим: {mode}")
             return None
-
-        corr = np.corrcoef(closes_a, closes_b)[0, 1]
-        if mode == "send_best_chart" and abs(corr) < min_corr:
-            return None
-
-        is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
-        if mode == "send_best_chart" and not is_coint:
-            return None
-
-        zscore_params = []
-
-        # ← сначала инициализируем тикеры
-        long_ticker = long_ticker if mode == "test_trade" else None
-        short_ticker = short_ticker if mode == "test_trade" else None
-
-        first_zscore = None
-
-        for i in range(window, len(closes_a)):
-            a_window = closes_a[i - window:i]
-            b_window = closes_b[i - window:i]
-
-            X = add_constant(a_window)
-            model = OLS(b_window, X).fit()
-            alpha = model.params[0]
-            beta = model.params[1]
-
-            spread_series = b_window - (beta * a_window + alpha)
-            adf_pvalue = adfuller(spread_series)[1]
-
-            current_a = closes_a[i]
-            current_b = closes_b[i]
-
-            spread_value = current_b - (beta * current_a + alpha)
-            mean = np.mean(spread_series)
-            std = np.std(spread_series)
-            z = (spread_value - mean) / std if std > 0 else 0
-
-            if first_zscore is None:
-                first_zscore = z
-
-            zscore_params.append({
-                "zscore": z,
-                "pvalue": pvalue,
-                "adfpvalue": adf_pvalue,
-                "correlation": corr,
-                "alpha": alpha,
-                "beta": beta,
-                "spread": spread_value,
-                "mean": mean,
-                "std": std,
-                "timestamp": timestamps[i]
-            })
-
-        # Только если не переданы long/short тикеры
-        if mode == "send_best_chart" and zscore_params and not long_ticker and not short_ticker:  # fix vice versa
-            long_ticker = a if first_zscore > 0 else b
-            short_ticker = b if first_zscore > 0 else a
-
-        return {
-            "longTicker": long_ticker,
-            "shortTicker": short_ticker,
-            "zscoreParams": zscore_params
-        }
-
     except Exception as e:
-        print(f"❌ Ошибка в timeseries анализе пары {a}-{b}: {e}", file=sys.stderr)
+        print(f"❌ Ошибка в analyze_pair_timeseries для пары {a}-{b}: {e}", file=sys.stderr)
         return None
 
 
