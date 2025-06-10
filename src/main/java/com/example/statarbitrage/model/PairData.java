@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 @Data
 @Builder
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PairData {
 
     private List<ZScoreParam> zScoreParams;
-    private ConcurrentHashMap<String, List<Candle>> candles;
+    private Map<String, List<Candle>> candles;
 
     private String longTicker;
     private String shortTicker;

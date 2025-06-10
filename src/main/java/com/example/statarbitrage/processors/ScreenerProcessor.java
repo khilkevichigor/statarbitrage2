@@ -36,10 +36,10 @@ public class ScreenerProcessor {
     public void sendBestChart(String chatId) {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
-        List<String> applicableTickers = candlesService.getApplicableTickers("1D");
+        List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
         log.info("Всего отобрано {} тикеров", applicableTickers.size());
 
-        ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers);
+        Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                         "settings", settingsService.getSettings(),
                         "candles_map", candlesMap,
@@ -48,6 +48,7 @@ public class ScreenerProcessor {
                 new TypeReference<>() {
                 });
         zScoreService.reduceDuplicates(zScoreDataList);
+        zScoreService.sortByLongTicker(zScoreDataList);
         zScoreService.sortParamsByTimestamp(zScoreDataList);
         ZScoreData best = zScoreService.obtainBest(zScoreDataList);
         PairData pairData = pairDataService.createPairData(best, candlesMap);
@@ -64,7 +65,7 @@ public class ScreenerProcessor {
         }
         try {
             PairData pairData = pairDataService.getPairData();
-            ConcurrentHashMap<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
+            Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                             "settings", settingsService.getSettings(),
                             "candles_map", candlesMap,
@@ -88,7 +89,10 @@ public class ScreenerProcessor {
     }
 
     public void simulation(String chatId, TradeType tradeType) {
-
+        //кидать эвент на find
+        //запускать find с флагом isSimulation
+        //в конце find если isSimulation слать эвент на testTrade
+        //если Z пересекла 0 - слать новый эвент на find
     }
 
     private static void logData(ZScoreData first) {

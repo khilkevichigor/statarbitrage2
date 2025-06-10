@@ -13,11 +13,8 @@ import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +25,7 @@ public class OkxClient {
     private static final OkHttpClient client = new OkHttpClient();
     private static final String BASE_URL = "https://www.okx.com";
 
-    public List<String> getAllSwapTickers() {
+    public List<String> getAllSwapTickers(boolean isSorted) {
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/public/instruments?instType=SWAP")
                 .build();
@@ -45,6 +42,9 @@ public class OkxClient {
                 if (instId.endsWith("-USDT-SWAP")) {
                     result.add(instId);
                 }
+            }
+            if (isSorted) {
+                return result.stream().sorted().toList();
             }
             return result;
         } catch (Exception e) {
@@ -107,9 +107,12 @@ public class OkxClient {
         }
     }
 
-    public ConcurrentHashMap<String, List<Candle>> getCandlesMap(List<String> swapTickers, Settings settings) {
+    public Map<String, List<Candle>> getCandlesMap(List<String> swapTickers, Settings settings, boolean isSorted) {
         ExecutorService executor = Executors.newFixedThreadPool(5);
-        ConcurrentHashMap<String, List<Candle>> candlesMap = new ConcurrentHashMap<>();
+        Map<String, List<Candle>> candlesMap = new LinkedHashMap<>(); //важен порядок чтобы скрипт не менял свечи и знак z
+        if (isSorted) {
+            swapTickers = swapTickers.stream().sorted().toList();
+        }
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -131,16 +134,17 @@ public class OkxClient {
         return candlesMap;
     }
 
-    public List<String> getValidTickers(List<String> swapTickers, String timeFrame, int limit, double minVolume) {
+    public List<String> getValidTickers(List<String> swapTickers, String timeFrame, int limit, double minVolume, boolean isSorted) {
         AtomicInteger count = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(5);
         List<String> result = new ArrayList<>();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
+                    .sorted()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
                         try {
                             List<Candle> candles = getCandleList(symbol, timeFrame, limit);
-                            if (candles.get(0).getVolume() >= minVolume) {
+                            if (candles.get(candles.size() - 1).getVolume() >= minVolume) {
                                 result.add(symbol);
                             } else {
                                 count.getAndIncrement();
@@ -157,8 +161,10 @@ public class OkxClient {
             executor.shutdown();
         }
         log.info("Всего откинули {} тикера с низким volume", count.intValue());
-        return result.stream()
-                .sorted()
-                .toList();
+
+        if (isSorted) {
+            return result.stream().sorted().toList();
+        }
+        return result;
     }
 }

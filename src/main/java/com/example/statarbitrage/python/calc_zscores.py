@@ -34,11 +34,11 @@ def analyze_pair_timeseries(a, b, candles_dict, settings, mode, long_ticker, sho
             return None
 
         corr = np.corrcoef(closes_a, closes_b)[0, 1]
-        if mode == "sendBestChart" and abs(corr) < min_corr:
+        if mode == "send_best_chart" and abs(corr) < min_corr:
             return None
 
         is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
-        if mode == "sendBestChart" and not is_coint:
+        if mode == "send_best_chart" and not is_coint:
             return None
 
         zscore_params = []
@@ -85,8 +85,8 @@ def analyze_pair_timeseries(a, b, candles_dict, settings, mode, long_ticker, sho
                 "timestamp": timestamps[i]
             })
 
-        # ← определим тикеры, если мы в режиме sendBestChart
-        if mode == "send_best_chart" and zscore_params:
+        # Только если не переданы long/short тикеры
+        if mode == "send_best_chart" and zscore_params and not long_ticker and not short_ticker:  # fix vice versa
             long_ticker = a if first_zscore > 0 else b
             short_ticker = b if first_zscore > 0 else a
 

@@ -108,5 +108,9 @@ public class ZScoreService {
         zScoreDataList.forEach(zScoreData -> zScoreData.getZscoreParams().sort(Comparator.comparingLong(ZScoreParam::getTimestamp)));
     }
 
+    public void sortByLongTicker(List<ZScoreData> zScoreDataList) {
+        zScoreDataList.sort(Comparator.comparing(ZScoreData::getLongTicker));
+    }
+
 
 }

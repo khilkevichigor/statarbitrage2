@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -19,17 +19,17 @@ public class PairDataService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String PAIR_DATA_JSON_FILE_PATH = "pair_data.json";
 
-    public PairData createPairData(ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candlesMap) {
+    public PairData createPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         PairData pairData = new PairData();
+
+        pairData.setLongTicker(zScoreData.getLongTicker());
+        pairData.setShortTicker(zScoreData.getShortTicker());
 
         pairData.setZScoreParams(zScoreData.getZscoreParams());
 
         pairData.setCandles(candlesMap);
 
         ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
-
-        pairData.setLongTicker(zScoreData.getLongTicker());
-        pairData.setShortTicker(zScoreData.getShortTicker());
 
         List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
@@ -87,7 +87,7 @@ public class PairDataService {
         }
     }
 
-    public void update(PairData pairData, ZScoreData zScoreData, ConcurrentHashMap<String, List<Candle>> candles) {
+    public void update(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candles) {
         pairData.setCandles(candles);
 
         //updateCurrentPrices
