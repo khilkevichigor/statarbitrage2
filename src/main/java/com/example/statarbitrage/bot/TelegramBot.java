@@ -15,6 +15,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
@@ -24,6 +25,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -58,6 +60,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции")); //запуск симуляции по всем парам сразу
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
+        listOfCommands.add(new BotCommand(BotMenu.GET_CSV.getName(), "Получить csv"));
         listOfCommands.add(new BotCommand(BotMenu.DELETE_FILES.getName(), "Удалить файлы"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
@@ -115,6 +118,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start_simulation" -> {
                     log.info("-> " + BotMenu.START_SIMULATION.name());
                     startSimulation(chatIdStr, TradeType.GENERAL);
+                }
+                case "/get_csv" -> {
+                    log.info("-> " + BotMenu.GET_CSV.name());
+                    sendDocumentToTelegram(chatIdStr, new File("logs/pairs.csv"));
                 }
                 default -> {
                     if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
@@ -240,5 +247,18 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+
+    public void sendDocumentToTelegram(String chatId, File file) {
+        SendDocument document = new SendDocument();
+        document.setChatId(chatId);
+        document.setDocument(new InputFile(file));
+
+        try {
+            execute(document);
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при отправке документа: {}", e.getMessage(), e);
+        }
+    }
+
 
 }
