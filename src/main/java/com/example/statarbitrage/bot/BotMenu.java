@@ -7,6 +7,7 @@ public enum BotMenu {
     STOP_TEST_TRADE("/stop_test_trade"),
     GET_SETTINGS("/get_settings"),
     RESET_SETTINGS("/reset_settings"),
+    GET_CSV("/get_csv"),
     DELETE_FILES("/delete_files");
 
     BotMenu(String name) {

@@ -43,10 +43,9 @@ public class OkxClient {
                     result.add(instId);
                 }
             }
-            if (isSorted) {
-                return result.stream().sorted().toList();
-            }
-            return result;
+
+            return isSorted ? result.stream().sorted().toList() : result;
+
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -142,13 +141,27 @@ public class OkxClient {
         AtomicInteger count = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(5);
         List<String> result = new ArrayList<>();
+        int volumeAverageCount = 2; // можно сделать настраиваемым
+
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
-                    .sorted()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
                         try {
                             List<Candle> candles = getCandleList(symbol, timeFrame, limit);
-                            if (candles.get(candles.size() - 1).getVolume() >= minVolume) {
+                            if (candles.size() < volumeAverageCount) {
+                                log.warn("Недостаточно свечей для {}", symbol);
+                                count.getAndIncrement();
+                                return;
+                            }
+
+                            // берём последние N свечей и считаем средний объем
+                            List<Candle> lastCandles = candles.subList(candles.size() - volumeAverageCount, candles.size());
+                            double averageVolume = lastCandles.stream()
+                                    .mapToDouble(Candle::getVolume)
+                                    .average()
+                                    .orElse(0.0);
+
+                            if (averageVolume >= minVolume) {
                                 result.add(symbol);
                             } else {
                                 count.getAndIncrement();
@@ -159,16 +172,15 @@ public class OkxClient {
                     }, executor))
                     .toList();
 
-            // Ожидаем завершения всех задач
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } finally {
             executor.shutdown();
         }
+
         log.info("Всего откинули {} тикера с низким volume", count.intValue());
         log.info("Всего отобрано {} тикеров", result.size());
-        if (isSorted) {
-            return result.stream().sorted().toList();
-        }
-        return result;
+
+        return isSorted ? result.stream().sorted().toList() : result;
     }
+
 }

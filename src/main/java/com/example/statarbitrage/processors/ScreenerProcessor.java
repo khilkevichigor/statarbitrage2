@@ -39,7 +39,7 @@ public class ScreenerProcessor {
         removePreviousFiles();
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
-        validateCandlesSizeAndThrow(candlesMap);
+        validateCandlesLimitAndThrow(candlesMap);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                         "settings", settingsService.getSettings(),
                         "candles_map", candlesMap,
@@ -66,7 +66,7 @@ public class ScreenerProcessor {
         try {
             PairData pairData = pairDataService.getPairData();
             Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
-            validateCandlesSizeAndThrow(candlesMap);
+            validateCandlesLimitAndThrow(candlesMap);
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                             "settings", settingsService.getSettings(),
                             "candles_map", candlesMap,
@@ -88,8 +88,8 @@ public class ScreenerProcessor {
         }
     }
 
-    private void validateCandlesSizeAndThrow(Map<String, List<Candle>> candlesMap) {
-        validateService.validateCandlesAndThrow(candlesMap);
+    private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {
+        validateService.validateCandlesLimitAndThrow(candlesMap);
     }
 
     public void simulation(String chatId, TradeType tradeType) {

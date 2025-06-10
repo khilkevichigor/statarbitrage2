@@ -23,7 +23,7 @@ public class ValidateService {
         }
     }
 
-    public void validateCandlesAndThrow(Map<String, List<Candle>> candlesMap) {
+    public void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {
         if (candlesMap == null) {
             throw new IllegalArgumentException("Candles map cannot be null!");
         }
