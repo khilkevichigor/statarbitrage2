@@ -31,6 +31,7 @@ public class ScreenerProcessor {
     private final SettingsService settingsService;
     private final PairLogService pairLogService;
     private final ValidateService validateService;
+    private final ThreeCommasService threeCommasService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
@@ -86,6 +87,17 @@ public class ScreenerProcessor {
         } finally {
             runningTrades.remove(chatId);
         }
+    }
+
+    public void startRealTrade(String chatIdStr) {
+        // 🔎 Получить всех ботов
+        try {
+            threeCommasService.test();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+//        threeCommasService.openDeal();
+
     }
 
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {

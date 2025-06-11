@@ -55,9 +55,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
-        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд")); //авто определение по лонг/шорт тикеру от пайтон
+        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
-        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции")); //запуск симуляции по всем парам сразу
+        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции"));
+        listOfCommands.add(new BotCommand(BotMenu.START_REAL_TRADE.getName(), "Старт настоящий-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.GET_CSV.getName(), "Получить csv"));
@@ -122,6 +123,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/get_csv" -> {
                     log.info("-> " + BotMenu.GET_CSV.name());
                     sendDocumentToTelegram(chatIdStr, new File("logs/pairs.csv"));
+                }
+                case "/start_real_trade" -> {
+                    log.info("-> " + BotMenu.START_REAL_TRADE.name());
+                    screenerProcessor.startRealTrade(chatIdStr);
                 }
                 default -> {
                     if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
