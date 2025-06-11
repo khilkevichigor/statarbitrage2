@@ -193,6 +193,7 @@ public class ThreeCommasService {
         System.out.println("Message to sign: " + path);
         System.out.println("Signature: " + signature);
 
+        //todo Получаю 500 {"error":"unknown_error","error_description":"Неизвестная ошибка#NoMethodError"}
         try (Response response = client.newCall(request).execute()) {
             System.out.println("📋 Trade Creation (status " + response.code() + "):");
             System.out.println(response.body().string());
