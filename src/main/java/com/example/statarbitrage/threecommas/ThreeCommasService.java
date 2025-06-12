@@ -285,16 +285,17 @@ public class ThreeCommasService {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            String responseBody = response.body().string();
             log.info("🤖 DCA Bot #" + botId + " (status " + response.code() + "):");
-            log.info(responseBody);
-
-            // Можно распарсить:
-            // ObjectMapper mapper = new ObjectMapper();
-            // DcaBot bot = mapper.readValue(responseBody, DcaBot.class);
+            String responseBody = response.body().string();
+            ObjectMapper mapper = new ObjectMapper();
+            DcaBot bot = mapper.readValue(responseBody, DcaBot.class);
+            log.info(bot.toString());
         }
     }
 
+    //todo сделать метод Edit
+
+    //todo сделать метод Close DCA at market
 
 
     private static String hmacSHA256(String secret, String message) throws Exception {
