@@ -1,0 +1,58 @@
+{
+  "trade": {
+    "uuid": "7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce",
+    "account_id": 32991373,
+    "pair": "USDT_XRP-USDT-SWAP",
+    "created_at": 1749700872,
+    "closed_at": 1749700873,
+    "order": {
+      "type": "market",
+      "side": "buy",
+      "strategy": null,
+      "position_side": "both",
+      "reduce_only": false
+    },
+    "units": {
+      "value": "1.0"
+    },
+    "price": {
+      "value": null
+    },
+    "total": {
+      "value": "224.3"
+    },
+    "conditional": {
+      "enabled": false,
+      "value": null,
+      "price": {
+        "value": null,
+        "type": null
+      }
+    },
+    "trailing": {
+      "enabled": false,
+      "value": null,
+      "percent": null
+    },
+    "timeout": {
+      "enabled": false,
+      "value": null
+    },
+    "leverage": {
+      "type": "cross"
+    },
+    "status": {
+      "value": "finished",
+      "error": null
+    },
+    "filled": {
+      "units": "1.0",
+      "total": "224.41215",
+      "price": "2.2441",
+      "value": "100.0"
+    },
+    "data": {
+      "cancelable": false
+    }
+  }
+}
