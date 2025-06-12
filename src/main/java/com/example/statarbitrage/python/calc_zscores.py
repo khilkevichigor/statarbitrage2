@@ -89,6 +89,98 @@ def analyze_pair_for_best(a, b, candles_dict, settings):
     }
 
 
+def analyze_pair_for_best_v2(a, b, candles_dict, settings): # фикс -z и переворота графика
+    window = settings["windowSize"]
+    significance = settings["significanceLevel"]
+    min_corr = settings.get("minCorrelation", 0)
+
+    closes_a = np.array([c["close"] for c in candles_dict[a]])
+    closes_b = np.array([c["close"] for c in candles_dict[b]])
+    timestamps = [c["timestamp"] for c in candles_dict[a]]
+
+    if len(closes_a) != len(closes_b):
+        return None
+
+    corr = np.corrcoef(closes_a, closes_b)[0, 1]
+    if abs(corr) < min_corr:
+        return None
+
+    is_coint, pvalue = is_cointegrated(closes_a, closes_b, significance)
+    if not is_coint:
+        return None
+
+    zscore_params = []
+
+    for i in range(window, len(closes_a)):
+        a_window = closes_a[i - window:i]
+        b_window = closes_b[i - window:i]
+
+        # Модель 1: B = beta * A + alpha
+        X1 = add_constant(a_window)
+        model1 = OLS(b_window, X1).fit()
+        alpha1 = model1.params[0]
+        beta1 = model1.params[1]
+        spread1 = b_window - (beta1 * a_window + alpha1)
+        std1 = np.std(spread1)
+        mean1 = np.mean(spread1)
+        spread_val1 = closes_b[i] - (beta1 * closes_a[i] + alpha1)
+        z1 = (spread_val1 - mean1) / std1 if std1 > 0 else 0
+
+        # Модель 2: A = beta * B + alpha
+        X2 = add_constant(b_window)
+        model2 = OLS(a_window, X2).fit()
+        alpha2 = model2.params[0]
+        beta2 = model2.params[1]
+        spread2 = a_window - (beta2 * b_window + alpha2)
+        std2 = np.std(spread2)
+        mean2 = np.mean(spread2)
+        spread_val2 = closes_a[i] - (beta2 * closes_b[i] + alpha2)
+        z2 = (spread_val2 - mean2) / std2 if std2 > 0 else 0
+
+        # Выбираем лучший вариант по |z|
+        if abs(z1) > abs(z2):
+            z = z1
+            alpha = alpha1
+            beta = beta1
+            spread_val = spread_val1
+            mean = mean1
+            std = std1
+            adf_pvalue = adfuller(spread1)[1]
+        else:
+            z = z2
+            alpha = alpha2
+            beta = beta2
+            spread_val = spread_val2
+            mean = mean2
+            std = std2
+            adf_pvalue = adfuller(spread2)[1]
+            z = -z  # инвертируем знак z, чтобы направление сохранилось: always "A vs B"
+
+        zscore_params.append({
+            "zscore": z,
+            "pvalue": pvalue,
+            "adfpvalue": adf_pvalue,
+            "correlation": corr,
+            "alpha": alpha,
+            "beta": beta,
+            "spread": spread_val,
+            "mean": mean,
+            "std": std,
+            "timestamp": timestamps[i]
+        })
+
+    first_zscore = zscore_params[-1]["zscore"]
+
+    long_ticker = a if first_zscore > 0 else b
+    short_ticker = b if first_zscore > 0 else a
+
+    return {
+        "longTicker": long_ticker,
+        "shortTicker": short_ticker,
+        "zscoreParams": zscore_params
+    }
+
+
 def analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings):
     window = settings["windowSize"]
     significance = settings["significanceLevel"]
@@ -146,7 +238,7 @@ def analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings):
 def analyze_pair_timeseries(a, b, candles_dict, settings, mode, long_ticker, short_ticker):
     try:
         if mode == "send_best_chart":
-            return analyze_pair_for_best(a, b, candles_dict, settings)
+            return analyze_pair_for_best_v2(a, b, candles_dict, settings)
         elif mode == "test_trade":
             return analyze_pair_for_trade(long_ticker, short_ticker, candles_dict, settings)
         else:

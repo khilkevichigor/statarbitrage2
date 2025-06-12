@@ -34,7 +34,7 @@ public class ThreeCommasService {
 //            getBotsList();
 //            getTradesHistory();
 //            getAccounts();
-//            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false);
+//            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false); //todo открывает вместо 1 монеты контракт где 100 монет
             getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
         } catch (Exception e) {
             throw new RuntimeException(e);
