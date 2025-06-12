@@ -1,0 +1,172 @@
+{
+  "trades": [
+    {
+      "uuid": "76a61de9-1cae-4273-923d-1e2a3c48737a",
+      "account_id": 32991372,
+      "pair": "USDT_XRP",
+      "created_at": 1738765497,
+      "closed_at": 1738765500,
+      "order": {
+        "type": "market",
+        "side": "sell",
+        "strategy": null,
+        "position_side": "both",
+        "reduce_only": false
+      },
+      "units": {
+        "value": "401.560887"
+      },
+      "price": {
+        "value": null
+      },
+      "total": {
+        "value": "1019.563092093"
+      },
+      "conditional": {
+        "enabled": false,
+        "value": null,
+        "price": {
+          "value": null,
+          "type": null
+        }
+      },
+      "trailing": {
+        "enabled": false,
+        "value": null,
+        "percent": null
+      },
+      "timeout": {
+        "enabled": false,
+        "value": null
+      },
+      "leverage": {
+        "type": null
+      },
+      "status": {
+        "value": "finished",
+        "error": null
+      },
+      "filled": {
+        "units": "397.545278",
+        "total": "1008.5750701795655719",
+        "price": "2.537",
+        "value": "100.0"
+      },
+      "data": {
+        "cancelable": false
+      }
+    },
+    {
+      "uuid": "4da6df04-73ff-4725-a282-8c6973fb65c6",
+      "account_id": 32991372,
+      "pair": "USDT_XRP",
+      "created_at": 1738765553,
+      "closed_at": 1738765556,
+      "order": {
+        "type": "limit",
+        "side": "sell",
+        "strategy": "gtc",
+        "position_side": "both",
+        "reduce_only": false
+      },
+      "units": {
+        "value": "4.015609"
+      },
+      "price": {
+        "value": "2.5392"
+      },
+      "total": {
+        "value": "10.1964343728"
+      },
+      "conditional": {
+        "enabled": false,
+        "value": null,
+        "price": {
+          "value": null,
+          "type": null
+        }
+      },
+      "trailing": {
+        "enabled": false,
+        "value": null,
+        "percent": null
+      },
+      "timeout": {
+        "enabled": false,
+        "value": null
+      },
+      "leverage": {
+        "type": null
+      },
+      "status": {
+        "value": "finished",
+        "error": null
+      },
+      "filled": {
+        "units": "3.975452",
+        "total": "10.08639214422528",
+        "price": "2.5371",
+        "value": "100.0"
+      },
+      "data": {
+        "cancelable": false
+      }
+    },
+    {
+      "uuid": "a7aeda63-ef0b-47b2-8ca5-9d3c0d5b0b44",
+      "account_id": 32991373,
+      "pair": "USDT_XRP-USDT-SWAP",
+      "created_at": 1749696595,
+      "closed_at": 1749696597,
+      "order": {
+        "type": "market",
+        "side": "buy",
+        "strategy": null,
+        "position_side": "both",
+        "reduce_only": false
+      },
+      "units": {
+        "value": "1.0"
+      },
+      "price": {
+        "value": null
+      },
+      "total": {
+        "value": "225.08"
+      },
+      "conditional": {
+        "enabled": false,
+        "value": null,
+        "price": {
+          "value": null,
+          "type": null
+        }
+      },
+      "trailing": {
+        "enabled": false,
+        "value": null,
+        "percent": null
+      },
+      "timeout": {
+        "enabled": false,
+        "value": null
+      },
+      "leverage": {
+        "type": "cross"
+      },
+      "status": {
+        "value": "finished",
+        "error": null
+      },
+      "filled": {
+        "units": "1.0",
+        "total": "225.222555",
+        "price": "2.2522",
+        "value": "100.0"
+      },
+      "data": {
+        "cancelable": false
+      }
+    }
+  ]
+}
