@@ -43,7 +43,7 @@ public class ThreeCommasService {
 //            getDcaBots();
             DcaBot dcaBot = getDcaBot(15911576);
 //            DcaBot editedDcaBot = editDcaBot(dcaBot);
-
+//            disableDcaBot(15911576);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -309,7 +309,6 @@ public class ThreeCommasService {
         }
     }
 
-    //todo сделать метод Edit
     public DcaBot editDcaBot(DcaBot dcaBot) throws Exception {
         String path = "/public/api/ver1/bots/" + dcaBot.getId() + "/update";
         String url = BASE_URL + path;
@@ -346,6 +345,39 @@ public class ThreeCommasService {
         }
     }
 
+    public DcaBot disableDcaBot(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/disable";
+        String url = BASE_URL + path;
+
+        String payload = ""; // тело запроса отсутствует для этого PATCH
+        String signature = hmacSHA256(API_SECRET, path + payload);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(payload, MediaType.parse("application/json")))
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("📴 Disable DCA Bot (status " + response.code() + "):");
+            log.info(responseBody);
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Disable failed: " + responseBody);
+            }
+
+            // Можно десериализовать результат, если нужно:
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+            DcaBot updatedBot = mapper.readValue(responseBody, DcaBot.class);
+            log.info("Отключённый бот: " + updatedBot.getName());
+            return updatedBot;
+        }
+    }
 
     //todo сделать метод Close DCA at market
 
