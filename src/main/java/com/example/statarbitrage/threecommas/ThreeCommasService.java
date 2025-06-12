@@ -1,4 +1,4 @@
-package com.example.statarbitrage.services;
+package com.example.statarbitrage.threecommas;
 
 import com.example.statarbitrage.model.threecommas.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,6 +21,7 @@ public class ThreeCommasService {
     private static final String API_KEY = "59690761f0314ea1b3e5a034dbe91d29501546e7e99548e2a9e8c773f089c25b";
     private static final String API_SECRET = "24c4bbec59bfd6182821493a2ecaea6bba43d13f67d7e6892059c0891048761cb9f6290a7e0d0a0a2c2969ebcd76c93c9152fd519027c12ebf93f4af1315b2a85e37bfe94b79cee71d25046140aad7f188fab5d67183c70520519f6a879b90d81df881d4";
     private static final String BASE_URL = "https://api.3commas.io";
+    private static final String CREATE_TRADE_PATH = "/public/api/ver1/trades";
     private static final long SPOT_ACCOUNT_ID = 32991372;
     private static final long FUTURES_ACCOUNT_ID = 32991373;
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
@@ -33,8 +34,7 @@ public class ThreeCommasService {
 //            getBotsList();
 //            getTradesHistory();
 //            getAccounts();
-            createSimpleMarketTrade();
-//            createFuturesXrpBuyMarketTrade();
+            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.SELL.getName(), 1.0, false, LeverageType.CROSS.getName(), false, false, false);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -159,21 +159,32 @@ public class ThreeCommasService {
         }
     }
 
-    public void createSimpleMarketTrade() throws Exception {
-        String path = "/public/api/ver1/trades";
+    public void createFutureTrade(
+            String pair,
+            String orderType,     // "market" или "limit"
+            String side,          // "buy" или "sell"
+            double unitsValue,
+            boolean leverageEnabled,
+            String leverageType,  // "cross" или "isolated"
+            boolean conditional,
+            boolean trailing,
+            boolean timeout
+    ) throws Exception {
+
+        String path = CREATE_TRADE_PATH;
         String url = BASE_URL + path;
 
         // Создаём payload
         TradePayload payload = new TradePayload();
-        payload.setAccountId(FUTURES_ACCOUNT_ID); // ID для OKX Futures
-        payload.setPair("USDT_XRP-USDT-SWAP");
-        payload.setOrder(new Order("market", "buy"));
-        payload.setUnits(new Units(1));
-        payload.setLeverage(new Leverage(false, "cross"));
+        payload.setAccountId(FUTURES_ACCOUNT_ID);
+        payload.setPair(pair);
+        payload.setOrder(new Order(orderType, side));
+        payload.setUnits(new Units(unitsValue));
+        payload.setLeverage(new Leverage(leverageEnabled, leverageType));
         payload.setEnabled(true);
-        payload.setConditional(new Flag(false));
-        payload.setTrailing(new Flag(false));
-        payload.setTimeout(new Flag(false));
+        payload.setConditional(new Flag(conditional));
+        payload.setTrailing(new Flag(trailing));
+        payload.setTimeout(new Flag(timeout));
 
         // Сериализуем payload
         ObjectMapper objectMapper = new ObjectMapper();

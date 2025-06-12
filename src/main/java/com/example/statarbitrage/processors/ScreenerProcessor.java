@@ -8,6 +8,7 @@ import com.example.statarbitrage.model.ZScoreParam;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
+import com.example.statarbitrage.threecommas.ThreeCommasService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
