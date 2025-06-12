@@ -90,15 +90,12 @@ public class ScreenerProcessor {
         }
     }
 
-    public void startRealTrade(String chatIdStr) {
-        // 🔎 Получить всех ботов
+    public void test3commasApi(String chatIdStr) {
         try {
             threeCommasService.test();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-//        threeCommasService.openDeal();
-
     }
 
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {

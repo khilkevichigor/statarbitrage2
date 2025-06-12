@@ -58,7 +58,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции"));
-        listOfCommands.add(new BotCommand(BotMenu.START_REAL_TRADE.getName(), "Старт настоящий-трейд"));
+        listOfCommands.add(new BotCommand(BotMenu.TEST_3COMMAS_API.getName(), "Тест 3commas API"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.GET_CSV.getName(), "Получить csv"));
@@ -124,9 +124,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     log.info("-> " + BotMenu.GET_CSV.name());
                     sendDocumentToTelegram(chatIdStr, new File("logs/pairs.csv"));
                 }
-                case "/start_real_trade" -> {
-                    log.info("-> " + BotMenu.START_REAL_TRADE.name());
-                    screenerProcessor.startRealTrade(chatIdStr);
+                case "/test_3commas_api" -> {
+                    log.info("-> " + BotMenu.TEST_3COMMAS_API.name());
+                    screenerProcessor.test3commasApi(chatIdStr);
                 }
                 default -> {
                     if (text.startsWith("/set_settings") || text.startsWith("/ss")) {

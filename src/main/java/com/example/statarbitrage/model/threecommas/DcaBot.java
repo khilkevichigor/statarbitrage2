@@ -63,7 +63,7 @@ public class DcaBot {
     @JsonProperty("take_profit")
     private String takeProfit;
     @JsonProperty("min_profit_percentage")
-    private String minProfitPercentage;
+    private Double minProfitPercentage;
     @JsonProperty("base_order_volume")
     private String baseOrderVolume;
     @JsonProperty("safety_order_volume")

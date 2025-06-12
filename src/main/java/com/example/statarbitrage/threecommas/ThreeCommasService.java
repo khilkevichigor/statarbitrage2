@@ -41,7 +41,10 @@ public class ThreeCommasService {
 //            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false); //todo открывает вместо 1 монеты контракт где 100 монет
 //            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
 //            getDcaBots();
-            getDcaBot(15911576);
+            DcaBot dcaBot = getDcaBot(15911576);
+//            DcaBot editedDcaBot = editDcaBot(dcaBot);
+
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -275,7 +278,7 @@ public class ThreeCommasService {
         }
     }
 
-    public void getDcaBot(long botId) throws Exception {
+    public DcaBot getDcaBot(long botId) throws Exception {
         String path = "/public/api/ver1/bots/" + botId + "/show";
         String url = BASE_URL + path;
 
@@ -302,10 +305,47 @@ public class ThreeCommasService {
             DcaBot bot = mapper.readValue(responseBody, DcaBot.class);
 
             log.info("Название бота: " + bot.getName() + ", Стратегия: " + bot.getStrategy());
+            return bot;
         }
     }
 
     //todo сделать метод Edit
+    public DcaBot editDcaBot(DcaBot dcaBot) throws Exception {
+        String path = "/public/api/ver1/bots/" + dcaBot.getId() + "/update";
+        String url = BASE_URL + path;
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        String payload = mapper.writeValueAsString(dcaBot);
+
+        String signature = hmacSHA256(API_SECRET, path + payload);
+
+        RequestBody requestBody = RequestBody.create(payload, MediaType.parse("application/json"));
+
+
+        Request request = new Request.Builder()
+                .url(url)
+                .patch(requestBody)  // <-- Используем PATCH здесь
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("📤 Edit DCA Bot (status " + response.code() + "):");
+            log.info(responseBody);
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Edit failed: " + responseBody);
+            }
+
+            DcaBot updatedBot = mapper.readValue(responseBody, DcaBot.class);
+            log.info("Обновлённый бот: " + updatedBot.getName());
+            return updatedBot;
+        }
+    }
+
 
     //todo сделать метод Close DCA at market
 
