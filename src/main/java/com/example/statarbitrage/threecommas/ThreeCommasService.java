@@ -44,8 +44,8 @@ public class ThreeCommasService {
 //            DcaBot dcaBot = getDcaBot(15911576);
 //            DcaBot editedDcaBot = editDcaBot(dcaBot);
 //            disableDcaBot(15911576);
-            enableDcaBot(15911576);
-
+//            enableDcaBot(15911576);
+            getDcaBotProfitData(15918113);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -413,6 +413,42 @@ public class ThreeCommasService {
             return updatedBot;
         }
     }
+
+    public DcaBotProfitResponse getDcaBotProfitData(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/profit_by_day";
+        String url = BASE_URL + path;
+
+        String payload = ""; // тело отсутствует
+        String signature = hmacSHA256(API_SECRET, path + payload);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get() // используем GET
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("💰 Get DCA Bot Profit Data (status " + response.code() + "):");
+            log.info(responseBody);
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to get profit data: " + responseBody);
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            DcaBotProfitResponse profitResponse = mapper.readValue(responseBody, DcaBotProfitResponse.class);
+
+            for (DcaBotProfitResponse.ProfitData data : profitResponse.getData()) {
+                log.info("📅 Дата: " + data.getSDate());
+                log.info("💵 USD прибыль: " + data.getProfit().getUsd());
+                log.info("₿ BTC прибыль: " + data.getProfit().getBtc());
+            }
+            return profitResponse;
+        }
+    }
+
 
     //todo сделать метод Close DCA at market
 
