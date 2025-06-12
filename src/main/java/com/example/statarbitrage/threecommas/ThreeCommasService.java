@@ -30,6 +30,8 @@ public class ThreeCommasService {
     private static final long FUTURES_ACCOUNT_ID = 32991373;
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final OkHttpClient client = new OkHttpClient();
 
     public void test() {
@@ -41,11 +43,20 @@ public class ThreeCommasService {
 //            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false); //todo открывает вместо 1 монеты контракт где 100 монет
 //            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
 //            getDcaBots();
+
 //            DcaBot dcaBot = getDcaBot(15911576);
+//            List<String> pairs = dcaBot.getPairs();
+//            System.out.println(pairs);
+//            dcaBot.setPairs(Collections.singletonList("USDT_ETH"));
 //            DcaBot editedDcaBot = editDcaBot(dcaBot);
+//            System.out.println(editedDcaBot.getPairs());
+
 //            disableDcaBot(15911576);
 //            enableDcaBot(15911576);
-            getDcaBotProfitData(15918113);
+//            getDcaBotProfitData(15918113);
+
+//            getDcaBotStats(15918113); //todo не работает
+            getDcaBotDealsStats(15918113);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -449,8 +460,59 @@ public class ThreeCommasService {
         }
     }
 
+    public DcaBotStatsResponse getDcaBotStats(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/stats"; //todo не тот эндпоинт
+        String url = BASE_URL + path;
 
-    //todo сделать метод Close DCA at market
+        String signature = hmacSHA256(API_SECRET, path);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("📊 Get DCA Bot Stats (status " + response.code() + "):");
+            log.info(responseBody);
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to get stats: " + responseBody);
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(responseBody, DcaBotStatsResponse.class);
+        }
+    }
+
+    public DcaBotDealsStatsResponse getDcaBotDealsStats(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/deals_stats";
+        String url = BASE_URL + path;
+
+        String signature = hmacSHA256(API_SECRET, path);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            log.info("📈 Get DCA Bot Deals Stats (status {}):", response.code());
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to get deals stats: " + response.body().string());
+            }
+
+            String body = response.body().string();
+            DcaBotDealsStatsResponse dcaBotDealsStatsResponse = MAPPER.readValue(body, DcaBotDealsStatsResponse.class);
+            System.out.println(body);
+            return dcaBotDealsStatsResponse;
+        }
+    }
 
 
     private static String hmacSHA256(String secret, String message) throws Exception {

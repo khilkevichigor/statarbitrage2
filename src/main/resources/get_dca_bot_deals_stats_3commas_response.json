@@ -1,0 +1,12 @@
+{
+  "active": 0,
+  "completed": 4,
+  "panic_sold": 2,
+  "from_currency_is_dollars": true,
+  "completed_deals_usd_profit": "2191.07920495",
+  "completed_deals_btc_profit": "0.02372574923193979052055164885146606823416538",
+  "funds_locked_in_active_deals": "0.0",
+  "btc_funds_locked_in_active_deals": "0.0",
+  "active_deals_usd_profit": "0.0",
+  "active_deals_btc_profit": "0.0"
+}
