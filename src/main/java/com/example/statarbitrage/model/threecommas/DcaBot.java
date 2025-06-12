@@ -131,6 +131,7 @@ public class DcaBot {
     private List<Object> activeDeals;
 
     @Data
+    @ToString
     public static class StrategyItem {
         private String strategy;
         private Object options;

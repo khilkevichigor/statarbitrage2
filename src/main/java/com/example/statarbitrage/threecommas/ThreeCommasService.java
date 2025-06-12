@@ -56,7 +56,8 @@ public class ThreeCommasService {
 //            getDcaBotProfitData(15918113);
 
 //            getDcaBotStats(15918113); //todo не работает
-            getDcaBotDealsStats(15918113);
+//            getDcaBotDealsStats(15918113);
+            getAvailableStrategies();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -317,6 +318,7 @@ public class ThreeCommasService {
             DcaBot bot = mapper.readValue(responseBody, DcaBot.class);
 
             log.info("Название бота: " + bot.getName() + ", Стратегия: " + bot.getStrategy());
+            log.info(bot.toString());
             return bot;
         }
     }
@@ -511,6 +513,41 @@ public class ThreeCommasService {
             DcaBotDealsStatsResponse dcaBotDealsStatsResponse = MAPPER.readValue(body, DcaBotDealsStatsResponse.class);
             System.out.println(body);
             return dcaBotDealsStatsResponse;
+        }
+    }
+
+    public StrategyListResponse getAvailableStrategies() throws Exception {
+        String path = "/public/api/ver1/bots/strategy_list";
+        String url = BASE_URL + path;
+
+        String signature = hmacSHA256(API_SECRET, path);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code " + response);
+            }
+
+            String responseBody = response.body().string();
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+            StrategyListResponse strategies = mapper.readValue(responseBody, StrategyListResponse.class);
+
+            log.info("📊 Стратегий получено: " + strategies.getStrategies().size());
+            strategies.getStrategies().forEach((key, value) ->
+                    log.info("🧠 " + key + ": " + value.getName())
+            );
+
+            return strategies;
         }
     }
 
