@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
@@ -35,7 +36,8 @@ public class ThreeCommasService {
 //            getTradesHistory();
 //            getAccounts();
 //            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false); //todo открывает вместо 1 монеты контракт где 100 монет
-            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
+//            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
+            getDcaBots();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -160,6 +162,7 @@ public class ThreeCommasService {
         }
     }
 
+    //todo открывает вместо 1 монеты контракт где 100 монет
     public void createFutureTrade(
             String pair,
             String orderType,     // "market" или "limit"
@@ -180,7 +183,7 @@ public class ThreeCommasService {
         payload.setAccountId(FUTURES_ACCOUNT_ID);
         payload.setPair(pair);
         payload.setOrder(new Order(orderType, side));
-        payload.setUnits(new Units(unitsValue));
+        payload.setUnits(new Units(unitsValue)); //todo открывает вместо 1 монеты контракт где 100 монет
         payload.setLeverage(new Leverage(leverageEnabled, leverageType));
         payload.setEnabled(true);
         payload.setConditional(new Flag(conditional));
@@ -228,6 +231,39 @@ public class ThreeCommasService {
         try (Response response = client.newCall(request).execute()) {
             log.info("📋 Get Trade (status " + response.code() + "):");
             log.info(response.body().string());
+        }
+    }
+
+    public void getDcaBots() throws Exception {
+        String path = "/public/api/ver1/bots";
+        String url = BASE_URL + path;
+
+        // Пустое тело запроса (GET без параметров)
+        String payload = "";
+
+        // Подпись
+        String signature = hmacSHA256(API_SECRET, path + payload);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code " + response);
+            }
+
+            String responseBody = response.body().string();
+            log.info("🤖 DCA Bots (status " + response.code() + "):");
+            log.info(responseBody);
+
+            // Если хочешь распарсить ответ:
+            // ObjectMapper mapper = new ObjectMapper();
+            // List<DcaBot> bots = mapper.readValue(responseBody, new TypeReference<List<DcaBot>>() {});
         }
     }
 
