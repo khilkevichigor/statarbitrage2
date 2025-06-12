@@ -37,7 +37,8 @@ public class ThreeCommasService {
 //            getAccounts();
 //            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false); //todo открывает вместо 1 монеты контракт где 100 монет
 //            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
-            getDcaBots();
+//            getDcaBots();
+            getDcaBot(15911576);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -266,6 +267,34 @@ public class ThreeCommasService {
             // List<DcaBot> bots = mapper.readValue(responseBody, new TypeReference<List<DcaBot>>() {});
         }
     }
+
+    public void getDcaBot(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/show";
+        String url = BASE_URL + path;
+
+        String payload = ""; // GET-запрос — без тела
+
+        String signature = hmacSHA256(API_SECRET, path + payload);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("🤖 DCA Bot #" + botId + " (status " + response.code() + "):");
+            log.info(responseBody);
+
+            // Можно распарсить:
+            // ObjectMapper mapper = new ObjectMapper();
+            // DcaBot bot = mapper.readValue(responseBody, DcaBot.class);
+        }
+    }
+
 
 
     private static String hmacSHA256(String secret, String message) throws Exception {
