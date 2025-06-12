@@ -41,9 +41,10 @@ public class ThreeCommasService {
 //            createFutureTrade("USDT_XRP-USDT-SWAP", OrderType.MARKET.getName(), TradeSide.BUY.getName(), 1.0, true, LeverageType.CROSS.getName(), false, false, false); //todo открывает вместо 1 монеты контракт где 100 монет
 //            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
 //            getDcaBots();
-            DcaBot dcaBot = getDcaBot(15911576);
+//            DcaBot dcaBot = getDcaBot(15911576);
 //            DcaBot editedDcaBot = editDcaBot(dcaBot);
 //            disableDcaBot(15911576);
+            enableDcaBot(15911576);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -375,6 +376,40 @@ public class ThreeCommasService {
 
             DcaBot updatedBot = mapper.readValue(responseBody, DcaBot.class);
             log.info("Отключённый бот: " + updatedBot.getName());
+            return updatedBot;
+        }
+    }
+
+    public DcaBot enableDcaBot(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/enable";
+        String url = BASE_URL + path;
+
+        String payload = "";
+        String signature = hmacSHA256(API_SECRET, path + payload);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(payload, MediaType.parse("application/json")))
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("📴 Enable DCA Bot (status " + response.code() + "):");
+            log.info(responseBody);
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Enable failed: " + responseBody);
+            }
+
+            // Можно десериализовать результат, если нужно:
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+            DcaBot updatedBot = mapper.readValue(responseBody, DcaBot.class);
+            log.info("Влючённый бот: " + updatedBot.getName());
             return updatedBot;
         }
     }
