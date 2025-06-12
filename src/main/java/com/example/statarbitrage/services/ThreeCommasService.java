@@ -33,8 +33,8 @@ public class ThreeCommasService {
 //            getBotsList();
 //            getTradesHistory();
 //            getAccounts();
-//            createSimpleMarketTrade();
-            createFuturesXrpBuyMarketTrade();
+            createSimpleMarketTrade();
+//            createFuturesXrpBuyMarketTrade();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -165,10 +165,10 @@ public class ThreeCommasService {
 
         // Создаём payload
         TradePayload payload = new TradePayload();
-        payload.setAccountId(SPOT_ACCOUNT_ID);
-        payload.setPair("XRP_USDT");
+        payload.setAccountId(FUTURES_ACCOUNT_ID); // ID для OKX Futures
+        payload.setPair("USDT_XRP-USDT-SWAP");
         payload.setOrder(new Order("market", "buy"));
-        payload.setUnits(new Units(2));
+        payload.setUnits(new Units(1));
         payload.setLeverage(new Leverage(false, "cross"));
         payload.setEnabled(true);
         payload.setConditional(new Flag(false));
@@ -194,68 +194,9 @@ public class ThreeCommasService {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        System.out.println("🔫 Sending Market Trade...");
-        System.out.println("Message to sign: " + path);
-        System.out.println("Signature: " + signature);
-
-        //todo Получаю 500 {"error":"unknown_error","error_description":"Неизвестная ошибка#NoMethodError"}
         try (Response response = client.newCall(request).execute()) {
-            System.out.println("📋 Trade Creation (status " + response.code() + "):");
-            System.out.println(response.body().string());
-        }
-    }
-
-    //рабочий метод
-    public void createFuturesXrpBuyMarketTrade() throws Exception {
-        String path = "/public/api/ver1/trades";
-        String url = BASE_URL + path;
-
-        String payload = """
-                {
-                  "account_id": 32991373,
-                  "pair": "USDT_XRP-USDT-SWAP",
-                  "order": {
-                    "type": "market",
-                    "side": "buy",
-                    "position_side": "both",
-                    "reduce_only": false
-                  },
-                  "units": {
-                    "value": 2
-                  },
-                  "leverage": {
-                    "type": "cross"
-                  },
-                  "conditional": {
-                    "enabled": false
-                  },
-                  "trailing": {
-                    "enabled": false
-                  },
-                  "timeout": {
-                    "enabled": false
-                  }
-                }
-                """;
-
-        String signature = hmacSHA256(API_SECRET, path + payload);
-
-        RequestBody body = RequestBody.create(payload, MediaType.parse("application/json"));
-
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .addHeader("APIKEY", API_KEY)
-                .addHeader("Signature", signature)
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        System.out.println("📤 Sending futures market buy order for 2 XRP...");
-        System.out.println("Signature: " + signature);
-
-        try (Response response = client.newCall(request).execute()) {
-            System.out.println("📋 Trade Creation (status " + response.code() + "):");
-            System.out.println(response.body().string());
+            log.info("📋 Trade Creation (status " + response.code() + "):");
+            log.info(response.body().string());
         }
     }
 
