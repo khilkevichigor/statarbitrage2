@@ -2,6 +2,8 @@ package com.example.statarbitrage.threecommas;
 
 import com.example.statarbitrage.model.threecommas.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -260,11 +263,15 @@ public class ThreeCommasService {
 
             String responseBody = response.body().string();
             log.info("🤖 DCA Bots (status " + response.code() + "):");
-            log.info(responseBody);
 
-            // Если хочешь распарсить ответ:
-            // ObjectMapper mapper = new ObjectMapper();
-            // List<DcaBot> bots = mapper.readValue(responseBody, new TypeReference<List<DcaBot>>() {});
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+            List<DcaBot> bots = mapper.readValue(responseBody, new TypeReference<>() {
+            });
+            for (DcaBot bot : bots) {
+                log.info("Bot name: " + bot.getName() + ", ID: " + bot.getId());
+            }
         }
     }
 
@@ -287,9 +294,14 @@ public class ThreeCommasService {
         try (Response response = client.newCall(request).execute()) {
             log.info("🤖 DCA Bot #" + botId + " (status " + response.code() + "):");
             String responseBody = response.body().string();
+
             ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+            // Ответ содержит {"bot": {...}} — оборачиваем в вспомогательный класс
             DcaBot bot = mapper.readValue(responseBody, DcaBot.class);
-            log.info(bot.toString());
+
+            log.info("Название бота: " + bot.getName() + ", Стратегия: " + bot.getStrategy());
         }
     }
 
