@@ -21,5 +21,4 @@ public class ActiveDeal {
     private String actualUsdProfit;
     private String currentPrice;
     private List<StrategyItem> closeStrategyList;
-    // Добавь остальные нужные поля из JSON
 }

@@ -53,11 +53,11 @@ public class ThreeCommasService {
 
 //            disableDcaBot(15911089);
 //            enableDcaBot(15911089);
-//            getDcaBotProfitData(15911089);
+            getDcaBotProfitData(15911089);
 
 //            getDcaBotStats(15911089); //todo не работает
-//            getDcaBotDealsStats(15911089);
-//            getAvailableStrategies();
+            getDcaBotDealsStats(15911089);
+            getAvailableStrategies();
             closeDcaBotAtMarketPrice(15911089);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -428,7 +428,7 @@ public class ThreeCommasService {
         }
     }
 
-    public DcaBotProfitResponse getDcaBotProfitData(long botId) throws Exception {
+    public DcaBotProfit getDcaBotProfitData(long botId) throws Exception {
         String path = "/public/api/ver1/bots/" + botId + "/profit_by_day";
         String url = BASE_URL + path;
 
@@ -452,9 +452,9 @@ public class ThreeCommasService {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            DcaBotProfitResponse profitResponse = mapper.readValue(responseBody, DcaBotProfitResponse.class);
+            DcaBotProfit profitResponse = mapper.readValue(responseBody, DcaBotProfit.class);
 
-            for (DcaBotProfitResponse.ProfitData data : profitResponse.getData()) {
+            for (ProfitData data : profitResponse.getData()) {
                 log.info("📅 Дата: " + data.getSDate());
                 log.info("💵 USD прибыль: " + data.getProfit().getUsd());
                 log.info("₿ BTC прибыль: " + data.getProfit().getBtc());
@@ -463,7 +463,7 @@ public class ThreeCommasService {
         }
     }
 
-    public DcaBotStatsResponse getDcaBotStats(long botId) throws Exception {
+    public DcaBotStats getDcaBotStats(long botId) throws Exception {
         String path = "/public/api/ver1/bots/" + botId + "/stats"; //todo не тот эндпоинт
         String url = BASE_URL + path;
 
@@ -486,11 +486,11 @@ public class ThreeCommasService {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(responseBody, DcaBotStatsResponse.class);
+            return mapper.readValue(responseBody, DcaBotStats.class);
         }
     }
 
-    public DcaBotDealsStatsResponse getDcaBotDealsStats(long botId) throws Exception {
+    public DcaBotDealsStats getDcaBotDealsStats(long botId) throws Exception {
         String path = "/public/api/ver1/bots/" + botId + "/deals_stats";
         String url = BASE_URL + path;
 
@@ -511,13 +511,13 @@ public class ThreeCommasService {
             }
 
             String body = response.body().string();
-            DcaBotDealsStatsResponse dcaBotDealsStatsResponse = MAPPER.readValue(body, DcaBotDealsStatsResponse.class);
+            DcaBotDealsStats dcaBotDealsStats = MAPPER.readValue(body, DcaBotDealsStats.class);
             System.out.println(body);
-            return dcaBotDealsStatsResponse;
+            return dcaBotDealsStats;
         }
     }
 
-    public StrategyListResponse getAvailableStrategies() throws Exception {
+    public StrategyList getAvailableStrategies() throws Exception {
         String path = "/public/api/ver1/bots/strategy_list";
         String url = BASE_URL + path;
 
@@ -541,7 +541,7 @@ public class ThreeCommasService {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-            StrategyListResponse strategies = mapper.readValue(responseBody, StrategyListResponse.class);
+            StrategyList strategies = mapper.readValue(responseBody, StrategyList.class);
 
             log.info("📊 Стратегий получено: " + strategies.getStrategies().size());
             strategies.getStrategies().forEach((key, value) ->

@@ -3,9 +3,10 @@ package com.example.statarbitrage.model.threecommas;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.List;
+
 @Data
 @ToString
-public class StrategyItem {
-    private String strategy;
-    private Object options;
+public class DcaBotProfit {
+    private List<ProfitData> data;
 }

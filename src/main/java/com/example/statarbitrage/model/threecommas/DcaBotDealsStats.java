@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DcaBotDealsStatsResponse {
+public class DcaBotDealsStats {
     private Integer active;
     private Integer completed;
 
