@@ -44,20 +44,21 @@ public class ThreeCommasService {
 //            getTradeByUuid("7dfb2bdc-3bf6-4b71-8aa8-fe80504554ce");
 //            getDcaBots();
 
-//            DcaBot dcaBot = getDcaBot(15911576);
+//            DcaBot dcaBot = getDcaBot(15911089);
 //            List<String> pairs = dcaBot.getPairs();
 //            System.out.println(pairs);
 //            dcaBot.setPairs(Collections.singletonList("USDT_ETH"));
 //            DcaBot editedDcaBot = editDcaBot(dcaBot);
 //            System.out.println(editedDcaBot.getPairs());
 
-//            disableDcaBot(15911576);
-//            enableDcaBot(15911576);
-//            getDcaBotProfitData(15918113);
+//            disableDcaBot(15911089);
+//            enableDcaBot(15911089);
+//            getDcaBotProfitData(15911089);
 
-//            getDcaBotStats(15918113); //todo не работает
-//            getDcaBotDealsStats(15918113);
-            getAvailableStrategies();
+//            getDcaBotStats(15911089); //todo не работает
+//            getDcaBotDealsStats(15911089);
+//            getAvailableStrategies();
+            closeDcaBotAtMarketPrice(15911089);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -551,6 +552,28 @@ public class ThreeCommasService {
         }
     }
 
+    public DcaBot closeDcaBotAtMarketPrice(long botId) throws Exception {
+        String path = "/public/api/ver1/bots/" + botId + "/panic_sell_all_deals";
+        String url = BASE_URL + path;
+
+        String signature = hmacSHA256(API_SECRET, path);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create("", null)) // POST с пустым телом
+                .addHeader("APIKEY", API_KEY)
+                .addHeader("Signature", signature)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+            DcaBot dcaBotResponse = MAPPER.readValue(response.body().string(), DcaBot.class);
+            log.info(dcaBotResponse.toString());
+            return dcaBotResponse;
+        }
+    }
 
     private static String hmacSHA256(String secret, String message) throws Exception {
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
