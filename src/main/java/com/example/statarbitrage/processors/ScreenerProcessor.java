@@ -32,7 +32,7 @@ public class ScreenerProcessor {
     private final CandlesService candlesService;
     private final FileService fileService;
     private final SettingsService settingsService;
-    private final PairLogService pairLogService;
+    private final TestTradeLogService testTradeLogService;
     private final ValidateService validateService;
     private final ThreeCommasService threeCommasService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
@@ -85,7 +85,7 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
-            pairLogService.logOrUpdatePair(pairData);
+            testTradeLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
         } finally {
             runningTrades.remove(chatId);

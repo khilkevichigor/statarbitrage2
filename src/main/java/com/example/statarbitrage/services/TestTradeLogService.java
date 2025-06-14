@@ -18,9 +18,9 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PairLogService {
+public class TestTradeLogService {
     private static final String CSV_HEADER = "Long,Short,Profit %,LongCh %,ShortCh %,Z,Corr,MaxProfit %,TimeToMax min,MinProfit %,TimeToMin min,Timestamp";
-    private static final String FILE_PATH = "logs/pairs.csv";
+    private static final String FILE_PATH = "logs/test_trade.csv";
 
     public void logOrUpdatePair(PairData pairData) {
         try {
