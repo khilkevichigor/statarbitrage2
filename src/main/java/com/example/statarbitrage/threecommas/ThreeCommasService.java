@@ -1,6 +1,7 @@
 package com.example.statarbitrage.threecommas;
 
 import com.example.statarbitrage.api.ThreeCommasClient;
+import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
 import com.example.statarbitrage.model.threecommas.response.trade.TradeResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ThreeCommasService {
     private final ThreeCommasClient threeCommasClient;
+    private static final int LONG_DCA_BOT_ID = 15911089;
+    private static final int SHORT_DCA_BOT_ID = 123;
     private static final long SPOT_ACCOUNT_ID = 32991372;
     private static final long FUTURES_ACCOUNT_ID = 32991373;
 
@@ -64,5 +67,23 @@ public class ThreeCommasService {
             throw new RuntimeException(e);
         }
     }
+
+    public DcaBot getLongDcaBot() throws Exception {
+        return threeCommasClient.getDcaBot(LONG_DCA_BOT_ID);
+    }
+
+    public DcaBot getShortDcaBot() throws Exception {
+        return threeCommasClient.getDcaBot(SHORT_DCA_BOT_ID);
+    }
+
+
+    public DcaBot editDcaBot(DcaBot dcaBot) throws Exception {
+        return threeCommasClient.editDcaBot(dcaBot);
+    }
+
+    public DcaBot enableDcaBot(long botId) throws Exception {
+        return threeCommasClient.enableDcaBot(botId);
+    }
+
 
 }

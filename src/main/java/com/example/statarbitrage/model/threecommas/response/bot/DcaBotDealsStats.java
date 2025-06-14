@@ -1,4 +1,4 @@
-package com.example.statarbitrage.model.threecommas;
+package com.example.statarbitrage.model.threecommas.response.bot;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

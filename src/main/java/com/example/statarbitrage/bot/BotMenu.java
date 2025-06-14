@@ -5,6 +5,7 @@ public enum BotMenu {
     START_TEST_TRADE("/start_test_trade"),
     START_SIMULATION("/start_simulation"),
     STOP_TEST_TRADE("/stop_test_trade"),
+    START_REAL_TRADE("/start_real_trade"),
     TEST_3COMMAS_API("/test_3commas_api"),
     GET_SETTINGS("/get_settings"),
     RESET_SETTINGS("/reset_settings"),

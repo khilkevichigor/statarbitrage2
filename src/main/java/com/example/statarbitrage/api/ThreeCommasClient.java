@@ -1,6 +1,10 @@
 package com.example.statarbitrage.api;
 
 import com.example.statarbitrage.model.threecommas.*;
+import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
+import com.example.statarbitrage.model.threecommas.response.bot.DcaBotDealsStats;
+import com.example.statarbitrage.model.threecommas.response.bot.DcaBotProfit;
+import com.example.statarbitrage.model.threecommas.response.bot.DcaBotStats;
 import com.example.statarbitrage.model.threecommas.response.trade.ActiveTradesResponse;
 import com.example.statarbitrage.model.threecommas.response.trade.TradeResponse;
 import com.fasterxml.jackson.annotation.JsonInclude;

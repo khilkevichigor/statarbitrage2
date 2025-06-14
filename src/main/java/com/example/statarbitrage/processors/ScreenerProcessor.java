@@ -5,6 +5,7 @@ import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.model.ZScoreParam;
+import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -131,5 +133,45 @@ public class ScreenerProcessor {
     private void removePreviousFiles() {
         fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
         chartService.clearChartDir();
+    }
+
+    public void startRealTrade(String chatIdStr) {
+        try {
+            //получить PairData
+            PairData pairData = pairDataService.getPairData();
+
+            //валидация PairData
+
+            //получить ботов
+            DcaBot longDcaBot = threeCommasService.getLongDcaBot();
+            DcaBot shortDcaBot = threeCommasService.getShortDcaBot();
+
+            //валидация ботов
+
+            //установить тикер для лонг бота
+            String longTicker = pairData.getLongTicker();
+            longDcaBot.setPairs(Collections.singletonList(longTicker));
+            DcaBot editedLongDcaBot = threeCommasService.editDcaBot(longDcaBot);
+
+            //установить тикер для шорт бота
+            String shortTicker = pairData.getShortTicker();
+            shortDcaBot.setPairs(Collections.singletonList(shortTicker));
+            DcaBot editedShortDcaBot = threeCommasService.editDcaBot(shortDcaBot);
+
+            //валидация ботов
+
+            //запустить ботов
+            DcaBot enabledLongDcaBot = threeCommasService.enableDcaBot(editedLongDcaBot.getId());
+            DcaBot enabledShortDcaBot = threeCommasService.enableDcaBot(editedShortDcaBot.getId());
+
+            //валидация ботов
+
+        } catch (Exception e) {
+            log.error("Failed startRealTrade()");
+            //остановить лонг бота
+            //остановить шорт бота
+            throw new RuntimeException(e);
+        }
+
     }
 }

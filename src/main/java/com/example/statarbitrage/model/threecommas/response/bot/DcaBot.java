@@ -1,5 +1,6 @@
-package com.example.statarbitrage.model.threecommas;
+package com.example.statarbitrage.model.threecommas.response.bot;
 
+import com.example.statarbitrage.model.threecommas.StrategyItem;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.ToString;

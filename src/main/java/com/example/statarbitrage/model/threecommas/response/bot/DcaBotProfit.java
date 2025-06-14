@@ -1,5 +1,6 @@
-package com.example.statarbitrage.model.threecommas;
+package com.example.statarbitrage.model.threecommas.response.bot;
 
+import com.example.statarbitrage.model.threecommas.ProfitData;
 import lombok.Data;
 import lombok.ToString;
 
