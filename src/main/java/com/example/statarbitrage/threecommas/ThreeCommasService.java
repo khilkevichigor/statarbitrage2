@@ -2,7 +2,6 @@ package com.example.statarbitrage.threecommas;
 
 import com.example.statarbitrage.api.ThreeCommasClient;
 import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
-import com.example.statarbitrage.model.threecommas.response.trade.TradeResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -27,18 +26,18 @@ public class ThreeCommasService {
 //            threeCommasClient.getTradesHistory();
 //            threeCommasClient.getAccounts();
 
-            TradeResponse trade = threeCommasClient.createTrade(
-                    FUTURES_ACCOUNT_ID,
-                    "USDT_XRP-USDT-SWAP",
-                    OrderType.MARKET.getName(),
-                    TradeSide.SELL.getName(),
-                    0.01,
-                    true,
-                    LeverageType.CROSS.getName(),
-                    false,
-                    false,
-                    false);
-            System.out.println(trade.getTrade().getUuid());
+//            TradeResponse trade = threeCommasClient.createTrade(
+//                    FUTURES_ACCOUNT_ID,
+//                    "USDT_XRP-USDT-SWAP",
+//                    OrderType.MARKET.getName(),
+//                    TradeSide.SELL.getName(),
+//                    0.01,
+//                    true,
+//                    LeverageType.CROSS.getName(),
+//                    false,
+//                    false,
+//                    false);
+//            System.out.println(trade.getTrade().getUuid());
 
 //            TradeResponse tradeResponse = threeCommasClient.getTradeByUuid("0bb0e9d6-a8d6-4ea3-a143-e6488e0747dc");
 //            Trade trade = tradeResponse.getTrade();
@@ -76,7 +75,6 @@ public class ThreeCommasService {
         return threeCommasClient.getDcaBot(SHORT_DCA_BOT_ID);
     }
 
-
     public DcaBot editDcaBot(DcaBot dcaBot) throws Exception {
         return threeCommasClient.editDcaBot(dcaBot);
     }
@@ -84,6 +82,4 @@ public class ThreeCommasService {
     public DcaBot enableDcaBot(long botId) throws Exception {
         return threeCommasClient.enableDcaBot(botId);
     }
-
-
 }
