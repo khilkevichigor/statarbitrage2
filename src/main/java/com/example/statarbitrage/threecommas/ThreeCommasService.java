@@ -1,6 +1,8 @@
 package com.example.statarbitrage.threecommas;
 
-import com.example.statarbitrage.api.ThreeCommasClient;
+import com.example.statarbitrage.api.threecommas.ThreeCommasBotsClient;
+import com.example.statarbitrage.api.threecommas.ThreeCommasClient;
+import com.example.statarbitrage.api.threecommas.ThreeCommasSimpleTradeClient;
 import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ThreeCommasService {
     private final ThreeCommasClient threeCommasClient;
+    private final ThreeCommasSimpleTradeClient threeCommasSimpleTradeClient;
+    private final ThreeCommasBotsClient threeCommasBotsClient;
     private static final int LONG_DCA_BOT_ID = 15911089;
     private static final int SHORT_DCA_BOT_ID = 123;
     private static final long SPOT_ACCOUNT_ID = 32991372;
@@ -19,7 +23,7 @@ public class ThreeCommasService {
 
     private final OkHttpClient client = new OkHttpClient();
 
-    public void test() {
+    public void test() { //todo сделать тестовые запуски и остановки лонг/шорт ботов
         try {
 //            threeCommasClient.validateCredentials();
 //            threeCommasClient.getBotsList();
@@ -68,18 +72,26 @@ public class ThreeCommasService {
     }
 
     public DcaBot getLongDcaBot() throws Exception {
-        return threeCommasClient.getDcaBot(LONG_DCA_BOT_ID);
+        return threeCommasBotsClient.getDcaBot(LONG_DCA_BOT_ID);
     }
 
     public DcaBot getShortDcaBot() throws Exception {
-        return threeCommasClient.getDcaBot(SHORT_DCA_BOT_ID);
+        return threeCommasBotsClient.getDcaBot(SHORT_DCA_BOT_ID);
     }
 
     public DcaBot editDcaBot(DcaBot dcaBot) throws Exception {
-        return threeCommasClient.editDcaBot(dcaBot);
+        return threeCommasBotsClient.editDcaBot(dcaBot);
     }
 
     public DcaBot enableDcaBot(long botId) throws Exception {
-        return threeCommasClient.enableDcaBot(botId);
+        return threeCommasBotsClient.enableDcaBot(botId);
+    }
+
+    public DcaBot disableDcaBot(long botId) throws Exception {
+        return threeCommasBotsClient.disableDcaBot(botId);
+    }
+
+    public DcaBot closeDcaBotAtMarketPrice(long botId) throws Exception {
+        return threeCommasBotsClient.closeDcaBotAtMarketPrice(botId);
     }
 }

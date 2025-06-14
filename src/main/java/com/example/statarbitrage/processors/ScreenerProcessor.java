@@ -10,6 +10,7 @@ import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
 import com.example.statarbitrage.threecommas.ThreeCommasService;
+import com.example.statarbitrage.utils.ThreeCommasUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -136,29 +137,37 @@ public class ScreenerProcessor {
     }
 
     public void startRealTrade(String chatIdStr) {
+        DcaBot longDcaBot = null;
+        DcaBot shortDcaBot = null;
         try {
             //получить PairData
             PairData pairData = pairDataService.getPairData();
 
             //валидация PairData
+            validateService.validatePairDataAndThrow(pairData);
 
             //получить ботов
-            DcaBot longDcaBot = threeCommasService.getLongDcaBot();
-            DcaBot shortDcaBot = threeCommasService.getShortDcaBot();
+            longDcaBot = threeCommasService.getLongDcaBot();
+            shortDcaBot = threeCommasService.getShortDcaBot();
 
             //валидация ботов
+            validateService.validateLongBotBeforeNewTradeAndThrow(longDcaBot);
 
             //установить тикер для лонг бота
-            String longTicker = pairData.getLongTicker();
-            longDcaBot.setPairs(Collections.singletonList(longTicker));
+            String okxLongTicker = pairData.getLongTicker();
+            String threeCommasLongTicker = ThreeCommasUtil.get3CommasTicker(okxLongTicker);
+            longDcaBot.setPairs(Collections.singletonList(threeCommasLongTicker));
             DcaBot editedLongDcaBot = threeCommasService.editDcaBot(longDcaBot);
 
             //установить тикер для шорт бота
-            String shortTicker = pairData.getShortTicker();
-            shortDcaBot.setPairs(Collections.singletonList(shortTicker));
+            String okxShortTicker = pairData.getShortTicker();
+            String threeCommasShortTicker = ThreeCommasUtil.get3CommasTicker(okxShortTicker);
+            shortDcaBot.setPairs(Collections.singletonList(threeCommasShortTicker));
             DcaBot editedShortDcaBot = threeCommasService.editDcaBot(shortDcaBot);
 
             //валидация ботов
+            validateService.validatePairsAndThrow(longDcaBot, threeCommasLongTicker);
+            validateService.validatePairsAndThrow(shortDcaBot, threeCommasShortTicker);
 
             //запустить ботов
             DcaBot enabledLongDcaBot = threeCommasService.enableDcaBot(editedLongDcaBot.getId());
@@ -167,11 +176,25 @@ public class ScreenerProcessor {
             //валидация ботов
 
         } catch (Exception e) {
-            log.error("Failed startRealTrade()");
-            //остановить лонг бота
-            //остановить шорт бота
+            log.error("❌ Failed startRealTrade()", e);
+
+            if (longDcaBot != null) {
+                try {
+                    threeCommasService.closeDcaBotAtMarketPrice(longDcaBot.getId());
+                } catch (Exception ex) {
+                    log.warn("⚠️ Failed to close long bot: " + ex.getMessage());
+                }
+            }
+
+            if (shortDcaBot != null) {
+                try {
+                    threeCommasService.closeDcaBotAtMarketPrice(shortDcaBot.getId());
+                } catch (Exception ex) {
+                    log.warn("⚠️ Failed to close short bot: " + ex.getMessage());
+                }
+            }
+
             throw new RuntimeException(e);
         }
-
     }
 }
