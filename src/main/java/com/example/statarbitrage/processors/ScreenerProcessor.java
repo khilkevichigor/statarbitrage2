@@ -147,15 +147,15 @@ public class ScreenerProcessor {
             validateService.validatePairDataAndThrow(pairData);
 
             //получить ботов
-            longDcaBot = threeCommasService.getLongDcaBot();
-            shortDcaBot = threeCommasService.getShortDcaBot();
+            longDcaBot = threeCommasService.getDcaBot(true);
+            shortDcaBot = threeCommasService.getDcaBot(false);
 
             //валидация ботов
             validateService.validateLongBotBeforeNewTradeAndThrow(longDcaBot);
 
             //установить тикер для лонг бота
             String okxLongTicker = pairData.getLongTicker();
-            String threeCommasLongTicker = ThreeCommasUtil.get3CommasTicker(okxLongTicker);
+            String threeCommasLongTicker = ThreeCommasUtil.get3CommasTicker(okxLongTicker); //todo "Отсутствует торговая информация по данной паре: USDT_TRUMP-SWAP"]
             longDcaBot.setPairs(Collections.singletonList(threeCommasLongTicker));
             DcaBot editedLongDcaBot = threeCommasService.editDcaBot(longDcaBot);
 
@@ -196,5 +196,43 @@ public class ScreenerProcessor {
 
             throw new RuntimeException(e);
         }
+    }
+
+    public void stopRealTrade(String chatIdStr) {
+        DcaBot longDcaBot = null;
+        DcaBot shortDcaBot = null;
+        try {
+            //получить PairData
+            PairData pairData = pairDataService.getPairData();
+
+            //получить ботов
+            longDcaBot = threeCommasService.getDcaBot(true);
+            shortDcaBot = threeCommasService.getDcaBot(false);
+
+            threeCommasService.closeDcaBotAtMarketPrice(longDcaBot.getId());
+            threeCommasService.closeDcaBotAtMarketPrice(shortDcaBot.getId());
+
+        } catch (Exception e) {
+            log.error("❌ Failed stopRealTrade()", e);
+
+            if (longDcaBot != null) {
+                try {
+                    threeCommasService.closeDcaBotAtMarketPrice(longDcaBot.getId());
+                } catch (Exception ex) {
+                    log.warn("⚠️ Failed to close long bot: " + ex.getMessage());
+                }
+            }
+
+            if (shortDcaBot != null) {
+                try {
+                    threeCommasService.closeDcaBotAtMarketPrice(shortDcaBot.getId());
+                } catch (Exception ex) {
+                    log.warn("⚠️ Failed to close short bot: " + ex.getMessage());
+                }
+            }
+
+            throw new RuntimeException(e);
+        }
+
     }
 }

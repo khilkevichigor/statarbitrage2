@@ -71,12 +71,8 @@ public class ThreeCommasService {
         }
     }
 
-    public DcaBot getLongDcaBot() throws Exception {
-        return threeCommasBotsClient.getDcaBot(LONG_DCA_BOT_ID);
-    }
-
-    public DcaBot getShortDcaBot() throws Exception {
-        return threeCommasBotsClient.getDcaBot(SHORT_DCA_BOT_ID);
+    public DcaBot getDcaBot(boolean isLong) throws Exception {
+        return threeCommasBotsClient.getDcaBot(isLong);
     }
 
     public DcaBot editDcaBot(DcaBot dcaBot) throws Exception {

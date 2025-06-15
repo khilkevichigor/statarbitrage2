@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,16 +62,27 @@ public class ValidateService {
             log.error("PairData, longTicker or shortTicker cannot be null!");
             throw new IllegalArgumentException("PairData, longTicker or shortTicker cannot be null!");
         }
+
+        long currentTime = System.currentTimeMillis();
+        long maxAgeMillis = Duration.ofMinutes(5).toMillis(); // допустим, 5 минут
+        if (pairData.getZScoreParams() == null ||
+                pairData.getZScoreParams().isEmpty() ||
+                pairData.getZScoreParams().get(pairData.getZScoreParams().size() - 1).getTimestamp() < (currentTime - maxAgeMillis)) {
+
+            log.error("PairData cannot be old!");
+            throw new IllegalArgumentException("PairData cannot be old!");
+        }
+
 //        if (pairData.getZScoreCurrent() < 0 || pairData.getZScoreCurrent() > 100) { //todo бывает с -
 //            log.error("PairData, zScoreCurrent is out of range!");
 //        }
+
         if (pairData.getCorrelationCurrent() < 0.8) {
             throw new IllegalArgumentException("Correlation must be greater than 0.8!");
         }
     }
 
     public void validateLongBotBeforeNewTradeAndThrow(DcaBot dcaBot) {
-        Settings settings = settingsService.getSettings();
         if (dcaBot == null) {
             throw new IllegalArgumentException("Long dcaBot cannot be null!");
         }

@@ -57,6 +57,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
         listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.START_REAL_TRADE.getName(), "Старт рил-трейд"));
+        listOfCommands.add(new BotCommand(BotMenu.STOP_REAL_TRADE.getName(), "Стоп рил-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции"));
         listOfCommands.add(new BotCommand(BotMenu.TEST_3COMMAS_API.getName(), "Тест 3commas API"));
@@ -112,7 +113,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start_real_trade" -> {
                     log.info("-> " + BotMenu.START_REAL_TRADE.name());
                     startRealTrade(chatIdStr);
-                    startTestTrade(chatIdStr);
+//                    startTestTrade(chatIdStr);
+                }
+                case "/stop_real_trade" -> {
+                    log.info("-> " + BotMenu.STOP_REAL_TRADE.name());
+                    stopRealTrade(chatIdStr);
+                    stopTestTrade(chatIdStr);
                 }
                 case "/stop_test_trade" -> {
                     log.info("-> " + BotMenu.STOP_TEST_TRADE.name());
@@ -146,6 +152,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startRealTrade(String chatIdStr) {
         screenerProcessor.startRealTrade(chatIdStr);
+    }
+
+    private void stopRealTrade(String chatIdStr) {
+        screenerProcessor.stopRealTrade(chatIdStr);
     }
 
     private void setSettings(String text, long chatId, String chatIdStr) {
