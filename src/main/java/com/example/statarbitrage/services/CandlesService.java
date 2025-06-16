@@ -16,13 +16,14 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.statarbitrage.constant.Constants.CANDLES_FILE_NAME;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CandlesService {
     private final OkxClient okxClient;
     private final SettingsService settingsService;
-    private static final String CANDLES_JSON_FILE_PATH = "candles.json";
     private static final List<String> BLACK_LIST = List.of("USDC-USDT-SWAP");
 
     public Map<String, List<Candle>> getCandles(List<String> swapTickers, boolean isSorted) {
@@ -42,7 +43,7 @@ public class CandlesService {
                 .setPrettyPrinting()
                 .create();
 
-        try (FileWriter file = new FileWriter(CANDLES_JSON_FILE_PATH)) {
+        try (FileWriter file = new FileWriter(CANDLES_FILE_NAME)) {
             gson.toJson(candles, file);
             log.info("Сохранили цены в candles.json");
         } catch (IOException e) {

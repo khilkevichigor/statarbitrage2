@@ -52,7 +52,6 @@ public class ThreeCommasClient {
         log.info("3commas -> getAccounts...");
         long timestamp = Instant.now().getEpochSecond();
         String path = "/public/api/ver1/accounts";
-        String payload = ""; // GET-запрос — без тела
 
         String signature = ThreeCommasClientsUtil.hmacSHA256(API_SECRET, path);
 
@@ -63,12 +62,6 @@ public class ThreeCommasClient {
                 .addHeader("Signature", signature)
                 .addHeader("Timestamp", String.valueOf(timestamp))
                 .build();
-
-        System.out.println("🔍 Debug:");
-        System.out.println("Path: " + path);
-        System.out.println("Payload: " + payload);
-        System.out.println("Message to sign: " + path);
-        System.out.println("Signature: " + signature);
 
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();

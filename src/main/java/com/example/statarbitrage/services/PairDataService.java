@@ -11,13 +11,14 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.statarbitrage.constant.Constants.PAIR_DATA_FILE_NAME;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PairDataService {
     private final ChangesService changesService;
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String PAIR_DATA_JSON_FILE_PATH = "pair_data.json";
 
     public PairData createPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         PairData pairData = new PairData();
@@ -60,7 +61,7 @@ public class PairDataService {
     }
 
     public PairData getPairData() {
-        PairData pairData = readPairDataJson(PAIR_DATA_JSON_FILE_PATH);
+        PairData pairData = readPairDataJson(PAIR_DATA_FILE_NAME);
         if (pairData == null) {
             String message = "⚠️pair_data.json пустой или не найден";
             log.warn(message);
@@ -81,7 +82,7 @@ public class PairDataService {
 
     public void save(PairData pairData) {
         try {
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(PAIR_DATA_JSON_FILE_PATH), pairData);
+            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(PAIR_DATA_FILE_NAME), pairData);
         } catch (Exception e) {
             log.error("Ошибка при записи pair_data.json: {}", e.getMessage(), e);
         }

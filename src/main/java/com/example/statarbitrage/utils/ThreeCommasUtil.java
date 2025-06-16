@@ -21,7 +21,7 @@ public final class ThreeCommasUtil {
             throw new IllegalArgumentException("Invalid symbol format (expected XXX-YYY-SWAP): " + okxSymbol);
         }
 
-        // Порядок: QUOTE_BASE-суффикс
-        return parts[1] + "_" + parts[0] + "-SWAP";
+        // Формат 3Commas: QUOTE_BASE-QUOTE-SWAP → USDT_XRP-USDT-SWAP
+        return parts[1] + "_" + parts[0] + "-" + parts[1] + "-SWAP";
     }
 }

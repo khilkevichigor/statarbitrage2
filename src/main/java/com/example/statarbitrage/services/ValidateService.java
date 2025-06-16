@@ -14,12 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.example.statarbitrage.constant.Constants.LONG_DCA_BOT_NAME;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ValidateService {
-    private static final String LONG_DCA_BOT_NAME = "stat_long";
-    private static final String SHORT_DCA_BOT_NAME = "stat_short";
     private final SettingsService settingsService;
 
     public void validateSizeOfPairsAndThrow(List<ZScoreData> zScoreDataList, int size) {
@@ -64,7 +64,7 @@ public class ValidateService {
         }
 
         long currentTime = System.currentTimeMillis();
-        long maxAgeMillis = Duration.ofMinutes(5).toMillis(); // допустим, 5 минут
+        long maxAgeMillis = Duration.ofMinutes(60).toMillis(); // допустим, 5 минут
         if (pairData.getZScoreParams() == null ||
                 pairData.getZScoreParams().isEmpty() ||
                 pairData.getZScoreParams().get(pairData.getZScoreParams().size() - 1).getTimestamp() < (currentTime - maxAgeMillis)) {

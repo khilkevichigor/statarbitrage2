@@ -23,10 +23,10 @@ public class ThreeCommasService {
 
     private final OkHttpClient client = new OkHttpClient();
 
-    public void test() { //todo сделать тестовые запуски и остановки лонг/шорт ботов
+    public void test() {
         try {
 //            threeCommasClient.validateCredentials();
-//            threeCommasClient.getBotsList();
+//            threeCommasBotsClient.getBotsList();
 //            threeCommasClient.getTradesHistory();
 //            threeCommasClient.getAccounts();
 
@@ -55,15 +55,15 @@ public class ThreeCommasService {
 
 //            threeCommasClient.getDcaBots();
 
-//            DcaBot dcaBot = threeCommasClient.getDcaBot(15911089);
+//            DcaBot dcaBot = threeCommasBotsClient.getDcaBot(15911089);
 //            DcaBot editedDcaBot = threeCommasClient.editDcaBot(dcaBot);
 
-//            threeCommasClient.disableDcaBot(15911089);
-//            threeCommasClient.enableDcaBot(15911089);
-//            threeCommasClient.getDcaBotProfitData(15911089);
+//            threeCommasBotsClient.disableDcaBot(15911089);
+            threeCommasBotsClient.enableDcaBot(15911089);
+//            threeCommasBotsClient.getDcaBotProfitData(15911089);
 
-//            threeCommasClient.getDcaBotStats(15911089); //todo не работает
-//            threeCommasClient.getDcaBotDealsStats(15911089);
+//            threeCommasBotsClient.getDcaBotStats(15911089); //todo не работает
+//            threeCommasBotsClient.getDcaBotDealsStats(15911089);
 //            threeCommasClient.getAvailableStrategies();
 //            threeCommasClient.closeDcaBotAtMarketPrice(15911089);
         } catch (Exception e) {

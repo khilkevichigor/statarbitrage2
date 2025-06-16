@@ -34,6 +34,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.example.statarbitrage.constant.Constants.*;
+
 @Slf4j
 @Service
 public class TelegramBot extends TelegramLongPollingBot {
@@ -134,14 +136,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 case "/get_csv" -> {
                     log.info("-> " + BotMenu.GET_CSV.name());
-                    sendDocumentToTelegram(chatIdStr, new File("logs/pairs.csv"));
+                    sendDocumentToTelegram(chatIdStr, new File(TEST_TRADES_CSV_FILE));
                 }
                 case "/test_3commas_api" -> {
                     log.info("-> " + BotMenu.TEST_3COMMAS_API.name());
                     screenerProcessor.test3commasApi(chatIdStr);
                 }
                 default -> {
-                    if (text.startsWith("/set_settings") || text.startsWith("/ss")) {
+                    if (text.startsWith(SET_SETTINGS) || text.startsWith(SET_SETTINGS_SHORT)) {
                         log.info("-> SET_SETTINGS");
                         setSettings(text, chatId, chatIdStr);
                     }

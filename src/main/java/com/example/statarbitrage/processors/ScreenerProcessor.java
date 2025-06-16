@@ -5,23 +5,23 @@ import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.model.ZScoreParam;
-import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
+import com.example.statarbitrage.threecommas.ThreeCommasFlowService;
 import com.example.statarbitrage.threecommas.ThreeCommasService;
-import com.example.statarbitrage.utils.ThreeCommasUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.example.statarbitrage.constant.Constants.*;
 
 @Slf4j
 @Component
@@ -36,6 +36,7 @@ public class ScreenerProcessor {
     private final TestTradeLogService testTradeLogService;
     private final ValidateService validateService;
     private final ThreeCommasService threeCommasService;
+    private final ThreeCommasFlowService threeCommasFlowService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
@@ -132,107 +133,15 @@ public class ScreenerProcessor {
     }
 
     private void removePreviousFiles() {
-        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
+        fileService.deleteSpecificFilesInProjectRoot(List.of(Z_SCORE_FILE_NAME, PAIR_DATA_FILE_NAME, CANDLES_FILE_NAME));
         chartService.clearChartDir();
     }
 
     public void startRealTrade(String chatIdStr) {
-        DcaBot longDcaBot = null;
-        DcaBot shortDcaBot = null;
-        try {
-            //получить PairData
-            PairData pairData = pairDataService.getPairData();
-
-            //валидация PairData
-            validateService.validatePairDataAndThrow(pairData);
-
-            //получить ботов
-            longDcaBot = threeCommasService.getDcaBot(true);
-            shortDcaBot = threeCommasService.getDcaBot(false);
-
-            //валидация ботов
-            validateService.validateLongBotBeforeNewTradeAndThrow(longDcaBot);
-
-            //установить тикер для лонг бота
-            String okxLongTicker = pairData.getLongTicker();
-            String threeCommasLongTicker = ThreeCommasUtil.get3CommasTicker(okxLongTicker); //todo "Отсутствует торговая информация по данной паре: USDT_TRUMP-SWAP"]
-            longDcaBot.setPairs(Collections.singletonList(threeCommasLongTicker));
-            DcaBot editedLongDcaBot = threeCommasService.editDcaBot(longDcaBot);
-
-            //установить тикер для шорт бота
-            String okxShortTicker = pairData.getShortTicker();
-            String threeCommasShortTicker = ThreeCommasUtil.get3CommasTicker(okxShortTicker);
-            shortDcaBot.setPairs(Collections.singletonList(threeCommasShortTicker));
-            DcaBot editedShortDcaBot = threeCommasService.editDcaBot(shortDcaBot);
-
-            //валидация ботов
-            validateService.validatePairsAndThrow(longDcaBot, threeCommasLongTicker);
-            validateService.validatePairsAndThrow(shortDcaBot, threeCommasShortTicker);
-
-            //запустить ботов
-            DcaBot enabledLongDcaBot = threeCommasService.enableDcaBot(editedLongDcaBot.getId());
-            DcaBot enabledShortDcaBot = threeCommasService.enableDcaBot(editedShortDcaBot.getId());
-
-            //валидация ботов
-
-        } catch (Exception e) {
-            log.error("❌ Failed startRealTrade()", e);
-
-            if (longDcaBot != null) {
-                try {
-                    threeCommasService.closeDcaBotAtMarketPrice(longDcaBot.getId());
-                } catch (Exception ex) {
-                    log.warn("⚠️ Failed to close long bot: " + ex.getMessage());
-                }
-            }
-
-            if (shortDcaBot != null) {
-                try {
-                    threeCommasService.closeDcaBotAtMarketPrice(shortDcaBot.getId());
-                } catch (Exception ex) {
-                    log.warn("⚠️ Failed to close short bot: " + ex.getMessage());
-                }
-            }
-
-            throw new RuntimeException(e);
-        }
+        threeCommasFlowService.startRealTradeViaDcaBots(chatIdStr);
     }
 
     public void stopRealTrade(String chatIdStr) {
-        DcaBot longDcaBot = null;
-        DcaBot shortDcaBot = null;
-        try {
-            //получить PairData
-            PairData pairData = pairDataService.getPairData();
-
-            //получить ботов
-            longDcaBot = threeCommasService.getDcaBot(true);
-            shortDcaBot = threeCommasService.getDcaBot(false);
-
-            threeCommasService.closeDcaBotAtMarketPrice(longDcaBot.getId());
-            threeCommasService.closeDcaBotAtMarketPrice(shortDcaBot.getId());
-
-        } catch (Exception e) {
-            log.error("❌ Failed stopRealTrade()", e);
-
-            if (longDcaBot != null) {
-                try {
-                    threeCommasService.closeDcaBotAtMarketPrice(longDcaBot.getId());
-                } catch (Exception ex) {
-                    log.warn("⚠️ Failed to close long bot: " + ex.getMessage());
-                }
-            }
-
-            if (shortDcaBot != null) {
-                try {
-                    threeCommasService.closeDcaBotAtMarketPrice(shortDcaBot.getId());
-                } catch (Exception ex) {
-                    log.warn("⚠️ Failed to close short bot: " + ex.getMessage());
-                }
-            }
-
-            throw new RuntimeException(e);
-        }
-
+        threeCommasFlowService.stopRealTradeViaDcaBots(chatIdStr);
     }
 }

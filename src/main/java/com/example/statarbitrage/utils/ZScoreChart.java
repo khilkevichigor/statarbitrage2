@@ -16,9 +16,10 @@ import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.example.statarbitrage.constant.Constants.CHARTS_DIR;
+
 @Slf4j
 public final class ZScoreChart {
-    private static final String CHARTS_DIR = "charts";
 
     private ZScoreChart() {
     }

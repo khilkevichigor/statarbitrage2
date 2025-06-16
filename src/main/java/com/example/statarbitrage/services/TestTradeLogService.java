@@ -15,16 +15,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE;
+import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE_HEADER;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TestTradeLogService {
-    private static final String CSV_HEADER = "Long,Short,Profit %,LongCh %,ShortCh %,Z,Corr,MaxProfit %,TimeToMax min,MinProfit %,TimeToMin min,Timestamp";
-    private static final String FILE_PATH = "logs/test_trade.csv";
 
     public void logOrUpdatePair(PairData pairData) {
         try {
-            Path path = Paths.get(FILE_PATH);
+            Path path = Paths.get(TEST_TRADES_CSV_FILE);
             Files.createDirectories(path.getParent());
 
             List<String> lines = new ArrayList<>();
@@ -37,7 +38,7 @@ public class TestTradeLogService {
                 List<String> existingLines = Files.readAllLines(path);
                 for (int i = 0; i < existingLines.size(); i++) {
                     String line = existingLines.get(i);
-                    if (line.equals(CSV_HEADER)) {
+                    if (line.equals(TEST_TRADES_CSV_FILE_HEADER)) {
                         lines.add(line); // заголовок
                     } else if (line.startsWith(key)) {
                         lines.add(newRow); // обновляем
@@ -50,7 +51,7 @@ public class TestTradeLogService {
 
             if (!updated) {
                 if (lines.isEmpty()) {
-                    lines.add(CSV_HEADER);
+                    lines.add(TEST_TRADES_CSV_FILE_HEADER);
                 }
                 lines.add(newRow); // добавляем новую
             }

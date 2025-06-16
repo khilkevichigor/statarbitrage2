@@ -13,18 +13,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.example.statarbitrage.constant.Constants.SETTINGS_FILE_NAME;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SettingsService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String SETTINGS_JSON_FILE_PATH = "settings.json";
     private static final long CHAT_ID = 159178617;
 
     @PostConstruct
     public Settings getSettings() {
-        Map<Long, Settings> settings = loadSettings(SETTINGS_JSON_FILE_PATH);
+        Map<Long, Settings> settings = loadSettings(SETTINGS_FILE_NAME);
         if (settings == null) {
             settings = new HashMap<>();
             Settings defaultSettings = getDefaultSettings();
@@ -66,7 +67,7 @@ public class SettingsService {
 
     public void saveSettings(Map<Long, Settings> userSettings) {
         try {
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_JSON_FILE_PATH), userSettings);
+            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_FILE_NAME), userSettings);
         } catch (IOException e) {
             e.printStackTrace();
         }

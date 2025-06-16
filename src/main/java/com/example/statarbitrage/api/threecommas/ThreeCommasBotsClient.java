@@ -53,11 +53,6 @@ public class ThreeCommasBotsClient {
                 .addHeader("Timestamp", timestamp)
                 .build();
 
-        System.out.println("Debug:");
-        System.out.println("Path: " + path);
-        System.out.println("Message to sign: " + path);
-        System.out.println("Signature: " + signature);
-
         try (Response response = client.newCall(request).execute()) {
             System.out.println("📋 Bots List (status " + response.code() + "):");
             System.out.println(response.body().string());

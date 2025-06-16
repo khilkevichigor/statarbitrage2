@@ -12,13 +12,14 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Comparator;
 
+import static com.example.statarbitrage.constant.Constants.CHARTS_DIR;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChartService {
     private final EventSendService eventSendService;
 
-    private static final String CHARTS_DIR = "charts";
 
     public void clearChartDir() {
         File dir = new File(CHARTS_DIR);
