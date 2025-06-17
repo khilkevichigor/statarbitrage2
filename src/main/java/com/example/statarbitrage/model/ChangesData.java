@@ -26,4 +26,11 @@ public class ChangesData {
     private String chartProfitMessage;
     private String allLogMessage;
 
+    private BigDecimal maxZ;
+    private BigDecimal minZ;
+    private BigDecimal maxLong;
+    private BigDecimal minLong;
+    private BigDecimal maxShort;
+    private BigDecimal minShort;
+
 }

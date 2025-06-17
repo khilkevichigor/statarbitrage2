@@ -67,4 +67,11 @@ public class PairData {
     private BigDecimal minProfitRounded;
 
     private long entryTime;
+
+    private BigDecimal maxZ;
+    private BigDecimal minZ;
+    private BigDecimal maxLong;
+    private BigDecimal minLong;
+    private BigDecimal maxShort;
+    private BigDecimal minShort;
 }

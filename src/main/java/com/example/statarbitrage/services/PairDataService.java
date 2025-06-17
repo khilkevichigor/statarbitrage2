@@ -151,6 +151,13 @@ public class PairDataService {
 
         pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
 
+        pairData.setMinZ(changesData.getMinZ());
+        pairData.setMaxZ(changesData.getMaxZ());
+        pairData.setMinLong(changesData.getMinLong());
+        pairData.setMaxLong(changesData.getMaxLong());
+        pairData.setMinShort(changesData.getMinShort());
+        pairData.setMaxShort(changesData.getMaxShort());
+
         save(pairData);
     }
 }

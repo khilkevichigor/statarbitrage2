@@ -20,6 +20,12 @@ public class ChangesService {
 
     private BigDecimal maxProfit = null;
     private BigDecimal minProfit = null;
+    private BigDecimal maxZ = null;
+    private BigDecimal minZ = null;
+    private BigDecimal maxLong = null;
+    private BigDecimal minLong = null;
+    private BigDecimal maxShort = null;
+    private BigDecimal minShort = null;
     private long entryTime = -1;
     private long maxProfitTime = -1;
     private long minProfitTime = -1;
@@ -35,6 +41,13 @@ public class ChangesService {
         entryTime = -1;
         maxProfitTime = -1;
         minProfitTime = -1;
+
+        maxZ = null;
+        minZ = null;
+        maxLong = null;
+        minLong = null;
+        maxShort = null;
+        minShort = null;
     }
 
     public ChangesData calculate(PairData pairData) {
@@ -114,6 +127,27 @@ public class ChangesService {
             minProfitTime = System.currentTimeMillis();
         }
 
+        if (maxZ == null || zScoreCurrent.compareTo(maxZ) > 0) {
+            maxZ = zScoreCurrent;
+        }
+        if (minZ == null || zScoreCurrent.compareTo(minZ) < 0) {
+            minZ = zScoreCurrent;
+        }
+
+        if (maxLong == null || longReturnPct.compareTo(maxLong) > 0) {
+            maxLong = longReturnPct;
+        }
+        if (minLong == null || longReturnPct.compareTo(minLong) < 0) {
+            minLong = longReturnPct;
+        }
+
+        if (maxShort == null || shortReturnPct.compareTo(maxShort) > 0) {
+            maxShort = shortReturnPct;
+        }
+        if (minShort == null || shortReturnPct.compareTo(minShort) < 0) {
+            minShort = shortReturnPct;
+        }
+
         long timeInMinutesSinceEntryToMax = (maxProfitTime - entryTime) / (1000 * 60); // в минутах
         long timeInMinutesSinceEntryToMin = (minProfitTime - entryTime) / (1000 * 60);
 
@@ -168,6 +202,10 @@ public class ChangesService {
         );
         log.info(timeToProfitLogMessage);
 
+        log.info(String.format("📊 Z max/min: %s / %s", maxZ.setScale(2, RoundingMode.HALF_UP), minZ.setScale(2, RoundingMode.HALF_UP)));
+        log.info(String.format("📈 Long max/min: %s / %s", maxLong.setScale(2, RoundingMode.HALF_UP), minLong.setScale(2, RoundingMode.HALF_UP)));
+        log.info(String.format("📉 Short max/min: %s / %s", maxShort.setScale(2, RoundingMode.HALF_UP), minShort.setScale(2, RoundingMode.HALF_UP)));
+
         return ChangesData.builder()
 
                 .longReturnRounded(longReturnRounded)
@@ -182,6 +220,15 @@ public class ChangesService {
 
                 .timeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax)
                 .timeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin)
+
+                .minZ(minZ)
+                .maxZ(maxZ)
+
+                .minLong(minLong)
+                .maxLong(maxLong)
+
+                .minShort(minShort)
+                .maxShort(minShort)
 
                 .build();
     }
