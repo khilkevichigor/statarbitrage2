@@ -74,4 +74,6 @@ public class PairData {
     private BigDecimal minLong;
     private BigDecimal maxShort;
     private BigDecimal minShort;
+    private BigDecimal maxCorr;
+    private BigDecimal minCorr;
 }

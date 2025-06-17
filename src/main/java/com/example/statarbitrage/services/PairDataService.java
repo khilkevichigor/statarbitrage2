@@ -157,6 +157,8 @@ public class PairDataService {
         pairData.setMaxLong(changesData.getMaxLong());
         pairData.setMinShort(changesData.getMinShort());
         pairData.setMaxShort(changesData.getMaxShort());
+        pairData.setMinCorr(changesData.getMinCorr());
+        pairData.setMaxCorr(changesData.getMaxCorr());
 
         save(pairData);
     }

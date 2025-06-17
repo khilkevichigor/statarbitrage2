@@ -21,7 +21,7 @@ import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE_
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TestTradeLogService {
+public class CsvLogService {
 
     public void logOrUpdatePair(PairData pairData) {
         try {
@@ -66,19 +66,81 @@ public class TestTradeLogService {
     private static String getRowForCsv(PairData pairData) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
+
         String profit = String.format("%.2f", pairData.getProfitChanges());
-        String longCh = String.format("%.2f", pairData.getLongChanges());
-        String shortCh = String.format("%.2f", pairData.getShortChanges());
-        String z = String.format("%.2f", pairData.getZScoreCurrent());
-        String corr = String.format("%.2f", pairData.getCorrelationCurrent());
-        String maxProfit = String.format("%.2f", pairData.getMaxProfitRounded());
-        String timeToMax = pairData.getTimeInMinutesSinceEntryToMax() + "min";
         String minProfit = String.format("%.2f", pairData.getMinProfitRounded());
         String timeToMin = pairData.getTimeInMinutesSinceEntryToMin() + "min";
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        ;
+        String maxProfit = String.format("%.2f", pairData.getMaxProfitRounded());
+        String timeToMax = pairData.getTimeInMinutesSinceEntryToMax() + "min";
 
-        return String.join(",", longTicker, shortTicker, profit, longCh, shortCh, z, corr, maxProfit, timeToMax, minProfit, timeToMin, timestamp);
+        String longCh = String.format("%.2f", pairData.getLongChanges());
+        String longChMin = String.format("%.2f", pairData.getMinLong());
+        String longChMax = String.format("%.2f", pairData.getMaxLong());
+
+        String shortCh = String.format("%.2f", pairData.getShortChanges());
+        String shortChMin = String.format("%.2f", pairData.getMinShort());
+        String shortChMax = String.format("%.2f", pairData.getMaxShort());
+
+        String z = String.format("%.2f", pairData.getZScoreCurrent());
+        String zMin = String.format("%.2f", pairData.getMinZ());
+        String zMax = String.format("%.2f", pairData.getMaxZ());
+
+        String corr = String.format("%.2f", pairData.getCorrelationCurrent());
+        String corrMin = String.format("%.2f", pairData.getMinCorr());
+        String corrMax = String.format("%.2f", pairData.getMaxCorr());
+
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        /*
+        Long Ticker
+        Short Ticker
+
+        Profit %
+        ProfitMin %,ProfitMin Time min
+        ProfitMax %,ProfitMax Time min
+
+        LongCh %
+        LongChMin %
+        LongChMax %
+
+        ShortCh %
+        ShortChMin %
+        ShortChMax %
+
+        Z
+        ZMin
+        ZMax
+
+        Corr
+        CorrMin
+        CorrMax
+
+        Timestamp";
+         */
+        return String.join(",",
+                longTicker,
+                shortTicker,
+
+                profit,
+                minProfit, timeToMin,
+                maxProfit, timeToMax,
+
+                longCh,
+                longChMin,
+                longChMax,
+
+                shortCh,
+                shortChMin,
+                shortChMax,
+
+                z,
+                zMin,
+                zMax,
+
+                corr,
+                corrMin,
+                corrMax,
+
+                timestamp);
     }
 
 }

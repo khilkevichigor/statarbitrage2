@@ -26,6 +26,8 @@ public class ChangesService {
     private BigDecimal minLong = null;
     private BigDecimal maxShort = null;
     private BigDecimal minShort = null;
+    private BigDecimal maxCorr = null;
+    private BigDecimal minCorr = null;
     private long entryTime = -1;
     private long maxProfitTime = -1;
     private long minProfitTime = -1;
@@ -48,6 +50,8 @@ public class ChangesService {
         minLong = null;
         maxShort = null;
         minShort = null;
+        maxCorr = null;
+        minCorr = null;
     }
 
     public ChangesData calculate(PairData pairData) {
@@ -64,16 +68,14 @@ public class ChangesService {
         BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+        BigDecimal corrEntry = BigDecimal.valueOf(pairData.getCorrelationEntry());
+        BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
 
-        BigDecimal longReturnPct;
-        BigDecimal shortReturnPct;
-
-
-        longReturnPct = longCurrent.subtract(longEntry)
+        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                 .divide(longEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        shortReturnPct = shortEntry.subtract(shortCurrent) // шорт: считаем наоборот
+        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent) // шорт: считаем наоборот
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
@@ -133,19 +135,23 @@ public class ChangesService {
         if (minZ == null || zScoreCurrent.compareTo(minZ) < 0) {
             minZ = zScoreCurrent;
         }
-
         if (maxLong == null || longReturnPct.compareTo(maxLong) > 0) {
             maxLong = longReturnPct;
         }
         if (minLong == null || longReturnPct.compareTo(minLong) < 0) {
             minLong = longReturnPct;
         }
-
         if (maxShort == null || shortReturnPct.compareTo(maxShort) > 0) {
             maxShort = shortReturnPct;
         }
         if (minShort == null || shortReturnPct.compareTo(minShort) < 0) {
             minShort = shortReturnPct;
+        }
+        if (maxCorr == null || corrCurrent.compareTo(maxCorr) > 0) {
+            maxCorr = corrCurrent;
+        }
+        if (minCorr == null || corrCurrent.compareTo(minCorr) < 0) {
+            minCorr = corrCurrent;
         }
 
         long timeInMinutesSinceEntryToMax = (maxProfitTime - entryTime) / (1000 * 60); // в минутах
@@ -205,6 +211,7 @@ public class ChangesService {
         log.info(String.format("📊 Z max/min: %s / %s", maxZ.setScale(2, RoundingMode.HALF_UP), minZ.setScale(2, RoundingMode.HALF_UP)));
         log.info(String.format("📈 Long max/min: %s / %s", maxLong.setScale(2, RoundingMode.HALF_UP), minLong.setScale(2, RoundingMode.HALF_UP)));
         log.info(String.format("📉 Short max/min: %s / %s", maxShort.setScale(2, RoundingMode.HALF_UP), minShort.setScale(2, RoundingMode.HALF_UP)));
+        log.info(String.format("📉 Corr max/min: %s / %s", maxCorr.setScale(2, RoundingMode.HALF_UP), minCorr.setScale(2, RoundingMode.HALF_UP)));
 
         return ChangesData.builder()
 
@@ -228,7 +235,10 @@ public class ChangesService {
                 .maxLong(maxLong)
 
                 .minShort(minShort)
-                .maxShort(minShort)
+                .maxShort(maxShort)
+
+                .minCorr(minCorr)
+                .maxCorr(maxCorr)
 
                 .build();
     }

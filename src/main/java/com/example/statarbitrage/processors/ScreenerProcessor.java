@@ -33,7 +33,7 @@ public class ScreenerProcessor {
     private final CandlesService candlesService;
     private final FileService fileService;
     private final SettingsService settingsService;
-    private final TestTradeLogService testTradeLogService;
+    private final CsvLogService csvLogService;
     private final ValidateService validateService;
     private final ThreeCommasService threeCommasService;
     private final ThreeCommasFlowService threeCommasFlowService;
@@ -87,7 +87,7 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
-            testTradeLogService.logOrUpdatePair(pairData);
+            csvLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
         } finally {
             runningTrades.remove(chatId);

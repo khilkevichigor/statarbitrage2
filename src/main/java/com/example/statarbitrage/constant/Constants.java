@@ -10,7 +10,7 @@ public interface Constants {
     String CHARTS_DIR = "charts";
 
     String TEST_TRADES_CSV_FILE = "logs/test_trade.csv";
-    String TEST_TRADES_CSV_FILE_HEADER = "Long,Short,Profit %,LongCh %,ShortCh %,Z,Corr,MaxProfit %,TimeToMax min,MinProfit %,TimeToMin min,Timestamp";
+    String TEST_TRADES_CSV_FILE_HEADER = "Long Ticker,Short Ticker,Profit %,ProfitMin %,ProfitMin Time min,ProfitMax %,ProfitMin Time min,LongCh %,LongChMin %,LongChMax %,ShortCh %,ShortChMin %, ShortChMax %,Z,ZMin, ZMax,Corr,CorrMin, CorrMax,Timestamp";
 
     String LONG_DCA_BOT_NAME = "stat_long";
     String SHORT_DCA_BOT_NAME = "stat_short";
