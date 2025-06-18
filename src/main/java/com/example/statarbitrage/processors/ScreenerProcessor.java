@@ -108,8 +108,8 @@ public class ScreenerProcessor {
     }
 
     private static boolean isExitStrategyAccepted(PairData pairData) {
-        return (pairData.getMaxProfitRounded().doubleValue() < 3.00 || pairData.getMaxProfitRounded().doubleValue() >= 5.00)
-                || pairData.getZScoreCurrent() < 2.00;
+        return (pairData.getProfitChanges().doubleValue() < -3.00 || pairData.getProfitChanges().doubleValue() >= 5.00) //todo может только по z?
+                || pairData.getZScoreCurrent() < -2.00;
     }
 
     private void sendEventTostartNewTrade(String chatId, boolean withLogging) {

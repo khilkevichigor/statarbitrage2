@@ -95,25 +95,27 @@ public class TelegramBot extends TelegramLongPollingBot {
             String text = message.getText();
 
             switch (text) {
-                case "/find" -> findCommand(chatIdStr);
-                case "/get_settings" -> getSettingsCommand(chatIdStr);
-                case "/reset_settings" -> resetSettingsCommand(chatId, chatIdStr);
-                case "/start_test_trade" -> startTestTradeCommand(chatIdStr);
-                case "/start_real_trade" -> startRealTradeCommand(chatIdStr);
-                case "/stop_real_trade" -> stopRealTradeCommand(chatIdStr);
-                case "/stop_test_trade" -> stopTestTradeCommand(chatIdStr);
-                case "/delete_files" -> deleteFilesCommand();
-                case "/start_simulation" -> startSimulationCommand(chatIdStr);
-                case "/get_csv" -> getCsvCommand(chatIdStr);
-                case "/test_3commas_api" -> test3commasApiCommand(chatIdStr);
-                case "/find_and_test_trade" -> findAndTestNewTradeCommand(chatIdStr);
-                default -> {
-                    if (text.startsWith(SET_SETTINGS) || text.startsWith(SET_SETTINGS_SHORT)) {
-                        log.info("-> SET_SETTINGS");
-                        setSettings(text, chatId, chatIdStr);
-                    }
-                }
+                case FIND_COMMAND -> findCommand(chatIdStr);
+                case GET_SETTINGS_COMMAND -> getSettingsCommand(chatIdStr);
+                case RESET_SETTINGS_COMMAND -> resetSettingsCommand(chatId, chatIdStr);
+                case START_TEST_TRADE_COMMAND -> startTestTradeCommand(chatIdStr);
+                case START_REAL_TRADE_COMMAND -> startRealTradeCommand(chatIdStr);
+                case STOP_REAL_TRADE_COMMAND -> stopRealTradeCommand(chatIdStr);
+                case STOP_TEST_TRADE_COMMAND -> stopTestTradeCommand(chatIdStr);
+                case DELETE_FILES_COMMAND -> deleteFilesCommand();
+                case START_SIMULATION_COMMAND -> startSimulationCommand(chatIdStr);
+                case GET_CSV_COMMAND -> getCsvCommand(chatIdStr);
+                case TEST_3COMMAS_API_COMMAND -> test3commasApiCommand(chatIdStr);
+                case FIND_AND_TEST_TRADE_COMMAND -> findAndTestNewTradeCommand(chatIdStr);
+                default -> handleMessage(text, chatIdStr);
             }
+        }
+    }
+
+    private void handleMessage(String text, String chatIdStr) {
+        if (text.startsWith(SET_SETTINGS) || text.startsWith(SET_SETTINGS_SHORT)) {
+            log.info("-> {}", SET_SETTINGS);
+            setSettings(text, chatIdStr);
         }
     }
 
@@ -143,7 +145,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startRealTradeCommand(String chatIdStr) {
         log.info("-> {}", BotMenu.START_REAL_TRADE.name());
         startRealTrade(chatIdStr);
-//                    startTestTrade(chatIdStr);
+        //startTestTrade(chatIdStr);
     }
 
     private void stopRealTradeCommand(String chatIdStr) {
@@ -159,7 +161,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void deleteFilesCommand() {
         log.info("-> {}", BotMenu.DELETE_FILES.name());
-        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
+        fileService.deleteSpecificFilesInProjectRoot(List.of(Z_SCORE_FILE_NAME, PAIR_DATA_FILE_NAME, CANDLES_FILE_NAME));
     }
 
     private void startSimulationCommand(String chatIdStr) {
@@ -193,11 +195,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         screenerProcessor.stopRealTrade(chatIdStr);
     }
 
-    private void setSettings(String text, long chatId, String chatIdStr) {
+    private void setSettings(String text, String chatIdStr) {
         try {
-            String jsonPart = text.replace(text.startsWith("/set_settings") ? "/set_settings" : "/ss", "").trim();
+            String jsonPart = text.replace(text.startsWith(SET_SETTINGS) ? SET_SETTINGS : SET_SETTINGS_SHORT, "").trim();
             Settings newSettings = new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonPart, Settings.class);
-            settingsService.updateAllSettings(chatId, newSettings);
+            settingsService.updateAllSettings(Long.parseLong(chatIdStr), newSettings);
             sendMessage(chatIdStr, "✅ Настройки успешно обновлены!");
         } catch (Exception e) {
             log.warn("❌ Ошибка разбора JSON: {}", e.getMessage());
@@ -325,6 +327,4 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.error("Ошибка при отправке документа: {}", e.getMessage(), e);
         }
     }
-
-
 }

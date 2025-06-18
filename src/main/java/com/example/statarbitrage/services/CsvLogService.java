@@ -31,7 +31,7 @@ public class CsvLogService {
             List<String> lines = new ArrayList<>();
             boolean updated = false;
 
-            String key = pairData.getLongTicker() + "," + pairData.getShortTicker();
+            String key = pairData.getLongTicker() + "," + pairData.getShortTicker() + "," + pairData.getProfitChanges(); //уникальный ключ чтобы не перезатереть
             String newRow = getRowForCsv(pairData);
 
             if (Files.exists(path)) {
