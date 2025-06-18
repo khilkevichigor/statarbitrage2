@@ -35,6 +35,19 @@ public class SettingsService {
         return settings.get(CHAT_ID);
     }
 
+    public void updateAllSettings(long chatId, Settings newSettings) {
+        Map<Long, Settings> userSettings = new HashMap<>();
+        userSettings.put(chatId, newSettings);
+        saveSettings(userSettings);
+    }
+
+    public void resetSettings(long chatId) {
+        Settings defaultSettings = getDefaultSettings();
+        Map<Long, Settings> userSettings = new HashMap<>();
+        userSettings.put(chatId, defaultSettings);
+        saveSettings(userSettings);
+    }
+
     private static Settings getDefaultSettings() {
         return Settings.builder()
                 .timeframe("1m")
@@ -52,20 +65,7 @@ public class SettingsService {
                 .build();
     }
 
-    public void updateAllSettings(long chatId, Settings newSettings) {
-        Map<Long, Settings> userSettings = new HashMap<>();
-        userSettings.put(chatId, newSettings);
-        saveSettings(userSettings);
-    }
-
-    public void resetSettings(long chatId) {
-        Settings defaultSettings = getDefaultSettings();
-        Map<Long, Settings> userSettings = new HashMap<>();
-        userSettings.put(chatId, defaultSettings);
-        saveSettings(userSettings);
-    }
-
-    public void saveSettings(Map<Long, Settings> userSettings) {
+    private void saveSettings(Map<Long, Settings> userSettings) {
         try {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_FILE_NAME), userSettings);
         } catch (IOException e) {
@@ -73,7 +73,7 @@ public class SettingsService {
         }
     }
 
-    public Map<Long, Settings> loadSettings(String settingsJsonFilePath) {
+    private Map<Long, Settings> loadSettings(String settingsJsonFilePath) {
         File file = new File(settingsJsonFilePath);
         if (file.exists()) {
             try {

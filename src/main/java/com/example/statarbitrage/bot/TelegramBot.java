@@ -3,6 +3,7 @@ package com.example.statarbitrage.bot;
 import com.example.statarbitrage.events.ResetProfitEvent;
 import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
+import com.example.statarbitrage.events.StartNewTradeEvent;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.processors.ScreenerProcessor;
 import com.example.statarbitrage.services.EventSendService;
@@ -58,6 +59,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
         listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
+        listOfCommands.add(new BotCommand(BotMenu.FIND_AND_START_TEST_TRADE.getName(), "Искать+тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.START_REAL_TRADE.getName(), "Старт рил-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_REAL_TRADE.getName(), "Стоп рил-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
@@ -97,7 +99,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     log.info("-> " + BotMenu.FIND.name());
                     stopTestTrade(chatIdStr);
                     sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
-                    screenerProcessor.sendBestChart(chatIdStr);
+                    screenerProcessor.findBestAsync(chatIdStr);
                 }
                 case "/get_settings" -> {
                     log.info("-> " + BotMenu.GET_SETTINGS.name());
@@ -142,6 +144,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     log.info("-> " + BotMenu.TEST_3COMMAS_API.name());
                     screenerProcessor.test3commasApi(chatIdStr);
                 }
+                case "/find_and_test_trade" -> {
+                    findAndTestNewTrade(chatIdStr);
+                }
                 default -> {
                     if (text.startsWith(SET_SETTINGS) || text.startsWith(SET_SETTINGS_SHORT)) {
                         log.info("-> SET_SETTINGS");
@@ -150,6 +155,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
             }
         }
+    }
+
+    private void findAndTestNewTrade(String chatIdStr) {
+        log.info("-> " + BotMenu.FIND_AND_START_TEST_TRADE.name());
+        stopTestTrade(chatIdStr);
+        sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
+        screenerProcessor.findBest(chatIdStr);
+        startTestTrade(chatIdStr);
     }
 
     private void startRealTrade(String chatIdStr) {
@@ -198,7 +211,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         testTradeTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                screenerProcessor.testTrade(chatId);
+                screenerProcessor.testTradeAsync(chatId);
             } catch (Exception e) {
                 log.error("Ошибка в testTrade()", e);
             }
@@ -249,6 +262,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         photo.setParseMode(event.isEnableMarkdown() ? "Markdown" : null);
 
         sendPhoto(photo); // ✅ метод, который отправляет фото
+    }
+
+    @EventListener
+    public void onStartNewTradeEvent(StartNewTradeEvent event) {
+        sendMessage(event.getChatId(), "Новый трейд...");
+        findAndTestNewTrade(event.getChatId());
     }
 
     private void sendMessage(String chatId, String text) {

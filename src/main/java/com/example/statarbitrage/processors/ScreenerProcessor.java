@@ -1,6 +1,7 @@
 package com.example.statarbitrage.processors;
 
 import com.example.statarbitrage.bot.TradeType;
+import com.example.statarbitrage.events.StartNewTradeEvent;
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreData;
@@ -38,9 +39,14 @@ public class ScreenerProcessor {
     private final ThreeCommasService threeCommasService;
     private final ThreeCommasFlowService threeCommasFlowService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
+    private final EventSendService eventSendService;
 
     @Async
-    public void sendBestChart(String chatId) {
+    public void findBestAsync(String chatId) {
+        findBest(chatId);
+    }
+
+    public void findBest(String chatId) {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
@@ -63,6 +69,10 @@ public class ScreenerProcessor {
     }
 
     @Async
+    public void testTradeAsync(String chatId) {
+        testTrade(chatId);
+    }
+
     public void testTrade(String chatId) {
         AtomicBoolean isRunning = runningTrades.computeIfAbsent(chatId, k -> new AtomicBoolean(false));
         if (!isRunning.compareAndSet(false, true)) {
@@ -89,8 +99,24 @@ public class ScreenerProcessor {
             pairDataService.update(pairData, first, candlesMap);
             csvLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
+            if (pairData.getMaxProfitRounded().doubleValue() >= 1.00) {
+                startNewTrade(chatId, true);
+            }
         } finally {
             runningTrades.remove(chatId);
+        }
+    }
+
+    private void startNewTrade(String chatId, boolean withLogging) {
+        try {
+            eventSendService.sendStartNewTradeEvent(StartNewTradeEvent.builder()
+                    .chatId(chatId)
+                    .build());
+            if (withLogging) {
+                log.info("📤 Отправлен эвент на новый трейд");
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при отправке эвента на новый трейд: {}", e.getMessage(), e);
         }
     }
 

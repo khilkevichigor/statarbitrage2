@@ -93,46 +93,48 @@ public class ChartService {
 
     private static String getCaptionV2(PairData pairData) {
         StringBuilder sb = new StringBuilder();
-        sb.append(pairData.getLongTicker()).append(" / ").append(pairData.getShortTicker()).append("\n\n");
+        sb.append("longTicker=").append(pairData.getLongTicker()).append("\n");
+        sb.append("shortTicker=").append(pairData.getShortTicker()).append("\n\n");
 
         if (pairData.getProfitChanges() != null) {
             sb.append("profit=").append(pairData.getProfitChanges()).append("%").append("\n");
         }
         if (pairData.getMaxProfitRounded() != null && pairData.getMinProfitRounded() != null) {
-            sb.append("profitMin=").append(pairData.getMinProfitRounded()).append("%(")
+            sb.append("min=").append(pairData.getMinProfitRounded()).append("%(")
                     .append(pairData.getTimeInMinutesSinceEntryToMin()).append("min)").append("\n");
-            sb.append("profitMax=").append(pairData.getMaxProfitRounded()).append("%(")
+            sb.append("max=").append(pairData.getMaxProfitRounded()).append("%(")
                     .append(pairData.getTimeInMinutesSinceEntryToMax()).append("min)").append("\n\n");
         }
 
-        sb.append("z=").append(String.format("%.2f", pairData.getZScoreCurrent())).append("\n");
+        sb.append("z=").append(String.format("%.2f", pairData.getZScoreCurrent()));
         if (pairData.getMaxZ() != null && pairData.getMinZ() != null) {
-            sb.append("zMin=").append(pairData.getMinZ().setScale(2, RoundingMode.HALF_UP)).append("\n");
-            sb.append("zMax=").append(pairData.getMaxZ().setScale(2, RoundingMode.HALF_UP)).append("\n\n");
+            sb.append(" min=").append(pairData.getMinZ().setScale(2, RoundingMode.HALF_UP));
+            sb.append(" max=").append(pairData.getMaxZ().setScale(2, RoundingMode.HALF_UP)).append("\n");
+        } else {
+            sb.append(" "); //для sendBestChart
         }
 
-        sb.append("corr=").append(String.format("%.2f", pairData.getCorrelationCurrent())).append("\n");
+        sb.append("corr=").append(String.format("%.2f", pairData.getCorrelationCurrent()));
         if (pairData.getMaxCorr() != null && pairData.getMinCorr() != null) {
-            sb.append("corrMin=").append(pairData.getMinCorr().setScale(2, RoundingMode.HALF_UP)).append("\n");
-            sb.append("corrMax=").append(pairData.getMaxCorr().setScale(2, RoundingMode.HALF_UP)).append("\n\n");
+            sb.append(" min=").append(pairData.getMinCorr().setScale(2, RoundingMode.HALF_UP));
+            sb.append(" max=").append(pairData.getMaxCorr().setScale(2, RoundingMode.HALF_UP)).append("\n");
         }
 
         if (pairData.getLongChanges() != null) {
-            sb.append("longCh=").append(pairData.getLongChanges()).append("%").append("\n");
+            sb.append("long=").append(pairData.getLongChanges()).append("%");
         }
         if (pairData.getMaxLong() != null && pairData.getMinLong() != null) {
-            sb.append("longChMin=").append(pairData.getMinLong().setScale(2, RoundingMode.HALF_UP)).append("%").append("\n");
-            sb.append("longChMax=").append(pairData.getMaxLong().setScale(2, RoundingMode.HALF_UP)).append("%").append("\n\n");
+            sb.append(" min=").append(pairData.getMinLong().setScale(2, RoundingMode.HALF_UP)).append("%");
+            sb.append(" max=").append(pairData.getMaxLong().setScale(2, RoundingMode.HALF_UP)).append("%").append("\n");
         }
 
         if (pairData.getShortChanges() != null) {
-            sb.append("shortCh=").append(pairData.getShortChanges()).append("%").append("\n");
+            sb.append("short=").append(pairData.getShortChanges()).append("%");
         }
         if (pairData.getMaxShort() != null && pairData.getMinShort() != null) {
-            sb.append("shortChMin=").append(pairData.getMinShort().setScale(2, RoundingMode.HALF_UP)).append("%").append("\n");
-            sb.append("shortChMax=").append(pairData.getMaxShort().setScale(2, RoundingMode.HALF_UP)).append("%").append("\n");
+            sb.append(" min=").append(pairData.getMinShort().setScale(2, RoundingMode.HALF_UP)).append("%");
+            sb.append(" max=").append(pairData.getMaxShort().setScale(2, RoundingMode.HALF_UP)).append("%").append("\n");
         }
         return sb.toString();
     }
-
 }
