@@ -99,12 +99,17 @@ public class ScreenerProcessor {
             pairDataService.update(pairData, first, candlesMap);
             csvLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
-            if (pairData.getMaxProfitRounded().doubleValue() >= 1.00) {
+            if (isExitStrategyAccepted(pairData)) {
                 sendEventTostartNewTrade(chatId, true);
             }
         } finally {
             runningTrades.remove(chatId);
         }
+    }
+
+    private static boolean isExitStrategyAccepted(PairData pairData) {
+        return (pairData.getMaxProfitRounded().doubleValue() < 3.00 || pairData.getMaxProfitRounded().doubleValue() >= 5.00)
+                || pairData.getZScoreCurrent() < 2.00;
     }
 
     private void sendEventTostartNewTrade(String chatId, boolean withLogging) {
