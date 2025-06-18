@@ -31,7 +31,7 @@ public class CsvLogService {
             List<String> lines = new ArrayList<>();
             boolean updated = false;
 
-            String key = pairData.getLongTicker() + "," + pairData.getShortTicker() + "," + pairData.getProfitChanges(); //уникальный ключ чтобы не перезатереть
+            String key = pairData.getLongTicker() + "," + pairData.getShortTicker(); //уникальный ключ чтобы не перезатереть
             String newRow = getRowForCsv(pairData);
 
             if (Files.exists(path)) {
@@ -41,10 +41,22 @@ public class CsvLogService {
                     if (line.equals(TEST_TRADES_CSV_FILE_HEADER)) {
                         lines.add(line); // заголовок
                     } else if (line.startsWith(key)) {
-                        lines.add(newRow); // обновляем
-                        updated = true;
-                    } else {
-                        lines.add(line);
+                        // проверяем, есть ли ещё такие строки после текущей
+                        boolean isLastMatching = true;
+                        for (int j = i + 1; j < existingLines.size(); j++) {
+                            if (existingLines.get(j).startsWith(key)) {
+                                isLastMatching = false;
+                                break;
+                            }
+                        }
+
+                        if (isLastMatching) {
+                            // только последнюю строку по key обновляем
+                            lines.add(newRow);
+                            updated = true;
+                        } else {
+                            lines.add(line); // не трогаем промежуточные
+                        }
                     }
                 }
             }
