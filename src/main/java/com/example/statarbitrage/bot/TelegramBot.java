@@ -95,58 +95,18 @@ public class TelegramBot extends TelegramLongPollingBot {
             String text = message.getText();
 
             switch (text) {
-                case "/find" -> {
-                    log.info("-> " + BotMenu.FIND.name());
-                    stopTestTrade(chatIdStr);
-                    sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
-                    screenerProcessor.findBestAsync(chatIdStr);
-                }
-                case "/get_settings" -> {
-                    log.info("-> " + BotMenu.GET_SETTINGS.name());
-                    sendSettings(chatIdStr);
-                }
-                case "/reset_settings" -> {
-                    log.info("-> " + BotMenu.RESET_SETTINGS.name());
-                    settingsService.resetSettings(chatId);
-                    sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
-                }
-                case "/start_test_trade" -> {
-                    log.info("-> " + BotMenu.START_TEST_TRADE.name());
-                    startTestTrade(chatIdStr);
-                }
-                case "/start_real_trade" -> {
-                    log.info("-> " + BotMenu.START_REAL_TRADE.name());
-                    startRealTrade(chatIdStr);
-//                    startTestTrade(chatIdStr);
-                }
-                case "/stop_real_trade" -> {
-                    log.info("-> " + BotMenu.STOP_REAL_TRADE.name());
-                    stopRealTrade(chatIdStr);
-                    stopTestTrade(chatIdStr);
-                }
-                case "/stop_test_trade" -> {
-                    log.info("-> " + BotMenu.STOP_TEST_TRADE.name());
-                    stopTestTrade(chatIdStr);
-                }
-                case "/delete_files" -> {
-                    log.info("-> " + BotMenu.DELETE_FILES.name());
-                    fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
-                }
-                case "/start_simulation" -> {
-                    log.info("-> " + BotMenu.START_SIMULATION.name());
-                    startSimulation(chatIdStr, TradeType.GENERAL);
-                }
-                case "/get_csv" -> {
-                    log.info("-> " + BotMenu.GET_CSV.name());
-                    sendDocumentToTelegram(chatIdStr, new File(TEST_TRADES_CSV_FILE));
-                }
-                case "/test_3commas_api" -> {
-                    log.info("-> " + BotMenu.TEST_3COMMAS_API.name());
-                    screenerProcessor.test3commasApi(chatIdStr);
-                }
-                case "/find_and_test_trade" -> {
-                    findAndTestNewTrade(chatIdStr);
-                }
+                case "/find" -> findCommand(chatIdStr);
+                case "/get_settings" -> getSettingsCommand(chatIdStr);
+                case "/reset_settings" -> resetSettingsCommand(chatId, chatIdStr);
+                case "/start_test_trade" -> startTestTradeCommand(chatIdStr);
+                case "/start_real_trade" -> startRealTradeCommand(chatIdStr);
+                case "/stop_real_trade" -> stopRealTradeCommand(chatIdStr);
+                case "/stop_test_trade" -> stopTestTradeCommand(chatIdStr);
+                case "/delete_files" -> deleteFilesCommand();
+                case "/start_simulation" -> startSimulationCommand(chatIdStr);
+                case "/get_csv" -> getCsvCommand(chatIdStr);
+                case "/test_3commas_api" -> test3commasApiCommand(chatIdStr);
+                case "/find_and_test_trade" -> findAndTestNewTradeCommand(chatIdStr);
                 default -> {
                     if (text.startsWith(SET_SETTINGS) || text.startsWith(SET_SETTINGS_SHORT)) {
                         log.info("-> SET_SETTINGS");
@@ -157,8 +117,68 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void findAndTestNewTrade(String chatIdStr) {
-        log.info("-> " + BotMenu.FIND_AND_START_TEST_TRADE.name());
+    private void findCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.FIND.name());
+        stopTestTrade(chatIdStr);
+        sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
+        screenerProcessor.findBestAsync(chatIdStr);
+    }
+
+    private void getSettingsCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.GET_SETTINGS.name());
+        sendSettings(chatIdStr);
+    }
+
+    private void resetSettingsCommand(long chatId, String chatIdStr) {
+        log.info("-> {}", BotMenu.RESET_SETTINGS.name());
+        settingsService.resetSettings(chatId);
+        sendMessage(chatIdStr, "🔄 Настройки сброшены на значения по умолчанию.");
+    }
+
+    private void startTestTradeCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.START_TEST_TRADE.name());
+        startTestTrade(chatIdStr);
+    }
+
+    private void startRealTradeCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.START_REAL_TRADE.name());
+        startRealTrade(chatIdStr);
+//                    startTestTrade(chatIdStr);
+    }
+
+    private void stopRealTradeCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.STOP_REAL_TRADE.name());
+        stopRealTrade(chatIdStr);
+        stopTestTrade(chatIdStr);
+    }
+
+    private void stopTestTradeCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.STOP_TEST_TRADE.name());
+        stopTestTrade(chatIdStr);
+    }
+
+    private void deleteFilesCommand() {
+        log.info("-> {}", BotMenu.DELETE_FILES.name());
+        fileService.deleteSpecificFilesInProjectRoot(List.of("z_score.json", "pair_data.json", "candles.json"));
+    }
+
+    private void startSimulationCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.START_SIMULATION.name());
+        startSimulation(chatIdStr, TradeType.GENERAL);
+    }
+
+    private void getCsvCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.GET_CSV.name());
+        sendDocumentToTelegram(chatIdStr, new File(TEST_TRADES_CSV_FILE));
+    }
+
+    private void test3commasApiCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.TEST_3COMMAS_API.name());
+        screenerProcessor.test3commasApi(chatIdStr);
+    }
+
+    private void findAndTestNewTradeCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.FIND_AND_START_TEST_TRADE.name());
         stopTestTrade(chatIdStr);
         sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
         screenerProcessor.findBest(chatIdStr);
@@ -267,7 +287,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     @EventListener
     public void onStartNewTradeEvent(StartNewTradeEvent event) {
         sendMessage(event.getChatId(), "Новый трейд...");
-        findAndTestNewTrade(event.getChatId());
+        findAndTestNewTradeCommand(event.getChatId());
     }
 
     private void sendMessage(String chatId, String text) {

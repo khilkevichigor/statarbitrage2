@@ -100,14 +100,14 @@ public class ScreenerProcessor {
             csvLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
             if (pairData.getMaxProfitRounded().doubleValue() >= 1.00) {
-                startNewTrade(chatId, true);
+                sendEventTostartNewTrade(chatId, true);
             }
         } finally {
             runningTrades.remove(chatId);
         }
     }
 
-    private void startNewTrade(String chatId, boolean withLogging) {
+    private void sendEventTostartNewTrade(String chatId, boolean withLogging) {
         try {
             eventSendService.sendStartNewTradeEvent(StartNewTradeEvent.builder()
                     .chatId(chatId)
