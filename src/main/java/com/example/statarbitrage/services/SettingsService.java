@@ -60,6 +60,10 @@ public class SettingsService {
                 .capitalShort(1000.0)
                 .leverage(10.0)
                 .feePctPerTrade(0.05)
+                .exitTake(3.0)
+                .exitStop(-2.0)
+                .exitZ(0.5)
+                .exitTimeHours(1)
                 .minCorrelation(0.8)
                 .minVolume(10.0)
                 .build();

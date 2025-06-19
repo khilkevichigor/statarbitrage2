@@ -76,4 +76,6 @@ public class PairData {
     private BigDecimal minShort;
     private BigDecimal maxCorr;
     private BigDecimal minCorr;
+
+    private String exitReason;
 }

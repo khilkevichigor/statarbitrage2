@@ -38,8 +38,9 @@ public class ScreenerProcessor {
     private final ValidateService validateService;
     private final ThreeCommasService threeCommasService;
     private final ThreeCommasFlowService threeCommasFlowService;
-    private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
     private final EventSendService eventSendService;
+    private final ExitStrategyService exitStrategyService;
+    private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
     public void findBestAsync(String chatId) {
@@ -97,36 +98,17 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
-            csvLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
-            if (isExitStrategyAccepted(pairData)) {
-                sendEventTostartNewTrade(chatId, true);
+            if (exitStrategyService.isExitStrategyAcceptedAndAddReason(pairData)) {
+                sendEventToStartNewTrade(chatId, true);
             }
+            csvLogService.logOrUpdatePair(pairData);
         } finally {
             runningTrades.remove(chatId);
         }
     }
 
-    private static boolean isExitStrategyAccepted(PairData pairData) {
-        double profit = pairData.getProfitChanges().doubleValue();
-        double zScore = pairData.getZScoreCurrent();
-        long entryTimeMillis = pairData.getEntryTime();
-
-        boolean takeProfitOrStopLoss = profit <= -2.0 || profit >= 3.0;
-        boolean zScoreReturned = Math.abs(zScore) < 0.5;
-
-        boolean timedOut = false;
-        if (entryTimeMillis > 0) {
-            long nowMillis = System.currentTimeMillis();
-            long holdingMinutes = (nowMillis - entryTimeMillis) / (1000 * 60);
-            timedOut = holdingMinutes > 60; // больше часа
-        }
-
-        return takeProfitOrStopLoss || zScoreReturned || timedOut;
-    }
-
-
-    private void sendEventTostartNewTrade(String chatId, boolean withLogging) {
+    private void sendEventToStartNewTrade(String chatId, boolean withLogging) {
         try {
             eventSendService.sendStartNewTradeEvent(StartNewTradeEvent.builder()
                     .chatId(chatId)

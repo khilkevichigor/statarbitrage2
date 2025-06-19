@@ -20,6 +20,12 @@ public class Settings {
     private double capitalShort;
     private double leverage;
     private double feePctPerTrade;
+
+    private double exitTake;
+    private double exitStop;
+    private double exitZ;
+    private double exitTimeHours;
+
     private double minCorrelation;
     private double minVolume;
 }

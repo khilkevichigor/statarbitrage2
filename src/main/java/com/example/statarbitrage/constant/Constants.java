@@ -11,7 +11,15 @@ public interface Constants {
     String CHARTS_DIR = "charts";
 
     String TEST_TRADES_CSV_FILE = "logs/test_trade.csv";
-    String TEST_TRADES_CSV_FILE_HEADER = "Long Ticker,Short Ticker,Profit %,ProfitMin %,ProfitMin Time min,ProfitMax %,ProfitMax Time min,Long %,LongMin %,LongMax %,Short %,ShortMin %,ShortMax %,Z,ZMin,ZMax,Corr,CorrMin,CorrMax,Timestamp";
+    String TEST_TRADES_CSV_FILE_HEADER =
+            "long_ticker,short_ticker," +
+                    "current_profit_percent,min_profit_percent,min_profit_minutes,max_profit_percent,max_profit_minutes," +
+                    "current_long_percent,min_long_percent,max_long_percent," +
+                    "current_short_percent,min_short_percent,max_short_percent," +
+                    "current_z,min_z,max_z," +
+                    "current_corr,min_corr,max_corr," +
+                    "exit_reason," +
+                    "date";
     int TEST_TRADES_CSV_EXISTING_ROW_VALIDITY_HOURS = 8;
 
     String LONG_DCA_BOT_NAME = "stat_long";
@@ -29,5 +37,11 @@ public interface Constants {
     String DELETE_FILES_COMMAND = "/delete_files";
     String START_SIMULATION_COMMAND = "/start_simulation";
     String GET_CSV_COMMAND = "/get_csv";
+
+
+    String EXIT_REASON_BY_TAKE = "exit_by_take";
+    String EXIT_REASON_BY_STOP = "exit_by_stop";
+    String EXIT_REASON_BY_Z = "exit_by_z";
+    String EXIT_REASON_BY_TIME = "exit_by_time";
 
 }

@@ -101,6 +101,8 @@ public class CsvLogService {
         String corrMin = String.format("%.2f", pairData.getMinCorr());
         String corrMax = String.format("%.2f", pairData.getMaxCorr());
 
+        String exitReason = pairData.getExitReason();
+
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         /*
         Long Ticker
@@ -151,6 +153,8 @@ public class CsvLogService {
                 corr,
                 corrMin,
                 corrMax,
+
+                exitReason,
 
                 timestamp);
     }
