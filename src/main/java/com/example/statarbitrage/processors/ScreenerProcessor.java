@@ -108,10 +108,23 @@ public class ScreenerProcessor {
     }
 
     private static boolean isExitStrategyAccepted(PairData pairData) {
-        return
-//                (pairData.getProfitChanges().doubleValue() < -3.00 || pairData.getProfitChanges().doubleValue() >= 5.00) || //todo может только по z?
-                pairData.getZScoreCurrent() < -2.00; //проверим какие мах и мин профиты будут когда выходим только по z
+        double profit = pairData.getProfitChanges().doubleValue();
+        double zScore = pairData.getZScoreCurrent();
+        long entryTimeMillis = pairData.getEntryTime();
+
+        boolean takeProfitOrStopLoss = profit <= -2.0 || profit >= 3.0;
+        boolean zScoreReturned = Math.abs(zScore) < 0.5;
+
+        boolean timedOut = false;
+        if (entryTimeMillis > 0) {
+            long nowMillis = System.currentTimeMillis();
+            long holdingMinutes = (nowMillis - entryTimeMillis) / (1000 * 60);
+            timedOut = holdingMinutes > 60; // больше часа
+        }
+
+        return takeProfitOrStopLoss || zScoreReturned || timedOut;
     }
+
 
     private void sendEventTostartNewTrade(String chatId, boolean withLogging) {
         try {
