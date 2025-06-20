@@ -1,7 +1,7 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.TradeLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,14 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.statarbitrage.constant.Constants.*;
+import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE;
+import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE_HEADER;
 
 @Slf4j
 @Service
@@ -26,15 +23,15 @@ import static com.example.statarbitrage.constant.Constants.*;
 public class CsvLogService {
     private final SettingsService settingsService;
 
-    public void logOrUpdatePair(PairData pairData) {
+    public void logOrUpdatePair(TradeLog tradeLog) {
         try {
             Settings settings = settingsService.getSettings();
             Path path = Paths.get(TEST_TRADES_CSV_FILE);
             Files.createDirectories(path.getParent());
 
             List<String> lines = new ArrayList<>();
-            String key = pairData.getLongTicker() + "," + pairData.getShortTicker();
-            String newRow = getRowForCsv(pairData, settings);
+            String key = tradeLog.getLongTicker() + "," + tradeLog.getShortTicker();
+            String newRow = getRowForCsv(tradeLog);
             boolean updated = false;
 
             if (Files.exists(path)) {
@@ -84,45 +81,43 @@ public class CsvLogService {
     }
 
 
-    private static String getRowForCsv(PairData pairData, Settings settings) {
-        String longTicker = pairData.getLongTicker();
-        String shortTicker = pairData.getShortTicker();
+    private static String getRowForCsv(TradeLog tradeLog) {
+        String longTicker = tradeLog.getLongTicker();
+        String shortTicker = tradeLog.getShortTicker();
 
-        String profitCurr = String.format("%.2f", pairData.getProfitChanges());
-        String minProfit = String.format("%.2f", pairData.getMinProfitRounded());
-        String timeToMin = pairData.getTimeInMinutesSinceEntryToMin() + "min";
-        String maxProfit = String.format("%.2f", pairData.getMaxProfitRounded());
-        String timeToMax = pairData.getTimeInMinutesSinceEntryToMax() + "min";
+        String profitCurr = String.format("%.2f", tradeLog.getCurrentProfitPercent());
+        String minProfit = String.format("%.2f", tradeLog.getMinProfitPercent());
+        String timeToMin = tradeLog.getMinProfitMinutes();
+        String maxProfit = String.format("%.2f", tradeLog.getMaxProfitPercent());
+        String timeToMax = tradeLog.getMaxProfitMinutes();
 
-        String longCurr = String.format("%.2f", pairData.getLongChanges());
-        String longMin = String.format("%.2f", pairData.getMinLong());
-        String longMax = String.format("%.2f", pairData.getMaxLong());
+        String longCurr = String.format("%.2f", tradeLog.getCurrentLongPercent());
+        String longMin = String.format("%.2f", tradeLog.getMinLongPercent());
+        String longMax = String.format("%.2f", tradeLog.getMaxLongPercent());
 
-        String shortCurr = String.format("%.2f", pairData.getShortChanges());
-        String shortMin = String.format("%.2f", pairData.getMinShort());
-        String shortMax = String.format("%.2f", pairData.getMaxShort());
+        String shortCurr = String.format("%.2f", tradeLog.getCurrentShortPercent());
+        String shortMin = String.format("%.2f", tradeLog.getMinShortPercent());
+        String shortMax = String.format("%.2f", tradeLog.getMaxShortPercent());
 
-        String zCurr = String.format("%.2f", pairData.getZScoreCurrent());
-        String zMin = String.format("%.2f", pairData.getMinZ());
-        String zMax = String.format("%.2f", pairData.getMaxZ());
+        String zCurr = String.format("%.2f", tradeLog.getCurrentZ());
+        String zMin = String.format("%.2f", tradeLog.getMinZ());
+        String zMax = String.format("%.2f", tradeLog.getMaxZ());
 
-        String corrCurr = String.format("%.2f", pairData.getCorrelationCurrent());
-        String corrMin = String.format("%.2f", pairData.getMinCorr());
-        String corrMax = String.format("%.2f", pairData.getMaxCorr());
+        String corrCurr = String.format("%.2f", tradeLog.getCurrentCorr());
+        String corrMin = String.format("%.2f", tradeLog.getMinCorr());
+        String corrMax = String.format("%.2f", tradeLog.getMaxCorr());
 
-        String exitStop = String.format("%.2f", settings.getExitStop());
-        String exitTake = String.format("%.2f", settings.getExitTake());
-        String exitZMin = String.format("%.2f", settings.getExitZMin());
-        String exitZMax = String.format("%.2f", settings.getExitZMax());
-        String exitTimeHours = String.format("%.2f", settings.getExitTimeHours());
+        String exitStop = String.format("%.2f", tradeLog.getExitStop());
+        String exitTake = String.format("%.2f", tradeLog.getExitTake());
+        String exitZMin = String.format("%.2f", tradeLog.getExitZMin());
+        String exitZMax = String.format("%.2f", tradeLog.getExitZMax());
+        String exitTimeHours = String.format("%.2f", tradeLog.getExitTimeHours());
 
-        String exitReason = pairData.getExitReason() != null && !pairData.getExitReason().isEmpty() ? pairData.getExitReason() : "";
+        String exitReason = tradeLog.getExitReason() != null && !tradeLog.getExitReason().isEmpty() ? tradeLog.getExitReason() : "";
 
-        String entryTime = Instant.ofEpochMilli(pairData.getEntryTime())
-                .atZone(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        String entryTime = tradeLog.getEntryTime();
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        String timestamp = tradeLog.getTimestamp();
 
         return String.join(",",
                 longTicker,

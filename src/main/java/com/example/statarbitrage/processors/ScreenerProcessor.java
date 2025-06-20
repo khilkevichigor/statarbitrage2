@@ -2,10 +2,7 @@ package com.example.statarbitrage.processors;
 
 import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.events.StartNewTradeEvent;
-import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreData;
-import com.example.statarbitrage.model.ZScoreParam;
+import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
@@ -39,6 +36,7 @@ public class ScreenerProcessor {
     private final ThreeCommasService threeCommasService;
     private final ThreeCommasFlowService threeCommasFlowService;
     private final EventSendService eventSendService;
+    private final TradeLogService tradeLogService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
@@ -97,7 +95,8 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
-            csvLogService.logOrUpdatePair(pairData);
+            TradeLog tradeLog = tradeLogService.saveFromPairData(pairData);
+            csvLogService.logOrUpdatePair(tradeLog);
             chartService.createAndSend(chatId, pairData);
             if (pairData.getExitReason() != null) {
                 sendEventToStartNewTrade(chatId, true);
