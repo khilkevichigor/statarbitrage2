@@ -57,18 +57,19 @@ public class TelegramBot extends TelegramLongPollingBot {
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
-        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
+//        listOfCommands.add(new BotCommand(BotMenu.FIND.getName(), "Искать"));
+//        listOfCommands.add(new BotCommand(BotMenu.START_TEST_TRADE.getName(), "Старт тест-трейд"));
         listOfCommands.add(new BotCommand(BotMenu.FIND_AND_START_TEST_TRADE.getName(), "Искать+тест-трейд"));
-        listOfCommands.add(new BotCommand(BotMenu.START_REAL_TRADE.getName(), "Старт рил-трейд"));
-        listOfCommands.add(new BotCommand(BotMenu.STOP_REAL_TRADE.getName(), "Стоп рил-трейд"));
-        listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
-        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции"));
-        listOfCommands.add(new BotCommand(BotMenu.TEST_3COMMAS_API.getName(), "Тест 3commas API"));
+//        listOfCommands.add(new BotCommand(BotMenu.START_REAL_TRADE.getName(), "Старт рил-трейд"));
+//        listOfCommands.add(new BotCommand(BotMenu.STOP_REAL_TRADE.getName(), "Стоп рил-трейд"));
+//        listOfCommands.add(new BotCommand(BotMenu.STOP_TEST_TRADE.getName(), "Стоп тест-трейд"));
+//        listOfCommands.add(new BotCommand(BotMenu.START_SIMULATION.getName(), "Старт симуляции"));
+//        listOfCommands.add(new BotCommand(BotMenu.TEST_3COMMAS_API.getName(), "Тест 3commas API"));
         listOfCommands.add(new BotCommand(BotMenu.GET_SETTINGS.getName(), "Получить настройки"));
-        listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
+//        listOfCommands.add(new BotCommand(BotMenu.RESET_SETTINGS.getName(), "Сбросить настройки"));
         listOfCommands.add(new BotCommand(BotMenu.GET_CSV.getName(), "Получить csv"));
-        listOfCommands.add(new BotCommand(BotMenu.DELETE_FILES.getName(), "Удалить файлы"));
+        listOfCommands.add(new BotCommand(BotMenu.GET_STATISTIC.getName(), "Получить стату"));
+//        listOfCommands.add(new BotCommand(BotMenu.DELETE_FILES.getName(), "Удалить файлы"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -107,9 +108,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case GET_CSV_COMMAND -> getCsvCommand(chatIdStr);
                 case TEST_3COMMAS_API_COMMAND -> test3commasApiCommand(chatIdStr);
                 case FIND_AND_TEST_TRADE_COMMAND -> findAndTestNewTradeCommand(chatIdStr);
+                case GET_STATISTIC_COMMAND -> getStatisticCommand(chatIdStr);
                 default -> handleMessage(text, chatIdStr);
             }
         }
+    }
+
+    private void getStatisticCommand(String chatIdStr) {
+
     }
 
     private void handleMessage(String text, String chatIdStr) {

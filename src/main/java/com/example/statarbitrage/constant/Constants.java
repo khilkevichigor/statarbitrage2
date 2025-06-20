@@ -13,11 +13,16 @@ public interface Constants {
     String TEST_TRADES_CSV_FILE = "logs/test_trade.csv";
     String TEST_TRADES_CSV_FILE_HEADER =
             "long_ticker,short_ticker," +
-                    "current_profit_percent,min_profit_percent,min_profit_minutes,max_profit_percent,max_profit_minutes," +
-                    "current_long_percent,min_long_percent,max_long_percent," +
-                    "current_short_percent,min_short_percent,max_short_percent," +
-                    "current_z,min_z,max_z," +
-                    "current_corr,min_corr,max_corr," +
+                    "latest_profit_percent,min_profit_percent,min_profit_minutes,max_profit_percent,max_profit_minutes," +
+                    "latest_long_percent,min_long_percent,max_long_percent," +
+                    "latest_short_percent,min_short_percent,max_short_percent," +
+                    "latest_z,min_z,max_z," +
+                    "latest_correlation,min_correlation,max_correlation," +
+                    "settings_exit_stop," +
+                    "settings_exit_take," +
+                    "settings_exit_z_min," +
+                    "settings_exit_z_max," +
+                    "settings_exit_time_hours," +
                     "exit_reason," +
                     "entry_time," +
                     "timestamp";
@@ -40,6 +45,7 @@ public interface Constants {
     String DELETE_FILES_COMMAND = "/delete_files";
     String START_SIMULATION_COMMAND = "/start_simulation";
     String GET_CSV_COMMAND = "/get_csv";
+    String GET_STATISTIC_COMMAND = "/get_statistic";
 
 
     String EXIT_REASON_BY_TAKE = "EXIT_REASON_BY_TAKE";

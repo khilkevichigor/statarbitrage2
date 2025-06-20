@@ -1,6 +1,7 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,15 +24,17 @@ import static com.example.statarbitrage.constant.Constants.*;
 @Service
 @RequiredArgsConstructor
 public class CsvLogService {
+    private final SettingsService settingsService;
 
     public void logOrUpdatePair(PairData pairData) {
         try {
+            Settings settings = settingsService.getSettings();
             Path path = Paths.get(TEST_TRADES_CSV_FILE);
             Files.createDirectories(path.getParent());
 
             List<String> lines = new ArrayList<>();
             String key = pairData.getLongTicker() + "," + pairData.getShortTicker();
-            String newRow = getRowForCsv(pairData);
+            String newRow = getRowForCsv(pairData, settings);
             boolean updated = false;
 
             if (Files.exists(path)) {
@@ -81,7 +84,7 @@ public class CsvLogService {
     }
 
 
-    private static String getRowForCsv(PairData pairData) {
+    private static String getRowForCsv(PairData pairData, Settings settings) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
@@ -106,6 +109,12 @@ public class CsvLogService {
         String corrCurr = String.format("%.2f", pairData.getCorrelationCurrent());
         String corrMin = String.format("%.2f", pairData.getMinCorr());
         String corrMax = String.format("%.2f", pairData.getMaxCorr());
+
+        String exitStop = String.format("%.2f", settings.getExitStop());
+        String exitTake = String.format("%.2f", settings.getExitTake());
+        String exitZMin = String.format("%.2f", settings.getExitZMin());
+        String exitZMax = String.format("%.2f", settings.getExitZMax());
+        String exitTimeHours = String.format("%.2f", settings.getExitTimeHours());
 
         String exitReason = pairData.getExitReason() != null && !pairData.getExitReason().isEmpty() ? pairData.getExitReason() : "";
 
@@ -138,6 +147,12 @@ public class CsvLogService {
                 corrCurr,
                 corrMin,
                 corrMax,
+
+                exitStop,
+                exitTake,
+                exitZMin,
+                exitZMax,
+                exitTimeHours,
 
                 exitReason,
 
