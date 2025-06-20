@@ -50,7 +50,7 @@ public class ExitStrategyService {
         // Проверка по времени
         if (entryTimeMillis > 0) {
             long holdingHours = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
-            if (holdingHours > settings.getExitTimeHours()) {
+            if (holdingHours >= settings.getExitTimeHours()) {
                 timedOut = true;
                 log.info("Выход по времени: ожидали {} часов", holdingHours);
                 pairData.setExitReason(EXIT_REASON_BY_TIME);
