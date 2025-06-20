@@ -19,11 +19,14 @@ public interface Constants {
                     "current_z,min_z,max_z," +
                     "current_corr,min_corr,max_corr," +
                     "exit_reason," +
-                    "date";
+                    "entry_time," +
+                    "timestamp";
     int TEST_TRADES_CSV_EXISTING_ROW_VALIDITY_HOURS = 8;
 
     String LONG_DCA_BOT_NAME = "stat_long";
     String SHORT_DCA_BOT_NAME = "stat_short";
+
+    String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     String FIND_COMMAND = "/find";
     String START_TEST_TRADE_COMMAND = "/start_test_trade";
@@ -39,9 +42,10 @@ public interface Constants {
     String GET_CSV_COMMAND = "/get_csv";
 
 
-    String EXIT_REASON_BY_TAKE = "exit_by_take";
-    String EXIT_REASON_BY_STOP = "exit_by_stop";
-    String EXIT_REASON_BY_Z = "exit_by_z";
-    String EXIT_REASON_BY_TIME = "exit_by_time";
+    String EXIT_REASON_BY_TAKE = "EXIT_REASON_BY_TAKE";
+    String EXIT_REASON_BY_STOP = "EXIT_REASON_BY_STOP";
+    String EXIT_REASON_BY_Z_MIN = "EXIT_REASON_BY_Z_MIN";
+    String EXIT_REASON_BY_Z_MAX = "EXIT_REASON_BY_Z_MAX";
+    String EXIT_REASON_BY_TIME = "EXIT_REASON_BY_TIME";
 
 }

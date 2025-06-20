@@ -18,6 +18,7 @@ import static com.example.statarbitrage.constant.Constants.PAIR_DATA_FILE_NAME;
 @RequiredArgsConstructor
 public class PairDataService {
     private final ChangesService changesService;
+    private final ExitStrategyService exitStrategyService;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public PairData createPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
@@ -159,6 +160,8 @@ public class PairDataService {
         pairData.setMaxShort(changesData.getMaxShort());
         pairData.setMinCorr(changesData.getMinCorr());
         pairData.setMaxCorr(changesData.getMaxCorr());
+
+        pairData.setExitReason(exitStrategyService.getExitReason(pairData));
 
         save(pairData);
     }

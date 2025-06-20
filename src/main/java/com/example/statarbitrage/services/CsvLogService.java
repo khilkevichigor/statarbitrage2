@@ -10,13 +10,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE;
-import static com.example.statarbitrage.constant.Constants.TEST_TRADES_CSV_FILE_HEADER;
+import static com.example.statarbitrage.constant.Constants.*;
 
 @Slf4j
 @Service
@@ -29,19 +30,23 @@ public class CsvLogService {
             Files.createDirectories(path.getParent());
 
             List<String> lines = new ArrayList<>();
-            boolean updated = false;
-
-            String key = pairData.getLongTicker() + "," + pairData.getShortTicker(); //уникальный ключ чтобы не перезатереть
+            String key = pairData.getLongTicker() + "," + pairData.getShortTicker();
             String newRow = getRowForCsv(pairData);
+            boolean updated = false;
 
             if (Files.exists(path)) {
                 List<String> existingLines = Files.readAllLines(path);
+
                 for (int i = 0; i < existingLines.size(); i++) {
                     String line = existingLines.get(i);
                     if (line.equals(TEST_TRADES_CSV_FILE_HEADER)) {
                         lines.add(line); // заголовок
-                    } else if (line.startsWith(key)) {
-                        // проверяем, есть ли ещё такие строки после текущей
+                        continue;
+                    }
+
+                    // Если это последняя строка по паре — заменим
+                    if (line.startsWith(key)) {
+                        // ищем, есть ли такая же пара дальше
                         boolean isLastMatching = true;
                         for (int j = i + 1; j < existingLines.size(); j++) {
                             if (existingLines.get(j).startsWith(key)) {
@@ -51,110 +56,92 @@ public class CsvLogService {
                         }
 
                         if (isLastMatching) {
-                            // только последнюю строку по key обновляем
-                            lines.add(newRow);
+                            lines.add(newRow); // заменяем последнюю
                             updated = true;
                         } else {
-                            lines.add(line); // не трогаем промежуточные
+                            lines.add(line); // оставляем как есть
                         }
+                    } else {
+                        lines.add(line); // не связанная пара
                     }
                 }
             }
 
             if (!updated) {
                 if (lines.isEmpty()) {
-                    lines.add(TEST_TRADES_CSV_FILE_HEADER);
+                    lines.add(TEST_TRADES_CSV_FILE_HEADER); // добавим заголовок если файл был пуст
                 }
-                lines.add(newRow); // добавляем новую
+                lines.add(newRow); // добавим новую строку
             }
 
-            Files.write(path, lines, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
+            Files.write(path, lines, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
             log.error("Ошибка при обновлении CSV: ", e);
         }
     }
 
+
     private static String getRowForCsv(PairData pairData) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
-        String profit = String.format("%.2f", pairData.getProfitChanges());
+        String profitCurr = String.format("%.2f", pairData.getProfitChanges());
         String minProfit = String.format("%.2f", pairData.getMinProfitRounded());
         String timeToMin = pairData.getTimeInMinutesSinceEntryToMin() + "min";
         String maxProfit = String.format("%.2f", pairData.getMaxProfitRounded());
         String timeToMax = pairData.getTimeInMinutesSinceEntryToMax() + "min";
 
-        String longCh = String.format("%.2f", pairData.getLongChanges());
-        String longChMin = String.format("%.2f", pairData.getMinLong());
-        String longChMax = String.format("%.2f", pairData.getMaxLong());
+        String longCurr = String.format("%.2f", pairData.getLongChanges());
+        String longMin = String.format("%.2f", pairData.getMinLong());
+        String longMax = String.format("%.2f", pairData.getMaxLong());
 
-        String shortCh = String.format("%.2f", pairData.getShortChanges());
-        String shortChMin = String.format("%.2f", pairData.getMinShort());
-        String shortChMax = String.format("%.2f", pairData.getMaxShort());
+        String shortCurr = String.format("%.2f", pairData.getShortChanges());
+        String shortMin = String.format("%.2f", pairData.getMinShort());
+        String shortMax = String.format("%.2f", pairData.getMaxShort());
 
-        String z = String.format("%.2f", pairData.getZScoreCurrent());
+        String zCurr = String.format("%.2f", pairData.getZScoreCurrent());
         String zMin = String.format("%.2f", pairData.getMinZ());
         String zMax = String.format("%.2f", pairData.getMaxZ());
 
-        String corr = String.format("%.2f", pairData.getCorrelationCurrent());
+        String corrCurr = String.format("%.2f", pairData.getCorrelationCurrent());
         String corrMin = String.format("%.2f", pairData.getMinCorr());
         String corrMax = String.format("%.2f", pairData.getMaxCorr());
 
-        String exitReason = pairData.getExitReason();
+        String exitReason = pairData.getExitReason() != null && !pairData.getExitReason().isEmpty() ? pairData.getExitReason() : "";
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        /*
-        Long Ticker
-        Short Ticker
+        String entryTime = Instant.ofEpochMilli(pairData.getEntryTime())
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
-        Profit %
-        ProfitMin %,ProfitMin Time min
-        ProfitMax %,ProfitMax Time min
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
-        LongCh %
-        LongChMin %
-        LongChMax %
-
-        ShortCh %
-        ShortChMin %
-        ShortChMax %
-
-        Z
-        ZMin
-        ZMax
-
-        Corr
-        CorrMin
-        CorrMax
-
-        Timestamp";
-         */
         return String.join(",",
                 longTicker,
                 shortTicker,
 
-                profit,
+                profitCurr,
                 minProfit, timeToMin,
                 maxProfit, timeToMax,
 
-                longCh,
-                longChMin,
-                longChMax,
+                longCurr,
+                longMin,
+                longMax,
 
-                shortCh,
-                shortChMin,
-                shortChMax,
+                shortCurr,
+                shortMin,
+                shortMax,
 
-                z,
+                zCurr,
                 zMin,
                 zMax,
 
-                corr,
+                corrCurr,
                 corrMin,
                 corrMax,
 
                 exitReason,
+
+                entryTime,
 
                 timestamp);
     }

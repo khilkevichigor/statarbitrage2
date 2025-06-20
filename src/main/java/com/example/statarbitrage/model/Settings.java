@@ -23,7 +23,8 @@ public class Settings {
 
     private double exitTake;
     private double exitStop;
-    private double exitZ;
+    private double exitZMin;
+    private double exitZMax;
     private double exitTimeHours;
 
     private double minCorrelation;

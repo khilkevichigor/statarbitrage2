@@ -39,7 +39,6 @@ public class ScreenerProcessor {
     private final ThreeCommasService threeCommasService;
     private final ThreeCommasFlowService threeCommasFlowService;
     private final EventSendService eventSendService;
-    private final ExitStrategyService exitStrategyService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
@@ -98,11 +97,11 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
+            csvLogService.logOrUpdatePair(pairData);
             chartService.createAndSend(chatId, pairData);
-            if (exitStrategyService.isExitStrategyAcceptedAndAddReason(pairData)) {
+            if (pairData.getExitReason() != null) {
                 sendEventToStartNewTrade(chatId, true);
             }
-            csvLogService.logOrUpdatePair(pairData);
         } finally {
             runningTrades.remove(chatId);
         }
