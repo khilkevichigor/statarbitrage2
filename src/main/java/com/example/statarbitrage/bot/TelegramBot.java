@@ -119,7 +119,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void getStatisticCommand(String chatIdStr) {
-        statisticsService.printTradeStatistics();
+        statisticsService.printTradeStatistics(chatIdStr);
     }
 
     private void handleMessage(String text, String chatIdStr) {

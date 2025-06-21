@@ -1,5 +1,6 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.TradeStatisticsDto;
 import com.example.statarbitrage.repositories.TradeLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,50 +14,98 @@ import java.math.RoundingMode;
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
+    private final EventSendService eventSendService;
 
     private final TradeLogRepository tradeLogRepository;
 
-    public void printTradeStatistics() {
-        TradeStatisticsDto stats = tradeLogRepository.getTradeStatistics();
-        log.info("""
-                        📊 TRADE STATS:
-                        - Total trades: {}
-                        - Today trades: {}
+    public void printTradeStatistics(String chatId) {
+        TradeStatisticsDto stats = collectStatistics();
+        String message = formatStatistics(stats);
+        log.info(message);
+        sendMessage(chatId, message, true);
+    }
+
+    public String formatStatistics(TradeStatisticsDto stats) {
+        return String.format("""
+                        📊 TRADE STATS today / total:
+                        - Trades: %d / %d
                         
-                        📈 Profit:
-                        - Avg: {}%
-                        - Max: {}%
-                        - Min: {}%
-                        
-                        📈 Today Profit:
-                        - Avg: {}%
-                        - Max: {}%
-                        - Min: {}%
+                        📈 Avg profit:
+                        - Avg: %s%% / %s%%
                         
                         ❌ Exit Reasons:
-                        - STOP: {}
-                        - TAKE: {}
-                        - OTHER: {}
+                        - STOP: %d / %d
+                        - TAKE: %d / %d
+                        - Z min: %d / %d
+                        - Z max: %d / %d
+                        - Time: %d / %d
                         """,
-                stats.getTotalTrades(),
-                stats.getTodayTrades(),
-
-                format(stats.getAvgProfit()),
-                format(stats.getMaxProfit()),
-                format(stats.getMinProfit()),
+                stats.getTradesToday(),
+                stats.getTradesTotal(),
 
                 format(stats.getAvgProfitToday()),
-                format(stats.getMaxProfitToday()),
-                format(stats.getMinProfitToday()),
+                format(stats.getAvgProfitTotal()),
 
-                stats.getExitByStop(),
-                stats.getExitByTake(),
-                stats.getExitByOther()
+                stats.getExitByStopToday(),
+                stats.getExitByStopTotal(),
+
+                stats.getExitByTakeToday(),
+                stats.getExitByTakeTotal(),
+
+                stats.getExitByZMinToday(),
+                stats.getExitByZMinTotal(),
+
+                stats.getExitByZMaxToday(),
+                stats.getExitByZMaxTotal(),
+
+                stats.getExitByTimeToday(),
+                stats.getExitByTimeTotal()
         );
     }
 
     // Вспомогательный метод для округления BigDecimal до 2 знаков после запятой
     private String format(BigDecimal value) {
         return value == null ? "n/a" : value.setScale(2, RoundingMode.HALF_UP).toString();
+    }
+
+    public TradeStatisticsDto collectStatistics() {
+        return TradeStatisticsDto.builder()
+                .tradesToday(tradeLogRepository.getTradesToday())
+                .tradesTotal(tradeLogRepository.getTradesTotal())
+
+                .avgProfitToday(tradeLogRepository.getAvgProfitToday())
+                .avgProfitTotal(tradeLogRepository.getAvgProfitTotal())
+
+                .exitByStopToday(tradeLogRepository.getExitByStopToday())
+                .exitByStopTotal(tradeLogRepository.getExitByStopTotal())
+
+                .exitByTakeToday(tradeLogRepository.getExitByTakeToday())
+                .exitByTakeTotal(tradeLogRepository.getExitByTakeTotal())
+
+                .exitByZMinToday(tradeLogRepository.getExitByZMinToday())
+                .exitByZMinTotal(tradeLogRepository.getExitByZMinTotal())
+
+                .exitByZMaxToday(tradeLogRepository.getExitByZMaxToday())
+                .exitByZMaxTotal(tradeLogRepository.getExitByZMaxTotal())
+
+                .exitByTimeToday(tradeLogRepository.getExitByTimeToday())
+                .exitByTimeTotal(tradeLogRepository.getExitByTimeTotal())
+
+                .build();
+    }
+
+    public void sendMessage(String chatId, String text, boolean withLogging) {
+        try {
+            eventSendService.sendTelegramMessageAsTextEvent(SendAsTextEvent.builder()
+                    .chatId(chatId)
+                    .enableMarkdown(true)
+                    .text(text)
+                    .build());
+            if (withLogging) {
+                log.info("📤 Стата отправлена в Telegram");
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при отправке статы: {}", e.getMessage(), e);
+        }
     }
 }

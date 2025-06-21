@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Repository
@@ -36,4 +37,46 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
                 FROM TRADE_LOG
             """, nativeQuery = true)
     TradeStatisticsDto getTradeStatistics();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    Long getTradesToday();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG", nativeQuery = true)
+    Long getTradesTotal();
+
+    @Query(value = "SELECT AVG(CURRENT_PROFIT_PERCENT) FROM TRADE_LOG WHERE CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    BigDecimal getAvgProfitToday();
+
+    @Query(value = "SELECT AVG(CURRENT_PROFIT_PERCENT) FROM TRADE_LOG", nativeQuery = true)
+    BigDecimal getAvgProfitTotal();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    Long getExitByStopToday();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP'", nativeQuery = true)
+    Long getExitByStopTotal();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    Long getExitByTakeToday();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE'", nativeQuery = true)
+    Long getExitByTakeTotal();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    Long getExitByZMinToday();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN'", nativeQuery = true)
+    Long getExitByZMinTotal();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    Long getExitByZMaxToday();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX'", nativeQuery = true)
+    Long getExitByZMaxTotal();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    Long getExitByTimeToday();
+
+    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME'", nativeQuery = true)
+    Long getExitByTimeTotal();
 }
