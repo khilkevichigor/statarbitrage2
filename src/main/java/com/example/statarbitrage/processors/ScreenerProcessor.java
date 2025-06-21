@@ -2,7 +2,10 @@ package com.example.statarbitrage.processors;
 
 import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.events.StartNewTradeEvent;
-import com.example.statarbitrage.model.*;
+import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.ZScoreData;
+import com.example.statarbitrage.model.ZScoreParam;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
@@ -96,9 +99,7 @@ public class ScreenerProcessor {
             ZScoreData first = zScoreDataList.get(0);
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
-            TradeLog tradeLog = tradeLogService.saveFromPairData(pairData);
-            exportService.exportToCsvV2();
-            csvLogService.logOrUpdatePair(tradeLog);
+            tradeLogService.saveFromPairData(pairData);
             chartService.createAndSend(chatId, pairData);
             if (pairData.getExitReason() != null) {
                 sendEventToStartNewTrade(chatId, true);
