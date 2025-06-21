@@ -12,8 +12,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-
-import static com.example.statarbitrage.constant.Constants.DATE_TIME_FORMAT;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -24,10 +23,17 @@ public class TradeLogService {
     private final TradeLogRepository tradeLogRepository;
 
     public TradeLog saveFromPairData(PairData pairData) {
-        Settings settings = settingsService.getSettings();
-        TradeLog tradeLog = new TradeLog();
-        tradeLog.setLongTicker(pairData.getLongTicker());
-        tradeLog.setShortTicker(pairData.getShortTicker());
+        String longTicker = pairData.getLongTicker();
+        String shortTicker = pairData.getShortTicker();
+
+        // ищем по паре
+        Optional<TradeLog> optional = tradeLogRepository.findLatestByTickers(longTicker, shortTicker);
+
+        TradeLog tradeLog = optional.orElseGet(TradeLog::new);
+        tradeLog.setLongTicker(longTicker);
+        tradeLog.setShortTicker(shortTicker);
+
+        // мапим поля
         tradeLog.setCurrentProfitPercent(pairData.getProfitChanges());
         tradeLog.setMinProfitPercent(pairData.getMinProfitRounded());
         tradeLog.setMinProfitMinutes(pairData.getTimeInMinutesSinceEntryToMin() + "min");
@@ -50,20 +56,27 @@ public class TradeLogService {
         tradeLog.setMinCorr(pairData.getMinCorr());
         tradeLog.setMaxCorr(pairData.getMaxCorr());
 
-        tradeLog.setExitStop(settings.getExitStop());
+        Settings settings = settingsService.getSettings();
         tradeLog.setExitTake(settings.getExitTake());
+        tradeLog.setExitStop(settings.getExitStop());
         tradeLog.setExitZMin(settings.getExitZMin());
         tradeLog.setExitZMax(settings.getExitZMax());
         tradeLog.setExitTimeHours(settings.getExitTimeHours());
 
         tradeLog.setExitReason(pairData.getExitReason());
-        tradeLog.setEntryTime(
-                Instant.ofEpochMilli(pairData.getEntryTime()).atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT))
-        );
-        tradeLog.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)));
 
-        tradeLogRepository.save(tradeLog);
-        return tradeLog;
+        long entryMillis = pairData.getEntryTime(); // long, например 1721511983000
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        // Преобразуем в LocalDateTime через Instant
+        String formattedEntryTime = Instant.ofEpochMilli(entryMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+                .format(formatter);
+
+        tradeLog.setEntryTime(formattedEntryTime);
+        tradeLog.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        return tradeLogRepository.save(tradeLog);
     }
 }

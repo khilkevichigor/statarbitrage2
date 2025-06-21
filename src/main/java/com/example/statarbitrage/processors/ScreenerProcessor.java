@@ -37,6 +37,7 @@ public class ScreenerProcessor {
     private final ThreeCommasFlowService threeCommasFlowService;
     private final EventSendService eventSendService;
     private final TradeLogService tradeLogService;
+    private final ExportService exportService;
     private final Map<String, AtomicBoolean> runningTrades = new ConcurrentHashMap<>();
 
     @Async
@@ -96,6 +97,7 @@ public class ScreenerProcessor {
             logData(first);
             pairDataService.update(pairData, first, candlesMap);
             TradeLog tradeLog = tradeLogService.saveFromPairData(pairData);
+            exportService.exportToCsvV2();
             csvLogService.logOrUpdatePair(tradeLog);
             chartService.createAndSend(chatId, pairData);
             if (pairData.getExitReason() != null) {
