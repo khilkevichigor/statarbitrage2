@@ -9,6 +9,7 @@ import com.example.statarbitrage.processors.ScreenerProcessor;
 import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.SettingsService;
+import com.example.statarbitrage.services.StatisticsService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private FileService fileService;
     @Autowired
     private EventSendService eventSendService;
+    @Autowired
+    private StatisticsService statisticsService;
+
     private final BotConfig botConfig;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -115,7 +119,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void getStatisticCommand(String chatIdStr) {
-
+        statisticsService.printTradeStatistics();
     }
 
     private void handleMessage(String text, String chatIdStr) {
