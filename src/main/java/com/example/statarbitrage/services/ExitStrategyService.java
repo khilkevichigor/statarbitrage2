@@ -17,7 +17,8 @@ public class ExitStrategyService {
     public String getExitReason(PairData pairData) {
         Settings settings = settingsService.getSettings();
         double profit = pairData.getProfitChanges().doubleValue();
-        double zScore = pairData.getZScoreCurrent();
+        double zScoreCurrent = pairData.getZScoreCurrent();
+        double zScoreEntry = pairData.getZScoreEntry();
         long entryTimeMillis = pairData.getEntryTime();
         long nowMillis = System.currentTimeMillis();
 
@@ -31,11 +32,11 @@ public class ExitStrategyService {
         }
 
         // Проверка Z-Score
-        if (Math.abs(zScore) < settings.getExitZMin()) {
-            log.info("Выход по zMin: zMin = {}", zScore);
+        if (Math.abs(zScoreCurrent) < settings.getExitZMin()) {
+            log.info("Выход по zMin: zMin = {}", zScoreCurrent);
             return EXIT_REASON_BY_Z_MIN;
-        } else if (zScore >= settings.getExitZMax()) {
-            log.info("Выход по zMax: zMax = {}", zScore);
+        } else if (zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+            log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
             return EXIT_REASON_BY_Z_MAX;
         }
 

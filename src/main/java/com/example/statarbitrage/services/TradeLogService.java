@@ -60,7 +60,7 @@ public class TradeLogService {
         tradeLog.setExitTake(settings.getExitTake());
         tradeLog.setExitStop(settings.getExitStop());
         tradeLog.setExitZMin(settings.getExitZMin());
-        tradeLog.setExitZMax(settings.getExitZMax());
+        tradeLog.setExitZMax(settings.getExitZMaxPercent());
         tradeLog.setExitTimeHours(settings.getExitTimeHours());
 
         tradeLog.setExitReason(pairData.getExitReason());

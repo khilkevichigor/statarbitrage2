@@ -63,7 +63,7 @@ public class SettingsService {
                 .exitTake(4.0)
                 .exitStop(-2.0)
                 .exitZMin(0.5)
-                .exitZMax(3.5)
+                .exitZMaxPercent(50.0) //от 3.22 + 50% = 4.83
                 .exitTimeHours(8)
                 .minCorrelation(0.8)
                 .minVolume(10.0)
