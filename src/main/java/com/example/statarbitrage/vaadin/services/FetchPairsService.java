@@ -40,6 +40,10 @@ public class FetchPairsService {
 
     public List<PairData> fetchPairs() {
         log.info("Fetching pairs...");
+
+        int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+        log.info("Deleted all {} pairs from database", deleteAllByStatus);
+
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);
@@ -88,7 +92,9 @@ public class FetchPairsService {
             zScoreService.sortParamsByTimestampV2(zScoreDataList);
             List<ZScoreData> top10 = zScoreService.obtainTop10(zScoreDataList);
 
-            return pairDataService.createPairDataList(top10, candlesMap);
+            List<PairData> pairDataList = pairDataService.createPairDataList(top10, candlesMap);
+            pairDataList.forEach(pairDataService::saveToDb);
+            return pairDataList;
         } finally {
             executor.shutdown();
         }

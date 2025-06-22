@@ -23,7 +23,6 @@ import com.vaadin.flow.router.Route;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
@@ -49,7 +48,7 @@ public class MainView extends VerticalLayout {
         currentSettings = settingsService.getSettingsFromDb();
         createSettingsForm();
 
-        Button refreshButton = new Button("Обновить", new Icon(VaadinIcon.REFRESH), e -> refreshData());
+        Button getCointPairsButton = new Button("Получить пары", new Icon(VaadinIcon.REFRESH), e -> findSelectedPairs());
         Button saveSettingsButton = new Button("Сохранить настройки", e -> saveSettings());
 
         configureGrids();
@@ -58,7 +57,7 @@ public class MainView extends VerticalLayout {
                 saveSettingsButton,
                 createSettingsForm(),
                 new H2("Отобранные пары (SELECTED)"),
-                refreshButton,
+                getCointPairsButton,
                 selectedPairsGrid,
                 new H2("Торгуемые пары (TRADING)"),
                 tradingPairsGrid,
@@ -138,38 +137,40 @@ public class MainView extends VerticalLayout {
         }
     }
 
-    private void refreshData() {
-        List<PairData> allPairs = fetchPairsService.fetchPairs();
+    private void findSelectedPairs() {
+        List<PairData> pairs = fetchPairsService.fetchPairs();
+        selectedPairsGrid.setItems(pairs);
 
-        // Разделяем пары по статусам
-        List<PairData> selectedPairs = allPairs.stream()
-                .filter(p -> p.getStatus() == TradeStatus.SELECTED)
-                .collect(Collectors.toList());
 
-        List<PairData> tradingPairs = allPairs.stream()
-                .filter(p -> p.getStatus() == TradeStatus.TRADING)
-                .collect(Collectors.toList());
+//        Notification.show(String.format(
+//                "Данные обновлены. Отобрано: %d, Торгуется: %d, Закрыто: %d",
+//                selectedPairs.size(), tradingPairs.size(), closedPairs.size()
+//        ));
+    }
 
-        List<PairData> closedPairs = allPairs.stream()
-                .filter(p -> p.getStatus() == TradeStatus.CLOSED ||
-                        p.getStatus() == TradeStatus.BLACKLISTED)
-                .collect(Collectors.toList());
+    private void getSelectedPairs() {
+        List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.SELECTED);
+        selectedPairsGrid.setItems(pairs);
+    }
 
-        selectedPairsGrid.setItems(selectedPairs);
-        tradingPairsGrid.setItems(tradingPairs);
-        closedPairsGrid.setItems(closedPairs);
+    private void getTraidingPairs() {
+        List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        tradingPairsGrid.setItems(pairs);
+    }
 
-        Notification.show(String.format(
-                "Данные обновлены. Отобрано: %d, Торгуется: %d, Закрыто: %d",
-                selectedPairs.size(), tradingPairs.size(), closedPairs.size()
-        ));
+    private void getClosedPairs() {
+        List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.CLOSED);
+        closedPairsGrid.setItems(pairs);
     }
 
     private void configureGrids() {
         // Настраиваем все таблицы с базовыми колонками
         configureCommonColumns(selectedPairsGrid);
+        getSelectedPairs();
         configureCommonColumns(tradingPairsGrid);
+        getTraidingPairs();
         configureCommonColumns(closedPairsGrid);
+        getClosedPairs();
 
         // Добавляем колонку статуса для торгуемых и закрытых пар
         tradingPairsGrid.addColumn(p -> p.getStatus().toString())
@@ -209,7 +210,8 @@ public class MainView extends VerticalLayout {
                         "Статус пары %s/%s изменен на %s",
                         pair.getLongTicker(), pair.getShortTicker(), targetStatus
                 ));
-                refreshData();
+                getTraidingPairs();
+                getClosedPairs();
             });
 
             // Настраиваем цвет кнопки в зависимости от статуса

@@ -2,6 +2,7 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.repositories.PairDataRepository;
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -249,5 +250,13 @@ public class PairDataService {
 
     public void saveToDb(PairData pairData) {
         pairDataRepository.save(pairData);
+    }
+
+    public List<PairData> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
+        return pairDataRepository.findAllByStatusOrderByEntryTimeDesc(status);
+    }
+
+    public int deleteAllByStatus(TradeStatus status) {
+        return pairDataRepository.deleteAllByStatus(status);
     }
 }
