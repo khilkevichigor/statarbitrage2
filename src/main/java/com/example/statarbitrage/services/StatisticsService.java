@@ -5,7 +5,10 @@ import com.example.statarbitrage.model.TradeStatisticsDto;
 import com.example.statarbitrage.repositories.TradeLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,6 +20,13 @@ public class StatisticsService {
     private final EventSendService eventSendService;
 
     private final TradeLogRepository tradeLogRepository;
+
+    @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще
+    @Transactional
+    public void deleteUnfinishedTrades() { //очищаем чтобы бд была актуальной даже после стопа приложения с незавершенным трейдом
+        int deleted = tradeLogRepository.deleteUnfinishedTrades();
+        log.info("🧹 Удалено {} незавершённых трейдов", deleted);
+    }
 
     public void printTradeStatistics(String chatId) {
         TradeStatisticsDto stats = collectStatistics();

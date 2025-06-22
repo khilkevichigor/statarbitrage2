@@ -1,8 +1,8 @@
 package com.example.statarbitrage.repositories;
 
 import com.example.statarbitrage.model.TradeLog;
-import com.example.statarbitrage.model.TradeStatisticsDto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,69 +14,103 @@ import java.util.Optional;
 public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     Optional<TradeLog> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
 
-    @Query("SELECT t FROM TradeLog t WHERE t.longTicker = :longTicker AND t.shortTicker = :shortTicker ORDER BY t.timestamp DESC")
+    @Modifying
+    @Query(value =
+            "DELETE " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON IS NULL", nativeQuery = true)
+    int deleteUnfinishedTrades();
+
+    @Query(value =
+            "SELECT t " +
+                    "FROM TradeLog t " +
+                    "WHERE t.longTicker = :longTicker " +
+                    "AND t.shortTicker = :shortTicker " +
+                    "ORDER BY t.timestamp DESC")
     Optional<TradeLog> findLatestByTickers(@Param("longTicker") String longTicker, @Param("shortTicker") String shortTicker);
 
-
-    @Query(value = """
-                SELECT 
-                    COUNT(*) AS total_trades,
-                    SUM(CASE WHEN ENTRY_TIME LIKE FORMATDATETIME(NOW(), 'yyyy-MM-dd') || '%' THEN 1 ELSE 0 END) AS today_trades,
-            
-                    AVG(CURRENT_PROFIT_PERCENT) AS avg_profit,
-                    MAX(CURRENT_PROFIT_PERCENT) AS max_profit,
-                    MIN(CURRENT_PROFIT_PERCENT) AS min_profit,
-            
-                    AVG(CASE WHEN ENTRY_TIME LIKE FORMATDATETIME(NOW(), 'yyyy-MM-dd') || '%' THEN CURRENT_PROFIT_PERCENT ELSE NULL END) AS avg_profit_today,
-                    MAX(CASE WHEN ENTRY_TIME LIKE FORMATDATETIME(NOW(), 'yyyy-MM-dd') || '%' THEN CURRENT_PROFIT_PERCENT ELSE NULL END) AS max_profit_today,
-                    MIN(CASE WHEN ENTRY_TIME LIKE FORMATDATETIME(NOW(), 'yyyy-MM-dd') || '%' THEN CURRENT_PROFIT_PERCENT ELSE NULL END) AS min_profit_today,
-            
-                    SUM(CASE WHEN EXIT_REASON = 'STOP' THEN 1 ELSE 0 END) AS exit_by_stop,
-                    SUM(CASE WHEN EXIT_REASON = 'TAKE' THEN 1 ELSE 0 END) AS exit_by_take,
-                    SUM(CASE WHEN EXIT_REASON NOT IN ('STOP', 'TAKE') OR EXIT_REASON IS NULL THEN 1 ELSE 0 END) AS exit_by_other
-                FROM TRADE_LOG
-            """, nativeQuery = true)
-    TradeStatisticsDto getTradeStatistics();
-
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
     Long getTradesToday();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG", nativeQuery = true)
     Long getTradesTotal();
 
-    @Query(value = "SELECT AVG(CURRENT_PROFIT_PERCENT) FROM TRADE_LOG WHERE CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE LEFT(ENTRY_TIME, 10) = FORMATDATETIME(CURRENT_DATE(), 'yyyy-MM-dd') " +
+                    "AND EXIT_REASON IS NOT NULL", nativeQuery = true)
     BigDecimal getAvgProfitToday();
 
-    @Query(value = "SELECT AVG(CURRENT_PROFIT_PERCENT) FROM TRADE_LOG", nativeQuery = true)
+    @Query(value =
+            "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON IS NOT NULL", nativeQuery = true)
     BigDecimal getAvgProfitTotal();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP' " +
+                    "AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
     Long getExitByStopToday();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP'", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) " +
+            "FROM TRADE_LOG " +
+            "WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP'", nativeQuery = true)
     Long getExitByStopTotal();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE' " +
+                    "AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
     Long getExitByTakeToday();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE'", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE'", nativeQuery = true)
     Long getExitByTakeTotal();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
     Long getExitByZMinToday();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN'", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN'", nativeQuery = true)
     Long getExitByZMinTotal();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
     Long getExitByZMaxToday();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX'", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX'", nativeQuery = true)
     Long getExitByZMaxTotal();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
     Long getExitByTimeToday();
 
-    @Query(value = "SELECT COUNT(*) FROM TRADE_LOG WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME'", nativeQuery = true)
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME'", nativeQuery = true)
     Long getExitByTimeTotal();
 }
