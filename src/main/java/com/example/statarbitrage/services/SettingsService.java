@@ -1,6 +1,7 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.repositories.SettingsRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -19,6 +20,7 @@ import static com.example.statarbitrage.constant.Constants.SETTINGS_FILE_NAME;
 @Service
 @RequiredArgsConstructor
 public class SettingsService {
+    private final SettingsRepository settingsRepository;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final long CHAT_ID = 159178617;
