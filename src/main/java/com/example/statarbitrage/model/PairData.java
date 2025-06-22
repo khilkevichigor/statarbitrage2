@@ -1,5 +1,6 @@
 package com.example.statarbitrage.model;
 
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,8 @@ public class PairData {
 
     private List<ZScoreParam> zScoreParams;
     private Map<String, List<Candle>> candles;
+
+    private TradeStatus status = TradeStatus.SELECTED; // Значение по умолчанию
 
     private String longTicker;
     private String shortTicker;
