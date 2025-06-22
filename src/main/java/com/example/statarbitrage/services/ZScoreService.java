@@ -6,10 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -165,6 +162,16 @@ public class ZScoreService {
 
     public void sortParamsByTimestamp(List<ZScoreData> zScoreDataList) {
         zScoreDataList.forEach(zScoreData -> zScoreData.getZscoreParams().sort(Comparator.comparingLong(ZScoreParam::getTimestamp)));
+    }
+
+    public void sortParamsByTimestampV2(List<ZScoreData> zScoreDataList) {
+        zScoreDataList.forEach(zScoreData -> {
+            // Создаем новый изменяемый список и сортируем его
+            List<ZScoreParam> mutableList = new ArrayList<>(zScoreData.getZscoreParams());
+            mutableList.sort(Comparator.comparingLong(ZScoreParam::getTimestamp));
+            // Заменяем исходный список на отсортированный
+            zScoreData.setZscoreParams(mutableList);
+        });
     }
 
     public void sortByLongTicker(List<ZScoreData> zScoreDataList) {
