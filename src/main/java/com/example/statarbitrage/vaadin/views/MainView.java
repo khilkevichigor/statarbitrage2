@@ -19,13 +19,12 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Route("")  // Maps to root URL
+@Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> tradingPairsGrid = new Grid<>(PairData.class, false);
@@ -34,17 +33,17 @@ public class MainView extends VerticalLayout {
     private final Binder<Settings> settingsBinder = new Binder<>(Settings.class);
     private Settings currentSettings;
 
-    @Autowired
     private FetchPairsService fetchPairsService;
-
-    @Autowired
     private SettingsService settingsService;
 
-    public MainView() {
+    public MainView(FetchPairsService fetchPairsService, SettingsService settingsService) {
+        this.fetchPairsService = fetchPairsService;
+        this.settingsService = settingsService;
+
         add(new H1("Welcome to StatArbitrage"));
 
         // Загружаем текущие настройки
-        currentSettings = settingsService.getSettings(); //todo перейти от json на H2
+        currentSettings = settingsService.getSettingsFromDb();
         createSettingsForm();
 
         Button refreshButton = new Button("Обновить", new Icon(VaadinIcon.REFRESH), e -> refreshData());
@@ -69,28 +68,28 @@ public class MainView extends VerticalLayout {
 
         // Основные настройки
         TextField timeframeField = new TextField("Таймфрейм");
-        NumberField candleLimitField = new NumberField("Лимит свечей");
+        NumberField candleLimitField = new NumberField("Лимит свечей (шт)");
         NumberField windowSizeField = new NumberField("Размер окна");
         NumberField significanceLevelField = new NumberField("Уровень значимости");
         NumberField adfSignificanceLevelField = new NumberField("ADF уровень значимости");
         NumberField checkIntervalField = new NumberField("Интервал проверки (мин)");
 
         // Настройки капитала
-        NumberField capitalLongField = new NumberField("Капитал лонг");
-        NumberField capitalShortField = new NumberField("Капитал шорт");
+        NumberField capitalLongField = new NumberField("Капитал лонг ($)");
+        NumberField capitalShortField = new NumberField("Капитал шорт ($)");
         NumberField leverageField = new NumberField("Кредитное плечо");
         NumberField feePctPerTradeField = new NumberField("Комиссия (%)");
 
         // Настройки выхода
-        NumberField exitTakeField = new NumberField("Тейк-профит");
-        NumberField exitStopField = new NumberField("Стоп-лосс");
+        NumberField exitTakeField = new NumberField("Тейк-профит (%)");
+        NumberField exitStopField = new NumberField("Стоп-лосс (%)");
         NumberField exitZMinField = new NumberField("Минимальный Z-скор");
         NumberField exitZMaxPercentField = new NumberField("Макс Z-скор (%)");
         NumberField exitTimeHoursField = new NumberField("Лимит времени (часы)");
 
         // Фильтры
         NumberField minCorrelationField = new NumberField("Мин корреляция");
-        NumberField minVolumeField = new NumberField("Мин объем");
+        NumberField minVolumeField = new NumberField("Мин объем (млн $)");
 
         // Добавляем поля в форму
         settingsForm.add(
@@ -103,9 +102,23 @@ public class MainView extends VerticalLayout {
 
         // Настраиваем привязку данных
         settingsBinder.forField(timeframeField).bind(Settings::getTimeframe, Settings::setTimeframe);
-//        settingsBinder.forField(candleLimitField).bind(Settings::getCandleLimit, Settings::setCandleLimit);
-//        settingsBinder.forField(windowSizeField).bind(Settings::getWindowSize, Settings::setWindowSize);
-        // ... аналогично для всех остальных полей
+        settingsBinder.forField(candleLimitField).bind(Settings::getCandleLimit, Settings::setCandleLimit);
+        settingsBinder.forField(windowSizeField).bind(Settings::getWindowSize, Settings::setWindowSize);
+
+        settingsBinder.forField(significanceLevelField).bind(Settings::getSignificanceLevel, Settings::setSignificanceLevel);
+        settingsBinder.forField(adfSignificanceLevelField).bind(Settings::getAdfSignificanceLevel, Settings::setAdfSignificanceLevel);
+        settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
+        settingsBinder.forField(capitalLongField).bind(Settings::getCapitalLong, Settings::setCapitalLong);
+        settingsBinder.forField(capitalShortField).bind(Settings::getCapitalShort, Settings::setCapitalShort);
+        settingsBinder.forField(leverageField).bind(Settings::getLeverage, Settings::setLeverage);
+        settingsBinder.forField(feePctPerTradeField).bind(Settings::getFeePctPerTrade, Settings::setFeePctPerTrade);
+        settingsBinder.forField(exitTakeField).bind(Settings::getExitTake, Settings::setExitTake);
+        settingsBinder.forField(exitStopField).bind(Settings::getExitStop, Settings::setExitStop);
+        settingsBinder.forField(exitZMinField).bind(Settings::getExitZMin, Settings::setExitZMin);
+        settingsBinder.forField(exitZMaxPercentField).bind(Settings::getExitZMaxPercent, Settings::setExitZMaxPercent);
+        settingsBinder.forField(exitTimeHoursField).bind(Settings::getExitTimeHours, Settings::setExitTimeHours);
+        settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
+        settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
 
         settingsBinder.readBean(currentSettings);
 
@@ -115,7 +128,7 @@ public class MainView extends VerticalLayout {
     private void saveSettings() {
         try {
             settingsBinder.writeBean(currentSettings);
-//            settingsService.saveSettings(currentSettings);
+            settingsService.saveSettingsInDb(currentSettings);
             Notification.show("Настройки сохранены");
         } catch (Exception e) {
             Notification.show("Ошибка сохранения настроек: " + e.getMessage());

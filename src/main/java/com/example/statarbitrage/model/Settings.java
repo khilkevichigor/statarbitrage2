@@ -20,11 +20,11 @@ public class Settings {
     private Long id;
 
     private String timeframe;
-    private int candleLimit;
-    private int windowSize;
+    private double candleLimit;
+    private double windowSize;
     private double significanceLevel;
     private double adfSignificanceLevel;
-    private int checkInterval;
+    private double checkInterval;
     private double capitalLong;
     private double capitalShort;
     private double leverage;

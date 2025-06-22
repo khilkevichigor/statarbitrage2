@@ -56,7 +56,7 @@ public class TradeLogService {
         tradeLog.setMinCorr(pairData.getMinCorr());
         tradeLog.setMaxCorr(pairData.getMaxCorr());
 
-        Settings settings = settingsService.getSettings();
+        Settings settings = settingsService.getSettingsFromJson();
         tradeLog.setExitTake(settings.getExitTake());
         tradeLog.setExitStop(settings.getExitStop());
         tradeLog.setExitZMin(settings.getExitZMin());

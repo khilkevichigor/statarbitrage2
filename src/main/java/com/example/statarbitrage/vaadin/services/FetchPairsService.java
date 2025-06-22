@@ -40,7 +40,7 @@ public class FetchPairsService {
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
-                        "settings", settingsService.getSettings(),
+                        "settings", settingsService.getSettingsFromDb(),
                         "candles_map", candlesMap,
                         "mode", "send_best_chart" //чтобы отфильтровать плохие пары
                 ),

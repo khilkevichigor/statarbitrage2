@@ -218,7 +218,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendSettings(String chatIdStr) {
-        Settings settings = settingsService.getSettings();
+        Settings settings = settingsService.getSettingsFromJson();
         String json;
         try {
             json = new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(settings);
@@ -247,7 +247,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             } catch (Exception e) {
                 log.error("Ошибка в testTrade()", e);
             }
-        }, 0, 60L * settingsService.getSettings().getCheckInterval(), TimeUnit.SECONDS);
+        }, 0, 60L * (int) settingsService.getSettingsFromJson().getCheckInterval(), TimeUnit.SECONDS);
     }
 
     private void stopTestTrade(String chatId) {

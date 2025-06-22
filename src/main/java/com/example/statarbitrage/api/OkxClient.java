@@ -63,9 +63,10 @@ public class OkxClient {
         return closes;
     }
 
-    public JsonArray getCandles(String symbol, String timeFrame, int limit) {
+    public JsonArray getCandles(String symbol, String timeFrame, double limit) {
+        int candlesLimit = (int) limit;
         Request request = new Request.Builder()
-                .url(BASE_URL + "/api/v5/market/candles?instId=" + symbol + "&bar=" + timeFrame + "&limit=" + limit)
+                .url(BASE_URL + "/api/v5/market/candles?instId=" + symbol + "&bar=" + timeFrame + "&limit=" + candlesLimit)
                 .build();
         try {
             Response response = client.newCall(request).execute();
@@ -78,8 +79,9 @@ public class OkxClient {
         }
     }
 
-    public List<Candle> getCandleList(String symbol, String timeFrame, int limit) {
-        JsonArray rawCandles = getCandles(symbol, timeFrame, limit);
+    public List<Candle> getCandleList(String symbol, String timeFrame, double limit) {
+        int candlesLimit = (int) limit;
+        JsonArray rawCandles = getCandles(symbol, timeFrame, candlesLimit);
         List<Candle> candles = new ArrayList<>();
 
         for (JsonElement el : rawCandles) {
@@ -112,7 +114,7 @@ public class OkxClient {
         if (isSorted) {
             swapTickers = swapTickers.stream().sorted().toList();
         }
-        int candleLimit = settings.getCandleLimit();
+        int candleLimit = (int) settings.getCandleLimit();
         String timeframe = settings.getTimeframe();
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
@@ -137,17 +139,17 @@ public class OkxClient {
         return candlesMap;
     }
 
-    public List<String> getValidTickers(List<String> swapTickers, String timeFrame, int limit, double minVolume, boolean isSorted) {
+    public List<String> getValidTickers(List<String> swapTickers, String timeFrame, double limit, double minVolume, boolean isSorted) {
         AtomicInteger count = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(5);
         List<String> result = new ArrayList<>();
         int volumeAverageCount = 2; // можно сделать настраиваемым
-
+        int candleLimit = (int) limit;
         try {
             List<CompletableFuture<Void>> futures = swapTickers.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
                         try {
-                            List<Candle> candles = getCandleList(symbol, timeFrame, limit);
+                            List<Candle> candles = getCandleList(symbol, timeFrame, candleLimit);
                             if (candles.size() < volumeAverageCount) {
                                 log.warn("Недостаточно свечей для {}", symbol);
                                 count.getAndIncrement();

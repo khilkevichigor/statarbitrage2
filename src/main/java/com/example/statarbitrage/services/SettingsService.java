@@ -26,28 +26,32 @@ public class SettingsService {
     private static final long CHAT_ID = 159178617;
 
     @PostConstruct
-    public Settings getSettings() {
+    public Settings getSettingsFromJson() {
         Map<Long, Settings> settings = loadSettings(SETTINGS_FILE_NAME);
         if (settings == null) {
             settings = new HashMap<>();
             Settings defaultSettings = getDefaultSettings();
             settings.put(CHAT_ID, defaultSettings);
-            saveSettings(settings);
+            saveSettingsInJson(settings);
         }
         return settings.get(CHAT_ID);
+    }
+
+    public Settings getSettingsFromDb() {
+        return settingsRepository.findAll().get(0);
     }
 
     public void updateAllSettings(long chatId, Settings newSettings) {
         Map<Long, Settings> userSettings = new HashMap<>();
         userSettings.put(chatId, newSettings);
-        saveSettings(userSettings);
+        saveSettingsInJson(userSettings);
     }
 
     public void resetSettings(long chatId) {
         Settings defaultSettings = getDefaultSettings();
         Map<Long, Settings> userSettings = new HashMap<>();
         userSettings.put(chatId, defaultSettings);
-        saveSettings(userSettings);
+        saveSettingsInJson(userSettings);
     }
 
     private static Settings getDefaultSettings() {
@@ -72,7 +76,7 @@ public class SettingsService {
                 .build();
     }
 
-    private void saveSettings(Map<Long, Settings> userSettings) {
+    private void saveSettingsInJson(Map<Long, Settings> userSettings) {
         try {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(SETTINGS_FILE_NAME), userSettings);
         } catch (IOException e) {
@@ -92,5 +96,9 @@ public class SettingsService {
             }
         }
         return null;
+    }
+
+    public void saveSettingsInDb(Settings settings) {
+        settingsRepository.save(settings);
     }
 }

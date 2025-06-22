@@ -55,7 +55,7 @@ public class ChangesService {
     }
 
     public ChangesData calculate(PairData pairData) {
-        Settings settings = settingsService.getSettings();
+        Settings settings = settingsService.getSettingsFromJson();
 
         double capitalLong = settings.getCapitalLong();
         double capitalShort = settings.getCapitalShort();

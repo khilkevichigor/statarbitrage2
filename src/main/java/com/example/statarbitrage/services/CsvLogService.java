@@ -25,7 +25,7 @@ public class CsvLogService {
 
     public void logOrUpdatePair(TradeLog tradeLog) {
         try {
-            Settings settings = settingsService.getSettings();
+            Settings settings = settingsService.getSettingsFromJson();
             Path path = Paths.get(TEST_TRADES_CSV_FILE);
             Files.createDirectories(path.getParent());
 

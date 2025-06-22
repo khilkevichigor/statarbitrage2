@@ -27,12 +27,12 @@ public class CandlesService {
     private static final List<String> BLACK_LIST = List.of("USDC-USDT-SWAP");
 
     public Map<String, List<Candle>> getCandles(List<String> swapTickers, boolean isSorted) {
-        Settings settings = settingsService.getSettings();
+        Settings settings = settingsService.getSettingsFromJson();
         return okxClient.getCandlesMap(swapTickers, settings, isSorted);
     }
 
     public List<String> getApplicableTickers(String timeFrame, boolean isSorted) {
-        Settings settings = settingsService.getSettings();
+        Settings settings = settingsService.getSettingsFromJson();
         List<String> swapTickers = okxClient.getAllSwapTickers(isSorted);
         return okxClient.getValidTickers(swapTickers, timeFrame, settings.getCandleLimit(), settings.getMinVolume() * 1_000_000, isSorted);
     }
