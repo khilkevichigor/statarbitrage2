@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,6 +30,64 @@ public class ZScoreService {
         } else {
             throw new IllegalArgumentException("Отобрано 0 пар");
         }
+    }
+
+    public List<ZScoreData> obtainTop10(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList != null && !zScoreDataList.isEmpty()) {
+            log.info("Отобрано {} пар", zScoreDataList.size());
+            List<ZScoreData> top10 = getTop10ByCriteria(zScoreDataList);
+
+            // Логируем информацию о топ-10 парах
+            for (int i = 0; i < Math.min(top10.size(), 10); i++) {
+                ZScoreData pair = top10.get(i);
+                ZScoreParam latest = pair.getZscoreParams().get(pair.getZscoreParams().size() - 1);
+                log.info(String.format("%d. Пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+                        i + 1,
+                        pair.getLongTicker(), pair.getShortTicker(),
+                        latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
+                ));
+            }
+            return top10;
+        } else {
+            throw new IllegalArgumentException("Отобрано 0 пар");
+        }
+    }
+
+    private List<ZScoreData> getTop10ByCriteria(List<ZScoreData> zScoreData) {
+        // Сортируем по нашим критериям
+        zScoreData.sort((z1, z2) -> {
+            if (z1.getZscoreParams() == null || z1.getZscoreParams().isEmpty()) return 1;
+            if (z2.getZscoreParams() == null || z2.getZscoreParams().isEmpty()) return -1;
+
+            ZScoreParam last1 = z1.getZscoreParams().get(z1.getZscoreParams().size() - 1);
+            ZScoreParam last2 = z2.getZscoreParams().get(z2.getZscoreParams().size() - 1);
+
+            // Сначала сравниваем по абсолютному значению zscore (по убыванию)
+            int zScoreCompare = Double.compare(
+                    Math.abs(last2.getZscore()),
+                    Math.abs(last1.getZscore())
+            );
+            if (zScoreCompare != 0) return zScoreCompare;
+
+            // Затем по pvalue (по возрастанию)
+            int pValueCompare = Double.compare(last1.getPvalue(), last2.getPvalue());
+            if (pValueCompare != 0) return pValueCompare;
+
+            // Затем по adfpvalue (по возрастанию)
+            int adfCompare = Double.compare(last1.getAdfpvalue(), last2.getAdfpvalue());
+            if (adfCompare != 0) return adfCompare;
+
+            // Наконец по корреляции (по убыванию)
+            return Double.compare(last2.getCorrelation(), last1.getCorrelation());
+        });
+
+        // Фильтруем пары с пустыми параметрами
+        List<ZScoreData> filtered = zScoreData.stream()
+                .filter(z -> z.getZscoreParams() != null && !z.getZscoreParams().isEmpty())
+                .collect(Collectors.toList());
+
+        // Возвращаем топ-10 или меньше, если данных недостаточно
+        return filtered.stream().limit(10).collect(Collectors.toList());
     }
 
     private ZScoreData getBestByCriteria(List<ZScoreData> zScoreData) {

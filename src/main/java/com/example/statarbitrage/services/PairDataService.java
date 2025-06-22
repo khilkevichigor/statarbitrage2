@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +61,83 @@ public class PairDataService {
         log.info("Создали pair_data.json");
 
         return pairData;
+    }
+
+    public List<PairData> createPairDataList(List<ZScoreData> top10, Map<String, List<Candle>> candlesMap) {
+        List<PairData> result = new ArrayList<>();
+
+        for (ZScoreData zScoreData : top10) {
+            try {
+                PairData pairData = createSinglePairData(zScoreData, candlesMap);
+                result.add(pairData);
+            } catch (Exception e) {
+                log.error("Ошибка при создании PairData для пары {}/{}: {}",
+                        zScoreData.getLongTicker(),
+                        zScoreData.getShortTicker(),
+                        e.getMessage());
+            }
+        }
+
+        log.info("Создали данные для {} пар", result.size());
+        return result;
+    }
+
+    private PairData createSinglePairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+        PairData pairData = new PairData();
+
+        // Устанавливаем основные параметры
+        pairData.setLongTicker(zScoreData.getLongTicker());
+        pairData.setShortTicker(zScoreData.getShortTicker());
+        pairData.setZScoreParams(zScoreData.getZscoreParams());
+        pairData.setCandles(candlesMap);
+
+        // Получаем последние параметры
+        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
+
+        // Получаем свечи
+        List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
+
+        // Проверяем наличие данных
+        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
+                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
+            log.warn("Нет данных по свечам для пары: {} - {}",
+                    zScoreData.getLongTicker(), zScoreData.getShortTicker());
+            throw new IllegalArgumentException("Отсутствуют данные свечей");
+        }
+
+        // Устанавливаем текущие цены
+        pairData.setLongTickerCurrentPrice(longTickerCandles.get(longTickerCandles.size() - 1).getClose());
+        pairData.setShortTickerCurrentPrice(shortTickerCandles.get(shortTickerCandles.size() - 1).getClose());
+
+        // Устанавливаем статистические параметры
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
+
+        // Дополнительные расчеты (если нужны)
+        calculateAdditionalMetrics(pairData);
+
+        // Сохраняем (если требуется)
+        save(pairData);
+
+        return pairData;
+    }
+
+    private void calculateAdditionalMetrics(PairData pairData) {
+        // Здесь можно добавить дополнительные расчеты метрик
+        // Например:
+        BigDecimal zScoreChanges = BigDecimal.valueOf(pairData.getZScoreCurrent())
+                .subtract(BigDecimal.valueOf(pairData.getZScoreEntry()));
+        pairData.setZScoreChanges(zScoreChanges);
+
+        // Добавьте другие расчеты по необходимости
     }
 
     public PairData getPairData() {
