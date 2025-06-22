@@ -43,6 +43,9 @@ public class StatisticsService {
                         📈 Avg profit:
                         - Avg: %s%% / %s%%
                         
+                        📈 Sum profit:
+                        - Sum: %s%% / %s%%
+                        
                         ❌ Exit Reasons:
                         - STOP: %d / %d
                         - TAKE: %d / %d
@@ -55,6 +58,9 @@ public class StatisticsService {
 
                 format(stats.getAvgProfitToday()),
                 format(stats.getAvgProfitTotal()),
+
+                format(stats.getSumProfitToday()),
+                format(stats.getSumProfitTotal()),
 
                 stats.getExitByStopToday(),
                 stats.getExitByStopTotal(),
@@ -85,6 +91,9 @@ public class StatisticsService {
 
                 .avgProfitToday(tradeLogRepository.getAvgProfitToday())
                 .avgProfitTotal(tradeLogRepository.getAvgProfitTotal())
+
+                .sumProfitToday(tradeLogRepository.getSumProfitToday())
+                .sumProfitTotal(tradeLogRepository.getSumProfitTotal())
 
                 .exitByStopToday(tradeLogRepository.getExitByStopToday())
                 .exitByStopTotal(tradeLogRepository.getExitByStopTotal())

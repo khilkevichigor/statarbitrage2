@@ -41,6 +41,21 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     Long getTradesTotal();
 
     @Query(value =
+            "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE LEFT(ENTRY_TIME, 10) = FORMATDATETIME(CURRENT_DATE(), 'yyyy-MM-dd') " +
+                    "AND EXIT_REASON IS NOT NULL",
+            nativeQuery = true)
+    BigDecimal getSumProfitToday();
+
+    @Query(value =
+            "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
+                    "FROM TRADE_LOG " +
+                    "WHERE EXIT_REASON IS NOT NULL",
+            nativeQuery = true)
+    BigDecimal getSumProfitTotal();
+
+    @Query(value =
             "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
                     "FROM TRADE_LOG " +
                     "WHERE LEFT(ENTRY_TIME, 10) = FORMATDATETIME(CURRENT_DATE(), 'yyyy-MM-dd') " +

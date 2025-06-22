@@ -18,6 +18,9 @@ public class TradeStatisticsDto {
     private BigDecimal avgProfitToday;
     private BigDecimal avgProfitTotal;
 
+    private BigDecimal sumProfitToday;
+    private BigDecimal sumProfitTotal;
+
     private long exitByStopToday;
     private long exitByStopTotal;
 
