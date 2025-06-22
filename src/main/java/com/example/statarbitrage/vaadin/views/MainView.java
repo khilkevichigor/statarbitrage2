@@ -2,6 +2,7 @@ package com.example.statarbitrage.vaadin.views;
 
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.services.FetchPairsService;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
@@ -35,10 +36,12 @@ public class MainView extends VerticalLayout {
 
     private FetchPairsService fetchPairsService;
     private SettingsService settingsService;
+    private PairDataService pairDataService;
 
-    public MainView(FetchPairsService fetchPairsService, SettingsService settingsService) {
+    public MainView(FetchPairsService fetchPairsService, SettingsService settingsService, PairDataService pairDataService) {
         this.fetchPairsService = fetchPairsService;
         this.settingsService = settingsService;
+        this.pairDataService = pairDataService;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -51,11 +54,11 @@ public class MainView extends VerticalLayout {
 
         configureGrids();
 
-        add(refreshButton,
+        add(new H2("Настройки торговли"),
                 saveSettingsButton,
-                new H2("Настройки торговли"),
                 createSettingsForm(),
                 new H2("Отобранные пары (SELECTED)"),
+                refreshButton,
                 selectedPairsGrid,
                 new H2("Торгуемые пары (TRADING)"),
                 tradingPairsGrid,
@@ -200,6 +203,8 @@ public class MainView extends VerticalLayout {
             Button actionButton = new Button(buttonText, event -> {
                 pair.setStatus(targetStatus);
                 // TODO: Сохранить изменение статуса в БД
+                pairDataService.saveToDb(pair);
+
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
                         pair.getLongTicker(), pair.getShortTicker(), targetStatus

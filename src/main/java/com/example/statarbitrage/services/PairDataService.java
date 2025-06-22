@@ -1,6 +1,7 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.model.*;
+import com.example.statarbitrage.repositories.PairDataRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import static com.example.statarbitrage.constant.Constants.PAIR_DATA_FILE_NAME;
 public class PairDataService {
     private final ChangesService changesService;
     private final ExitStrategyService exitStrategyService;
+    private final PairDataRepository pairDataRepository;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public PairData createPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
@@ -56,7 +58,7 @@ public class PairDataService {
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
 
-        save(pairData);
+        saveToJson(pairData);
 
         log.info("Создали pair_data.json");
 
@@ -125,7 +127,7 @@ public class PairDataService {
         calculateAdditionalMetrics(pairData);
 
         // Сохраняем (если требуется)
-        save(pairData);
+        saveToJson(pairData);
 
         return pairData;
     }
@@ -160,7 +162,7 @@ public class PairDataService {
         }
     }
 
-    public void save(PairData pairData) {
+    public void saveToJson(PairData pairData) {
         try {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(PAIR_DATA_FILE_NAME), pairData);
         } catch (Exception e) {
@@ -242,6 +244,10 @@ public class PairDataService {
 
         pairData.setExitReason(exitStrategyService.getExitReason(pairData));
 
-        save(pairData);
+        saveToJson(pairData);
+    }
+
+    public void saveToDb(PairData pairData) {
+        pairDataRepository.save(pairData);
     }
 }

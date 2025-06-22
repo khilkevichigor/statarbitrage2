@@ -1,6 +1,7 @@
 package com.example.statarbitrage.model;
 
 import com.example.statarbitrage.vaadin.services.TradeStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,13 +11,20 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+@Entity
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class PairData {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Transient
     private List<ZScoreParam> zScoreParams;
+    @Transient
     private Map<String, List<Candle>> candles;
 
     private TradeStatus status = TradeStatus.SELECTED; // Значение по умолчанию
