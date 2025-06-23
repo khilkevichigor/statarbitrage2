@@ -140,12 +140,6 @@ public class MainView extends VerticalLayout {
     private void findSelectedPairs() {
         List<PairData> pairs = fetchPairsService.fetchPairs();
         selectedPairsGrid.setItems(pairs);
-
-
-//        Notification.show(String.format(
-//                "Данные обновлены. Отобрано: %d, Торгуется: %d, Закрыто: %d",
-//                selectedPairs.size(), tradingPairs.size(), closedPairs.size()
-//        ));
     }
 
     private void getSelectedPairs() {
@@ -184,9 +178,6 @@ public class MainView extends VerticalLayout {
         // Добавляем кнопки действий для каждой таблицы
         addStartTradingButton();
         addStopTradingButtons();
-
-        // Для закрытых пар можно добавить кнопку "Вернуть в отобранные"
-//        addActionButtons(closedPairsGrid, "Вернуть", TradeStatus.SELECTED);
     }
 
     private void configureCommonColumns(Grid<PairData> grid) {
