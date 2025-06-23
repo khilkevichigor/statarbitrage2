@@ -245,7 +245,9 @@ public class PairDataService {
 
         pairData.setExitReason(exitStrategyService.getExitReason(pairData));
 
-        saveToJson(pairData);
+        pairData.setStatus(TradeStatus.TRADING);
+
+        saveToDb(pairData);
     }
 
     public void saveToDb(PairData pairData) {

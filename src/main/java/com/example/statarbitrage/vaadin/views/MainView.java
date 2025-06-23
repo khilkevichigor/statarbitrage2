@@ -4,9 +4,11 @@ import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
-import com.example.statarbitrage.vaadin.services.FetchPairsService;
+import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
+import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
@@ -20,10 +22,16 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
@@ -32,17 +40,34 @@ public class MainView extends VerticalLayout {
 
     private final Binder<Settings> settingsBinder = new Binder<>(Settings.class);
     private Settings currentSettings;
+    private TestTradeProcessor testTradeProcessor;
 
-    private FetchPairsService fetchPairsService;
+    private FetchPairsProcessor fetchPairsProcessor;
     private SettingsService settingsService;
     private PairDataService pairDataService;
 
-    public MainView(FetchPairsService fetchPairsService, SettingsService settingsService, PairDataService pairDataService) {
-        this.fetchPairsService = fetchPairsService;
+    private Checkbox simulationCheckbox;
+    private ScheduledExecutorService executorService;
+    private final List<PairData> activeSimulationPairs = new ArrayList<>();
+    private static final int MAX_ACTIVE_PAIRS = 10;
+
+    public MainView(TestTradeProcessor testTradeProcessor, FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService) {
+        this.testTradeProcessor = testTradeProcessor;
+        this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
 
         add(new H1("Welcome to StatArbitrage"));
+
+        // Инициализируем чекбокс симуляции
+        simulationCheckbox = new Checkbox("Симуляция");
+        simulationCheckbox.addValueChangeListener(event -> {
+            if (event.getValue()) {
+                startSimulation();
+            } else {
+                stopSimulation();
+            }
+        });
 
         // Загружаем текущие настройки
         currentSettings = settingsService.getSettingsFromDb();
@@ -52,6 +77,8 @@ public class MainView extends VerticalLayout {
         Button saveSettingsButton = new Button("Сохранить настройки", e -> saveSettings());
 
         configureGrids();
+
+        add(simulationCheckbox);
 
         add(new H2("Настройки торговли"),
                 saveSettingsButton,
@@ -63,6 +90,82 @@ public class MainView extends VerticalLayout {
                 tradingPairsGrid,
                 new H2("Закрытые пары (CLOSED)"),
                 closedPairsGrid);
+    }
+
+    private void startSimulation() {
+        log.info("Симуляция запущена");
+        executorService = Executors.newSingleThreadScheduledExecutor();
+
+        // Инициализация - сразу заполняем до MAX_ACTIVE_PAIRS
+        initializeSimulation();
+
+        // Основной цикл симуляции (каждую минуту)
+        executorService.scheduleAtFixedRate(this::simulationStep, 0, 1, TimeUnit.MINUTES);
+    }
+
+    private void initializeSimulation() {
+        // Очищаем старые SELECTED пары
+        pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+
+        // Загружаем начальный набор пар
+        List<PairData> initialPairs = fetchPairsProcessor.fetchPairs();
+
+        // Запускаем первые MAX_ACTIVE_PAIRS пар
+        initialPairs.stream()
+                .limit(MAX_ACTIVE_PAIRS)
+                .forEach(pair -> testTradeProcessor.testTrade(pair));
+    }
+
+    private void simulationStep() {
+        try {
+            // 1. Получаем текущие торгуемые пары
+            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+
+            // 2. Обновляем данные и проверяем условия выхода
+            tradingPairs.forEach(pair -> {
+                testTradeProcessor.testTrade(pair); // Обновляем данные
+            });
+
+            // 3. Добираем новые пары до MAX_ACTIVE_PAIRS
+            if (tradingPairs.size() < MAX_ACTIVE_PAIRS) {
+                int neededPairs = MAX_ACTIVE_PAIRS - tradingPairs.size();
+                fetchAndStartNewPairs(neededPairs);
+            }
+
+            // 4. Обновляем UI
+            updateUI();
+
+        } catch (Exception e) {
+            log.error("Ошибка в шаге симуляции", e);
+        }
+    }
+
+    private void fetchAndStartNewPairs(int count) {
+        // Получаем новые пары
+        List<PairData> newPairs = fetchPairsProcessor.fetchPairs();
+
+        // Запускаем нужное количество
+        newPairs.stream()
+                .limit(count)
+                .forEach(pair -> {
+                    testTradeProcessor.testTrade(pair);
+                });
+    }
+
+    private void updateUI() {
+        getUI().ifPresent(ui -> ui.access(() -> {
+            getSelectedPairs();
+            getTraidingPairs();
+            getClosedPairs();
+        }));
+    }
+
+    private void stopSimulation() {
+        log.info("Симуляция остановлена");
+        if (executorService != null) {
+            executorService.shutdownNow();
+        }
+        activeSimulationPairs.clear();
     }
 
     private FormLayout createSettingsForm() {
@@ -144,7 +247,7 @@ public class MainView extends VerticalLayout {
     }
 
     private void findSelectedPairs() {
-        List<PairData> pairs = fetchPairsService.fetchPairs();
+        List<PairData> pairs = fetchPairsProcessor.fetchPairs();
         selectedPairsGrid.setItems(pairs);
     }
 

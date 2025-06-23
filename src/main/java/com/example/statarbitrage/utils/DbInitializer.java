@@ -20,11 +20,11 @@ public class DbInitializer {
         List<Settings> all = settingsRepository.findAll();
         if (all.isEmpty()) {
             settingsRepository.save(Settings.builder()
-                    .timeframe("5m")
+                    .timeframe("1m")
                     .candleLimit(300)
                     .windowSize(250)
-                    .significanceLevel(0.01)
-                    .adfSignificanceLevel(0.01)
+                    .significanceLevel(0.05)
+                    .adfSignificanceLevel(0.05)
                     .checkInterval(1)
                     .capitalLong(10.0)
                     .capitalShort(10.0)
@@ -36,7 +36,7 @@ public class DbInitializer {
                     .exitZMaxPercent(50.0) //от 3.22 + 50% = 4.83
                     .exitTimeHours(8)
                     .minCorrelation(0.8)
-                    .minVolume(10.0)
+                    .minVolume(1.0)
                     .build()
             );
         }
