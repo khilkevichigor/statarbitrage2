@@ -61,7 +61,7 @@ public class MainView extends VerticalLayout {
                 selectedPairsGrid,
                 new H2("Торгуемые пары (TRADING)"),
                 tradingPairsGrid,
-                new H2("Закрытые пары (CLOSED/BLACKLISTED)"),
+                new H2("Закрытые пары (CLOSED)"),
                 closedPairsGrid);
     }
 
@@ -165,40 +165,65 @@ public class MainView extends VerticalLayout {
 
     private void configureGrids() {
         // Настраиваем все таблицы с базовыми колонками
-        configureCommonColumns(selectedPairsGrid);
+        configureColumnsSelected();
         getSelectedPairs();
-        configureCommonColumns(tradingPairsGrid);
+
+        configureColumnsTrading();
         getTraidingPairs();
-        configureCommonColumns(closedPairsGrid);
+
+        configureColumnsClosed();
         getClosedPairs();
-
-        // Добавляем колонку статуса для торгуемых и закрытых пар
-        tradingPairsGrid.addColumn(p -> p.getStatus().toString())
-                .setHeader("Статус")
-                .setSortable(true);
-
-        closedPairsGrid.addColumn(p -> p.getStatus().toString())
-                .setHeader("Статус")
-                .setSortable(true);
 
         // Добавляем кнопки действий для каждой таблицы
         addStartTradingButton();
         addStopTradingButtons();
     }
 
-    private void configureCommonColumns(Grid<PairData> grid) {
-        grid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
-        grid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
-        grid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP))
+    private void configureColumnsSelected() {
+        selectedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
+        selectedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP))
                 .setHeader("Z-скор").setSortable(true);
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP))
+                .setHeader("Корр.").setSortable(true);
 
-        grid.setHeight("300px");
-        grid.setWidthFull();
+        selectedPairsGrid.setHeight("300px");
+        selectedPairsGrid.setWidthFull();
+    }
+
+    private void configureColumnsTrading() {
+        tradingPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
+        tradingPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreEntry()).setScale(2, BigDecimal.ROUND_HALF_UP))
+                .setHeader("Z-скор (entry)").setSortable(true);
+        tradingPairsGrid.addColumn(PairData::getProfitChanges)
+                .setHeader("Профит (%)")
+                .setSortable(true);
+
+        tradingPairsGrid.setHeight("300px");
+        tradingPairsGrid.setWidthFull();
+    }
+
+    private void configureColumnsClosed() {
+        closedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
+        closedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
+        closedPairsGrid.addColumn(PairData::getProfitChanges)
+                .setHeader("Профит (%)")
+                .setSortable(true);
+        closedPairsGrid.addColumn(PairData::getExitReason)
+                .setHeader("Причина выхода")
+                .setSortable(true);
+
+        closedPairsGrid.setHeight("300px");
+        closedPairsGrid.setWidthFull();
     }
 
     private void addStartTradingButton() {
         selectedPairsGrid.addColumn(new ComponentRenderer<>(pair -> {
             Button actionButton = new Button("Торговать", event -> {
+
+                //TODO: здесь открытие сделки лонг/шорт
+
                 pair.setStatus(TradeStatus.TRADING);
                 pairDataService.saveToDb(pair);
 
@@ -226,6 +251,9 @@ public class MainView extends VerticalLayout {
     private void addStopTradingButtons() {
         tradingPairsGrid.addColumn(new ComponentRenderer<>(pair -> {
             Button actionButton = new Button("Закрыть", event -> {
+
+                //TODO: здесь закрытие сделки лонг/шорт
+
                 pair.setStatus(TradeStatus.CLOSED);
                 pairDataService.saveToDb(pair);
 
