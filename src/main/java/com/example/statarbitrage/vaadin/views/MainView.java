@@ -70,9 +70,10 @@ public class MainView extends VerticalLayout {
         settingsForm.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("500px", 2),
-                new FormLayout.ResponsiveStep("800px", 3),
-                new FormLayout.ResponsiveStep("1100px", 4),
-                new FormLayout.ResponsiveStep("1400px", 5)
+                new FormLayout.ResponsiveStep("800px", 4),
+                new FormLayout.ResponsiveStep("1100px", 6),
+                new FormLayout.ResponsiveStep("1400px", 8),
+                new FormLayout.ResponsiveStep("1700px", 10)
         );
 
         // Основные настройки
@@ -100,7 +101,7 @@ public class MainView extends VerticalLayout {
         NumberField minCorrelationField = new NumberField("Мин корреляция");
         NumberField minVolumeField = new NumberField("Мин объем (млн $)");
 
-        // Добавляем поля в форму группами по 5
+        // Добавляем все поля в форму
         settingsForm.add(
                 timeframeField, candleLimitField, windowSizeField, significanceLevelField, adfSignificanceLevelField,
                 checkIntervalField, capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
@@ -112,7 +113,6 @@ public class MainView extends VerticalLayout {
         settingsBinder.forField(timeframeField).bind(Settings::getTimeframe, Settings::setTimeframe);
         settingsBinder.forField(candleLimitField).bind(Settings::getCandleLimit, Settings::setCandleLimit);
         settingsBinder.forField(windowSizeField).bind(Settings::getWindowSize, Settings::setWindowSize);
-
         settingsBinder.forField(significanceLevelField).bind(Settings::getSignificanceLevel, Settings::setSignificanceLevel);
         settingsBinder.forField(adfSignificanceLevelField).bind(Settings::getAdfSignificanceLevel, Settings::setAdfSignificanceLevel);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
