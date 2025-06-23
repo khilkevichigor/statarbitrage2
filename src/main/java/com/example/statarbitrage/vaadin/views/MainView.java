@@ -5,9 +5,8 @@ import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
-import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -18,7 +17,6 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
@@ -27,7 +25,6 @@ import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,19 +40,15 @@ public class MainView extends VerticalLayout {
 
     private final Binder<Settings> settingsBinder = new Binder<>(Settings.class);
     private Settings currentSettings;
-    private TestTradeProcessor testTradeProcessor;
 
     private FetchPairsProcessor fetchPairsProcessor;
     private SettingsService settingsService;
     private PairDataService pairDataService;
 
     private Checkbox simulationCheckbox;
-    private ScheduledExecutorService executorService;
-    private final List<PairData> activeSimulationPairs = new ArrayList<>();
-    private static final int MAX_ACTIVE_PAIRS = 10;
+    private ScheduledExecutorService uiUpdateExecutor;
 
-    public MainView(TestTradeProcessor testTradeProcessor, FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService) {
-        this.testTradeProcessor = testTradeProcessor;
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
@@ -63,14 +56,7 @@ public class MainView extends VerticalLayout {
         add(new H1("Welcome to StatArbitrage"));
 
         // Инициализируем чекбокс симуляции
-        simulationCheckbox = new Checkbox("Симуляция");
-        simulationCheckbox.addValueChangeListener(event -> {
-            if (event.getValue()) {
-                startSimulation();
-            } else {
-                stopSimulation();
-            }
-        });
+        createSimulationCheckbox();
 
         // Загружаем текущие настройки
         currentSettings = settingsService.getSettingsFromDb();
@@ -93,103 +79,48 @@ public class MainView extends VerticalLayout {
                 tradingPairsGrid,
                 new H2("Закрытые пары (CLOSED)"),
                 closedPairsGrid);
+
+        // Запускаем обновление UI каждые 5 секунд
+        startUiUpdater();
     }
 
-    private void startSimulation() {
-        log.info("Симуляция запущена");
-        executorService = Executors.newSingleThreadScheduledExecutor();
-
-        // Инициализация - сразу заполняем до MAX_ACTIVE_PAIRS
-        safelyUpdateUI(this::initializeSimulation);
-
-        // Основной цикл симуляции (каждую минуту)
-        executorService.scheduleAtFixedRate(this::simulationStep, 0, 1, TimeUnit.MINUTES);
+    private void startUiUpdater() {
+        uiUpdateExecutor = Executors.newSingleThreadScheduledExecutor();
+        uiUpdateExecutor.scheduleAtFixedRate(this::updateUI, 0, 60, TimeUnit.SECONDS);
     }
 
-    private void initializeSimulation() {
-        // Очищаем старые SELECTED пары
-        pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
-
-        // Загружаем начальный набор пар
-        List<PairData> initialPairs = fetchPairsProcessor.fetchPairs();
-
-        // Запускаем первые MAX_ACTIVE_PAIRS пар
-        initialPairs.stream()
-                .limit(MAX_ACTIVE_PAIRS)
-                .forEach(pair -> testTradeProcessor.testTrade(pair));
-    }
-
-    private void simulationStep() {
-        try {
-            // 1. Получаем текущие торгуемые пары
-            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
-
-            // 2. Обновляем данные и проверяем условия выхода
-            tradingPairs.forEach(pair -> {
-                testTradeProcessor.testTrade(pair); // Обновляем данные
-            });
-
-            // 3. Добираем новые пары до MAX_ACTIVE_PAIRS
-            if (tradingPairs.size() < MAX_ACTIVE_PAIRS) {
-                int neededPairs = MAX_ACTIVE_PAIRS - tradingPairs.size();
-                fetchAndStartNewPairs(neededPairs);
+    private void updateUI() {
+        getUI().ifPresent(ui -> ui.access(() -> {
+            try {
+                getSelectedPairs();
+                getTraidingPairs();
+                getClosedPairs();
+            } catch (Exception e) {
+                log.error("Ошибка при обновлении UI", e);
             }
+        }));
+    }
 
-            // 4. Обновляем UI
-            safelyUpdateUI();
-
-        } catch (Exception e) {
-            log.error("Ошибка в шаге симуляции", e);
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        // Останавливаем обновление UI при закрытии вкладки
+        if (uiUpdateExecutor != null) {
+            uiUpdateExecutor.shutdownNow();
         }
+        super.onDetach(detachEvent);
     }
 
-    private void fetchAndStartNewPairs(int count) {
-        // Получаем новые пары
-        List<PairData> newPairs = fetchPairsProcessor.fetchPairs();
+    private Checkbox createSimulationCheckbox() {
+        simulationCheckbox = new Checkbox("Симуляция");
+        simulationCheckbox.setValue(settingsService.getSettingsFromDb().isSimulationEnabled());
 
-        // Запускаем нужное количество
-        newPairs.stream()
-                .limit(count)
-                .forEach(pair -> {
-                    testTradeProcessor.testTrade(pair);
-                });
-    }
-
-    // Вариант без параметров для обновления стандартных компонентов
-    private void safelyUpdateUI() {
-        safelyUpdateUI(() -> {
-            getSelectedPairs();
-            getTraidingPairs();
-            getClosedPairs();
+        simulationCheckbox.addValueChangeListener(event -> {
+            Settings settings = settingsService.getSettingsFromDb();
+            settings.setSimulationEnabled(event.getValue());
+            settingsService.saveSettingsInDb(settings);
         });
-    }
 
-    // Универсальный метод для безопасного обновления UI
-    private void safelyUpdateUI(Runnable action) {
-        try {
-            UI ui = UI.getCurrent();
-            if (ui != null && ui.isAttached()) {
-                ui.access(() -> {
-                    try {
-                        action.run();
-                    } catch (Exception e) {
-                        log.error("Ошибка при выполнении действия в UI", e);
-                    }
-                });
-            } else {
-                log.warn("UI недоступен для обновления (возможно, страница закрыта)");
-            }
-        } catch (IllegalStateException e) {
-            log.warn("UI недоступен для обновления (IllegalStateException)");
-        }
-    }
-
-    private void stopSimulation() {
-        log.info("Симуляция остановлена");
-        if (executorService != null) {
-            executorService.shutdownNow();
-        }
-        activeSimulationPairs.clear();
+        return simulationCheckbox;
     }
 
     private FormLayout createSettingsForm() {

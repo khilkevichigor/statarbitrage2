@@ -245,7 +245,7 @@ public class PairDataService {
 
         pairData.setExitReason(exitStrategyService.getExitReason(pairData));
 
-        pairData.setStatus(TradeStatus.TRADING);
+        pairData.setStatus(pairData.getExitReason() == null ? TradeStatus.TRADING : TradeStatus.CLOSED);
 
         saveToDb(pairData);
     }
