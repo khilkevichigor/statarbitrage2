@@ -7,6 +7,7 @@ import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
 import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -17,6 +18,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
@@ -32,6 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
+//@Push
 @Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
@@ -97,7 +100,7 @@ public class MainView extends VerticalLayout {
         executorService = Executors.newSingleThreadScheduledExecutor();
 
         // Инициализация - сразу заполняем до MAX_ACTIVE_PAIRS
-        initializeSimulation();
+        safelyUpdateUI(this::initializeSimulation);
 
         // Основной цикл симуляции (каждую минуту)
         executorService.scheduleAtFixedRate(this::simulationStep, 0, 1, TimeUnit.MINUTES);
@@ -133,7 +136,7 @@ public class MainView extends VerticalLayout {
             }
 
             // 4. Обновляем UI
-            updateUI();
+            safelyUpdateUI();
 
         } catch (Exception e) {
             log.error("Ошибка в шаге симуляции", e);
@@ -152,12 +155,33 @@ public class MainView extends VerticalLayout {
                 });
     }
 
-    private void updateUI() {
-        getUI().ifPresent(ui -> ui.access(() -> {
+    // Вариант без параметров для обновления стандартных компонентов
+    private void safelyUpdateUI() {
+        safelyUpdateUI(() -> {
             getSelectedPairs();
             getTraidingPairs();
             getClosedPairs();
-        }));
+        });
+    }
+
+    // Универсальный метод для безопасного обновления UI
+    private void safelyUpdateUI(Runnable action) {
+        try {
+            UI ui = UI.getCurrent();
+            if (ui != null && ui.isAttached()) {
+                ui.access(() -> {
+                    try {
+                        action.run();
+                    } catch (Exception e) {
+                        log.error("Ошибка при выполнении действия в UI", e);
+                    }
+                });
+            } else {
+                log.warn("UI недоступен для обновления (возможно, страница закрыта)");
+            }
+        } catch (IllegalStateException e) {
+            log.warn("UI недоступен для обновления (IllegalStateException)");
+        }
     }
 
     private void stopSimulation() {
