@@ -182,11 +182,11 @@ public class MainView extends VerticalLayout {
                 .setSortable(true);
 
         // Добавляем кнопки действий для каждой таблицы
-        addActionButtons(selectedPairsGrid, "Торговать", TradeStatus.TRADING);
-        addActionButtons(tradingPairsGrid, "Закрыть", TradeStatus.CLOSED);
+        addStartTradingButton();
+        addStopTradingButtons();
 
         // Для закрытых пар можно добавить кнопку "Вернуть в отобранные"
-        addActionButtons(closedPairsGrid, "Вернуть", TradeStatus.SELECTED);
+//        addActionButtons(closedPairsGrid, "Вернуть", TradeStatus.SELECTED);
     }
 
     private void configureCommonColumns(Grid<PairData> grid) {
@@ -199,23 +199,50 @@ public class MainView extends VerticalLayout {
         grid.setWidthFull();
     }
 
-    private void addActionButtons(Grid<PairData> grid, String buttonText, TradeStatus targetStatus) {
-        grid.addColumn(new ComponentRenderer<>(pair -> {
-            Button actionButton = new Button(buttonText, event -> {
-                pair.setStatus(targetStatus);
-                // TODO: Сохранить изменение статуса в БД
+    private void addStartTradingButton() {
+        selectedPairsGrid.addColumn(new ComponentRenderer<>(pair -> {
+            Button actionButton = new Button("Торговать", event -> {
+                pair.setStatus(TradeStatus.TRADING);
                 pairDataService.saveToDb(pair);
 
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
-                        pair.getLongTicker(), pair.getShortTicker(), targetStatus
+                        pair.getLongTicker(), pair.getShortTicker(), TradeStatus.TRADING
                 ));
+                getSelectedPairs();
                 getTraidingPairs();
                 getClosedPairs();
             });
 
             // Настраиваем цвет кнопки в зависимости от статуса
-            String color = switch (targetStatus) {
+            String color = switch (TradeStatus.TRADING) {
+                case TRADING -> "green";
+                case CLOSED -> "red";
+                default -> "black";
+            };
+            actionButton.getStyle().set("color", color);
+
+            return actionButton;
+        })).setHeader("Действие");
+    }
+
+    private void addStopTradingButtons() {
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(pair -> {
+            Button actionButton = new Button("Закрыть", event -> {
+                pair.setStatus(TradeStatus.CLOSED);
+                pairDataService.saveToDb(pair);
+
+                Notification.show(String.format(
+                        "Статус пары %s/%s изменен на %s",
+                        pair.getLongTicker(), pair.getShortTicker(), TradeStatus.CLOSED
+                ));
+                getSelectedPairs();
+                getTraidingPairs();
+                getClosedPairs();
+            });
+
+            // Настраиваем цвет кнопки в зависимости от статуса
+            String color = switch (TradeStatus.CLOSED) {
                 case TRADING -> "green";
                 case CLOSED -> "red";
                 default -> "black";
