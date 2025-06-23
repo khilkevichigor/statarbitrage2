@@ -67,6 +67,13 @@ public class MainView extends VerticalLayout {
 
     private FormLayout createSettingsForm() {
         FormLayout settingsForm = new FormLayout();
+        settingsForm.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("500px", 2),
+                new FormLayout.ResponsiveStep("800px", 3),
+                new FormLayout.ResponsiveStep("1100px", 4),
+                new FormLayout.ResponsiveStep("1400px", 5)
+        );
 
         // Основные настройки
         TextField timeframeField = new TextField("Таймфрейм");
@@ -93,11 +100,10 @@ public class MainView extends VerticalLayout {
         NumberField minCorrelationField = new NumberField("Мин корреляция");
         NumberField minVolumeField = new NumberField("Мин объем (млн $)");
 
-        // Добавляем поля в форму
+        // Добавляем поля в форму группами по 5
         settingsForm.add(
-                timeframeField, candleLimitField, windowSizeField,
-                significanceLevelField, adfSignificanceLevelField, checkIntervalField,
-                capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
+                timeframeField, candleLimitField, windowSizeField, significanceLevelField, adfSignificanceLevelField,
+                checkIntervalField, capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
                 exitTakeField, exitStopField, exitZMinField, exitZMaxPercentField, exitTimeHoursField,
                 minCorrelationField, minVolumeField
         );
