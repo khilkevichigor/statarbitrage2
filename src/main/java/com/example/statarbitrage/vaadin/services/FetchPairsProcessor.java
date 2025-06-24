@@ -41,9 +41,6 @@ public class FetchPairsProcessor {
     public List<PairData> fetchPairs() {
         log.info("Fetching pairs...");
 
-        int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
-        log.info("Deleted all {} pairs from database", deleteAllByStatus);
-
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);

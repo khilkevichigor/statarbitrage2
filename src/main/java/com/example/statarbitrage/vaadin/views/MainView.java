@@ -28,6 +28,7 @@ import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -66,7 +67,12 @@ public class MainView extends VerticalLayout {
         currentSettings = settingsService.getSettingsFromDb();
         createSettingsForm();
 
-        Button getCointPairsButton = new Button("Получить пары", new Icon(VaadinIcon.REFRESH), e -> findSelectedPairs());
+        Button getCointPairsButton = new Button("Получить пары", new Icon(VaadinIcon.REFRESH), e -> {
+            selectedPairsGrid.setItems(Collections.emptyList());
+            int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+            log.info("Deleted all {} pairs from database", deleteAllByStatus);
+            findSelectedPairs();
+        });
         Button saveSettingsButton = new Button("Сохранить настройки", e -> saveSettings());
 
         configureGrids();
@@ -88,12 +94,14 @@ public class MainView extends VerticalLayout {
         startUiUpdater();
     }
 
+    //для обновления UI
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         UI.getCurrent().getSession().setAttribute(MainView.class, this);
     }
 
+    //для обновления UI
     public void handleUiUpdateRequest() {
         getUI().ifPresent(ui -> ui.access(this::updateUI));
     }
