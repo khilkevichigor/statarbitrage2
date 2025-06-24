@@ -34,6 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.statarbitrage.constant.Constants.EXIT_REASON_MANUALLY;
+
 @Slf4j
 @Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
@@ -334,6 +336,7 @@ public class MainView extends VerticalLayout {
                 //TODO: здесь закрытие реальной сделки лонг/шорт
 
                 pair.setStatus(TradeStatus.CLOSED);
+                pair.setExitReason(EXIT_REASON_MANUALLY);
                 pairDataService.saveToDb(pair);
 
                 Notification.show(String.format(

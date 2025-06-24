@@ -53,5 +53,6 @@ public interface Constants {
     String EXIT_REASON_BY_Z_MIN = "EXIT_REASON_BY_Z_MIN";
     String EXIT_REASON_BY_Z_MAX = "EXIT_REASON_BY_Z_MAX";
     String EXIT_REASON_BY_TIME = "EXIT_REASON_BY_TIME";
+    String EXIT_REASON_MANUALLY = "EXIT_REASON_MANUALLY";
 
 }
