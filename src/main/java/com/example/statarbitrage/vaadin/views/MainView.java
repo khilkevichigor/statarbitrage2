@@ -241,7 +241,7 @@ public class MainView extends VerticalLayout {
     }
 
     private void getClosedPairs() {
-        List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.CLOSED);
+        List<PairData> pairs = pairDataService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
         closedPairsGrid.setItems(pairs);
     }
 
@@ -334,6 +334,8 @@ public class MainView extends VerticalLayout {
             Button actionButton = new Button("Закрыть", event -> {
 
                 //TODO: здесь закрытие реальной сделки лонг/шорт
+
+                testTradeProcessor.testTrade(pair); //сначала обновим пару полностью
 
                 pair.setStatus(TradeStatus.CLOSED);
                 pair.setExitReason(EXIT_REASON_MANUALLY);

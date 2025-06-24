@@ -258,6 +258,10 @@ public class PairDataService {
         return pairDataRepository.findAllByStatusOrderByEntryTimeDesc(status);
     }
 
+    public List<PairData> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
+        return pairDataRepository.findAllByStatusOrderByUpdatedTimeDesc(status);
+    }
+
     public int deleteAllByStatus(TradeStatus status) {
         return pairDataRepository.deleteAllByStatus(status);
     }

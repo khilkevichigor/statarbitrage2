@@ -79,6 +79,7 @@ public class PairData {
     private BigDecimal minProfitRounded;
 
     private long entryTime;
+    private long updatedTime;
 
     private BigDecimal maxZ;
     private BigDecimal minZ;
