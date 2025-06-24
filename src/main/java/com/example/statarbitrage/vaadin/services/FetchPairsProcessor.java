@@ -7,6 +7,7 @@ import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.services.*;
 import com.example.statarbitrage.threecommas.ThreeCommasFlowService;
 import com.example.statarbitrage.threecommas.ThreeCommasService;
+import com.example.statarbitrage.vaadin.services.jep.CointegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class FetchPairsProcessor {
     private final TradeLogService tradeLogService;
     private final ExportService exportService;
     private final CointegrationCalculatorV2 cointegrationCalculatorV2;
+    private final CointegrationService cointegrationService;
 
     public List<PairData> fetchPairs() {
         log.info("Fetching pairs...");
@@ -41,7 +43,7 @@ public class FetchPairsProcessor {
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);
 
-        List<ZScoreData> zScoreDataList = cointegrationCalculatorV2.calculateZScores(settingsFromDb, candlesMap);
+        List<ZScoreData> zScoreDataList = cointegrationCalculatorV2.calculateZScores(settingsFromDb, candlesMap, false);
 
         // Обработка результатов
         zScoreService.reduceDuplicates(zScoreDataList);

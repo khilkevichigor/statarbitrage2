@@ -35,7 +35,7 @@ public class TestTradeProcessor {
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
         validateCandlesLimitAndThrow(candlesMap);
 
-        List<ZScoreData> zScoreDataList = cointegrationCalculatorV2.calculateZScores(settingsFromDb, candlesMap);
+        List<ZScoreData> zScoreDataList = cointegrationCalculatorV2.calculateZScores(settingsFromDb, candlesMap, true);
         if (zScoreDataList.size() != 1) {
             throw new RuntimeException("ZScoreDataList size is " + zScoreDataList.size());
         }

@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CointegrationCalculatorV2 {
 
-    public List<ZScoreData> calculateZScores(Settings settings, Map<String, List<Candle>> candlesMap) {
+    public List<ZScoreData> calculateZScores(Settings settings, Map<String, List<Candle>> candlesMap, boolean isTest) {
         List<ZScoreData> results = new ArrayList<>();
 
         // Получаем список всех тикеров
@@ -29,18 +28,19 @@ public class CointegrationCalculatorV2 {
         // Проверяем все возможные пары
         for (int i = 0; i < tickers.size(); i++) {
             for (int j = i + 1; j < tickers.size(); j++) {
-                ZScoreData zScoreData = calculatePairZScores(settings, candlesMap, tickers.get(i), tickers.get(j));
+                ZScoreData zScoreData = calculatePairZScores(settings, candlesMap, tickers.get(i), tickers.get(j), isTest);
                 if (zScoreData != null) {
                     results.add(zScoreData);
                 }
             }
         }
 
-        return filterAndSortResults(results, settings);
+        return results;
+//        return filterAndSortResults(results, settings);
     }
 
     private ZScoreData calculatePairZScores(Settings settings, Map<String, List<Candle>> candlesMap,
-                                            String ticker1, String ticker2) {
+                                            String ticker1, String ticker2, boolean isTest) {
         // Получаем свечи для обоих тикеров
         List<Candle> candles1 = candlesMap.get(ticker1);
         List<Candle> candles2 = candlesMap.get(ticker2);
@@ -65,8 +65,10 @@ public class CointegrationCalculatorV2 {
         List<Candle> recentCandles2 = candles2.subList(candles2.size() - windowSize, candles2.size());
 
         // Проверка объема (если данные доступны)
-        if (!checkVolumeCriteria(recentCandles1, recentCandles2, settings.getMinVolume())) {
-            return null;
+        if (!isTest) {
+            if (!checkVolumeCriteria(recentCandles1, recentCandles2, settings.getMinVolume())) {
+                return null;
+            }
         }
 
         // Получение и нормализация цен
@@ -78,14 +80,20 @@ public class CointegrationCalculatorV2 {
         // Тест коинтеграции
         CointegrationResult cointResult = testCointegration(normPrices1, normPrices2);
 
-        // Проверка критериев
-        if (cointResult.getPValue() < settings.getSignificanceLevel() &&
+        log.debug("Coint for pair {}/{}: p = {}, corr = {}, stationary = {}",
+                ticker1, ticker2, cointResult.getPValue(), cointResult.getCorrelation(), cointResult.isStationary());
+
+
+        if (isTest) {
+            return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
+        } else if (cointResult.getPValue() < settings.getSignificanceLevel() &&
                 Math.abs(cointResult.getCorrelation()) > settings.getMinCorrelation() &&
                 cointResult.isStationary()) {
 
             return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
+        } else {
+            return null;
         }
-        return null;
     }
 
     private ZScoreData buildZScoreData(String ticker1, String ticker2,
@@ -172,28 +180,46 @@ public class CointegrationCalculatorV2 {
     }
 
     private double calculateADFStatistic(double[] series) {
-        double[] diff = new double[series.length - 1];
-        double[] lagged = new double[series.length - 1];
+        int n = series.length;
+        int lags = 1; // можно сделать параметром
+        double[] deltaY = new double[n - 1];
+        double[] yLag1 = new double[n - 1];
 
-        for (int i = 1; i < series.length; i++) {
-            diff[i - 1] = series[i] - series[i - 1];
-            lagged[i - 1] = series[i - 1];
+        for (int t = 1; t < n; t++) {
+            deltaY[t - 1] = series[t] - series[t - 1];
+            yLag1[t - 1] = series[t - 1];
         }
 
-        SimpleRegression adfRegression = new SimpleRegression();
-        for (int i = 0; i < diff.length; i++) {
-            adfRegression.addData(lagged[i], diff[i]);
+        int effectiveLength = n - 1 - lags;
+
+        double[][] regressors = new double[effectiveLength][1 + lags]; // 1 - lagged y, lags - delta lags
+        double[] dependent = new double[effectiveLength];
+
+        for (int t = lags; t < n - 1; t++) {
+            int row = t - lags;
+            regressors[row][0] = yLag1[t];
+            for (int i = 1; i <= lags; i++) {
+                regressors[row][i] = deltaY[t - i];
+            }
+            dependent[row] = deltaY[t];
         }
 
-        return adfRegression.getSlope() / adfRegression.getSlopeStdErr();
+        OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
+        regression.newSampleData(dependent, regressors);
+
+        double[] params = regression.estimateRegressionParameters();
+        double[] stdErr = regression.estimateRegressionParametersStandardErrors();
+
+        // Параметр при y[t-1] — первый коэффициент (при лаге уровня)
+        return params[0] / stdErr[0];
     }
 
     private double estimateADFPValue(double testStatistic) {
-        // Критические значения ADF теста
+        // Таблица критических значений для модели с константой (без тренда)
         if (testStatistic <= -3.96) return 0.01;  // 1% уровень значимости
         if (testStatistic <= -3.41) return 0.05;  // 5% уровень значимости
         if (testStatistic <= -3.12) return 0.10;  // 10% уровень значимости
-        return 0.5; // Нестационарный ряд
+        return 0.5; // выше критических значений => нестационарный
     }
 
     private double calculatePearsonCorrelation(double[] x, double[] y) {

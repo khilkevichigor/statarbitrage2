@@ -243,7 +243,7 @@ public class PairDataService {
         pairData.setMinCorr(changesData.getMinCorr());
         pairData.setMaxCorr(changesData.getMaxCorr());
 
-        pairData.setExitReason(exitStrategyService.getExitReason(pairData));
+        pairData.setExitReason(exitStrategyService.getExitReason(pairData)); //todo порешать вопрос с минусом у z на отборе пар - может менять местами лонг/шорт что бы был один EXIT_REASON_BY_Z_MIN=0.5? иначе нужно делать и -0.5!!!
 
         pairData.setStatus(pairData.getExitReason() == null ? TradeStatus.TRADING : TradeStatus.CLOSED);
 
