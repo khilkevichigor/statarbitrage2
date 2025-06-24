@@ -235,6 +235,10 @@ public class MainView extends VerticalLayout {
         selectedPairsGrid.setItems(pairs);
     }
 
+    private void clearSelectedPairs() {
+        selectedPairsGrid.setItems(Collections.emptyList());
+    }
+
     private void getTraidingPairs() {
         List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         tradingPairsGrid.setItems(pairs);
