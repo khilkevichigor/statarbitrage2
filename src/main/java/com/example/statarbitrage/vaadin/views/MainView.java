@@ -1,6 +1,5 @@
 package com.example.statarbitrage.vaadin.views;
 
-import com.example.statarbitrage.events.UpdateUiEvent;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.services.PairDataService;
@@ -8,7 +7,9 @@ import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
 import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -25,9 +26,6 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Route("") // Maps to root URL
-@Service
 public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> tradingPairsGrid = new Grid<>(PairData.class, false);
@@ -50,17 +47,15 @@ public class MainView extends VerticalLayout {
     private FetchPairsProcessor fetchPairsProcessor;
     private SettingsService settingsService;
     private PairDataService pairDataService;
-    private ApplicationEventPublisher applicationEventPublisher;
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, ApplicationEventPublisher applicationEventPublisher) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
         this.testTradeProcessor = testTradeProcessor;
-        this.applicationEventPublisher = applicationEventPublisher;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -93,9 +88,14 @@ public class MainView extends VerticalLayout {
         startUiUpdater();
     }
 
-    @EventListener
-    public void onStartNewTradeEvent(UpdateUiEvent event) {
-        updateUI();
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        UI.getCurrent().getSession().setAttribute(MainView.class, this);
+    }
+
+    public void handleUiUpdateRequest() {
+        getUI().ifPresent(ui -> ui.access(this::updateUI));
     }
 
     private void startUiUpdater() {
