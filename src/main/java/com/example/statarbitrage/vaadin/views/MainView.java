@@ -1,10 +1,12 @@
 package com.example.statarbitrage.vaadin.views;
 
+import com.example.statarbitrage.events.UpdateUiEvent;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
+import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
@@ -23,6 +25,9 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,27 +36,31 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-//@Push
 @Route("") // Maps to root URL
+@Service
 public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> tradingPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> closedPairsGrid = new Grid<>(PairData.class, false);
 
     private final Binder<Settings> settingsBinder = new Binder<>(Settings.class);
+    private final TestTradeProcessor testTradeProcessor;
     private Settings currentSettings;
 
     private FetchPairsProcessor fetchPairsProcessor;
     private SettingsService settingsService;
     private PairDataService pairDataService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, ApplicationEventPublisher applicationEventPublisher) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
+        this.testTradeProcessor = testTradeProcessor;
+        this.applicationEventPublisher = applicationEventPublisher;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -84,12 +93,17 @@ public class MainView extends VerticalLayout {
         startUiUpdater();
     }
 
+    @EventListener
+    public void onStartNewTradeEvent(UpdateUiEvent event) {
+        updateUI();
+    }
+
     private void startUiUpdater() {
         uiUpdateExecutor = Executors.newSingleThreadScheduledExecutor();
         uiUpdateExecutor.scheduleAtFixedRate(this::updateUI, 0, 60, TimeUnit.SECONDS);
     }
 
-    private void updateUI() {
+    public void updateUI() {
         getUI().ifPresent(ui -> ui.access(() -> {
             try {
                 getSelectedPairs();
@@ -280,10 +294,9 @@ public class MainView extends VerticalLayout {
         selectedPairsGrid.addColumn(new ComponentRenderer<>(pair -> {
             Button actionButton = new Button("Торговать", event -> {
 
-                //TODO: здесь открытие сделки лонг/шорт
+                //TODO: здесь открытие реальной сделки лонг/шорт
 
-                pair.setStatus(TradeStatus.TRADING);
-                pairDataService.saveToDb(pair);
+                testTradeProcessor.testTrade(pair);
 
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
@@ -310,7 +323,7 @@ public class MainView extends VerticalLayout {
         tradingPairsGrid.addColumn(new ComponentRenderer<>(pair -> {
             Button actionButton = new Button("Закрыть", event -> {
 
-                //TODO: здесь закрытие сделки лонг/шорт
+                //TODO: здесь закрытие реальной сделки лонг/шорт
 
                 pair.setStatus(TradeStatus.CLOSED);
                 pairDataService.saveToDb(pair);

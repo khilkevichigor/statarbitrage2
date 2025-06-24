@@ -1,19 +1,16 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.events.ResetProfitEvent;
-import com.example.statarbitrage.events.SendAsPhotoEvent;
-import com.example.statarbitrage.events.SendAsTextEvent;
-import com.example.statarbitrage.events.StartNewTradeEvent;
+import com.example.statarbitrage.events.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class EventSendService {
-    @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public void sendTelegramMessageAsTextEvent(SendAsTextEvent event) {
         applicationEventPublisher.publishEvent(event);
@@ -28,6 +25,10 @@ public class EventSendService {
     }
 
     public void sendStartNewTradeEvent(StartNewTradeEvent event) {
+        applicationEventPublisher.publishEvent(event);
+    }
+
+    public void updateUI(UpdateUiEvent event) {
         applicationEventPublisher.publishEvent(event);
     }
 }
