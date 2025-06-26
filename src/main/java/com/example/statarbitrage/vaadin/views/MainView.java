@@ -217,6 +217,7 @@ public class MainView extends VerticalLayout {
             Settings settings = settingsService.getSettingsFromDb();
             settings.setSimulationEnabled(event.getValue());
             settingsService.saveSettingsInDb(settings);
+            log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
         });
 
         return simulationCheckbox;

@@ -21,7 +21,7 @@ public class SimulationScheduler {
 
     private static final int MAX_ACTIVE_PAIRS = 10;
 
-    @Scheduled(fixedRate = 5 * 60 * 1_000)
+    @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void runSimulationStep() {
         if (!settingsService.getSettingsFromDb().isSimulationEnabled()) {
             return;

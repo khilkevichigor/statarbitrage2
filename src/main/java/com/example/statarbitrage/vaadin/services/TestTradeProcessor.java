@@ -42,6 +42,7 @@ public class TestTradeProcessor {
         ZScoreData zScoreData = zScoreDataList.get(0);
         logData(zScoreData);
         pairDataService.update(pairData, zScoreData, candlesMap);
+        tradeLogService.saveFromPairData(pairData);
     }
 
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {

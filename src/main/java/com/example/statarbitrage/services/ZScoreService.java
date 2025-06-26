@@ -30,6 +30,7 @@ public class ZScoreService {
         }
     }
 
+    //todo можно прикрутить стохастик и пересечение
     public List<ZScoreData> obtainTopNBestPairs(Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             throw new IllegalArgumentException("Отобрано 0 пар");
