@@ -12,22 +12,18 @@ import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CointegrationCalculatorV2 {
+public class CointegrationCalculatorV3 {
 
     public List<ZScoreData> calculateZScores(Settings settings, Map<String, List<Candle>> candlesMap, boolean isTest) {
         List<ZScoreData> results = new ArrayList<>();
-
-        // Получаем список всех тикеров
         List<String> tickers = new ArrayList<>(candlesMap.keySet());
 
-        // Проверяем все возможные пары
         for (int i = 0; i < tickers.size(); i++) {
             for (int j = i + 1; j < tickers.size(); j++) {
                 ZScoreData zScoreData = calculatePairZScores(settings, candlesMap, tickers.get(i), tickers.get(j), isTest);
@@ -42,11 +38,9 @@ public class CointegrationCalculatorV2 {
 
     private ZScoreData calculatePairZScores(Settings settings, Map<String, List<Candle>> candlesMap,
                                             String ticker1, String ticker2, boolean isTest) {
-        // Получаем свечи для обоих тикеров
         List<Candle> candles1 = candlesMap.get(ticker1);
         List<Candle> candles2 = candlesMap.get(ticker2);
 
-        // Проверяем наличие данных
         if (candles1 == null || candles2 == null) {
             log.warn("No data for pair {}/{}", ticker1, ticker2);
             return null;
@@ -54,42 +48,35 @@ public class CointegrationCalculatorV2 {
 
         int windowSize = (int) settings.getWindowSize();
 
-        // Проверяем достаточность данных
         if (candles1.size() < windowSize || candles2.size() < windowSize) {
             log.debug("Not enough data for pair {}/{} (need {} points, have {}/{})",
                     ticker1, ticker2, windowSize, candles1.size(), candles2.size());
             return null;
         }
 
-        // Берем только последние windowSize свечей
         List<Candle> recentCandles1 = candles1.subList(candles1.size() - windowSize, candles1.size());
         List<Candle> recentCandles2 = candles2.subList(candles2.size() - windowSize, candles2.size());
 
-        // Проверка объема (если данные доступны)
-        if (!isTest) {
-            if (!checkVolumeCriteria(recentCandles1, recentCandles2, settings.getMinVolume())) {
-                return null;
-            }
+        if (!isTest && !checkVolumeCriteria(recentCandles1, recentCandles2, settings.getMinVolume())) {
+            return null;
         }
 
-        // Получение и нормализация цен
         double[] prices1 = getClosePrices(recentCandles1);
         double[] prices2 = getClosePrices(recentCandles2);
-        double[] normPrices1 = normalizePrices(prices1);
-        double[] normPrices2 = normalizePrices(prices2);
 
-        // Тест коинтеграции
-        CointegrationResult cointResult = testCointegration(normPrices1, normPrices2);
+        CointegrationResult cointResult = testCointegration(prices1, prices2);
 
-        log.debug("Coint for pair {}/{}: p = {}, corr = {}, stationary = {}",
-                ticker1, ticker2, cointResult.getPValue(), cointResult.getCorrelation(), cointResult.isStationary());
+        log.debug("Coint for pair {}/{}: p={}, corr={}, stationary={}, beta={}, intercept={}",
+                ticker1, ticker2, cointResult.getPValue(), cointResult.getCorrelation(),
+                cointResult.isStationary(), cointResult.getBeta(), cointResult.getIntercept());
+
         return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
     }
 
     private ZScoreData buildZScoreData(String ticker1, String ticker2,
                                        double[] prices1, double[] prices2,
                                        CointegrationResult cointResult) {
-        double[] spread = calculateSpread(prices1, prices2, cointResult.getBeta());
+        double[] spread = calculateSpread(prices1, prices2, cointResult.getIntercept(), cointResult.getBeta());
         DescriptiveStatistics spreadStats = new DescriptiveStatistics(spread);
 
         double currentZ = (spread[spread.length - 1] - spreadStats.getMean()) / spreadStats.getStandardDeviation();
@@ -99,7 +86,7 @@ public class CointegrationCalculatorV2 {
                 .pvalue(cointResult.getPValue())
                 .adfpvalue(cointResult.getPValue())
                 .correlation(cointResult.getCorrelation())
-                .alpha(spreadStats.getMean())
+                .alpha(cointResult.getIntercept())
                 .beta(cointResult.getBeta())
                 .spread(spread[spread.length - 1])
                 .mean(spreadStats.getMean())
@@ -114,16 +101,10 @@ public class CointegrationCalculatorV2 {
                 .build();
     }
 
-
     private double[] getClosePrices(List<Candle> candles) {
         return candles.stream()
                 .mapToDouble(Candle::getClose)
                 .toArray();
-    }
-
-    private double[] normalizePrices(double[] prices) {
-        double firstPrice = prices[0];
-        return Arrays.stream(prices).map(p -> p / firstPrice).toArray();
     }
 
     private boolean checkVolumeCriteria(List<Candle> candles1, List<Candle> candles2, double minVolume) {
@@ -138,40 +119,47 @@ public class CointegrationCalculatorV2 {
     }
 
     private CointegrationResult testCointegration(double[] y, double[] x) {
-        // 1. Регрессия для нахождения бета
+        // 1. Регрессия с intercept
         OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
-        double[][] xData = new double[x.length][1];
+        double[][] xData = new double[x.length][2];
         for (int i = 0; i < x.length; i++) {
-            xData[i][0] = x[i];
+            xData[i][0] = 1.0; // intercept term
+            xData[i][1] = x[i];
         }
         regression.newSampleData(y, xData);
-        double beta = regression.estimateRegressionParameters()[1];
+        double[] params = regression.estimateRegressionParameters();
+        double intercept = params[0];
+        double beta = params[1];
 
-        // 2. Расчет спреда
-        double[] spread = calculateSpread(y, x, beta);
+        // 2. Расчет спреда с учетом intercept
+        double[] spread = new double[y.length];
+        for (int i = 0; i < y.length; i++) {
+            spread[i] = y[i] - (intercept + beta * x[i]);
+        }
 
-        // 3. ADF тест на стационарность спреда
+        // 3. ADF тест на стационарность
         double adfStatistic = calculateADFStatistic(spread);
-        double pValue = estimateADFPValue(adfStatistic);
-        boolean isStationary = adfStatistic <= -3.12; // 10% уровень значимости
+        double pValue = estimateADFPValue(adfStatistic, y.length);
+        boolean isStationary = pValue <= 0.05; // 5% уровень значимости
 
         // 4. Расчет корреляции
         double correlation = calculatePearsonCorrelation(y, x);
 
-        return new CointegrationResult(beta, adfStatistic, pValue, correlation, isStationary);
+        return new CointegrationResult(intercept, beta, adfStatistic, pValue, correlation, isStationary);
     }
 
-    private double[] calculateSpread(double[] prices1, double[] prices2, double beta) {
+    private double[] calculateSpread(double[] prices1, double[] prices2, double intercept, double beta) {
         double[] spread = new double[prices1.length];
         for (int i = 0; i < prices1.length; i++) {
-            spread[i] = prices1[i] - beta * prices2[i];
+            spread[i] = prices1[i] - (intercept + beta * prices2[i]);
         }
         return spread;
     }
 
     private double calculateADFStatistic(double[] series) {
         int n = series.length;
-        int lags = 1; // можно сделать параметром
+        int lags = (int) Math.max(1, Math.round(Math.pow(n, 1.0 / 3.0))); // Оптимальное количество лагов
+
         double[] deltaY = new double[n - 1];
         double[] yLag1 = new double[n - 1];
 
@@ -181,8 +169,7 @@ public class CointegrationCalculatorV2 {
         }
 
         int effectiveLength = n - 1 - lags;
-
-        double[][] regressors = new double[effectiveLength][1 + lags]; // 1 - lagged y, lags - delta lags
+        double[][] regressors = new double[effectiveLength][1 + lags];
         double[] dependent = new double[effectiveLength];
 
         for (int t = lags; t < n - 1; t++) {
@@ -200,16 +187,25 @@ public class CointegrationCalculatorV2 {
         double[] params = regression.estimateRegressionParameters();
         double[] stdErr = regression.estimateRegressionParametersStandardErrors();
 
-        // Параметр при y[t-1] — первый коэффициент (при лаге уровня)
         return params[0] / stdErr[0];
     }
 
-    private double estimateADFPValue(double testStatistic) {
-        // Таблица критических значений для модели с константой (без тренда)
-        if (testStatistic <= -3.96) return 0.01;  // 1% уровень значимости
-        if (testStatistic <= -3.41) return 0.05;  // 5% уровень значимости
-        if (testStatistic <= -3.12) return 0.10;  // 10% уровень значимости
-        return 0.5; // выше критических значений => нестационарный
+    private double estimateADFPValue(double testStatistic, int sampleSize) {
+        // Критические значения для ADF теста (с константой, без тренда)
+        if (sampleSize <= 50) {
+            if (testStatistic <= -4.15) return 0.01;
+            if (testStatistic <= -3.50) return 0.05;
+            if (testStatistic <= -3.18) return 0.10;
+        } else if (sampleSize <= 100) {
+            if (testStatistic <= -3.96) return 0.01;
+            if (testStatistic <= -3.41) return 0.05;
+            if (testStatistic <= -3.12) return 0.10;
+        } else {
+            if (testStatistic <= -3.90) return 0.01;
+            if (testStatistic <= -3.38) return 0.05;
+            if (testStatistic <= -3.09) return 0.10;
+        }
+        return 0.5;
     }
 
     private double calculatePearsonCorrelation(double[] x, double[] y) {
@@ -227,6 +223,7 @@ public class CointegrationCalculatorV2 {
 
     @Data
     private static class CointegrationResult {
+        private final double intercept;
         private final double beta;
         private final double adfStatistic;
         private final double pValue;

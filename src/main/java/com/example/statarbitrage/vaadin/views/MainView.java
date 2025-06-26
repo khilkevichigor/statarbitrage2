@@ -6,8 +6,8 @@ import com.example.statarbitrage.model.TradeStatisticsDto;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.services.StatisticsService;
-import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
-import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
+import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
+import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -259,12 +259,14 @@ public class MainView extends VerticalLayout {
         NumberField minCorrelationField = new NumberField("Мин корреляция");
         NumberField minVolumeField = new NumberField("Мин объем (млн $)");
 
+        NumberField usePairs = new NumberField("Кол-во пар");
+
         // Добавляем все поля в форму
         settingsForm.add(
                 timeframeField, candleLimitField, windowSizeField, significanceLevelField, adfSignificanceLevelField,
                 checkIntervalField, capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
                 exitTakeField, exitStopField, exitZMinField, exitZMaxPercentField, exitTimeHoursField,
-                minCorrelationField, minVolumeField
+                minCorrelationField, minVolumeField, usePairs
         );
 
         // Настраиваем привязку данных
@@ -285,6 +287,7 @@ public class MainView extends VerticalLayout {
         settingsBinder.forField(exitTimeHoursField).bind(Settings::getExitTimeHours, Settings::setExitTimeHours);
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
+        settingsBinder.forField(usePairs).bind(Settings::getUsePairs, Settings::setUsePairs);
 
         settingsBinder.readBean(currentSettings);
 

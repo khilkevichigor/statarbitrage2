@@ -1,4 +1,4 @@
-package com.example.statarbitrage.vaadin.services;
+package com.example.statarbitrage.vaadin.processors;
 
 import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
@@ -7,6 +7,8 @@ import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.services.*;
 import com.example.statarbitrage.threecommas.ThreeCommasFlowService;
 import com.example.statarbitrage.threecommas.ThreeCommasService;
+import com.example.statarbitrage.vaadin.services.CointegrationCalculatorV2;
+import com.example.statarbitrage.vaadin.services.CointegrationCalculatorV3;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class FetchPairsProcessor {
     private final TradeLogService tradeLogService;
     private final ExportService exportService;
     private final CointegrationCalculatorV2 cointegrationCalculatorV2;
+    private final CointegrationCalculatorV3 cointegrationCalculatorV3;
 
     public List<PairData> fetchPairs() {
         log.info("Fetching pairs...");
@@ -41,13 +44,13 @@ public class FetchPairsProcessor {
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);
 
-        List<ZScoreData> zScoreDataList = cointegrationCalculatorV2.calculateZScores(settingsFromDb, candlesMap, false);
+        List<ZScoreData> zScoreDataList = cointegrationCalculatorV3.calculateZScores(settingsFromDb, candlesMap, false);
 
         // Обработка результатов
         zScoreService.reduceDuplicates(zScoreDataList);
         zScoreService.sortByLongTicker(zScoreDataList);
         zScoreService.sortParamsByTimestampV2(zScoreDataList);
-        List<ZScoreData> topN = zScoreService.obtainTopNBestPairs(settingsFromDb, zScoreDataList, 10);
+        List<ZScoreData> topN = zScoreService.obtainTopNBestPairs(settingsFromDb, zScoreDataList, Integer.parseInt(String.valueOf(settingsFromDb.getUsePairs())));
 
         List<PairData> pairDataList = pairDataService.createPairDataList(topN, candlesMap);
         pairDataList.forEach(pairDataService::saveToDb);

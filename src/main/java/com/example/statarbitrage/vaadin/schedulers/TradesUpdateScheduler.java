@@ -1,9 +1,11 @@
-package com.example.statarbitrage.vaadin.services;
+package com.example.statarbitrage.vaadin.schedulers;
 
 import com.example.statarbitrage.events.UpdateUiEvent;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.PairDataService;
+import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

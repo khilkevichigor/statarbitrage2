@@ -1,8 +1,12 @@
-package com.example.statarbitrage.vaadin.services;
+package com.example.statarbitrage.vaadin.schedulers;
 
 import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
+import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
+import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,22 +27,23 @@ public class SimulationScheduler {
 
     @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void runSimulationStep() {
-        if (!settingsService.getSettingsFromDb().isSimulationEnabled()) {
+        Settings settings = settingsService.getSettingsFromDb();
+        if (!settings.isSimulationEnabled()) {
             return;
         }
         try {
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (tradingPairs.isEmpty()) {
-                initializeSimulation();
+                initializeSimulation(settings);
             } else {
-                simulationStep();
+                simulationStep(settings);
             }
         } catch (Exception e) {
             log.error("Ошибка в шаге симуляции", e);
         }
     }
 
-    private void initializeSimulation() {
+    private void initializeSimulation(Settings settings) {
         // Очищаем старые SELECTED пары
         pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
 
@@ -47,11 +52,11 @@ public class SimulationScheduler {
 
         // Запускаем первые MAX_ACTIVE_PAIRS пар
         initialPairs.stream()
-                .limit(MAX_ACTIVE_PAIRS)
+                .limit(Long.parseLong(String.valueOf(settings.getUsePairs())))
                 .forEach(testTradeProcessor::testTrade);
     }
 
-    private void simulationStep() {
+    private void simulationStep(Settings settings) {
         try {
             // 1. Получаем текущие торгуемые пары
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
@@ -60,8 +65,9 @@ public class SimulationScheduler {
             tradingPairs.forEach(testTradeProcessor::testTrade);
 
             // 3. Добираем новые пары до MAX_ACTIVE_PAIRS
-            if (tradingPairs.size() < MAX_ACTIVE_PAIRS) {
-                int neededPairs = MAX_ACTIVE_PAIRS - tradingPairs.size();
+            int usePairs = Integer.parseInt(String.valueOf(settings.getUsePairs()));
+            if (tradingPairs.size() < usePairs) {
+                int neededPairs = usePairs - tradingPairs.size();
                 fetchAndStartNewPairs(neededPairs);
             }
         } catch (Exception e) {

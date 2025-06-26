@@ -37,6 +37,7 @@ public class DbInitializer {
                     .exitTimeHours(8)
                     .minCorrelation(0.8)
                     .minVolume(1.0)
+                    .usePairs(10.0)
                     .build()
             );
         }

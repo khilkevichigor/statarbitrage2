@@ -36,6 +36,8 @@ public class Settings {
     private double minCorrelation;
     private double minVolume;
 
+    private double usePairs;
+
     @Column(name = "simulation_enabled")
     private boolean simulationEnabled = false;
 }
