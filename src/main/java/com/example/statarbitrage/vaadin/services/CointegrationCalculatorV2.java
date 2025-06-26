@@ -11,8 +11,10 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -36,7 +38,6 @@ public class CointegrationCalculatorV2 {
         }
 
         return results;
-//        return filterAndSortResults(results, settings);
     }
 
     private ZScoreData calculatePairZScores(Settings settings, Map<String, List<Candle>> candlesMap,
@@ -84,16 +85,18 @@ public class CointegrationCalculatorV2 {
                 ticker1, ticker2, cointResult.getPValue(), cointResult.getCorrelation(), cointResult.isStationary());
 
 
-        if (isTest) {
-            return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
-        } else if (cointResult.getPValue() < settings.getSignificanceLevel() &&
-                Math.abs(cointResult.getCorrelation()) > settings.getMinCorrelation() &&
-                cointResult.isStationary()) {
+//        if (isTest) {
+//            return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
+//        } else if (cointResult.getPValue() < settings.getSignificanceLevel() && //todo это условие фильтрует все что есть - оно здесь не нужно
+//                Math.abs(cointResult.getCorrelation()) > settings.getMinCorrelation() &&
+//                cointResult.isStationary()) {
+//
+//            return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
+//        } else {
+//            return null;
+//        }
 
-            return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
-        } else {
-            return null;
-        }
+        return buildZScoreData(ticker1, ticker2, prices1, prices2, cointResult);
     }
 
     private ZScoreData buildZScoreData(String ticker1, String ticker2,
@@ -233,18 +236,6 @@ public class CointegrationCalculatorV2 {
         cov /= x.length;
 
         return cov / (statsX.getStandardDeviation() * statsY.getStandardDeviation());
-    }
-
-    private List<ZScoreData> filterAndSortResults(List<ZScoreData> results, Settings settings) {
-        return results.stream()
-                .filter(z -> {
-                    double lastZ = z.getZscoreParams().get(0).getZscore();
-                    return Math.abs(lastZ) > settings.getExitZMin();
-                })
-                .sorted(Comparator.comparingDouble(z ->
-                        -Math.abs(z.getZscoreParams().get(0).getZscore()))) // Сортировка по убыванию |Z-score|
-                .limit((long) settings.getCandleLimit())
-                .collect(Collectors.toList());
     }
 
     @Data

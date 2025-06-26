@@ -1,5 +1,6 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.model.ZScoreParam;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class ZScoreService {
         }
     }
 
-    public List<ZScoreData> obtainTopNBestPairs(List<ZScoreData> zScoreDataList, int topN) {
+    public List<ZScoreData> obtainTopNBestPairs(Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             throw new IllegalArgumentException("Отобрано 0 пар");
         }
@@ -42,9 +43,13 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            ZScoreData best = getBestByCriteria(remainingPairs);
-            bestPairs.add(best);
-            remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
+            Optional<ZScoreData> maybeBest = getBestByCriteriaV2(settings, remainingPairs);
+            if (maybeBest.isPresent()) {
+                ZScoreData best = maybeBest.get();
+                bestPairs.add(best);
+                remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
+
+            }
         }
 
         logBestPairs(bestPairs); // логируем топ-N пар
@@ -173,6 +178,54 @@ public class ZScoreService {
         }
 
         return best;
+    }
+
+    private Optional<ZScoreData> getBestByCriteriaV2(Settings settings, List<ZScoreData> zScoreData) {
+        if (zScoreData == null || zScoreData.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ZScoreData best = null;
+
+        for (ZScoreData data : zScoreData) {
+            if (data.getZscoreParams() == null || data.getZscoreParams().isEmpty()) {
+                continue;
+            }
+
+            ZScoreParam last = data.getZscoreParams().get(data.getZscoreParams().size() - 1);
+
+            // Фильтрация по минимальному |zscore|
+            if (Math.abs(last.getZscore()) < settings.getExitZMin()) {
+                log.info("Current Z < exitZmin");
+                continue;
+            }
+
+            if (best == null) {
+                best = data;
+                continue;
+            }
+
+            ZScoreParam bestParam = best.getZscoreParams().get(best.getZscoreParams().size() - 1);
+
+            // Сравнение по критериям
+            if (Math.abs(last.getZscore()) > Math.abs(bestParam.getZscore())) {
+                best = data;
+            } else if (Math.abs(last.getZscore()) == Math.abs(bestParam.getZscore())) {
+                if (last.getPvalue() < bestParam.getPvalue()) {
+                    best = data;
+                } else if (last.getPvalue() == bestParam.getPvalue()) {
+                    if (last.getAdfpvalue() < bestParam.getAdfpvalue()) {
+                        best = data;
+                    } else if (last.getAdfpvalue() == bestParam.getAdfpvalue()) {
+                        if (last.getCorrelation() > bestParam.getCorrelation()) {
+                            best = data;
+                        }
+                    }
+                }
+            }
+        }
+
+        return Optional.ofNullable(best);
     }
 
     public void reduceDuplicates(List<ZScoreData> zScoreDataList) {
