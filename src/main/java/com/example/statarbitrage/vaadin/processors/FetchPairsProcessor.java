@@ -50,7 +50,7 @@ public class FetchPairsProcessor {
         zScoreService.reduceDuplicates(zScoreDataList);
         zScoreService.sortByLongTicker(zScoreDataList);
         zScoreService.sortParamsByTimestampV2(zScoreDataList);
-        List<ZScoreData> topN = zScoreService.obtainTopNBestPairs(settingsFromDb, zScoreDataList, Integer.parseInt(String.valueOf(settingsFromDb.getUsePairs())));
+        List<ZScoreData> topN = zScoreService.obtainTopNBestPairs(settingsFromDb, zScoreDataList, (int) settingsFromDb.getUsePairs());
 
         List<PairData> pairDataList = pairDataService.createPairDataList(topN, candlesMap);
         pairDataList.forEach(pairDataService::saveToDb);

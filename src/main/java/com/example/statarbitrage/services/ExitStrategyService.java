@@ -31,33 +31,33 @@ public class ExitStrategyService {
             return EXIT_REASON_BY_TAKE;
         }
 
-        // Проверка Z-Score
-        if (zScoreEntry > 0) {
-            if (zScoreCurrent < settings.getExitZMin()) {
-                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
-                return EXIT_REASON_BY_Z_MIN;
-            } else if (zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
-                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-                return EXIT_REASON_BY_Z_MAX;
-            }
-        } else {
-            if (zScoreCurrent > -settings.getExitZMin()) {
-                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
-                return EXIT_REASON_BY_Z_MIN;
-            } else if (zScoreCurrent <= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
-                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-                return EXIT_REASON_BY_Z_MAX;
-            }
-        }
-
-        // Проверка по времени
-        if (entryTimeMillis > 0) {
-            long holdingHours = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
-            if (holdingHours >= settings.getExitTimeHours()) {
-                log.info("Выход по времени: ожидали {} часов", holdingHours);
-                return EXIT_REASON_BY_TIME;
-            }
-        }
+//        // Проверка Z-Score
+//        if (zScoreEntry > 0) {
+//            if (zScoreCurrent < settings.getExitZMin()) {
+//                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
+//                return EXIT_REASON_BY_Z_MIN;
+//            } else if (zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+//                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
+//                return EXIT_REASON_BY_Z_MAX;
+//            }
+//        } else {
+//            if (zScoreCurrent > -settings.getExitZMin()) {
+//                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
+//                return EXIT_REASON_BY_Z_MIN;
+//            } else if (zScoreCurrent <= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+//                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
+//                return EXIT_REASON_BY_Z_MAX;
+//            }
+//        }
+//
+//        // Проверка по времени
+//        if (entryTimeMillis > 0) {
+//            long holdingHours = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
+//            if (holdingHours >= settings.getExitTimeHours()) {
+//                log.info("Выход по времени: ожидали {} часов", holdingHours);
+//                return EXIT_REASON_BY_TIME;
+//            }
+//        }
 
         return null;
     }

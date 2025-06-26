@@ -52,7 +52,7 @@ public class SimulationScheduler {
 
         // Запускаем первые MAX_ACTIVE_PAIRS пар
         initialPairs.stream()
-                .limit(Long.parseLong(String.valueOf(settings.getUsePairs())))
+                .limit((int) settings.getUsePairs())
                 .forEach(testTradeProcessor::testTrade);
     }
 
