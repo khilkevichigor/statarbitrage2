@@ -32,12 +32,22 @@ public class ExitStrategyService {
         }
 
         // Проверка Z-Score
-        if (Math.abs(zScoreCurrent) < settings.getExitZMin()) {
-            log.info("Выход по zMin: zMin = {}", zScoreCurrent);
-            return EXIT_REASON_BY_Z_MIN;
-        } else if (zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
-            log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-            return EXIT_REASON_BY_Z_MAX;
+        if (zScoreEntry > 0) {
+            if (zScoreCurrent < settings.getExitZMin()) {
+                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
+                return EXIT_REASON_BY_Z_MIN;
+            } else if (zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
+                return EXIT_REASON_BY_Z_MAX;
+            }
+        } else {
+            if (zScoreCurrent > -settings.getExitZMin()) {
+                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
+                return EXIT_REASON_BY_Z_MIN;
+            } else if (zScoreCurrent <= zScoreEntry * (1 - settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
+                return EXIT_REASON_BY_Z_MAX;
+            }
         }
 
         // Проверка по времени
