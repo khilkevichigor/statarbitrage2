@@ -29,6 +29,40 @@ public class ZScoreService {
         }
     }
 
+    public List<ZScoreData> obtainTopNBestPairs(List<ZScoreData> zScoreDataList, int topN) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            throw new IllegalArgumentException("Отобрано 0 пар");
+        }
+        if (topN <= 0 || topN > zScoreDataList.size()) {
+            throw new IllegalArgumentException("Некорректное количество пар: " + topN);
+        }
+
+        log.info("Отобрано {} пар", zScoreDataList.size());
+        List<ZScoreData> bestPairs = new ArrayList<>();
+        List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
+
+        for (int i = 0; i < topN; i++) {
+            ZScoreData best = getBestByCriteria(remainingPairs);
+            bestPairs.add(best);
+            remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
+        }
+
+        logBestPairs(bestPairs); // логируем топ-N пар
+        return bestPairs;
+    }
+
+    private void logBestPairs(List<ZScoreData> bestPairs) {
+        for (int i = 0; i < bestPairs.size(); i++) {
+            ZScoreData pair = bestPairs.get(i);
+            ZScoreParam latest = pair.getZscoreParams().get(pair.getZscoreParams().size() - 1);
+            log.info(String.format("%d. Пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+                    i + 1,
+                    pair.getLongTicker(), pair.getShortTicker(),
+                    latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
+            ));
+        }
+    }
+
     public List<ZScoreData> obtainTop10(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList != null && !zScoreDataList.isEmpty()) {
             log.info("Отобрано {} пар", zScoreDataList.size());

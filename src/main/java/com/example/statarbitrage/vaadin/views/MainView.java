@@ -2,8 +2,10 @@ package com.example.statarbitrage.vaadin.views;
 
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.TradeStatisticsDto;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
+import com.example.statarbitrage.services.StatisticsService;
 import com.example.statarbitrage.vaadin.services.FetchPairsProcessor;
 import com.example.statarbitrage.vaadin.services.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
@@ -28,6 +30,7 @@ import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -42,6 +45,8 @@ public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> tradingPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> closedPairsGrid = new Grid<>(PairData.class, false);
+    private VerticalLayout statisticsLayout; // Добавь в поля класса
+
 
     private final Binder<Settings> settingsBinder = new Binder<>(Settings.class);
     private final TestTradeProcessor testTradeProcessor;
@@ -50,15 +55,17 @@ public class MainView extends VerticalLayout {
     private FetchPairsProcessor fetchPairsProcessor;
     private SettingsService settingsService;
     private PairDataService pairDataService;
+    private StatisticsService statisticsService; // добей в поле класса
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
         this.testTradeProcessor = testTradeProcessor;
+        this.statisticsService = statisticsService;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -81,7 +88,10 @@ public class MainView extends VerticalLayout {
 
         add(simulationCheckbox);
 
-        add(new H2("Настройки торговли"),
+        statisticsLayout = createStatisticsBlock(); // создаём layout
+
+        add(
+                new H2("Настройки торговли"),
                 saveSettingsButton,
                 createSettingsForm(),
                 new H2("Отобранные пары (SELECTED)"),
@@ -90,11 +100,75 @@ public class MainView extends VerticalLayout {
                 new H2("Торгуемые пары (TRADING)"),
                 tradingPairsGrid,
                 new H2("Закрытые пары (CLOSED)"),
-                closedPairsGrid);
+                closedPairsGrid,
+                new H2("📊 Статистика трейдов"),
+                statisticsLayout
+
+        );
 
         // Запускаем обновление UI каждые 5 секунд
         startUiUpdater();
     }
+
+    private void updateStatisticsBlock() {
+        statisticsLayout.removeAll(); // очищаем
+        TradeStatisticsDto stats = statisticsService.collectStatistics();
+
+        Grid<StatisticRow> grid = new Grid<>();
+        grid.setAllRowsVisible(true);
+        grid.addColumn(StatisticRow::name).setHeader("Показатель");
+        grid.addColumn(StatisticRow::today).setHeader("Сегодня");
+        grid.addColumn(StatisticRow::total).setHeader("Всего");
+
+        grid.setItems(List.of(
+                new StatisticRow("Сделки", stats.getTradesToday(), stats.getTradesTotal()),
+                new StatisticRow("Avg Профит (%)", format(stats.getAvgProfitToday()), format(stats.getAvgProfitTotal())),
+                new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
+                new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
+                new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
+                new StatisticRow("Выход: Z MIN", stats.getExitByZMinToday(), stats.getExitByZMinTotal()),
+                new StatisticRow("Выход: Z MAX", stats.getExitByZMaxToday(), stats.getExitByZMaxTotal()),
+                new StatisticRow("Выход: TIME", stats.getExitByTimeToday(), stats.getExitByTimeTotal())
+        ));
+
+        statisticsLayout.add(grid);
+    }
+
+
+    private VerticalLayout createStatisticsBlock() {
+        TradeStatisticsDto stats = statisticsService.collectStatistics();
+
+        VerticalLayout layout = new VerticalLayout();
+        layout.setSpacing(false);
+        layout.setPadding(false);
+
+        layout.add(new H2("Сегодня / Всего"));
+
+        Grid<StatisticRow> grid = new Grid<>();
+        grid.setAllRowsVisible(true);
+        grid.addColumn(StatisticRow::name).setHeader("Показатель");
+        grid.addColumn(StatisticRow::today).setHeader("Сегодня");
+        grid.addColumn(StatisticRow::total).setHeader("Всего");
+
+        grid.setItems(List.of(
+                new StatisticRow("Сделки", stats.getTradesToday(), stats.getTradesTotal()),
+                new StatisticRow("Avg Профит (%)", format(stats.getAvgProfitToday()), format(stats.getAvgProfitTotal())),
+                new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
+                new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
+                new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
+                new StatisticRow("Выход: Z MIN", stats.getExitByZMinToday(), stats.getExitByZMinTotal()),
+                new StatisticRow("Выход: Z MAX", stats.getExitByZMaxToday(), stats.getExitByZMaxTotal()),
+                new StatisticRow("Выход: TIME", stats.getExitByTimeToday(), stats.getExitByTimeTotal())
+        ));
+
+        layout.add(grid);
+        return layout;
+    }
+
+    private String format(BigDecimal value) {
+        return value == null ? "n/a" : value.setScale(2, RoundingMode.HALF_UP).toString();
+    }
+
 
     //для обновления UI
     @Override
@@ -119,6 +193,7 @@ public class MainView extends VerticalLayout {
                 getSelectedPairs();
                 getTraidingPairs();
                 getClosedPairs();
+                updateStatisticsBlock(); // ⬅️ вот здесь!
             } catch (Exception e) {
                 log.error("Ошибка при обновлении UI", e);
             }
@@ -365,4 +440,8 @@ public class MainView extends VerticalLayout {
             return actionButton;
         })).setHeader("Действие");
     }
+
+    private record StatisticRow(String name, Object today, Object total) {
+    }
+
 }
