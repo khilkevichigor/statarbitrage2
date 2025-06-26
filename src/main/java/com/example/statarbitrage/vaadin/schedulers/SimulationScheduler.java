@@ -23,8 +23,6 @@ public class SimulationScheduler {
     private final TestTradeProcessor testTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
 
-    private static final int MAX_ACTIVE_PAIRS = 10;
-
     @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void runSimulationStep() {
         Settings settings = settingsService.getSettingsFromDb();
@@ -65,7 +63,7 @@ public class SimulationScheduler {
             tradingPairs.forEach(testTradeProcessor::testTrade);
 
             // 3. Добираем новые пары до MAX_ACTIVE_PAIRS
-            int usePairs = Integer.parseInt(String.valueOf(settings.getUsePairs()));
+            int usePairs = (int) settings.getUsePairs();
             if (tradingPairs.size() < usePairs) {
                 int neededPairs = usePairs - tradingPairs.size();
                 fetchAndStartNewPairs(neededPairs);
