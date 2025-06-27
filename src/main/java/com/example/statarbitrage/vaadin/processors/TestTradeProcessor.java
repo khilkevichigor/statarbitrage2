@@ -2,10 +2,7 @@ package com.example.statarbitrage.vaadin.processors;
 
 import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.services.*;
-import com.example.statarbitrage.threecommas.ThreeCommasFlowService;
-import com.example.statarbitrage.threecommas.ThreeCommasService;
-import com.example.statarbitrage.vaadin.services.CointegrationCalculatorV2;
-import com.example.statarbitrage.vaadin.services.CointegrationCalculatorV3;
+import com.example.statarbitrage.vaadin.python.PythonRestClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,27 +15,20 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TestTradeProcessor {
     private final PairDataService pairDataService;
-    private final ChartService chartService;
-    private final ZScoreService zScoreService;
     private final CandlesService candlesService;
-    private final FileService fileService;
     private final SettingsService settingsService;
-    private final CsvLogService csvLogService;
     private final ValidateService validateService;
-    private final ThreeCommasService threeCommasService;
-    private final ThreeCommasFlowService threeCommasFlowService;
-    private final EventSendService eventSendService;
     private final TradeLogService tradeLogService;
-    private final ExportService exportService;
-    private final CointegrationCalculatorV2 cointegrationCalculatorV2;
-    private final CointegrationCalculatorV3 cointegrationCalculatorV3;
 
     public void testTrade(PairData pairData) {
         Settings settingsFromDb = settingsService.getSettingsFromDb();
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
         validateCandlesLimitAndThrow(candlesMap);
 
-        List<ZScoreData> zScoreDataList = cointegrationCalculatorV3.calculateZScores(settingsFromDb, candlesMap, true);
+        List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
+                settingsFromDb,
+                candlesMap
+        );
         if (zScoreDataList.size() != 1) {
             throw new RuntimeException("ZScoreDataList size is " + zScoreDataList.size());
         }

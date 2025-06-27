@@ -197,7 +197,6 @@ public class ZScoreService {
 
             // Фильтрация по минимальному |zscore|
             if (Math.abs(last.getZscore()) < settings.getExitZMin()) {
-                log.info("Current Z < exitZmin");
                 continue;
             }
 
