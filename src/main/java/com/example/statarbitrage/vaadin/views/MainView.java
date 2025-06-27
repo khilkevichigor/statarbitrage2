@@ -236,28 +236,28 @@ public class MainView extends VerticalLayout {
 
         // Основные настройки
         TextField timeframeField = new TextField("Таймфрейм");
-        NumberField candleLimitField = new NumberField("Лимит свечей (шт)");
-        NumberField windowSizeField = new NumberField("Размер окна");
-        NumberField significanceLevelField = new NumberField("Уровень значимости");
-        NumberField adfSignificanceLevelField = new NumberField("ADF уровень значимости");
-        NumberField checkIntervalField = new NumberField("Интервал проверки (мин)");
+        NumberField candleLimitField = new NumberField("Свечей (шт)");
+        NumberField windowSizeField = new NumberField("windowSize");
+        NumberField significanceLevelField = new NumberField("significance");
+        NumberField adfSignificanceLevelField = new NumberField("adf");
+        NumberField checkIntervalField = new NumberField("Обновление (мин)");
 
         // Настройки капитала
-        NumberField capitalLongField = new NumberField("Капитал лонг ($)");
-        NumberField capitalShortField = new NumberField("Капитал шорт ($)");
-        NumberField leverageField = new NumberField("Кредитное плечо");
+        NumberField capitalLongField = new NumberField("Depo лонг ($)");
+        NumberField capitalShortField = new NumberField("Depo шорт ($)");
+        NumberField leverageField = new NumberField("Leverage");
         NumberField feePctPerTradeField = new NumberField("Комиссия (%)");
 
         // Настройки выхода
         NumberField exitTakeField = new NumberField("Тейк-профит (%)");
         NumberField exitStopField = new NumberField("Стоп-лосс (%)");
-        NumberField exitZMinField = new NumberField("Минимальный Z-скор");
-        NumberField exitZMaxPercentField = new NumberField("Макс Z-скор (%)");
-        NumberField exitTimeHoursField = new NumberField("Лимит времени (часы)");
+        NumberField exitZMinField = new NumberField("Мин Z");
+        NumberField exitZMaxPercentField = new NumberField("Макс Z (%)");
+        NumberField exitTimeHoursField = new NumberField("Таймаут (ч)");
 
         // Фильтры
-        NumberField minCorrelationField = new NumberField("Мин корреляция");
-        NumberField minVolumeField = new NumberField("Мин объем (млн $)");
+        NumberField minCorrelationField = new NumberField("Мин corr");
+        NumberField minVolumeField = new NumberField("Мин Vol (млн $)");
 
         NumberField usePairs = new NumberField("Кол-во пар");
 
