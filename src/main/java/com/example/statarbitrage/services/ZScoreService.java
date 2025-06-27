@@ -265,18 +265,22 @@ public class ZScoreService {
         zScoreDataList.sort(Comparator.comparing(ZScoreData::getLongTicker));
     }
 
-
     public void handleNegativeZ(List<ZScoreData> zScoreDataList) {
-        if (zScoreDataList == null) return;
+        if (zScoreDataList == null) {
+            return;
+        }
 
         for (ZScoreData data : zScoreDataList) {
             List<ZScoreParam> params = data.getZscoreParams();
-            if (params == null || params.isEmpty()) continue;
+            if (params == null || params.isEmpty()) {
+                continue;
+            }
 
             // Берём последний zscore
             double lastZ = params.get(params.size() - 1).getZscore();
 
             if (lastZ < 0) {
+//                System.out.println("1) lastZ before: " + lastZ);
                 // Меняем местами long и short тикеры
                 String oldLong = data.getLongTicker();
                 data.setLongTicker(data.getShortTicker());
@@ -286,6 +290,9 @@ public class ZScoreService {
                 for (ZScoreParam param : params) {
                     param.setZscore(-param.getZscore());
                 }
+//                System.out.println("2) lastZ after: " + params.get(params.size() - 1).getZscore());
+
+
             }
         }
     }

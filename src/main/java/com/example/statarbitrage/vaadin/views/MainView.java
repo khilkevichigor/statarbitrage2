@@ -238,8 +238,8 @@ public class MainView extends VerticalLayout {
         TextField timeframeField = new TextField("Таймфрейм");
         NumberField candleLimitField = new NumberField("Свечей (шт)");
         NumberField windowSizeField = new NumberField("windowSize");
-        NumberField significanceLevelField = new NumberField("significance");
-        NumberField adfSignificanceLevelField = new NumberField("adf");
+        NumberField pValueField = new NumberField("pValue");
+        NumberField adfSignificanceLevelField = new NumberField("adfValue");
         NumberField checkIntervalField = new NumberField("Обновление (мин)");
 
         // Настройки капитала
@@ -263,7 +263,7 @@ public class MainView extends VerticalLayout {
 
         // Добавляем все поля в форму
         settingsForm.add(
-                timeframeField, candleLimitField, windowSizeField, significanceLevelField, adfSignificanceLevelField,
+                timeframeField, candleLimitField, windowSizeField, pValueField, adfSignificanceLevelField,
                 checkIntervalField, capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
                 exitTakeField, exitStopField, exitZMinField, exitZMaxPercentField, exitTimeHoursField,
                 minCorrelationField, minVolumeField, usePairs
@@ -273,8 +273,8 @@ public class MainView extends VerticalLayout {
         settingsBinder.forField(timeframeField).bind(Settings::getTimeframe, Settings::setTimeframe);
         settingsBinder.forField(candleLimitField).bind(Settings::getCandleLimit, Settings::setCandleLimit);
         settingsBinder.forField(windowSizeField).bind(Settings::getWindowSize, Settings::setWindowSize);
-        settingsBinder.forField(significanceLevelField).bind(Settings::getSignificanceLevel, Settings::setSignificanceLevel);
-        settingsBinder.forField(adfSignificanceLevelField).bind(Settings::getAdfSignificanceLevel, Settings::setAdfSignificanceLevel);
+        settingsBinder.forField(pValueField).bind(Settings::getPvalue, Settings::setPvalue);
+        settingsBinder.forField(adfSignificanceLevelField).bind(Settings::getAdfValue, Settings::setAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
         settingsBinder.forField(capitalLongField).bind(Settings::getCapitalLong, Settings::setCapitalLong);
         settingsBinder.forField(capitalShortField).bind(Settings::getCapitalShort, Settings::setCapitalShort);

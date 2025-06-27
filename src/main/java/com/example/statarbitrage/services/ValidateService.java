@@ -1,9 +1,6 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreData;
+import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.model.threecommas.response.bot.DcaBot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +25,29 @@ public class ValidateService {
             throw new IllegalArgumentException(String.format("Size %s not equal 1!", zScoreDataList.size()));
         }
     }
+
+    public void validatePositiveZAndThrow(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            throw new IllegalArgumentException("ZScoreData list is null or empty");
+        }
+
+        for (ZScoreData zScoreData : zScoreDataList) {
+            if (zScoreData == null || zScoreData.getZscoreParams() == null || zScoreData.getZscoreParams().isEmpty()) {
+                throw new IllegalArgumentException("ZScoreData or its zscoreParams is null or empty");
+            }
+
+            List<ZScoreParam> zscoreParams = zScoreData.getZscoreParams();
+            ZScoreParam latestParam = zscoreParams.get(zscoreParams.size() - 1);
+
+            double latestZ = latestParam.getZscore();
+            if (latestZ < 0) {
+                log.warn("Z-score is negative: {} (long: {}, short: {})",
+                        latestZ, zScoreData.getLongTicker(), zScoreData.getShortTicker());
+                throw new IllegalStateException("Latest Z-score must be non-negative, but was: " + latestZ);
+            }
+        }
+    }
+
 
     public void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {
         if (candlesMap == null) {
@@ -114,4 +134,23 @@ public class ValidateService {
             throw new IllegalArgumentException("dcaBot has wrong pairs");
         }
     }
+
+    public void validatePositiveZ(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) return;
+
+        for (int i = 0; i < zScoreDataList.size(); i++) {
+            ZScoreData data = zScoreDataList.get(i);
+            List<ZScoreParam> zscoreParams = data.getZscoreParams();
+
+            if (zscoreParams == null || zscoreParams.isEmpty()) {
+                throw new RuntimeException("ZScoreParams list is null or empty at index " + i);
+            }
+
+            double lastZ = zscoreParams.get(zscoreParams.size() - 1).getZscore();
+            if (lastZ < 0) {
+                throw new RuntimeException("Last Z-score is negative at index " + i + ": " + lastZ);
+            }
+        }
+    }
+
 }

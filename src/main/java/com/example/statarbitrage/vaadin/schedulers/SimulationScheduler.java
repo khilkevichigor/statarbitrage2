@@ -23,7 +23,7 @@ public class SimulationScheduler {
     private final TestTradeProcessor testTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
 
-    @Scheduled(fixedRate = 5 * 60 * 1_000)
+    @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void runSimulationStep() {
         Settings settings = settingsService.getSettingsFromDb();
         if (!settings.isSimulationEnabled()) {

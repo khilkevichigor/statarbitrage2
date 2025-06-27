@@ -23,7 +23,7 @@ public class ExitStrategyService {
         long nowMillis = System.currentTimeMillis();
 
         if (zScoreEntry <= 0) {
-            log.error("zScoreEntry {} <= 0", zScoreEntry);
+            log.error("zScoreEntry {{}} <= 0", zScoreEntry);
             throw new RuntimeException("zScoreEntry {" + zScoreEntry + "} <= 0");
         }
 
@@ -38,7 +38,7 @@ public class ExitStrategyService {
         }
 
         // Проверка Z-Score
-        if (settings.getExitZMin() != 0.0 && zScoreCurrent < settings.getExitZMin()) {
+        if (settings.getExitZMin() != 0.0 && zScoreCurrent <= settings.getExitZMin()) {
             log.info("Выход по zMin: zMin = {}", zScoreCurrent);
             return EXIT_REASON_BY_Z_MIN;
         }

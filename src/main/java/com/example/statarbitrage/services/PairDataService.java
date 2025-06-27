@@ -127,9 +127,6 @@ public class PairDataService {
         // Дополнительные расчеты (если нужны)
         calculateAdditionalMetrics(pairData);
 
-        // Сохраняем (если требуется)
-        saveToJson(pairData);
-
         return pairData;
     }
 

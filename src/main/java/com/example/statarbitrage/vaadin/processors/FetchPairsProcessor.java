@@ -26,26 +26,27 @@ public class FetchPairsProcessor {
     public List<PairData> fetchPairs() {
         log.info("Fetching pairs...");
 
-        Settings settingsFromDb = settingsService.getSettingsFromDb();
+        Settings settings = settingsService.getSettingsFromDb();
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateService.validateCandlesLimitAndThrow(candlesMap);
 
         List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
-                settingsFromDb,
+                settings,
                 candlesMap
         );
-
-        zScoreService.handleNegativeZ(zScoreDataList);
 
         // Обработка результатов
         zScoreService.reduceDuplicates(zScoreDataList);
         zScoreService.sortByLongTicker(zScoreDataList);
         zScoreService.sortParamsByTimestampV2(zScoreDataList);
-        List<ZScoreData> topN = zScoreService.obtainTopNBestPairs(settingsFromDb, zScoreDataList, (int) settingsFromDb.getUsePairs());
+        List<ZScoreData> topZScoreData = zScoreService.obtainTopNBestPairs(settings, zScoreDataList, (int) settings.getUsePairs());
 
-        List<PairData> pairDataList = pairDataService.createPairDataList(topN, candlesMap);
-        pairDataList.forEach(pairDataService::saveToDb);
-        return pairDataList;
+        zScoreService.handleNegativeZ(topZScoreData);
+        validateService.validatePositiveZ(topZScoreData);
+
+        List<PairData> topPairData = pairDataService.createPairDataList(topZScoreData, candlesMap);
+        topPairData.forEach(pairDataService::saveToDb);
+        return topPairData;
     }
 }

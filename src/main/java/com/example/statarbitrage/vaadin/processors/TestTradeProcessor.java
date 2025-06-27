@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -16,30 +17,27 @@ import java.util.Map;
 public class TestTradeProcessor {
     private final PairDataService pairDataService;
     private final CandlesService candlesService;
+    private final ZScoreService zScoreService;
     private final SettingsService settingsService;
     private final ValidateService validateService;
     private final TradeLogService tradeLogService;
 
     public void testTrade(PairData pairData) {
-        Settings settingsFromDb = settingsService.getSettingsFromDb();
+        Settings settings = settingsService.getSettingsFromDb();
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
-        validateCandlesLimitAndThrow(candlesMap);
+        validateService.validateCandlesLimitAndThrow(candlesMap);
 
         List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
-                settingsFromDb,
+                settings,
                 candlesMap
         );
-        if (zScoreDataList.size() != 1) {
-            throw new RuntimeException("ZScoreDataList size is " + zScoreDataList.size());
-        }
+        validateService.validateSizeOfPairsAndThrow(zScoreDataList, 1);
         ZScoreData zScoreData = zScoreDataList.get(0);
+        zScoreService.handleNegativeZ(Collections.singletonList(zScoreData)); //todo fix
+        validateService.validatePositiveZAndThrow(Collections.singletonList(zScoreData)); //todo проблема в том что считаем все с 0! и монеты могут перемешаться! Нужно соблюдать лонг/шорт перед пайтоном
         logData(zScoreData);
         pairDataService.update(pairData, zScoreData, candlesMap);
         tradeLogService.saveFromPairData(pairData);
-    }
-
-    private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {
-        validateService.validateCandlesLimitAndThrow(candlesMap);
     }
 
     private static void logData(ZScoreData first) {
@@ -49,14 +47,4 @@ public class TestTradeProcessor {
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));
     }
-
-    public double[] getClosePrices(List<Candle> candles) {
-        if (candles == null || candles.isEmpty()) {
-            return new double[0];
-        }
-        return candles.stream()
-                .mapToDouble(Candle::getClose)
-                .toArray();
-    }
-
 }
