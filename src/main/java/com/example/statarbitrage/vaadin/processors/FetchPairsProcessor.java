@@ -29,7 +29,7 @@ public class FetchPairsProcessor {
         Settings settingsFromDb = settingsService.getSettingsFromDb();
         List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
-        validateCandlesLimitAndThrow(candlesMap);
+        validateService.validateCandlesLimitAndThrow(candlesMap);
 
         List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
                 settingsFromDb,
@@ -47,9 +47,5 @@ public class FetchPairsProcessor {
         List<PairData> pairDataList = pairDataService.createPairDataList(topN, candlesMap);
         pairDataList.forEach(pairDataService::saveToDb);
         return pairDataList;
-    }
-
-    private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap) {
-        validateService.validateCandlesLimitAndThrow(candlesMap);
     }
 }

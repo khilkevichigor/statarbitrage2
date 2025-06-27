@@ -47,8 +47,6 @@ public class PythonRestClient {
             throw new RuntimeException(e);
         }
 
-        log.info("response: " + response.body());
-
         if (response.statusCode() != 200) {
             log.error("Ошибка от Python REST: {} - {}", response.statusCode(), response.body());
             throw new RuntimeException("Python service error");

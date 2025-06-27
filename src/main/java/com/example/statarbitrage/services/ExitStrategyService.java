@@ -22,33 +22,29 @@ public class ExitStrategyService {
         long entryTimeMillis = pairData.getEntryTime();
         long nowMillis = System.currentTimeMillis();
 
+        if (zScoreEntry <= 0) {
+            log.error("zScoreEntry {} <= 0", zScoreEntry);
+            throw new RuntimeException("zScoreEntry {" + zScoreEntry + "} <= 0");
+        }
+
         // Проверка прибыли
-        if (profit <= settings.getExitStop()) {
+        if (settings.getExitStop() != 0.0 && profit <= settings.getExitStop()) {
             log.info("Выход по стопу: profit = {}%", profit);
             return EXIT_REASON_BY_STOP;
-        } else if (profit >= settings.getExitTake()) {
+        }
+        if (settings.getExitTake() != 0.0 && profit >= settings.getExitTake()) {
             log.info("Выход по тейку: profit = {}%", profit);
             return EXIT_REASON_BY_TAKE;
         }
 
         // Проверка Z-Score
-        if (zScoreEntry > 0) {
-            if (zScoreCurrent < settings.getExitZMin()) {
-                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
-                return EXIT_REASON_BY_Z_MIN;
-            } else if (zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
-                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-                return EXIT_REASON_BY_Z_MAX;
-            }
-        } else {
-            log.warn("Z entry меньше 0!!! Не должно быть такого тк я переворачиваю -Z на +Z!!!!");
-            if (zScoreCurrent > -settings.getExitZMin()) {
-                log.info("Выход по zMin: zMin = {}", zScoreCurrent);
-                return EXIT_REASON_BY_Z_MIN;
-            } else if (zScoreCurrent <= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
-                log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-                return EXIT_REASON_BY_Z_MAX;
-            }
+        if (settings.getExitZMin() != 0.0 && zScoreCurrent < settings.getExitZMin()) {
+            log.info("Выход по zMin: zMin = {}", zScoreCurrent);
+            return EXIT_REASON_BY_Z_MIN;
+        }
+        if (settings.getExitZMaxPercent() != 0.0 && zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+            log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
+            return EXIT_REASON_BY_Z_MAX;
         }
 
         // Проверка по времени
