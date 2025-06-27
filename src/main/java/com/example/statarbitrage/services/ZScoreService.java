@@ -266,4 +266,28 @@ public class ZScoreService {
     }
 
 
+    public void handleNegativeZ(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList == null) return;
+
+        for (ZScoreData data : zScoreDataList) {
+            List<ZScoreParam> params = data.getZscoreParams();
+            if (params == null || params.isEmpty()) continue;
+
+            // Берём последний zscore
+            double lastZ = params.get(params.size() - 1).getZscore();
+
+            if (lastZ < 0) {
+                // Меняем местами long и short тикеры
+                String oldLong = data.getLongTicker();
+                data.setLongTicker(data.getShortTicker());
+                data.setShortTicker(oldLong);
+
+                // Инвертируем zscore во всех параметрах
+                for (ZScoreParam param : params) {
+                    param.setZscore(-param.getZscore());
+                }
+            }
+        }
+    }
+
 }

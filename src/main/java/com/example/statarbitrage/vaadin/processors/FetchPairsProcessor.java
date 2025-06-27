@@ -36,6 +36,8 @@ public class FetchPairsProcessor {
                 candlesMap
         );
 
+        zScoreService.handleNegativeZ(zScoreDataList);
+
         // Обработка результатов
         zScoreService.reduceDuplicates(zScoreDataList);
         zScoreService.sortByLongTicker(zScoreDataList);
