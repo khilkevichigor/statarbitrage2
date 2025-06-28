@@ -327,7 +327,7 @@ public class ZScoreService {
             double corr = last.getCorrelation();
 
             // 1. Z >= minZ
-            if (zVal < settings.getExitZMin()) continue;
+            if (zVal < settings.getMinZ()) continue;
 
             // 2. pValue <= minPValue
             if (pValue > settings.getMinPvalue()) continue;

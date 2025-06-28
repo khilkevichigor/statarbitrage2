@@ -26,6 +26,29 @@ public class ValidateService {
         }
     }
 
+    public boolean isLastZLessThenMinZ(List<ZScoreData> zScoreDataList, Settings settings) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            throw new IllegalArgumentException("ZScoreData list is null or empty");
+        }
+
+        for (ZScoreData zScoreData : zScoreDataList) {
+            if (zScoreData == null || zScoreData.getZscoreParams() == null || zScoreData.getZscoreParams().isEmpty()) {
+                throw new IllegalArgumentException("ZScoreData or its zscoreParams is null or empty");
+            }
+
+            List<ZScoreParam> zscoreParams = zScoreData.getZscoreParams();
+            ZScoreParam latestParam = zscoreParams.get(zscoreParams.size() - 1);
+
+            double latestZ = latestParam.getZscore();
+            if (latestZ < settings.getMinZ()) {
+                log.warn("Skip this pair {{}} - {{}}. Z-score {{}} < minZ {{}}",
+                        zScoreData.getLongTicker(), zScoreData.getShortTicker(), latestZ, settings.getMinZ());
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void validatePositiveZAndThrow(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             throw new IllegalArgumentException("ZScoreData list is null or empty");

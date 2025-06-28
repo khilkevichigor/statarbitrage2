@@ -254,8 +254,8 @@ public class MainView extends VerticalLayout {
         // Настройки капитала
         NumberField capitalLongField = new NumberField("Depo лонг ($)");
         NumberField capitalShortField = new NumberField("Depo шорт ($)");
-        NumberField leverageField = new NumberField("Leverage");
-        NumberField feePctPerTradeField = new NumberField("Комиссия (%)");
+        NumberField leverageField = new NumberField("Depo Leverage");
+        NumberField feePctPerTradeField = new NumberField("Depo Комиссия (%)");
 
         // Настройки выхода
         NumberField exitTakeField = new NumberField("Exit Тейк (%)");
@@ -270,10 +270,10 @@ public class MainView extends VerticalLayout {
 
         // Добавляем все поля в форму
         settingsForm.add(
-                timeframeField, candleLimitField, minZField, minWindowSizeField, minPValueField, minAdfValueField,
-                checkIntervalField, capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
-                exitTakeField, exitStopField, exitZMinField, exitZMaxPercentField, exitTimeHoursField,
-                minCorrelationField, minVolumeField, usePairs
+                timeframeField, candleLimitField,
+                minZField, minWindowSizeField, minPValueField, minAdfValueField, checkIntervalField, minCorrelationField, minVolumeField, usePairs,
+                capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
+                exitTakeField, exitStopField, exitZMinField, exitZMaxPercentField, exitTimeHoursField
         );
 
         // Настраиваем привязку данных
@@ -358,7 +358,8 @@ public class MainView extends VerticalLayout {
 
         selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор").setSortable(true);
 
-        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (curr)").setSortable(true);
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("PValue (curr)").setSortable(true);
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getAdfPvalueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("AdfValue (curr)").setSortable(true);
 
         selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Корр.").setSortable(true);
 
@@ -381,6 +382,9 @@ public class MainView extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (entry)").setSortable(true);
         tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (curr)").setSortable(true);
 
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getAdfPvalueEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("AdfValue (entry)").setSortable(true);
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getAdfPvalueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("AdfValue (curr)").setSortable(true);
+
         tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (entry)").setSortable(true);
         tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (curr)").setSortable(true);
 
@@ -402,6 +406,9 @@ public class MainView extends VerticalLayout {
 
         closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (entry)").setSortable(true);
         closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (curr)").setSortable(true);
+
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getAdfPvalueEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("AdfValue (entry)").setSortable(true);
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getAdfPvalueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("AdfValue (curr)").setSortable(true);
 
         closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (entry)").setSortable(true);
         closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (curr)").setSortable(true);

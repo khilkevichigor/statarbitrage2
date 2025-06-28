@@ -1,12 +1,9 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.events.ResetProfitEvent;
-import com.example.statarbitrage.model.ChangesData;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,43 +15,57 @@ import java.math.RoundingMode;
 public class ChangesService {
     private final SettingsService settingsService;
 
-    private BigDecimal maxProfit = null;
-    private BigDecimal minProfit = null;
-    private BigDecimal maxZ = null;
-    private BigDecimal minZ = null;
-    private BigDecimal maxLong = null;
-    private BigDecimal minLong = null;
-    private BigDecimal maxShort = null;
-    private BigDecimal minShort = null;
-    private BigDecimal maxCorr = null;
-    private BigDecimal minCorr = null;
-    private long entryTime = -1;
-    private long maxProfitTime = -1;
-    private long minProfitTime = -1;
+//    private BigDecimal maxProfit = null;
+//    private BigDecimal minProfit = null;
+//    private BigDecimal maxZ = null;
+//    private BigDecimal minZ = null;
+//    private BigDecimal maxLong = null;
+//    private BigDecimal minLong = null;
+//    private BigDecimal maxShort = null;
+//    private BigDecimal minShort = null;
+//    private BigDecimal maxCorr = null;
+//    private BigDecimal minCorr = null;
+//    private long entryTime = -1;
+//    private long maxProfitTime = -1;
+//    private long minProfitTime = -1;
+//
+//    @EventListener
+//    public void onResetProfitEvent(ResetProfitEvent event) {
+//        resetToDefault();
+//    }
+//
+//    private void resetToDefault() {
+//        maxProfit = null;
+//        minProfit = null;
+//        entryTime = -1;
+//        maxProfitTime = -1;
+//        minProfitTime = -1;
+//
+//        maxZ = null;
+//        minZ = null;
+//        maxLong = null;
+//        minLong = null;
+//        maxShort = null;
+//        minShort = null;
+//        maxCorr = null;
+//        minCorr = null;
+//    }
 
-    @EventListener
-    public void onResetProfitEvent(ResetProfitEvent event) {
-        resetToDefault();
-    }
+    public void calculate(PairData pairData) {
+        BigDecimal maxProfit = null;
+        BigDecimal minProfit = null;
+        BigDecimal maxZ = null;
+        BigDecimal minZ = null;
+        BigDecimal maxLong = null;
+        BigDecimal minLong = null;
+        BigDecimal maxShort = null;
+        BigDecimal minShort = null;
+        BigDecimal maxCorr = null;
+        BigDecimal minCorr = null;
+        long entryTime = -1;
+        long maxProfitTime = -1;
+        long minProfitTime = -1;
 
-    private void resetToDefault() {
-        maxProfit = null;
-        minProfit = null;
-        entryTime = -1;
-        maxProfitTime = -1;
-        minProfitTime = -1;
-
-        maxZ = null;
-        minZ = null;
-        maxLong = null;
-        minLong = null;
-        maxShort = null;
-        minShort = null;
-        maxCorr = null;
-        minCorr = null;
-    }
-
-    public ChangesData calculate(PairData pairData) {
         Settings settings = settingsService.getSettingsFromJson();
 
         double capitalLong = settings.getCapitalLong();
@@ -213,33 +224,52 @@ public class ChangesService {
         log.info(String.format("📉 Short max/min: %s / %s", maxShort.setScale(2, RoundingMode.HALF_UP), minShort.setScale(2, RoundingMode.HALF_UP)));
         log.info(String.format("📉 Corr max/min: %s / %s", maxCorr.setScale(2, RoundingMode.HALF_UP), minCorr.setScale(2, RoundingMode.HALF_UP)));
 
-        return ChangesData.builder()
+        pairData.setLongChanges(longReturnRounded);
+        pairData.setShortChanges(shortReturnRounded);
+        pairData.setProfitChanges(profitRounded);
+        pairData.setZScoreChanges(zScoreRounded);
+        pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
+        pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
+        pairData.setMinProfitRounded(minProfitRounded);
+        pairData.setMaxProfitRounded(maxProfitRounded);
 
-                .longReturnRounded(longReturnRounded)
-                .shortReturnRounded(shortReturnRounded)
+        pairData.setMinZ(minZ);
+        pairData.setMaxZ(maxZ);
+        pairData.setMinLong(minLong);
+        pairData.setMaxLong(maxLong);
+        pairData.setMinShort(minShort);
+        pairData.setMaxShort(maxShort);
+        pairData.setMinCorr(minCorr);
+        pairData.setMaxCorr(maxCorr);
 
-                .profitRounded(profitRounded)
 
-                .minProfitRounded(minProfitRounded)
-                .maxProfitRounded(maxProfitRounded)
-
-                .zScoreRounded(zScoreRounded)
-
-                .timeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax)
-                .timeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin)
-
-                .minZ(minZ)
-                .maxZ(maxZ)
-
-                .minLong(minLong)
-                .maxLong(maxLong)
-
-                .minShort(minShort)
-                .maxShort(maxShort)
-
-                .minCorr(minCorr)
-                .maxCorr(maxCorr)
-
-                .build();
+//        return ChangesData.builder()
+//
+//                .longReturnRounded(longReturnRounded)
+//                .shortReturnRounded(shortReturnRounded)
+//
+//                .profitRounded(profitRounded)
+//
+//                .minProfitRounded(minProfitRounded)
+//                .maxProfitRounded(maxProfitRounded)
+//
+//                .zScoreRounded(zScoreRounded)
+//
+//                .timeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax)
+//                .timeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin)
+//
+//                .minZ(minZ)
+//                .maxZ(maxZ)
+//
+//                .minLong(minLong)
+//                .maxLong(maxLong)
+//
+//                .minShort(minShort)
+//                .maxShort(maxShort)
+//
+//                .minCorr(minCorr)
+//                .maxCorr(maxCorr)
+//
+//                .build();
     }
 }

@@ -3,6 +3,7 @@ package com.example.statarbitrage.vaadin.processors;
 import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.services.*;
 import com.example.statarbitrage.vaadin.python.PythonRestClient;
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ public class TestTradeProcessor {
     private final TradeLogService tradeLogService;
 
     public void testTrade(PairData pairData) {
+        log.info("Trading pair...");
         Settings settings = settingsService.getSettingsFromDb();
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
         validateService.validateCandlesLimitAndThrow(candlesMap);
@@ -32,9 +34,18 @@ public class TestTradeProcessor {
                 candlesMap
         );
         validateService.validateSizeOfPairsAndThrow(zScoreDataList, 1);
+
         ZScoreData zScoreData = zScoreDataList.get(0);
-        zScoreService.handleNegativeZ(Collections.singletonList(zScoreData));
-        validateService.validatePositiveZAndThrow(Collections.singletonList(zScoreData));
+
+        if (pairData.getStatus() == TradeStatus.SELECTED) {
+            //готовим перед трейдами
+//            zScoreService.handleNegativeZ(Collections.singletonList(zScoreData));
+//            validateService.validatePositiveZAndThrow(Collections.singletonList(zScoreData));
+            if (validateService.isLastZLessThenMinZ(Collections.singletonList(zScoreData), settings)) {
+                return;
+            }
+        }
+
         logData(zScoreData);
         pairDataService.update(pairData, zScoreData, candlesMap);
         tradeLogService.saveFromPairData(pairData);

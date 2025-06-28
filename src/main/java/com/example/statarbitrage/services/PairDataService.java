@@ -1,6 +1,9 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.*;
+import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.ZScoreData;
+import com.example.statarbitrage.model.ZScoreParam;
 import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -65,10 +68,10 @@ public class PairDataService {
         return pairData;
     }
 
-    public List<PairData> createPairDataList(List<ZScoreData> top10, Map<String, List<Candle>> candlesMap) {
+    public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();
 
-        for (ZScoreData zScoreData : top10) {
+        for (ZScoreData zScoreData : top) {
             try {
                 PairData pairData = createSinglePairData(zScoreData, candlesMap);
                 result.add(pairData);
@@ -86,6 +89,8 @@ public class PairDataService {
 
     private PairData createSinglePairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         PairData pairData = new PairData();
+
+        pairData.setStatus(TradeStatus.SELECTED);
 
         // Устанавливаем основные параметры
         pairData.setLongTicker(zScoreData.getLongTicker());
@@ -218,26 +223,26 @@ public class PairDataService {
         pairData.setBetaCurrent(latestParam.getBeta());
 
         //calculateAndSetChanges
-        ChangesData changesData = changesService.calculate(pairData);
-        pairData.setLongChanges(changesData.getLongReturnRounded());
-        pairData.setShortChanges(changesData.getShortReturnRounded());
-        pairData.setProfitChanges(changesData.getProfitRounded());
-        pairData.setZScoreChanges(changesData.getZScoreRounded());
-        pairData.setTimeInMinutesSinceEntryToMax(changesData.getTimeInMinutesSinceEntryToMax());
-        pairData.setTimeInMinutesSinceEntryToMin(changesData.getTimeInMinutesSinceEntryToMin());
-        pairData.setMinProfitRounded(changesData.getMinProfitRounded());
-        pairData.setMaxProfitRounded(changesData.getMaxProfitRounded());
+        changesService.calculate(pairData);
+//        pairData.setLongChanges(changesData.getLongReturnRounded());
+//        pairData.setShortChanges(changesData.getShortReturnRounded());
+//        pairData.setProfitChanges(changesData.getProfitRounded());
+//        pairData.setZScoreChanges(changesData.getZScoreRounded());
+//        pairData.setTimeInMinutesSinceEntryToMax(changesData.getTimeInMinutesSinceEntryToMax());
+//        pairData.setTimeInMinutesSinceEntryToMin(changesData.getTimeInMinutesSinceEntryToMin());
+//        pairData.setMinProfitRounded(changesData.getMinProfitRounded());
+//        pairData.setMaxProfitRounded(changesData.getMaxProfitRounded());
 
         pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
 
-        pairData.setMinZ(changesData.getMinZ());
-        pairData.setMaxZ(changesData.getMaxZ());
-        pairData.setMinLong(changesData.getMinLong());
-        pairData.setMaxLong(changesData.getMaxLong());
-        pairData.setMinShort(changesData.getMinShort());
-        pairData.setMaxShort(changesData.getMaxShort());
-        pairData.setMinCorr(changesData.getMinCorr());
-        pairData.setMaxCorr(changesData.getMaxCorr());
+//        pairData.setMinZ(changesData.getMinZ());
+//        pairData.setMaxZ(changesData.getMaxZ());
+//        pairData.setMinLong(changesData.getMinLong());
+//        pairData.setMaxLong(changesData.getMaxLong());
+//        pairData.setMinShort(changesData.getMinShort());
+//        pairData.setMaxShort(changesData.getMaxShort());
+//        pairData.setMinCorr(changesData.getMinCorr());
+//        pairData.setMaxCorr(changesData.getMaxCorr());
 
         pairData.setExitReason(exitStrategyService.getExitReason(pairData));
 
