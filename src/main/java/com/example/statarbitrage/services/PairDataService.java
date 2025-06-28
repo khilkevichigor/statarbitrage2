@@ -11,9 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.example.statarbitrage.constant.Constants.PAIR_DATA_FILE_NAME;
 
@@ -262,4 +261,30 @@ public class PairDataService {
     public int deleteAllByStatus(TradeStatus status) {
         return pairDataRepository.deleteAllByStatus(status);
     }
+
+    public void excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) return;
+
+        // Получаем список уже торгующихся пар
+        List<PairData> tradingPairs = findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+
+        // Собираем множество идентификаторов пар в торговле (например, "BTC-USDT-ETH-USDT")
+        Set<String> tradingSet = tradingPairs.stream()
+                .map(pair -> buildKey(pair.getLongTicker(), pair.getShortTicker()))
+                .collect(Collectors.toSet());
+
+        // Удаляем из списка те пары, которые уже торгуются
+        zScoreDataList.removeIf(z -> {
+            String key = buildKey(z.getLongTicker(), z.getShortTicker());
+            return tradingSet.contains(key);
+        });
+    }
+
+    // Приватный метод для создания уникального ключа пары, независимо от порядка
+    private String buildKey(String ticker1, String ticker2) {
+        List<String> sorted = Arrays.asList(ticker1, ticker2);
+        Collections.sort(sorted);
+        return sorted.get(0) + "-" + sorted.get(1);
+    }
+
 }

@@ -1,8 +1,10 @@
 package com.example.statarbitrage.services;
 
+import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.model.ZScoreParam;
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -280,7 +282,6 @@ public class ZScoreService {
             double lastZ = params.get(params.size() - 1).getZscore();
 
             if (lastZ < 0) {
-//                System.out.println("1) lastZ before: " + lastZ);
                 // Меняем местами long и short тикеры
                 String oldLong = data.getLongTicker();
                 data.setLongTicker(data.getShortTicker());
@@ -290,11 +291,7 @@ public class ZScoreService {
                 for (ZScoreParam param : params) {
                     param.setZscore(-param.getZscore());
                 }
-//                System.out.println("2) lastZ after: " + params.get(params.size() - 1).getZscore());
-
-
             }
         }
     }
-
 }

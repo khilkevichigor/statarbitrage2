@@ -38,12 +38,17 @@ public class FetchPairsProcessor {
 
         // Обработка результатов
         zScoreService.reduceDuplicates(zScoreDataList);
-        zScoreService.sortByLongTicker(zScoreDataList);
-        zScoreService.sortParamsByTimestampV2(zScoreDataList);
-        List<ZScoreData> topZScoreData = zScoreService.obtainTopNBestPairs(settings, zScoreDataList, (int) settings.getUsePairs());
 
-        zScoreService.handleNegativeZ(topZScoreData);
-        validateService.validatePositiveZ(topZScoreData);
+        zScoreService.handleNegativeZ(zScoreDataList);
+        validateService.validatePositiveZ(zScoreDataList);
+
+        pairDataService.excludeExistingTradingPairs(zScoreDataList);
+
+        zScoreService.sortByLongTicker(zScoreDataList);
+
+        zScoreService.sortParamsByTimestampV2(zScoreDataList);
+
+        List<ZScoreData> topZScoreData = zScoreService.obtainTopNBestPairs(settings, zScoreDataList, (int) settings.getUsePairs());
 
         List<PairData> topPairData = pairDataService.createPairDataList(topZScoreData, candlesMap);
         topPairData.forEach(pairDataService::saveToDb);
