@@ -243,9 +243,12 @@ public class MainView extends VerticalLayout {
         // Основные настройки
         TextField timeframeField = new TextField("Таймфрейм");
         NumberField candleLimitField = new NumberField("Свечей (шт)");
-        NumberField windowSizeField = new NumberField("windowSize");
-        NumberField pValueField = new NumberField("pValue");
-        NumberField adfSignificanceLevelField = new NumberField("adfValue");
+        NumberField minZField = new NumberField("Min Z");
+        NumberField minWindowSizeField = new NumberField("Min windowSize");
+        NumberField minPValueField = new NumberField("Min pValue");
+        NumberField minAdfValueField = new NumberField("Min adfValue");
+        NumberField minCorrelationField = new NumberField("Min corr");
+        NumberField minVolumeField = new NumberField("Min Vol (млн $)");
         NumberField checkIntervalField = new NumberField("Обновление (мин)");
 
         // Настройки капитала
@@ -255,21 +258,19 @@ public class MainView extends VerticalLayout {
         NumberField feePctPerTradeField = new NumberField("Комиссия (%)");
 
         // Настройки выхода
-        NumberField exitTakeField = new NumberField("Тейк-профит (%)");
-        NumberField exitStopField = new NumberField("Стоп-лосс (%)");
-        NumberField exitZMinField = new NumberField("Мин Z");
-        NumberField exitZMaxPercentField = new NumberField("Макс Z (%)");
-        NumberField exitTimeHoursField = new NumberField("Таймаут (ч)");
+        NumberField exitTakeField = new NumberField("Exit Тейк (%)");
+        NumberField exitStopField = new NumberField("Exit Стоп (%)");
+        NumberField exitZMinField = new NumberField("Exit Мин Z");
+        NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
+        NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
 
         // Фильтры
-        NumberField minCorrelationField = new NumberField("Мин corr");
-        NumberField minVolumeField = new NumberField("Мин Vol (млн $)");
 
         NumberField usePairs = new NumberField("Кол-во пар");
 
         // Добавляем все поля в форму
         settingsForm.add(
-                timeframeField, candleLimitField, windowSizeField, pValueField, adfSignificanceLevelField,
+                timeframeField, candleLimitField, minZField, minWindowSizeField, minPValueField, minAdfValueField,
                 checkIntervalField, capitalLongField, capitalShortField, leverageField, feePctPerTradeField,
                 exitTakeField, exitStopField, exitZMinField, exitZMaxPercentField, exitTimeHoursField,
                 minCorrelationField, minVolumeField, usePairs
@@ -278,9 +279,10 @@ public class MainView extends VerticalLayout {
         // Настраиваем привязку данных
         settingsBinder.forField(timeframeField).bind(Settings::getTimeframe, Settings::setTimeframe);
         settingsBinder.forField(candleLimitField).bind(Settings::getCandleLimit, Settings::setCandleLimit);
-        settingsBinder.forField(windowSizeField).bind(Settings::getWindowSize, Settings::setWindowSize);
-        settingsBinder.forField(pValueField).bind(Settings::getPvalue, Settings::setPvalue);
-        settingsBinder.forField(adfSignificanceLevelField).bind(Settings::getAdfValue, Settings::setAdfValue);
+        settingsBinder.forField(minZField).bind(Settings::getMinZ, Settings::setMinZ);
+        settingsBinder.forField(minWindowSizeField).bind(Settings::getMinWindowSize, Settings::setMinWindowSize);
+        settingsBinder.forField(minPValueField).bind(Settings::getMinPvalue, Settings::setMinPvalue);
+        settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
         settingsBinder.forField(capitalLongField).bind(Settings::getCapitalLong, Settings::setCapitalLong);
         settingsBinder.forField(capitalShortField).bind(Settings::getCapitalShort, Settings::setCapitalShort);

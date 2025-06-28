@@ -18,9 +18,10 @@ public class Settings {
 
     private String timeframe;
     private double candleLimit;
-    private double windowSize;
-    private double pvalue;
-    private double adfValue;
+    private double minZ;
+    private double minWindowSize;
+    private double minPvalue;
+    private double minAdfValue;
     private double checkInterval;
     private double capitalLong;
     private double capitalShort;

@@ -21,23 +21,30 @@ public class DbInitializer {
         if (all.isEmpty()) {
             settingsRepository.save(Settings.builder()
                     .timeframe("1m")
+
                     .candleLimit(300)
-                    .windowSize(250)
-                    .pvalue(0.01)
-                    .adfValue(0.01)
+                    .minZ(2)
+                    .minWindowSize(250)
+                    .minPvalue(0.01)
+                    .minAdfValue(0.01)
+                    .minCorrelation(0.8)
+                    .minVolume(1.0)
+
                     .checkInterval(1)
+
                     .capitalLong(10.0)
                     .capitalShort(10.0)
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
+
                     .exitTake(2.0)
                     .exitStop(0.0)
                     .exitZMin(0.0)
                     .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
                     .exitTimeHours(8)
-                    .minCorrelation(0.8)
-                    .minVolume(1.0)
+
                     .usePairs(10.0)
+
                     .build()
             );
         }

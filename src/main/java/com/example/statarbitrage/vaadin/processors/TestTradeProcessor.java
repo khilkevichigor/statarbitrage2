@@ -33,8 +33,8 @@ public class TestTradeProcessor {
         );
         validateService.validateSizeOfPairsAndThrow(zScoreDataList, 1);
         ZScoreData zScoreData = zScoreDataList.get(0);
-        zScoreService.handleNegativeZ(Collections.singletonList(zScoreData)); //todo fix
-        validateService.validatePositiveZAndThrow(Collections.singletonList(zScoreData)); //todo проблема в том что считаем все с 0! и монеты могут перемешаться! Нужно соблюдать лонг/шорт перед пайтоном
+        zScoreService.handleNegativeZ(Collections.singletonList(zScoreData));
+        validateService.validatePositiveZAndThrow(Collections.singletonList(zScoreData));
         logData(zScoreData);
         pairDataService.update(pairData, zScoreData, candlesMap);
         tradeLogService.saveFromPairData(pairData);

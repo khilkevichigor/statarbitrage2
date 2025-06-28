@@ -58,21 +58,25 @@ public class SettingsService {
         return Settings.builder()
                 .timeframe("1m")
                 .candleLimit(300)
-                .windowSize(250)
-                .pvalue(0.05)
-                .adfValue(0.05)
+                .minZ(2.0)
+                .minWindowSize(250)
+                .minPvalue(0.05)
+                .minAdfValue(0.05)
+                .minCorrelation(0.8)
+                .minVolume(1.0)
+
                 .checkInterval(1)
+
                 .capitalLong(10.0)
                 .capitalShort(10.0)
                 .leverage(10.0)
                 .feePctPerTrade(0.05)
+
                 .exitTake(4.0) //не учитывается при 0.0
                 .exitStop(-2.0) //не учитывается при 0.0
                 .exitZMin(0.5) //не учитывается при 0.0
                 .exitZMaxPercent(50.0) //от 3.22 + 50% = 4.83 (не учитывается при 0.0)
                 .exitTimeHours(8) //не учитывается при 0.0
-                .minCorrelation(0.8)
-                .minVolume(1.0)
                 .build();
     }
 

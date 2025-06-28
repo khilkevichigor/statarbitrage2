@@ -52,7 +52,7 @@ public class CointegrationCalculatorV2 {
             return null;
         }
 
-        int windowSize = (int) settings.getWindowSize();
+        int windowSize = (int) settings.getMinWindowSize();
 
         // Проверяем достаточность данных
         if (candles1.size() < windowSize || candles2.size() < windowSize) {

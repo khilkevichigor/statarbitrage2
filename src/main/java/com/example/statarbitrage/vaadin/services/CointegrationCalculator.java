@@ -26,9 +26,9 @@ public class CointegrationCalculator {
     public ZScoreData calculatePairZScores(Settings settings, String ticker1, String ticker2,
                                            double[] prices1, double[] prices2) {
         CointegrationResult cointResult = testCointegration(prices1, prices2,
-                (int) settings.getWindowSize());
+                (int) settings.getMinWindowSize());
 
-        if (cointResult.getPValue() < settings.getPvalue()
+        if (cointResult.getPValue() < settings.getMinPvalue()
                 && Math.abs(cointResult.getCorrelation()) > settings.getMinCorrelation()) {
             return calculateZScore(ticker1, ticker2, prices1, prices2, cointResult, settings);
         }
@@ -52,10 +52,10 @@ public class CointegrationCalculator {
 
                 // 4. Проверка коинтеграции
                 CointegrationResult cointResult = testCointegration(prices1, prices2,
-                        (int) settings.getWindowSize());
+                        (int) settings.getMinWindowSize());
 
                 // 5. Фильтрация по настройкам
-                if (cointResult.getPValue() < settings.getPvalue()
+                if (cointResult.getPValue() < settings.getMinPvalue()
                         && Math.abs(cointResult.getCorrelation()) > settings.getMinCorrelation()) {
 
                     // 6. Расчет Z-показателя

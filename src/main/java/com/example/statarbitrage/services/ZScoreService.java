@@ -44,7 +44,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = getBestByCriteriaV3(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = getBestByCriteriaV5(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
                 bestPairs.add(best);
@@ -283,6 +283,70 @@ public class ZScoreService {
         return Optional.ofNullable(best);
     }
 
+    public Optional<ZScoreData> getBestByCriteriaV4(Settings settings, List<ZScoreData> zScoreDataList) {
+        return zScoreDataList.stream()
+                .filter(z -> {
+                    List<ZScoreParam> params = z.getZscoreParams();
+                    return params != null && !params.isEmpty()
+                            && Math.abs(params.get(params.size() - 1).getZscore()) >= settings.getExitZMin();
+                })
+                .min((a, b) -> {
+                    ZScoreParam pa = a.getZscoreParams().get(a.getZscoreParams().size() - 1);
+                    ZScoreParam pb = b.getZscoreParams().get(b.getZscoreParams().size() - 1);
+
+                    // Приоритет 1: максимальный |zscore| (по убыванию, поэтому минус)
+                    int cmp = Double.compare(Math.abs(pb.getZscore()), Math.abs(pa.getZscore()));
+                    if (cmp != 0) return cmp;
+
+                    // Приоритет 2: минимальный pvalue
+                    cmp = Double.compare(pa.getPvalue(), pb.getPvalue());
+                    if (cmp != 0) return cmp;
+
+                    // Приоритет 3: минимальный adfpvalue
+                    cmp = Double.compare(pa.getAdfpvalue(), pb.getAdfpvalue());
+                    if (cmp != 0) return cmp;
+
+                    // Приоритет 4: максимальная корреляция (по убыванию)
+                    return Double.compare(pb.getCorrelation(), pa.getCorrelation());
+                });
+    }
+
+    public Optional<ZScoreData> getBestByCriteriaV5(Settings settings, List<ZScoreData> dataList) {
+        ZScoreData best = null;
+        double maxZ = Double.NEGATIVE_INFINITY;
+
+        for (ZScoreData z : dataList) {
+            List<ZScoreParam> params = z.getZscoreParams();
+            if (params == null || params.isEmpty()) continue;
+
+            ZScoreParam last = params.get(params.size() - 1);
+
+            double zVal = last.getZscore();
+            double pValue = last.getPvalue();
+            double adf = last.getAdfpvalue();
+            double corr = last.getCorrelation();
+
+            // 1. Z >= minZ
+            if (zVal < settings.getExitZMin()) continue;
+
+            // 2. pValue <= minPValue
+            if (pValue > settings.getMinPvalue()) continue;
+
+            // 3. adfValue <= minAdfValue
+            if (adf > settings.getMinAdfValue()) continue;
+
+            // 4. corr >= minCorr
+            if (corr < settings.getMinCorrelation()) continue;
+
+            // 5. Выбираем с максимальным Z
+            if (zVal > maxZ) {
+                maxZ = zVal;
+                best = z;
+            }
+        }
+
+        return Optional.ofNullable(best);
+    }
 
     public void reduceDuplicates(List<ZScoreData> zScoreDataList) {
         Map<String, ZScoreData> uniquePairs = new HashMap<>();

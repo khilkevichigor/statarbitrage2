@@ -46,7 +46,7 @@ public class CointegrationCalculatorV3 {
             return null;
         }
 
-        int windowSize = (int) settings.getWindowSize();
+        int windowSize = (int) settings.getMinWindowSize();
 
         if (candles1.size() < windowSize || candles2.size() < windowSize) {
             log.debug("Not enough data for pair {}/{} (need {} points, have {}/{})",
