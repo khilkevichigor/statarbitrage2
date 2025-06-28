@@ -40,6 +40,8 @@ import java.util.concurrent.TimeUnit;
 
 import static com.example.statarbitrage.constant.Constants.EXIT_REASON_MANUALLY;
 
+//todo bug в трейдинг таблице zentry= 2.5 а zcurrent=-2 практически сразу!!!
+
 @Slf4j
 @Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
