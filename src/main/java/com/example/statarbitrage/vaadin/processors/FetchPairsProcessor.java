@@ -36,6 +36,8 @@ public class FetchPairsProcessor {
                 candlesMap
         );
 
+        //todo проверять были ли Z ниже -2 и выше +2
+
         // Обработка результатов
         zScoreService.reduceDuplicates(zScoreDataList);
 
