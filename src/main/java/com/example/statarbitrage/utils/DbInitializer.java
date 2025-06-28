@@ -30,10 +30,10 @@ public class DbInitializer {
                     .capitalShort(10.0)
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
-                    .exitTake(4.0)
-                    .exitStop(-2.0)
-                    .exitZMin(0.5)
-                    .exitZMaxPercent(50.0) //от 3.22 + 50% = 4.83
+                    .exitTake(2.0)
+                    .exitStop(0.0)
+                    .exitZMin(0.0)
+                    .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
                     .exitTimeHours(8)
                     .minCorrelation(0.8)
                     .minVolume(1.0)

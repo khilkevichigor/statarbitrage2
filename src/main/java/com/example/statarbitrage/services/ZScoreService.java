@@ -1,10 +1,8 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.model.ZScoreParam;
-import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,7 +44,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = getBestByCriteriaV2(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = getBestByCriteriaV3(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
                 bestPairs.add(best);
@@ -229,6 +227,62 @@ public class ZScoreService {
 
         return Optional.ofNullable(best);
     }
+
+    private Optional<ZScoreData> getBestByCriteriaV3(Settings settings, List<ZScoreData> zScoreDataList) {
+        ZScoreData best = null;
+
+        for (ZScoreData current : zScoreDataList) {
+            List<ZScoreParam> params = current.getZscoreParams();
+            if (params == null || params.isEmpty()) continue;
+
+            ZScoreParam currentParam = params.get(params.size() - 1);
+
+            // Пропускаем, если |z| меньше минимального значения
+            if (Math.abs(currentParam.getZscore()) < settings.getExitZMin()) continue;
+
+            if (best == null) {
+                best = current;
+                continue;
+            }
+
+            ZScoreParam bestParam = best.getZscoreParams().get(best.getZscoreParams().size() - 1);
+
+            // Приоритет 1: максимальный |zscore|
+            double absCurrentZ = Math.abs(currentParam.getZscore());
+            double absBestZ = Math.abs(bestParam.getZscore());
+
+            if (absCurrentZ > absBestZ) {
+                best = current;
+                continue;
+            } else if (absCurrentZ < absBestZ) {
+                continue;
+            }
+
+            // Приоритет 2: минимальный pvalue
+            if (currentParam.getPvalue() < bestParam.getPvalue()) {
+                best = current;
+                continue;
+            } else if (currentParam.getPvalue() > bestParam.getPvalue()) {
+                continue;
+            }
+
+            // Приоритет 3: минимальный adfpvalue
+            if (currentParam.getAdfpvalue() < bestParam.getAdfpvalue()) {
+                best = current;
+                continue;
+            } else if (currentParam.getAdfpvalue() > bestParam.getAdfpvalue()) {
+                continue;
+            }
+
+            // Приоритет 4: максимальная корреляция
+            if (currentParam.getCorrelation() > bestParam.getCorrelation()) {
+                best = current;
+            }
+        }
+
+        return Optional.ofNullable(best);
+    }
+
 
     public void reduceDuplicates(List<ZScoreData> zScoreDataList) {
         Map<String, ZScoreData> uniquePairs = new HashMap<>();

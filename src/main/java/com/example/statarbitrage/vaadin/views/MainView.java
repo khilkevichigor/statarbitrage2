@@ -8,6 +8,7 @@ import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.services.StatisticsService;
 import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
 import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
+import com.example.statarbitrage.vaadin.schedulers.SimulationScheduler;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -56,16 +57,18 @@ public class MainView extends VerticalLayout {
     private SettingsService settingsService;
     private PairDataService pairDataService;
     private StatisticsService statisticsService; // добей в поле класса
+    private SimulationScheduler simulationScheduler; // добей в поле класса
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, SimulationScheduler simulationScheduler) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
         this.testTradeProcessor = testTradeProcessor;
         this.statisticsService = statisticsService;
+        this.simulationScheduler = simulationScheduler;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -217,6 +220,9 @@ public class MainView extends VerticalLayout {
             Settings settings = settingsService.getSettingsFromDb();
             settings.setSimulationEnabled(event.getValue());
             settingsService.saveSettingsInDb(settings);
+            if (event.getValue()) {
+                simulationScheduler.runSimulationStep();
+            }
             log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
         });
 
@@ -347,10 +353,12 @@ public class MainView extends VerticalLayout {
     private void configureColumnsSelected() {
         selectedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
         selectedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
-        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP))
-                .setHeader("Z-скор").setSortable(true);
-        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP))
-                .setHeader("Корр.").setSortable(true);
+
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор").setSortable(true);
+
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (curr)").setSortable(true);
+
+        selectedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Корр.").setSortable(true);
 
         selectedPairsGrid.setHeight("300px");
         selectedPairsGrid.setWidthFull();
@@ -359,11 +367,20 @@ public class MainView extends VerticalLayout {
     private void configureColumnsTrading() {
         tradingPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
         tradingPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
-        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreEntry()).setScale(2, BigDecimal.ROUND_HALF_UP))
-                .setHeader("Z-скор (entry)").setSortable(true);
-        tradingPairsGrid.addColumn(PairData::getProfitChanges)
-                .setHeader("Профит (%)")
-                .setSortable(true);
+
+        tradingPairsGrid.addColumn(PairData::getProfitChanges).setHeader("Профит (%)").setSortable(true);
+
+        tradingPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Long (%)").setSortable(true);
+        tradingPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Short (%)").setSortable(true);
+
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (entry)").setSortable(true);
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (curr)").setSortable(true);
+
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (entry)").setSortable(true);
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (curr)").setSortable(true);
+
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (entry)").setSortable(true);
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (curr)").setSortable(true);
 
         tradingPairsGrid.setHeight("300px");
         tradingPairsGrid.setWidthFull();
@@ -372,12 +389,22 @@ public class MainView extends VerticalLayout {
     private void configureColumnsClosed() {
         closedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true);
         closedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true);
-        closedPairsGrid.addColumn(PairData::getProfitChanges)
-                .setHeader("Профит (%)")
-                .setSortable(true);
-        closedPairsGrid.addColumn(PairData::getExitReason)
-                .setHeader("Причина выхода")
-                .setSortable(true);
+
+        closedPairsGrid.addColumn(PairData::getProfitChanges).setHeader("Профит (%)").setSortable(true);
+
+        closedPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Long (%)").setSortable(true);
+        closedPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Short (%)").setSortable(true);
+
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (entry)").setSortable(true);
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (curr)").setSortable(true);
+
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (entry)").setSortable(true);
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getPValueCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Pvalue (curr)").setSortable(true);
+
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (entry)").setSortable(true);
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getCorrelationCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Corr (curr)").setSortable(true);
+
+        closedPairsGrid.addColumn(PairData::getExitReason).setHeader("Причина выхода").setSortable(true);
 
         closedPairsGrid.setHeight("300px");
         closedPairsGrid.setWidthFull();
