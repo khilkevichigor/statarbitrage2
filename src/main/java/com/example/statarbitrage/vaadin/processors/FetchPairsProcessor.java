@@ -27,7 +27,6 @@ public class FetchPairsProcessor {
     public List<PairData> fetchPairs(Integer countOfPairs) {
         long start = System.currentTimeMillis();
         log.info("Fetching pairs...");
-
         Settings settings = settingsService.getSettingsFromDb();
         Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(settings);
         int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();
@@ -35,10 +34,8 @@ public class FetchPairsProcessor {
         logTopNPairs(zScoreDataList);
         List<PairData> topPairs = pairDataService.createPairDataList(zScoreDataList, candlesMap);
         log.info("Создали {} новых PairData", topPairs.size());
-
         long end = System.currentTimeMillis();
         log.info("⏱️ fetchPairs() finished in {} сек", (end - start) / 1000.0);
-
         return topPairs;
     }
 

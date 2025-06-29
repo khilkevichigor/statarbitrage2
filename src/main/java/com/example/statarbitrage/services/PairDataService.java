@@ -88,7 +88,6 @@ public class PairDataService {
 
         result.forEach(this::saveToDb);
 
-//        log.info("Создали данные для {} пар", result.size());
         return result;
     }
 
