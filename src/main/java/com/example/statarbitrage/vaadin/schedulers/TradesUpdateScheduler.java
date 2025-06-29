@@ -22,7 +22,8 @@ public class TradesUpdateScheduler {
     private final EventSendService eventSendService;
 
     @Scheduled(fixedRate = 1 * 60 * 1_000)
-    public void runSimulationStep() {
+    public void updateTrades() {
+        log.info("Starting update trades by scheduler...");
         try {
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {

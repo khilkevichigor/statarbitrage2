@@ -189,7 +189,9 @@ public class PairDataService {
 
         //setupEntryPointsIfNeeded
         if (pairData.getStatus() == TradeStatus.SELECTED) { //по статусу надежнее
-//        if (pairData.getLongTickerEntryPrice() == 0.0 || pairData.getShortTickerEntryPrice() == 0.0) {
+
+            pairData.setStatus(TradeStatus.TRADING);
+
             pairData.setLongTickerEntryPrice(aCurrentPrice);
             pairData.setShortTickerEntryPrice(bCurrentPrice);
 
@@ -227,9 +229,11 @@ public class PairDataService {
 
         pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
 
-        pairData.setExitReason(exitStrategyService.getExitReason(pairData));
-
-        pairData.setStatus(pairData.getExitReason() == null ? TradeStatus.TRADING : TradeStatus.CLOSED);
+        String exitReason = exitStrategyService.getExitReason(pairData);
+        if (exitReason != null) {
+            pairData.setExitReason(exitReason);
+            pairData.setStatus(TradeStatus.CLOSED);
+        }
 
         saveToDb(pairData);
     }
@@ -275,4 +279,7 @@ public class PairDataService {
         return sorted.get(0) + "-" + sorted.get(1);
     }
 
+    public int countByStatus(TradeStatus status) {
+        return pairDataRepository.countByStatus(status);
+    }
 }

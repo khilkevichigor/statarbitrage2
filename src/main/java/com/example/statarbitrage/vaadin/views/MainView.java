@@ -8,7 +8,7 @@ import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.services.StatisticsService;
 import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
 import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
-import com.example.statarbitrage.vaadin.schedulers.SimulationScheduler;
+import com.example.statarbitrage.vaadin.schedulers.PairMaintainerScheduler;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -59,18 +59,18 @@ public class MainView extends VerticalLayout {
     private SettingsService settingsService;
     private PairDataService pairDataService;
     private StatisticsService statisticsService; // добей в поле класса
-    private SimulationScheduler simulationScheduler; // добей в поле класса
+    private PairMaintainerScheduler pairMaintainerScheduler; // добей в поле класса
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, SimulationScheduler simulationScheduler) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, PairMaintainerScheduler pairMaintainerScheduler) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
         this.testTradeProcessor = testTradeProcessor;
         this.statisticsService = statisticsService;
-        this.simulationScheduler = simulationScheduler;
+        this.pairMaintainerScheduler = pairMaintainerScheduler;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -223,7 +223,7 @@ public class MainView extends VerticalLayout {
             settings.setSimulationEnabled(event.getValue());
             settingsService.saveSettingsInDb(settings);
             if (event.getValue()) {
-                simulationScheduler.runSimulationStep();
+                pairMaintainerScheduler.maintainActivePairs();
             }
             log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
         });
@@ -315,7 +315,7 @@ public class MainView extends VerticalLayout {
     }
 
     private void findSelectedPairs() {
-        List<PairData> pairs = fetchPairsProcessor.fetchPairs();
+        List<PairData> pairs = fetchPairsProcessor.fetchPairs(null);
         selectedPairsGrid.setItems(pairs);
     }
 

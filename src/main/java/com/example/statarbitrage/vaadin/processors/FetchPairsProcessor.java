@@ -23,7 +23,7 @@ public class FetchPairsProcessor {
     private final SettingsService settingsService;
     private final ValidateService validateService;
 
-    public List<PairData> fetchPairs() {
+    public List<PairData> fetchPairs(Integer countOfPairs) {
         log.info("Fetching pairs...");
 
         Settings settings = settingsService.getSettingsFromDb();
@@ -50,7 +50,7 @@ public class FetchPairsProcessor {
 
         zScoreService.sortParamsByTimestampV2(zScoreDataList);
 
-        List<ZScoreData> topZScoreData = zScoreService.obtainTopNBestPairs(settings, zScoreDataList, (int) settings.getUsePairs());
+        List<ZScoreData> topZScoreData = zScoreService.obtainTopNBestPairs(settings, zScoreDataList, countOfPairs != null ? countOfPairs : (int) settings.getUsePairs());
 
         List<PairData> topPairData = pairDataService.createPairDataList(topZScoreData, candlesMap);
         topPairData.forEach(pairDataService::saveToDb);

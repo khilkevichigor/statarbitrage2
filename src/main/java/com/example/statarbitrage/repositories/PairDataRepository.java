@@ -24,4 +24,7 @@ public interface PairDataRepository extends JpaRepository<PairData, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM PairData p WHERE p.status = :status")
     int deleteAllByStatus(@Param("status") TradeStatus status);
+
+    @Query("SELECT COUNT(p) FROM PairData p WHERE p.status = :status")
+    int countByStatus(@Param("status") TradeStatus status);
 }
