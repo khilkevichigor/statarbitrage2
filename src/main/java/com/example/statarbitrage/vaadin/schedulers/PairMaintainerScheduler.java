@@ -6,7 +6,6 @@ import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
-import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,11 +18,10 @@ import org.springframework.stereotype.Component;
 public class PairMaintainerScheduler {
     private final SettingsService settingsService;
     private final PairDataService pairDataService;
-    private final TestTradeProcessor testTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(fixedRate = 1 * 60 * 1_000)
+    @Scheduled(cron = "35 * * * * *")
     public void maintainActivePairs() {
         Settings settings = settingsService.getSettingsFromDb();
         if (!settings.isSimulationEnabled()) {

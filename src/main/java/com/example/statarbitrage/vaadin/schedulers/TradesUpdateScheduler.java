@@ -21,7 +21,7 @@ public class TradesUpdateScheduler {
     private final TestTradeProcessor testTradeProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(fixedRate = 1 * 60 * 1_000)
+    @Scheduled(cron = "5 * * * * *")
     public void updateTrades() {
         log.info("Starting update trades by scheduler...");
         try {
