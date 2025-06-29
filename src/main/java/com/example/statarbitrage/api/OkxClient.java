@@ -109,7 +109,7 @@ public class OkxClient {
     }
 
     public Map<String, List<Candle>> getCandlesMap(List<String> swapTickers, Settings settings, boolean isSorted) {
-        ExecutorService executor = Executors.newFixedThreadPool(8);
+        ExecutorService executor = Executors.newFixedThreadPool(5); //todo пофиксить ошибки при 8
         Map<String, List<Candle>> candlesMap = new LinkedHashMap<>(); //важен порядок чтобы скрипт не менял свечи и знак z
         if (isSorted) {
             swapTickers = swapTickers.stream().sorted().toList();
@@ -141,7 +141,7 @@ public class OkxClient {
 
     public List<String> getValidTickers(List<String> swapTickers, String timeFrame, double limit, double minVolume, boolean isSorted) {
         AtomicInteger count = new AtomicInteger();
-        ExecutorService executor = Executors.newFixedThreadPool(8);
+        ExecutorService executor = Executors.newFixedThreadPool(5); //todo пофиксить ошибки при 8
         List<String> result = new ArrayList<>();
         int volumeAverageCount = 2; // можно сделать настраиваемым
         int candleLimit = (int) limit;
