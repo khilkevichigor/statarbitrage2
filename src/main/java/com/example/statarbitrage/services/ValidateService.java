@@ -123,7 +123,7 @@ public class ValidateService {
         long maxAgeMillis = Duration.ofMinutes(60).toMillis(); // допустим, 5 минут
         if (pairData.getZScoreParams() == null ||
                 pairData.getZScoreParams().isEmpty() ||
-                pairData.getZScoreParams().get(pairData.getZScoreParams().size() - 1).getTimestamp() < (currentTime - maxAgeMillis)) {
+                pairData.getLastZScoreParam().getTimestamp() < (currentTime - maxAgeMillis)) {
 
             log.error("PairData cannot be old!");
             throw new IllegalArgumentException("PairData cannot be old!");

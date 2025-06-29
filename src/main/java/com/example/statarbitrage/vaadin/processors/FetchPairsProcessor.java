@@ -32,7 +32,7 @@ public class FetchPairsProcessor {
         log.info("Fetching pairs...");
 
         Settings settings = settingsService.getSettingsFromDb();
-        Map<String, List<Candle>> candlesMap = candlesService.getcandlesMap(settings);
+        Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(settings);
         int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();
         List<ZScoreData> zScoreDataList = zScoreService.getTopNPairs(settings, candlesMap, count);
         List<PairData> topPairs = pairDataService.createPairDataList(zScoreDataList, candlesMap);

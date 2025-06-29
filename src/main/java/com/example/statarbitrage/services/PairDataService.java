@@ -38,7 +38,7 @@ public class PairDataService {
 
         pairData.setCandles(candlesMap);
 
-        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
@@ -101,7 +101,7 @@ public class PairDataService {
         pairData.setCandles(candlesMap);
 
         // Получаем последние параметры
-        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         // Получаем свечи
         List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
@@ -187,7 +187,7 @@ public class PairDataService {
         pairData.setLongTickerCurrentPrice(aCurrentPrice);
         pairData.setShortTickerCurrentPrice(bCurrentPrice);
 
-        ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         //setupEntryPointsIfNeeded
         if (pairData.getStatus() == TradeStatus.SELECTED) { //по статусу надежнее

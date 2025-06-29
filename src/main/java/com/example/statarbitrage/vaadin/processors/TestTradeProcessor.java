@@ -46,7 +46,7 @@ public class TestTradeProcessor {
     }
 
     private static void logData(ZScoreData zScoreData) {
-        ZScoreParam latest = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1); // последние params
+        ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
         log.info(String.format("Наша пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getLongTicker(), zScoreData.getShortTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()

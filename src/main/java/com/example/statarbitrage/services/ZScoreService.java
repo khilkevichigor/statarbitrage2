@@ -1,6 +1,9 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.*;
+import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.model.ZScoreData;
+import com.example.statarbitrage.model.ZScoreParam;
 import com.example.statarbitrage.vaadin.python.PythonRestClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +22,9 @@ public class ZScoreService {
     /**
      * Считает Z для всех пар из свечей.
      */
-    public List<ZScoreData> calculateZScoreData(Settings settings,
-                                                Map<String, List<Candle>> candlesMap,
-                                                boolean excludeExistingPairs) {
+    private List<ZScoreData> calculateZScoreData(Settings settings,
+                                                 Map<String, List<Candle>> candlesMap,
+                                                 boolean excludeExistingPairs) {
 
         // Получаем результат из Python
         List<ZScoreData> rawZScoreList = PythonRestClient.fetchZScoreData(settings, candlesMap);
@@ -80,7 +83,7 @@ public class ZScoreService {
         if (zScoreDataList != null && !zScoreDataList.isEmpty()) {
             log.info("Отобрано {} пар", zScoreDataList.size());
             ZScoreData best = getBestByCriteria(zScoreDataList);
-            ZScoreParam latest = best.getZscoreParams().get(best.getZscoreParams().size() - 1); // последние params
+            ZScoreParam latest = best.getLastZScoreParam(); // последние params
             log.info(String.format("Лучшая пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                     best.getLongTicker(), best.getShortTicker(),
                     latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
@@ -92,7 +95,7 @@ public class ZScoreService {
     }
 
     //todo можно прикрутить стохастик и пересечение
-    public List<ZScoreData> obtainTopNBestPairs(Settings settings, List<ZScoreData> zScoreDataList, int topN) {
+    private List<ZScoreData> obtainTopNBestPairs(Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             throw new IllegalArgumentException("Отобрано 0 пар");
         }
@@ -121,7 +124,7 @@ public class ZScoreService {
     private void logBestPairs(List<ZScoreData> bestPairs) {
         for (int i = 0; i < bestPairs.size(); i++) {
             ZScoreData pair = bestPairs.get(i);
-            ZScoreParam latest = pair.getZscoreParams().get(pair.getZscoreParams().size() - 1);
+            ZScoreParam latest = pair.getLastZScoreParam();
             log.info(String.format("%d. Пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                     i + 1,
                     pair.getLongTicker(), pair.getShortTicker(),
@@ -137,14 +140,14 @@ public class ZScoreService {
             if (z.getZscoreParams() == null || z.getZscoreParams().isEmpty()) {
                 continue;
             }
-            ZScoreParam last = z.getZscoreParams().get(z.getZscoreParams().size() - 1); //уже отсортирован
+            ZScoreParam last = z.getLastZScoreParam(); //уже отсортирован
 
             if (best == null) {
                 best = z;
                 continue;
             }
 
-            ZScoreParam bestParam = best.getZscoreParams().get(best.getZscoreParams().size() - 1);
+            ZScoreParam bestParam = best.getLastZScoreParam();
 
             // Сравниваем по критериям:
 

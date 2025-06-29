@@ -15,4 +15,8 @@ public class ZScoreData {
     private String longTicker;
     private String shortTicker;
     private List<ZScoreParam> zscoreParams;
+
+    public ZScoreParam getLastZScoreParam() {
+        return zscoreParams.get(zscoreParams.size() - 1);
+    }
 }

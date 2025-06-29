@@ -91,4 +91,8 @@ public class PairData {
     private BigDecimal minCorr;
 
     private String exitReason;
+
+    public ZScoreParam getLastZScoreParam() {
+        return zScoreParams.get(zScoreParams.size() - 1);
+    }
 }

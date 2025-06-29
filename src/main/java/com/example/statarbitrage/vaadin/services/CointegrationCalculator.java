@@ -170,7 +170,7 @@ public class CointegrationCalculator {
     private List<ZScoreData> filterAndSortResults(List<ZScoreData> results, Settings settings) {
         return results.stream()
                 .filter(z -> {
-                    double lastZ = z.getZscoreParams().get(z.getZscoreParams().size() - 1).getZscore();
+                    double lastZ = z.getLastZScoreParam().getZscore();
                     return Math.abs(lastZ) > settings.getExitZMin();
                 })
                 .sorted((z1, z2) -> {

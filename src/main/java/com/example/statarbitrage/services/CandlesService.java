@@ -38,7 +38,7 @@ public class CandlesService {
         return candlesMap;
     }
 
-    public Map<String, List<Candle>> getcandlesMap(Settings settings) {
+    public Map<String, List<Candle>> getCandlesMap(Settings settings) {
         List<String> applicableTickers = getApplicableTickers(settings, "1D", true);
         Map<String, List<Candle>> candlesMap = getCandles(settings, applicableTickers, true);
         validateService.validateCandlesLimitAndThrow(candlesMap);
