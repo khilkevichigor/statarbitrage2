@@ -21,6 +21,7 @@ public class TestTradeProcessor {
     private final ZScoreService zScoreService;
     private final ValidateService validateService;
 
+    //todo сделать юнит тесты что бы понять как меняется Z а то ощущение что он пляшет ппц
     public void testTrade(PairData pairData) {
         long start = System.currentTimeMillis();
         log.info("Trading pair...");
