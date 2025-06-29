@@ -27,6 +27,11 @@ public class PairData {
     @Transient
     private Map<String, List<Candle>> candles;
 
+    @Transient
+    private List<Candle> longCandles;
+    @Transient
+    private List<Candle> shortCandles;
+
     @Enumerated(EnumType.STRING)
     private TradeStatus status = TradeStatus.SELECTED; // Значение по умолчанию
 

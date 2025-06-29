@@ -66,13 +66,14 @@ public class MainView extends VerticalLayout {
     private ScheduledExecutorService uiUpdateExecutor;
     private TradeAndSimulationScheduler tradeAndSimulationScheduler;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, PairMaintainerScheduler pairMaintainerScheduler) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, PairMaintainerScheduler pairMaintainerScheduler, TradeAndSimulationScheduler tradeAndSimulationScheduler) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
         this.testTradeProcessor = testTradeProcessor;
         this.statisticsService = statisticsService;
         this.pairMaintainerScheduler = pairMaintainerScheduler;
+        this.tradeAndSimulationScheduler = tradeAndSimulationScheduler;
 
         add(new H1("Welcome to StatArbitrage"));
 
@@ -225,7 +226,7 @@ public class MainView extends VerticalLayout {
             settingsService.saveSettingsInDb(settings);
             if (event.getValue()) {
 //                pairMaintainerScheduler.maintainActivePairs();
-//                tradeAndSimulationScheduler.updateTradesAndMaintainPairs();
+                tradeAndSimulationScheduler.updateTradesAndMaintainPairs(); //пока разрабатываю что б не ждать
             }
             log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
         });

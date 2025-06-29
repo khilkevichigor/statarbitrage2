@@ -47,8 +47,8 @@ public class ZScoreService {
         }
 
         // Сортировка (можно кастомизировать)
-        sortByLongTicker(rawZScoreList);
-        sortParamsByTimestamp(rawZScoreList);
+//        sortByLongTicker(rawZScoreList);
+//        sortParamsByTimestamp(rawZScoreList);
 
         return rawZScoreList;
     }
@@ -103,7 +103,7 @@ public class ZScoreService {
             throw new IllegalArgumentException("Некорректное количество пар: " + topN);
         }
 
-        log.info("Отобрано {} пар", zScoreDataList.size());
+//        log.info("Отобрано {} пар", zScoreDataList.size());
         List<ZScoreData> bestPairs = new ArrayList<>();
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
@@ -117,7 +117,7 @@ public class ZScoreService {
             }
         }
 
-        logBestPairs(bestPairs); // логируем топ-N пар
+//        logBestPairs(bestPairs); // логируем топ-N пар
         return bestPairs;
     }
 

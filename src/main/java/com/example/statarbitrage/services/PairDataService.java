@@ -5,6 +5,7 @@ import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.ZScoreData;
 import com.example.statarbitrage.model.ZScoreParam;
 import com.example.statarbitrage.repositories.PairDataRepository;
+import com.example.statarbitrage.utils.CandlesUtil;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -73,8 +74,10 @@ public class PairDataService {
 
         for (ZScoreData zScoreData : top) {
             try {
-                PairData pairData = createSinglePairData(zScoreData, candlesMap);
-                result.add(pairData);
+                List<Candle> longCandles = candlesMap.get(zScoreData.getLongTicker());
+                List<Candle> shortCandles = candlesMap.get(zScoreData.getShortTicker());
+                PairData newPairData = createPairData(zScoreData, longCandles, shortCandles);
+                result.add(newPairData);
             } catch (Exception e) {
                 log.error("Ошибка при создании PairData для пары {}/{}: {}",
                         zScoreData.getLongTicker(),
@@ -85,11 +88,19 @@ public class PairDataService {
 
         result.forEach(this::saveToDb);
 
-        log.info("Создали данные для {} пар", result.size());
+//        log.info("Создали данные для {} пар", result.size());
         return result;
     }
 
-    private PairData createSinglePairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    private static PairData createPairData(ZScoreData zScoreData, List<Candle> longCandles, List<Candle> shortCandles) {
+        // Проверяем наличие данных
+        if (longCandles == null || longCandles.isEmpty() ||
+                shortCandles == null || shortCandles.isEmpty()) {
+            log.warn("Нет данных по свечам для пары: {} - {}",
+                    zScoreData.getLongTicker(), zScoreData.getShortTicker());
+            throw new IllegalArgumentException("Отсутствуют данные свечей");
+        }
+
         PairData pairData = new PairData();
 
         pairData.setStatus(TradeStatus.SELECTED);
@@ -98,26 +109,15 @@ public class PairDataService {
         pairData.setLongTicker(zScoreData.getLongTicker());
         pairData.setShortTicker(zScoreData.getShortTicker());
         pairData.setZScoreParams(zScoreData.getZscoreParams());
-        pairData.setCandles(candlesMap);
+        pairData.setLongCandles(longCandles);
+        pairData.setShortCandles(shortCandles);
 
         // Получаем последние параметры
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
-        // Получаем свечи
-        List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
-
-        // Проверяем наличие данных
-        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
-                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}",
-                    zScoreData.getLongTicker(), zScoreData.getShortTicker());
-            throw new IllegalArgumentException("Отсутствуют данные свечей");
-        }
-
         // Устанавливаем текущие цены
-        pairData.setLongTickerCurrentPrice(longTickerCandles.get(longTickerCandles.size() - 1).getClose());
-        pairData.setShortTickerCurrentPrice(shortTickerCandles.get(shortTickerCandles.size() - 1).getClose());
+        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(longCandles));
+        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(shortCandles));
 
         // Устанавливаем статистические параметры
         pairData.setZScoreCurrent(latestParam.getZscore());
@@ -130,8 +130,10 @@ public class PairDataService {
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
 
-        // Дополнительные расчеты (если нужны)
-        calculateAdditionalMetrics(pairData);
+        if (pairData.getZScoreEntry() != 0) {
+            BigDecimal zScoreChanges = BigDecimal.valueOf(latestParam.getZscore()).subtract(BigDecimal.valueOf(pairData.getZScoreEntry()));
+            pairData.setZScoreChanges(zScoreChanges);
+        }
 
         return pairData;
     }
