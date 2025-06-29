@@ -31,11 +31,12 @@ public class ZScoreService {
         }
 
         // Убираем дубликаты по тикерам
-        reduceDuplicates(rawZScoreList);
+//        reduceDuplicates(rawZScoreList); //todo удалить все последние -Z
+//        removePairsWithNegativeLastZ(rawZScoreList); //todo можно даже так не делать тк мы берем бест с большим +Z
 
         // Применяем бизнес-валидации
-        handleNegativeZ(rawZScoreList);
-        validateService.validatePositiveZ(rawZScoreList);
+//        handleNegativeZ(rawZScoreList);
+//        validateService.validatePositiveZ(rawZScoreList);
 
         // Исключаем пары, которые уже в трейде
         if (excludeExistingPairs) {
@@ -49,7 +50,7 @@ public class ZScoreService {
         return rawZScoreList;
     }
 
-    public ZScoreData calculateZScoreDataOnUpdate(PairData pairData, Settings settings,
+    public ZScoreData calculateZScoreDataOnUpdate(Settings settings,
                                                   Map<String, List<Candle>> candlesMap) {
 
         // Получаем результат из Python
@@ -104,7 +105,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = getBestByCriteriaV2(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
                 bestPairs.add(best);
@@ -183,7 +184,7 @@ public class ZScoreService {
         return best;
     }
 
-    public Optional<ZScoreData> getBestByCriteriaV2(Settings settings, List<ZScoreData> dataList) {
+    public Optional<ZScoreData> getBestByCriteria(Settings settings, List<ZScoreData> dataList) {
         ZScoreData best = null;
         double maxZ = Double.NEGATIVE_INFINITY;
 
@@ -238,6 +239,18 @@ public class ZScoreService {
         zScoreDataList.clear();
         zScoreDataList.addAll(uniquePairs.values());
     }
+
+    public void removePairsWithNegativeLastZ(List<ZScoreData> zScoreDataList) {
+        zScoreDataList.removeIf(data -> {
+            List<ZScoreParam> params = data.getZscoreParams();
+            if (params == null || params.isEmpty()) {
+                return true; // нет данных — удаляем
+            }
+            double lastZ = params.get(params.size() - 1).getZscore();
+            return lastZ < 0; // удаляем, если Z < 0
+        });
+    }
+
 
     public void sortParamsByTimestamp(List<ZScoreData> zScoreDataList) {
         zScoreDataList.forEach(zScoreData -> zScoreData.getZscoreParams().sort(Comparator.comparingLong(ZScoreParam::getTimestamp)));

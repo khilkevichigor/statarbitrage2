@@ -26,6 +26,7 @@ public class FetchPairsProcessor {
     private final CandlesService candlesService;
     private final SettingsService settingsService;
 
+    //todo можно не переворачивать -Z а просто удалять все -Z тк пары зеркальны и мы оставим тоже самое но с +Z
     public List<PairData> fetchPairs(Integer countOfPairs) {
         long start = System.currentTimeMillis();
         log.info("Fetching pairs...");

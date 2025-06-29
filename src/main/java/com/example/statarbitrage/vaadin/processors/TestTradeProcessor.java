@@ -28,13 +28,14 @@ public class TestTradeProcessor {
         Settings settings = settingsService.getSettingsFromDb();
         if (pairData.getStatus() == TradeStatus.SELECTED) {
             if (validateService.isLastZLessThenMinZ(pairData, settings)) {
+                //если впервые прогоняем и Z<ZMin
                 pairDataService.delete(pairData);
                 log.warn("ZCurrent < ZMin, deleted pair");
             }
         }
 
         Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(pairData, settings);
-        ZScoreData zScoreData = zScoreService.calculateZScoreDataOnUpdate(pairData, settings, candlesMap); //todo -ZEntry !!!
+        ZScoreData zScoreData = zScoreService.calculateZScoreDataOnUpdate(settings, candlesMap); //todo -ZEntry !!!
         logData(zScoreData); //todo ???
         pairDataService.update(pairData, zScoreData, candlesMap);
         tradeLogService.saveFromPairData(pairData);
