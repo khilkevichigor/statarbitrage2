@@ -37,11 +37,11 @@ public class DbInitializer {
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
 
-                    .exitTake(2.0)
+                    .exitTake(1.0)
                     .exitStop(0.0)
                     .exitZMin(0.0)
                     .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
-                    .exitTimeHours(8)
+                    .exitTimeHours(1)
 
                     .usePairs(10.0)
 
