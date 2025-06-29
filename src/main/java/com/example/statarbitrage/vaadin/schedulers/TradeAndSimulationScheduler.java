@@ -29,6 +29,7 @@ public class TradeAndSimulationScheduler {
 
     @Scheduled(fixedRate = 60_000)
     public void updateTradesAndMaintainPairs() {
+        long start = System.currentTimeMillis();
         log.info("🔄 Scheduler started...");
 
         try {
@@ -66,5 +67,8 @@ public class TradeAndSimulationScheduler {
         } catch (Exception e) {
             log.error("❌ Ошибка в TradeAndSimulationScheduler", e);
         }
+
+        long end = System.currentTimeMillis();
+        log.info("⏱️ Scheduler finished in {} сек", (end - start) / 1000.0);
     }
 }

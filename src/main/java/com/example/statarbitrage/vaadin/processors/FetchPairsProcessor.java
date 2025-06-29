@@ -24,11 +24,12 @@ public class FetchPairsProcessor {
     private final ValidateService validateService;
 
     public List<PairData> fetchPairs(Integer countOfPairs) {
+        long start = System.currentTimeMillis();
         log.info("Fetching pairs...");
 
         Settings settings = settingsService.getSettingsFromDb();
-        List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
-        Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
+        List<String> applicableTickers = candlesService.getApplicableTickers(settings, "1D", true);
+        Map<String, List<Candle>> candlesMap = candlesService.getCandles(settings, applicableTickers, true);
         validateService.validateCandlesLimitAndThrow(candlesMap);
 
         List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
@@ -54,6 +55,10 @@ public class FetchPairsProcessor {
 
         List<PairData> topPairData = pairDataService.createPairDataList(topZScoreData, candlesMap);
         topPairData.forEach(pairDataService::saveToDb);
+
+        long end = System.currentTimeMillis();
+        log.info("⏱️ fetchPairs() finished in {} сек", (end - start) / 1000.0);
+
         return topPairData;
     }
 }

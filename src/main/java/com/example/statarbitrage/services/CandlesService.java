@@ -23,16 +23,13 @@ import static com.example.statarbitrage.constant.Constants.CANDLES_FILE_NAME;
 @RequiredArgsConstructor
 public class CandlesService {
     private final OkxClient okxClient;
-    private final SettingsService settingsService;
     private static final List<String> BLACK_LIST = List.of("USDC-USDT-SWAP");
 
-    public Map<String, List<Candle>> getCandles(List<String> swapTickers, boolean isSorted) {
-        Settings settings = settingsService.getSettingsFromDb();
+    public Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
         return okxClient.getCandlesMap(swapTickers, settings, isSorted);
     }
 
-    public List<String> getApplicableTickers(String timeFrame, boolean isSorted) {
-        Settings settings = settingsService.getSettingsFromDb();
+    public List<String> getApplicableTickers(Settings settings, String timeFrame, boolean isSorted) {
         List<String> swapTickers = okxClient.getAllSwapTickers(isSorted);
         return okxClient.getValidTickers(swapTickers, timeFrame, settings.getCandleLimit(), settings.getMinVolume() * 1_000_000, isSorted);
     }

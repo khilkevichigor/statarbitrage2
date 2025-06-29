@@ -2,10 +2,7 @@ package com.example.statarbitrage.processors;
 
 import com.example.statarbitrage.bot.TradeType;
 import com.example.statarbitrage.events.StartNewTradeEvent;
-import com.example.statarbitrage.model.Candle;
-import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreData;
-import com.example.statarbitrage.model.ZScoreParam;
+import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.python.PythonScripts;
 import com.example.statarbitrage.python.PythonScriptsExecuter;
 import com.example.statarbitrage.services.*;
@@ -51,8 +48,9 @@ public class ScreenerProcessor {
     public void findBest(String chatId) {
         long startTime = System.currentTimeMillis();
         removePreviousFiles();
-        List<String> applicableTickers = candlesService.getApplicableTickers("1D", true);
-        Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
+        Settings settings = settingsService.getSettingsFromDb();
+        List<String> applicableTickers = candlesService.getApplicableTickers(settings, "1D", true);
+        Map<String, List<Candle>> candlesMap = candlesService.getCandles(settings, applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                         "settings", settingsService.getSettingsFromDb(),
@@ -82,8 +80,9 @@ public class ScreenerProcessor {
             return;
         }
         try {
+            Settings settings = settingsService.getSettingsFromDb();
             PairData pairData = pairDataService.getPairData();
-            Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
+            Map<String, List<Candle>> candlesMap = candlesService.getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
             validateCandlesLimitAndThrow(candlesMap);
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
                             "settings", settingsService.getSettingsFromDb(),

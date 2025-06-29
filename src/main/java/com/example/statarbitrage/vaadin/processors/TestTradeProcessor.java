@@ -18,7 +18,6 @@ import java.util.Map;
 public class TestTradeProcessor {
     private final PairDataService pairDataService;
     private final CandlesService candlesService;
-    private final ZScoreService zScoreService;
     private final SettingsService settingsService;
     private final ValidateService validateService;
     private final TradeLogService tradeLogService;
@@ -26,7 +25,7 @@ public class TestTradeProcessor {
     public void testTrade(PairData pairData) {
         log.info("Trading pair...");
         Settings settings = settingsService.getSettingsFromDb();
-        Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
+        Map<String, List<Candle>> candlesMap = candlesService.getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
         validateService.validateCandlesLimitAndThrow(candlesMap);
 
         List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
