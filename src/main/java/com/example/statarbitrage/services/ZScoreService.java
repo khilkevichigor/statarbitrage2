@@ -1,19 +1,79 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreData;
-import com.example.statarbitrage.model.ZScoreParam;
+import com.example.statarbitrage.model.*;
+import com.example.statarbitrage.vaadin.python.PythonRestClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ZScoreService {
+
+    private final PairDataService pairDataService;
+    private final ValidateService validateService;
+
+    /**
+     * Считает Z для всех пар из свечей.
+     */
+    public List<ZScoreData> calculateZScoreData(Settings settings,
+                                                Map<String, List<Candle>> candlesMap,
+                                                boolean excludeExistingPairs) {
+
+        // Получаем результат из Python
+        List<ZScoreData> rawZScoreList = PythonRestClient.fetchZScoreData(settings, candlesMap);
+        if (rawZScoreList == null || rawZScoreList.isEmpty()) {
+            log.warn("⚠️ ZScoreService: получен пустой список от Python");
+            return Collections.emptyList();
+        }
+
+        // Убираем дубликаты по тикерам
+        reduceDuplicates(rawZScoreList);
+
+        // Применяем бизнес-валидации
+        handleNegativeZ(rawZScoreList);
+        validateService.validatePositiveZ(rawZScoreList);
+
+        // Исключаем пары, которые уже в трейде
+        if (excludeExistingPairs) {
+            pairDataService.excludeExistingTradingPairs(rawZScoreList);
+        }
+
+        // Сортировка (можно кастомизировать)
+        sortByLongTicker(rawZScoreList);
+        sortParamsByTimestamp(rawZScoreList);
+
+        return rawZScoreList;
+    }
+
+    public ZScoreData calculateZScoreDataOnUpdate(PairData pairData, Settings settings,
+                                                  Map<String, List<Candle>> candlesMap) {
+
+        // Получаем результат из Python
+        List<ZScoreData> rawZScoreList = PythonRestClient.fetchZScoreData(settings, candlesMap);
+        if (rawZScoreList == null || rawZScoreList.isEmpty()) {
+            log.warn("⚠️ ZScoreService: получен пустой список от Python");
+            throw new IllegalStateException("⚠️ ZScoreService: получен пустой список от Python");
+        }
+
+        validateService.validateSizeOfPairsAndThrow(rawZScoreList, 1);
+
+        return rawZScoreList.get(0);
+    }
+
+    /**
+     * Возвращает топ-N лучших пар.
+     */
+    public List<ZScoreData> getTopNPairs(Settings settings,
+                                         Map<String, List<Candle>> candlesMap,
+                                         int count) {
+
+        List<ZScoreData> all = calculateZScoreData(settings, candlesMap, true);
+        return obtainTopNBestPairs(settings, all, count);
+    }
 
     public ZScoreData obtainBest(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList != null && !zScoreDataList.isEmpty()) {
@@ -44,7 +104,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = getBestByCriteriaV5(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = getBestByCriteriaV2(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
                 bestPairs.add(best);
@@ -67,64 +127,6 @@ public class ZScoreService {
                     latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
             ));
         }
-    }
-
-    public List<ZScoreData> obtainTop10(List<ZScoreData> zScoreDataList) {
-        if (zScoreDataList != null && !zScoreDataList.isEmpty()) {
-            log.info("Отобрано {} пар", zScoreDataList.size());
-            List<ZScoreData> top10 = getTop10ByCriteria(zScoreDataList);
-
-            // Логируем информацию о топ-10 парах
-            for (int i = 0; i < Math.min(top10.size(), 10); i++) {
-                ZScoreData pair = top10.get(i);
-                ZScoreParam latest = pair.getZscoreParams().get(pair.getZscoreParams().size() - 1);
-                log.info(String.format("%d. Пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                        i + 1,
-                        pair.getLongTicker(), pair.getShortTicker(),
-                        latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
-                ));
-            }
-            return top10;
-        } else {
-            throw new IllegalArgumentException("Отобрано 0 пар");
-        }
-    }
-
-    private List<ZScoreData> getTop10ByCriteria(List<ZScoreData> zScoreData) {
-        // Сортируем по нашим критериям
-        zScoreData.sort((z1, z2) -> {
-            if (z1.getZscoreParams() == null || z1.getZscoreParams().isEmpty()) return 1;
-            if (z2.getZscoreParams() == null || z2.getZscoreParams().isEmpty()) return -1;
-
-            ZScoreParam last1 = z1.getZscoreParams().get(z1.getZscoreParams().size() - 1);
-            ZScoreParam last2 = z2.getZscoreParams().get(z2.getZscoreParams().size() - 1);
-
-            // Сначала сравниваем по абсолютному значению zscore (по убыванию)
-            int zScoreCompare = Double.compare(
-                    Math.abs(last2.getZscore()),
-                    Math.abs(last1.getZscore())
-            );
-            if (zScoreCompare != 0) return zScoreCompare;
-
-            // Затем по pvalue (по возрастанию)
-            int pValueCompare = Double.compare(last1.getPvalue(), last2.getPvalue());
-            if (pValueCompare != 0) return pValueCompare;
-
-            // Затем по adfpvalue (по возрастанию)
-            int adfCompare = Double.compare(last1.getAdfpvalue(), last2.getAdfpvalue());
-            if (adfCompare != 0) return adfCompare;
-
-            // Наконец по корреляции (по убыванию)
-            return Double.compare(last2.getCorrelation(), last1.getCorrelation());
-        });
-
-        // Фильтруем пары с пустыми параметрами
-        List<ZScoreData> filtered = zScoreData.stream()
-                .filter(z -> z.getZscoreParams() != null && !z.getZscoreParams().isEmpty())
-                .collect(Collectors.toList());
-
-        // Возвращаем топ-10 или меньше, если данных недостаточно
-        return filtered.stream().limit(10).collect(Collectors.toList());
     }
 
     private ZScoreData getBestByCriteria(List<ZScoreData> zScoreData) {
@@ -181,137 +183,7 @@ public class ZScoreService {
         return best;
     }
 
-    private Optional<ZScoreData> getBestByCriteriaV2(Settings settings, List<ZScoreData> zScoreData) {
-        if (zScoreData == null || zScoreData.isEmpty()) {
-            return Optional.empty();
-        }
-
-        ZScoreData best = null;
-
-        for (ZScoreData data : zScoreData) {
-            if (data.getZscoreParams() == null || data.getZscoreParams().isEmpty()) {
-                continue;
-            }
-
-            ZScoreParam last = data.getZscoreParams().get(data.getZscoreParams().size() - 1);
-
-            // Фильтрация по минимальному |zscore|
-            if (Math.abs(last.getZscore()) < settings.getExitZMin()) {
-                continue;
-            }
-
-            if (best == null) {
-                best = data;
-                continue;
-            }
-
-            ZScoreParam bestParam = best.getZscoreParams().get(best.getZscoreParams().size() - 1);
-
-            // Сравнение по критериям
-            if (Math.abs(last.getZscore()) > Math.abs(bestParam.getZscore())) {
-                best = data;
-            } else if (Math.abs(last.getZscore()) == Math.abs(bestParam.getZscore())) {
-                if (last.getPvalue() < bestParam.getPvalue()) {
-                    best = data;
-                } else if (last.getPvalue() == bestParam.getPvalue()) {
-                    if (last.getAdfpvalue() < bestParam.getAdfpvalue()) {
-                        best = data;
-                    } else if (last.getAdfpvalue() == bestParam.getAdfpvalue()) {
-                        if (last.getCorrelation() > bestParam.getCorrelation()) {
-                            best = data;
-                        }
-                    }
-                }
-            }
-        }
-
-        return Optional.ofNullable(best);
-    }
-
-    private Optional<ZScoreData> getBestByCriteriaV3(Settings settings, List<ZScoreData> zScoreDataList) {
-        ZScoreData best = null;
-
-        for (ZScoreData current : zScoreDataList) {
-            List<ZScoreParam> params = current.getZscoreParams();
-            if (params == null || params.isEmpty()) continue;
-
-            ZScoreParam currentParam = params.get(params.size() - 1);
-
-            // Пропускаем, если |z| меньше минимального значения
-            if (Math.abs(currentParam.getZscore()) < settings.getExitZMin()) continue;
-
-            if (best == null) {
-                best = current;
-                continue;
-            }
-
-            ZScoreParam bestParam = best.getZscoreParams().get(best.getZscoreParams().size() - 1);
-
-            // Приоритет 1: максимальный |zscore|
-            double absCurrentZ = Math.abs(currentParam.getZscore());
-            double absBestZ = Math.abs(bestParam.getZscore());
-
-            if (absCurrentZ > absBestZ) {
-                best = current;
-                continue;
-            } else if (absCurrentZ < absBestZ) {
-                continue;
-            }
-
-            // Приоритет 2: минимальный pvalue
-            if (currentParam.getPvalue() < bestParam.getPvalue()) {
-                best = current;
-                continue;
-            } else if (currentParam.getPvalue() > bestParam.getPvalue()) {
-                continue;
-            }
-
-            // Приоритет 3: минимальный adfpvalue
-            if (currentParam.getAdfpvalue() < bestParam.getAdfpvalue()) {
-                best = current;
-                continue;
-            } else if (currentParam.getAdfpvalue() > bestParam.getAdfpvalue()) {
-                continue;
-            }
-
-            // Приоритет 4: максимальная корреляция
-            if (currentParam.getCorrelation() > bestParam.getCorrelation()) {
-                best = current;
-            }
-        }
-
-        return Optional.ofNullable(best);
-    }
-
-    public Optional<ZScoreData> getBestByCriteriaV4(Settings settings, List<ZScoreData> zScoreDataList) {
-        return zScoreDataList.stream()
-                .filter(z -> {
-                    List<ZScoreParam> params = z.getZscoreParams();
-                    return params != null && !params.isEmpty()
-                            && Math.abs(params.get(params.size() - 1).getZscore()) >= settings.getExitZMin();
-                })
-                .min((a, b) -> {
-                    ZScoreParam pa = a.getZscoreParams().get(a.getZscoreParams().size() - 1);
-                    ZScoreParam pb = b.getZscoreParams().get(b.getZscoreParams().size() - 1);
-
-                    // Приоритет 1: максимальный |zscore| (по убыванию, поэтому минус)
-                    int cmp = Double.compare(Math.abs(pb.getZscore()), Math.abs(pa.getZscore()));
-                    if (cmp != 0) return cmp;
-
-                    // Приоритет 2: минимальный pvalue
-                    cmp = Double.compare(pa.getPvalue(), pb.getPvalue());
-                    if (cmp != 0) return cmp;
-
-                    // Приоритет 3: минимальный adfpvalue
-                    cmp = Double.compare(pa.getAdfpvalue(), pb.getAdfpvalue());
-                    if (cmp != 0) return cmp;
-
-                    // Приоритет 4: максимальная корреляция (по убыванию)
-                    return Double.compare(pb.getCorrelation(), pa.getCorrelation());
-                });
-    }
-
-    public Optional<ZScoreData> getBestByCriteriaV5(Settings settings, List<ZScoreData> dataList) {
+    public Optional<ZScoreData> getBestByCriteriaV2(Settings settings, List<ZScoreData> dataList) {
         ZScoreData best = null;
         double maxZ = Double.NEGATIVE_INFINITY;
 

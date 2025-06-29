@@ -49,6 +49,19 @@ public class ValidateService {
         return false;
     }
 
+    public boolean isLastZLessThenMinZ(PairData pairData, Settings settings) {
+        if (pairData == null) {
+            throw new IllegalArgumentException("pairData is null");
+        }
+        if (pairData.getZScoreCurrent() < settings.getMinZ()) {
+            log.warn("Skip this pair {{}} - {{}}. Z-score {{}} < minZ {{}}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), pairData.getZScoreCurrent(), settings.getMinZ());
+            return true;
+        }
+
+        return false;
+    }
+
     public void validatePositiveZAndThrow(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             throw new IllegalArgumentException("ZScoreData list is null or empty");

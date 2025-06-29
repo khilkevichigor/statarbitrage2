@@ -2,13 +2,11 @@ package com.example.statarbitrage.vaadin.processors;
 
 import com.example.statarbitrage.model.*;
 import com.example.statarbitrage.services.*;
-import com.example.statarbitrage.vaadin.python.PythonRestClient;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -19,35 +17,30 @@ public class TestTradeProcessor {
     private final PairDataService pairDataService;
     private final CandlesService candlesService;
     private final SettingsService settingsService;
-    private final ValidateService validateService;
     private final TradeLogService tradeLogService;
+    private final ZScoreService zScoreService;
+    private final ValidateService validateService;
 
     public void testTrade(PairData pairData) {
+        long start = System.currentTimeMillis();
         log.info("Trading pair...");
+
         Settings settings = settingsService.getSettingsFromDb();
-        Map<String, List<Candle>> candlesMap = candlesService.getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
-        validateService.validateCandlesLimitAndThrow(candlesMap);
-
-        List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
-                settings,
-                candlesMap
-        );
-        validateService.validateSizeOfPairsAndThrow(zScoreDataList, 1);
-
-        ZScoreData zScoreData = zScoreDataList.get(0);
-
         if (pairData.getStatus() == TradeStatus.SELECTED) {
-            //готовим перед трейдами
-//            zScoreService.handleNegativeZ(Collections.singletonList(zScoreData));
-//            validateService.validatePositiveZAndThrow(Collections.singletonList(zScoreData));
-            if (validateService.isLastZLessThenMinZ(Collections.singletonList(zScoreData), settings)) {
-                return;
+            if (validateService.isLastZLessThenMinZ(pairData, settings)) {
+                pairDataService.delete(pairData);
+                log.warn("ZCurrent < ZMin, deleted pair");
             }
         }
 
-        logData(zScoreData);
+        Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(pairData, settings);
+        ZScoreData zScoreData = zScoreService.calculateZScoreDataOnUpdate(pairData, settings, candlesMap);
+        logData(zScoreData); //todo ???
         pairDataService.update(pairData, zScoreData, candlesMap);
         tradeLogService.saveFromPairData(pairData);
+
+        long end = System.currentTimeMillis();
+        log.info("⏱️ testTrade() finished in {} сек", (end - start) / 1000.0);
     }
 
     private static void logData(ZScoreData zScoreData) {

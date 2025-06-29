@@ -3,6 +3,7 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
 import com.example.statarbitrage.api.OkxClient;
 import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,11 +23,26 @@ import static com.example.statarbitrage.constant.Constants.CANDLES_FILE_NAME;
 @Service
 @RequiredArgsConstructor
 public class CandlesService {
+    private final ValidateService validateService;
+
     private final OkxClient okxClient;
     private static final List<String> BLACK_LIST = List.of("USDC-USDT-SWAP");
 
     public Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
         return okxClient.getCandlesMap(swapTickers, settings, isSorted);
+    }
+
+    public Map<String, List<Candle>> getCandlesMap(PairData pairData, Settings settings) {
+        Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
+        validateService.validateCandlesLimitAndThrow(candlesMap);
+        return candlesMap;
+    }
+
+    public Map<String, List<Candle>> getcandlesMap(Settings settings) {
+        List<String> applicableTickers = getApplicableTickers(settings, "1D", true);
+        Map<String, List<Candle>> candlesMap = getCandles(settings, applicableTickers, true);
+        validateService.validateCandlesLimitAndThrow(candlesMap);
+        return candlesMap;
     }
 
     public List<String> getApplicableTickers(Settings settings, String timeFrame, boolean isSorted) {

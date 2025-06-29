@@ -83,6 +83,8 @@ public class PairDataService {
             }
         }
 
+        result.forEach(this::saveToDb);
+
         log.info("Создали данные для {} пар", result.size());
         return result;
     }
@@ -252,6 +254,10 @@ public class PairDataService {
 
     public int deleteAllByStatus(TradeStatus status) {
         return pairDataRepository.deleteAllByStatus(status);
+    }
+
+    public void delete(PairData pairData) {
+        pairDataRepository.delete(pairData);
     }
 
     public void excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {

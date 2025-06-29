@@ -4,14 +4,18 @@ import com.example.statarbitrage.model.Candle;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.example.statarbitrage.model.ZScoreData;
-import com.example.statarbitrage.services.*;
-import com.example.statarbitrage.vaadin.python.PythonRestClient;
+import com.example.statarbitrage.services.CandlesService;
+import com.example.statarbitrage.services.PairDataService;
+import com.example.statarbitrage.services.SettingsService;
+import com.example.statarbitrage.services.ZScoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+
+//todo проверять были ли Z ниже -2 и выше +2
 
 @Slf4j
 @Service
@@ -21,44 +25,20 @@ public class FetchPairsProcessor {
     private final ZScoreService zScoreService;
     private final CandlesService candlesService;
     private final SettingsService settingsService;
-    private final ValidateService validateService;
 
     public List<PairData> fetchPairs(Integer countOfPairs) {
         long start = System.currentTimeMillis();
         log.info("Fetching pairs...");
 
         Settings settings = settingsService.getSettingsFromDb();
-        List<String> applicableTickers = candlesService.getApplicableTickers(settings, "1D", true);
-        Map<String, List<Candle>> candlesMap = candlesService.getCandles(settings, applicableTickers, true);
-        validateService.validateCandlesLimitAndThrow(candlesMap);
-
-        List<ZScoreData> zScoreDataList = PythonRestClient.fetchZScoreData(
-                settings,
-                candlesMap
-        );
-
-        //todo проверять были ли Z ниже -2 и выше +2
-
-        // Обработка результатов
-        zScoreService.reduceDuplicates(zScoreDataList);
-
-        zScoreService.handleNegativeZ(zScoreDataList);
-        validateService.validatePositiveZ(zScoreDataList);
-
-        pairDataService.excludeExistingTradingPairs(zScoreDataList);
-
-        zScoreService.sortByLongTicker(zScoreDataList);
-
-        zScoreService.sortParamsByTimestampV2(zScoreDataList);
-
-        List<ZScoreData> topZScoreData = zScoreService.obtainTopNBestPairs(settings, zScoreDataList, countOfPairs != null ? countOfPairs : (int) settings.getUsePairs());
-
-        List<PairData> topPairData = pairDataService.createPairDataList(topZScoreData, candlesMap);
-        topPairData.forEach(pairDataService::saveToDb);
+        Map<String, List<Candle>> candlesMap = candlesService.getcandlesMap(settings);
+        int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();
+        List<ZScoreData> zScoreDataList = zScoreService.getTopNPairs(settings, candlesMap, count);
+        List<PairData> topPairs = pairDataService.createPairDataList(zScoreDataList, candlesMap);
 
         long end = System.currentTimeMillis();
         log.info("⏱️ fetchPairs() finished in {} сек", (end - start) / 1000.0);
 
-        return topPairData;
+        return topPairs;
     }
 }
