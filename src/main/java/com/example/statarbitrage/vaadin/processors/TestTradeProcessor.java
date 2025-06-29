@@ -34,7 +34,7 @@ public class TestTradeProcessor {
         }
 
         Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(pairData, settings);
-        ZScoreData zScoreData = zScoreService.calculateZScoreDataOnUpdate(pairData, settings, candlesMap);
+        ZScoreData zScoreData = zScoreService.calculateZScoreDataOnUpdate(pairData, settings, candlesMap); //todo -ZEntry !!!
         logData(zScoreData); //todo ???
         pairDataService.update(pairData, zScoreData, candlesMap);
         tradeLogService.saveFromPairData(pairData);

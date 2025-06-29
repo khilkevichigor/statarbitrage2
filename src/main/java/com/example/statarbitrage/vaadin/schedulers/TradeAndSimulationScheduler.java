@@ -27,7 +27,7 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(fixedRate = 60_000)
+    @Scheduled(fixedRate = 120_000)
     public void updateTradesAndMaintainPairs() {
         long start = System.currentTimeMillis();
         log.info("🔄 Scheduler started...");
