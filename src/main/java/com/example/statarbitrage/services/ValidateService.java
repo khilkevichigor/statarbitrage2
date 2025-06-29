@@ -77,7 +77,7 @@ public class ValidateService {
             throw new IllegalArgumentException("Candles map cannot be null!");
         }
 
-        Settings settings = settingsService.getSettingsFromJson();
+        Settings settings = settingsService.getSettingsFromDb();
         double candleLimit = settings.getCandleLimit();
 
         candlesMap.forEach((ticker, candles) -> {

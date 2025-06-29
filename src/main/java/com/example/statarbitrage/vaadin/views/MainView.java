@@ -9,6 +9,7 @@ import com.example.statarbitrage.services.StatisticsService;
 import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
 import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.schedulers.PairMaintainerScheduler;
+import com.example.statarbitrage.vaadin.schedulers.TradeAndSimulationScheduler;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -63,6 +64,7 @@ public class MainView extends VerticalLayout {
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
+    private TradeAndSimulationScheduler tradeAndSimulationScheduler;
 
     public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, PairMaintainerScheduler pairMaintainerScheduler) {
         this.fetchPairsProcessor = fetchPairsProcessor;
@@ -174,7 +176,6 @@ public class MainView extends VerticalLayout {
         return value == null ? "n/a" : value.setScale(2, RoundingMode.HALF_UP).toString();
     }
 
-
     //для обновления UI
     @Override
     protected void onAttach(AttachEvent attachEvent) {
@@ -223,7 +224,8 @@ public class MainView extends VerticalLayout {
             settings.setSimulationEnabled(event.getValue());
             settingsService.saveSettingsInDb(settings);
             if (event.getValue()) {
-                pairMaintainerScheduler.maintainActivePairs();
+//                pairMaintainerScheduler.maintainActivePairs();
+//                tradeAndSimulationScheduler.updateTradesAndMaintainPairs();
             }
             log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
         });

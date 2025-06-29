@@ -8,7 +8,6 @@ import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,7 +20,8 @@ public class TradesUpdateScheduler {
     private final TestTradeProcessor testTradeProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(cron = "5 * * * * *")
+    //    @Scheduled(cron = "5 * * * * *")
+//    @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void updateTrades() {
         log.info("Starting update trades by scheduler...");
         try {

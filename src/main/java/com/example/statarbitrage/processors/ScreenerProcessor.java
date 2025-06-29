@@ -55,7 +55,7 @@ public class ScreenerProcessor {
         Map<String, List<Candle>> candlesMap = candlesService.getCandles(applicableTickers, true);
         validateCandlesLimitAndThrow(candlesMap);
         List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
-                        "settings", settingsService.getSettingsFromJson(),
+                        "settings", settingsService.getSettingsFromDb(),
                         "candles_map", candlesMap,
                         "mode", "send_best_chart" //чтобы отфильтровать плохие пары
                 ),
@@ -86,7 +86,7 @@ public class ScreenerProcessor {
             Map<String, List<Candle>> candlesMap = candlesService.getCandles(List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
             validateCandlesLimitAndThrow(candlesMap);
             List<ZScoreData> zScoreDataList = PythonScriptsExecuter.executeAndReturnObject(PythonScripts.CALC_ZSCORES.getName(), Map.of(
-                            "settings", settingsService.getSettingsFromJson(),
+                            "settings", settingsService.getSettingsFromDb(),
                             "candles_map", candlesMap,
                             "mode", "test_trade",
                             "long_ticker", pairData.getLongTicker(),

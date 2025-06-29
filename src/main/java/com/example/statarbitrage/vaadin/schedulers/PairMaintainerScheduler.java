@@ -11,7 +11,6 @@ import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -26,7 +25,8 @@ public class PairMaintainerScheduler {
     private final EventSendService eventSendService;
     private final TestTradeProcessor testTradeProcessor;
 
-    @Scheduled(cron = "35 * * * * *")
+    //    @Scheduled(cron = "35 * * * * *")
+//    @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void maintainActivePairs() {
         Settings settings = settingsService.getSettingsFromDb();
         if (!settings.isSimulationEnabled()) {
