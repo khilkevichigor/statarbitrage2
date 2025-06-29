@@ -1,7 +1,9 @@
 package com.example.statarbitrage.vaadin.schedulers;
 
+import com.example.statarbitrage.events.UpdateUiEvent;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
@@ -22,6 +24,7 @@ public class SimulationScheduler {
     private final PairDataService pairDataService;
     private final TestTradeProcessor testTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
+    private final EventSendService eventSendService;
 
     @Scheduled(fixedRate = 1 * 60 * 1_000)
     public void runSimulationStep() {
@@ -44,6 +47,7 @@ public class SimulationScheduler {
     private void initializeSimulation(Settings settings) {
         // Очищаем старые SELECTED пары
         pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+        eventSendService.updateUI(UpdateUiEvent.builder().build());
 
         // Загружаем начальный набор пар
         List<PairData> initialPairs = fetchPairsProcessor.fetchPairs();
@@ -52,6 +56,7 @@ public class SimulationScheduler {
         initialPairs.stream()
                 .limit((int) settings.getUsePairs())
                 .forEach(testTradeProcessor::testTrade);
+        eventSendService.updateUI(UpdateUiEvent.builder().build());
     }
 
     private void simulationStep(Settings settings) {
@@ -61,12 +66,14 @@ public class SimulationScheduler {
 
             // 2. Обновляем данные и проверяем условия выхода
             tradingPairs.forEach(testTradeProcessor::testTrade);
+            eventSendService.updateUI(UpdateUiEvent.builder().build());
 
             // 3. Добираем новые пары до MAX_ACTIVE_PAIRS
             int usePairs = (int) settings.getUsePairs();
             if (tradingPairs.size() < usePairs) {
                 int neededPairs = usePairs - tradingPairs.size();
                 fetchAndStartNewPairs(neededPairs);
+                eventSendService.updateUI(UpdateUiEvent.builder().build());
             }
         } catch (Exception e) {
             log.error("Ошибка в шаге симуляции", e);
