@@ -15,57 +15,7 @@ import java.math.RoundingMode;
 public class ChangesService {
     private final SettingsService settingsService;
 
-//    private BigDecimal maxProfit = null;
-//    private BigDecimal minProfit = null;
-//    private BigDecimal maxZ = null;
-//    private BigDecimal minZ = null;
-//    private BigDecimal maxLong = null;
-//    private BigDecimal minLong = null;
-//    private BigDecimal maxShort = null;
-//    private BigDecimal minShort = null;
-//    private BigDecimal maxCorr = null;
-//    private BigDecimal minCorr = null;
-//    private long entryTime = -1;
-//    private long maxProfitTime = -1;
-//    private long minProfitTime = -1;
-//
-//    @EventListener
-//    public void onResetProfitEvent(ResetProfitEvent event) {
-//        resetToDefault();
-//    }
-//
-//    private void resetToDefault() {
-//        maxProfit = null;
-//        minProfit = null;
-//        entryTime = -1;
-//        maxProfitTime = -1;
-//        minProfitTime = -1;
-//
-//        maxZ = null;
-//        minZ = null;
-//        maxLong = null;
-//        minLong = null;
-//        maxShort = null;
-//        minShort = null;
-//        maxCorr = null;
-//        minCorr = null;
-//    }
-
-    public void calculate(PairData pairData) {
-        BigDecimal maxProfit = null;
-        BigDecimal minProfit = null;
-        BigDecimal maxZ = null;
-        BigDecimal minZ = null;
-        BigDecimal maxLong = null;
-        BigDecimal minLong = null;
-        BigDecimal maxShort = null;
-        BigDecimal minShort = null;
-        BigDecimal maxCorr = null;
-        BigDecimal minCorr = null;
-        long entryTime = -1;
-        long maxProfitTime = -1;
-        long minProfitTime = -1;
-
+    public void calculateAndAdd(PairData pairData) {
         Settings settings = settingsService.getSettingsFromJson();
 
         double capitalLong = settings.getCapitalLong();
@@ -79,39 +29,34 @@ public class ChangesService {
         BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        BigDecimal corrEntry = BigDecimal.valueOf(pairData.getCorrelationEntry());
         BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
 
         BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                 .divide(longEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent) // шорт: считаем наоборот
+        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        BigDecimal capitalLongBD = BigDecimal.valueOf(capitalLong);
-        BigDecimal capitalShortBD = BigDecimal.valueOf(capitalShort);
-        BigDecimal totalCapital = capitalLongBD.add(capitalShortBD);
-
-        // Учитываем плечо
+        BigDecimal totalCapital = BigDecimal.valueOf(capitalLong + capitalShort);
         BigDecimal leverageBD = BigDecimal.valueOf(leverage);
-        BigDecimal effectiveLongCapital = capitalLongBD.multiply(leverageBD);
-        BigDecimal effectiveShortCapital = capitalShortBD.multiply(leverageBD);
+        BigDecimal feePct = BigDecimal.valueOf(feePctPerTrade);
 
-        BigDecimal longPL = longReturnPct.multiply(effectiveLongCapital)
+        BigDecimal longPL = longReturnPct
+                .multiply(BigDecimal.valueOf(capitalLong).multiply(leverageBD))
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
-        BigDecimal shortPL = shortReturnPct.multiply(effectiveShortCapital)
+        BigDecimal shortPL = shortReturnPct
+                .multiply(BigDecimal.valueOf(capitalShort).multiply(leverageBD))
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal totalPL = longPL.add(shortPL);
 
-        // Учёт комиссий: комиссия взимается дважды (вход и выход)
-        BigDecimal feePct = BigDecimal.valueOf(feePctPerTrade);
-        BigDecimal totalFees = effectiveLongCapital.add(effectiveShortCapital)
+        BigDecimal totalFees = BigDecimal.valueOf(capitalLong + capitalShort)
+                .multiply(leverageBD)
                 .multiply(feePct)
-                .multiply(BigDecimal.valueOf(2)) // вход и выход
+                .multiply(BigDecimal.valueOf(2)) // вход + выход
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal netPL = totalPL.subtract(totalFees);
@@ -120,118 +65,44 @@ public class ChangesService {
                 .divide(totalCapital, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        // === 💾 Сохраняем entryTime при первом вызове
-        if (entryTime == -1) {
-            entryTime = System.currentTimeMillis();
-            maxProfit = profitPercentFromTotal;
-            minProfit = profitPercentFromTotal;
-            maxProfitTime = entryTime;
-            minProfitTime = entryTime;
-        }
+        // Текущее время
+        long entryTime = pairData.getEntryTime();
+        long now = System.currentTimeMillis();
 
-        // === 🔄 Обновляем максимум и минимум
-        if (profitPercentFromTotal.compareTo(maxProfit) > 0) {
-            maxProfit = profitPercentFromTotal;
-            maxProfitTime = System.currentTimeMillis();
-        }
+        long timeInMinutesSinceEntryToMax = (now - entryTime) / (1000 * 60);
+        long timeInMinutesSinceEntryToMin = timeInMinutesSinceEntryToMax; // сейчас одинаково, т.к. только 1 точка
 
-        if (profitPercentFromTotal.compareTo(minProfit) < 0) {
-            minProfit = profitPercentFromTotal;
-            minProfitTime = System.currentTimeMillis();
-        }
-
-        if (maxZ == null || zScoreCurrent.compareTo(maxZ) > 0) {
-            maxZ = zScoreCurrent;
-        }
-        if (minZ == null || zScoreCurrent.compareTo(minZ) < 0) {
-            minZ = zScoreCurrent;
-        }
-        if (maxLong == null || longReturnPct.compareTo(maxLong) > 0) {
-            maxLong = longReturnPct;
-        }
-        if (minLong == null || longReturnPct.compareTo(minLong) < 0) {
-            minLong = longReturnPct;
-        }
-        if (maxShort == null || shortReturnPct.compareTo(maxShort) > 0) {
-            maxShort = shortReturnPct;
-        }
-        if (minShort == null || shortReturnPct.compareTo(minShort) < 0) {
-            minShort = shortReturnPct;
-        }
-        if (maxCorr == null || corrCurrent.compareTo(maxCorr) > 0) {
-            maxCorr = corrCurrent;
-        }
-        if (minCorr == null || corrCurrent.compareTo(minCorr) < 0) {
-            minCorr = corrCurrent;
-        }
-
-        long timeInMinutesSinceEntryToMax = (maxProfitTime - entryTime) / (1000 * 60); // в минутах
-        long timeInMinutesSinceEntryToMin = (minProfitTime - entryTime) / (1000 * 60);
-
+        // Округления
         BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
         BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
         BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
-        String longLogMessage = String.format(
-                "📊 LONG %s: Entry: %s, Current: %s, Changes: %s%%",
-                pairData.getLongTicker(),
-                pairData.getLongTickerEntryPrice(),
-                pairData.getLongTickerCurrentPrice(),
-                longReturnRounded
-        );
-        log.info(longLogMessage);
+        BigDecimal minProfitRounded = profitRounded;
+        BigDecimal maxProfitRounded = profitRounded;
 
-        String shortLogMessage = String.format(
-                "📉 SHORT %s: Entry: %s, Current: %s, Changes: %s%%",
-                pairData.getShortTicker(),
-                pairData.getShortTickerEntryPrice(),
-                pairData.getShortTickerCurrentPrice(),
-                shortReturnRounded
-        );
-        log.info(shortLogMessage);
+        BigDecimal minZ = zScoreCurrent;
+        BigDecimal maxZ = zScoreCurrent;
 
-        String zLogMessage = String.format(
-                "📊 Z : Entry: %s, Current: %s, Changes: %s%%",
-                pairData.getZScoreEntry(),
-                pairData.getZScoreCurrent(),
-                zScoreRounded
-        );
-        log.info(zLogMessage);
+        BigDecimal minLong = longReturnPct;
+        BigDecimal maxLong = longReturnPct;
 
-        String profitLogMessage = String.format("💰Профит (плечо %.1fx, комиссия %.2f%%) от капитала %.2f$: %s%%", leverage, feePctPerTrade, totalCapital, profitRounded);
-        log.info(profitLogMessage);
+        BigDecimal minShort = shortReturnPct;
+        BigDecimal maxShort = shortReturnPct;
 
-        // 📝 Логируем максимум, минимум и время
-        BigDecimal maxProfitRounded = maxProfit.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal minProfitRounded = minProfit.setScale(2, RoundingMode.HALF_UP);
-        String minMaxProfitLogMessage = String.format(
-                "📈 Максимальный профит: %s%%, минимальный: %s%%",
-                maxProfitRounded,
-                minProfitRounded
-        );
-        log.info(minMaxProfitLogMessage);
+        BigDecimal minCorr = corrCurrent;
+        BigDecimal maxCorr = corrCurrent;
 
-        String timeToProfitLogMessage = String.format(
-                "⏱ Время до максимального профита: %d минут, до минимального: %d минут",
-                timeInMinutesSinceEntryToMax,
-                timeInMinutesSinceEntryToMin
-        );
-        log.info(timeToProfitLogMessage);
-
-        log.info(String.format("📊 Z max/min: %s / %s", maxZ.setScale(2, RoundingMode.HALF_UP), minZ.setScale(2, RoundingMode.HALF_UP)));
-        log.info(String.format("📈 Long max/min: %s / %s", maxLong.setScale(2, RoundingMode.HALF_UP), minLong.setScale(2, RoundingMode.HALF_UP)));
-        log.info(String.format("📉 Short max/min: %s / %s", maxShort.setScale(2, RoundingMode.HALF_UP), minShort.setScale(2, RoundingMode.HALF_UP)));
-        log.info(String.format("📉 Corr max/min: %s / %s", maxCorr.setScale(2, RoundingMode.HALF_UP), minCorr.setScale(2, RoundingMode.HALF_UP)));
-
+        // ✅ Записываем в PairData
         pairData.setLongChanges(longReturnRounded);
         pairData.setShortChanges(shortReturnRounded);
         pairData.setProfitChanges(profitRounded);
         pairData.setZScoreChanges(zScoreRounded);
-        pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
-        pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
+
         pairData.setMinProfitRounded(minProfitRounded);
         pairData.setMaxProfitRounded(maxProfitRounded);
+        pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
+        pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
 
         pairData.setMinZ(minZ);
         pairData.setMaxZ(maxZ);
@@ -242,34 +113,23 @@ public class ChangesService {
         pairData.setMinCorr(minCorr);
         pairData.setMaxCorr(maxCorr);
 
+        // 📝 Логирование
+        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
+                pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
 
-//        return ChangesData.builder()
-//
-//                .longReturnRounded(longReturnRounded)
-//                .shortReturnRounded(shortReturnRounded)
-//
-//                .profitRounded(profitRounded)
-//
-//                .minProfitRounded(minProfitRounded)
-//                .maxProfitRounded(maxProfitRounded)
-//
-//                .zScoreRounded(zScoreRounded)
-//
-//                .timeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax)
-//                .timeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin)
-//
-//                .minZ(minZ)
-//                .maxZ(maxZ)
-//
-//                .minLong(minLong)
-//                .maxLong(maxLong)
-//
-//                .minShort(minShort)
-//                .maxShort(maxShort)
-//
-//                .minCorr(minCorr)
-//                .maxCorr(maxCorr)
-//
-//                .build();
+        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
+                pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
+
+        log.info("📊 Z: Entry: {}, Current: {}, ΔZ: {}",
+                zScoreEntry, zScoreCurrent, zScoreRounded);
+
+        log.info("💰 Профит (плечо {}x, комиссия {}%): {}%", leverage, feePctPerTrade, profitRounded);
+
+        log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
+        log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
+        log.info("📊 Z max/min: {} / {}", maxZ, minZ);
+        log.info("📈 Long max/min: {} / {}", maxLong, minLong);
+        log.info("📉 Short max/min: {} / {}", maxShort, minShort);
+        log.info("📉 Corr max/min: {} / {}", maxCorr, minCorr);
     }
 }

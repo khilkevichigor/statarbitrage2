@@ -378,6 +378,9 @@ public class MainView extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Long (%)").setSortable(true);
         tradingPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Short (%)").setSortable(true);
 
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getTimeInMinutesSinceEntryToMin()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Min Long Time (min)").setSortable(true);
+        tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getTimeInMinutesSinceEntryToMax()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Max Short Time (min)").setSortable(true);
+
         tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (entry)").setSortable(true);
         tradingPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (curr)").setSortable(true);
 
@@ -402,6 +405,9 @@ public class MainView extends VerticalLayout {
 
         closedPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Long (%)").setSortable(true);
         closedPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Short (%)").setSortable(true);
+
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getTimeInMinutesSinceEntryToMin()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Min Long Time (min)").setSortable(true);
+        closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getTimeInMinutesSinceEntryToMax()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Max Short Time (min)").setSortable(true);
 
         closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreEntry()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (entry)").setSortable(true);
         closedPairsGrid.addColumn(p -> BigDecimal.valueOf(p.getZScoreCurrent()).setScale(2, BigDecimal.ROUND_HALF_UP)).setHeader("Z-скор (curr)").setSortable(true);

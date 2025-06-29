@@ -188,7 +188,8 @@ public class PairDataService {
         ZScoreParam latestParam = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1);
 
         //setupEntryPointsIfNeeded
-        if (pairData.getLongTickerEntryPrice() == 0.0 || pairData.getShortTickerEntryPrice() == 0.0) {
+        if (pairData.getStatus() == TradeStatus.SELECTED) { //по статусу надежнее
+//        if (pairData.getLongTickerEntryPrice() == 0.0 || pairData.getShortTickerEntryPrice() == 0.0) {
             pairData.setLongTickerEntryPrice(aCurrentPrice);
             pairData.setShortTickerEntryPrice(bCurrentPrice);
 
@@ -222,27 +223,9 @@ public class PairDataService {
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
 
-        //calculateAndSetChanges
-        changesService.calculate(pairData);
-//        pairData.setLongChanges(changesData.getLongReturnRounded());
-//        pairData.setShortChanges(changesData.getShortReturnRounded());
-//        pairData.setProfitChanges(changesData.getProfitRounded());
-//        pairData.setZScoreChanges(changesData.getZScoreRounded());
-//        pairData.setTimeInMinutesSinceEntryToMax(changesData.getTimeInMinutesSinceEntryToMax());
-//        pairData.setTimeInMinutesSinceEntryToMin(changesData.getTimeInMinutesSinceEntryToMin());
-//        pairData.setMinProfitRounded(changesData.getMinProfitRounded());
-//        pairData.setMaxProfitRounded(changesData.getMaxProfitRounded());
+        changesService.calculateAndAdd(pairData);
 
         pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
-
-//        pairData.setMinZ(changesData.getMinZ());
-//        pairData.setMaxZ(changesData.getMaxZ());
-//        pairData.setMinLong(changesData.getMinLong());
-//        pairData.setMaxLong(changesData.getMaxLong());
-//        pairData.setMinShort(changesData.getMinShort());
-//        pairData.setMaxShort(changesData.getMaxShort());
-//        pairData.setMinCorr(changesData.getMinCorr());
-//        pairData.setMaxCorr(changesData.getMaxCorr());
 
         pairData.setExitReason(exitStrategyService.getExitReason(pairData));
 

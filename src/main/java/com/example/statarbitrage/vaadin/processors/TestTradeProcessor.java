@@ -51,10 +51,10 @@ public class TestTradeProcessor {
         tradeLogService.saveFromPairData(pairData);
     }
 
-    private static void logData(ZScoreData first) {
-        ZScoreParam latest = first.getZscoreParams().get(first.getZscoreParams().size() - 1); // последние params
+    private static void logData(ZScoreData zScoreData) {
+        ZScoreParam latest = zScoreData.getZscoreParams().get(zScoreData.getZscoreParams().size() - 1); // последние params
         log.info(String.format("Наша пара: %s/%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                first.getLongTicker(), first.getShortTicker(),
+                zScoreData.getLongTicker(), zScoreData.getShortTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));
     }
