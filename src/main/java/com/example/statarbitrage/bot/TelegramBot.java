@@ -5,7 +5,6 @@ import com.example.statarbitrage.events.SendAsPhotoEvent;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.events.StartNewTradeEvent;
 import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.processors.ScreenerProcessor;
 import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.FileService;
 import com.example.statarbitrage.services.SettingsService;
@@ -41,8 +40,8 @@ import static com.example.statarbitrage.constant.Constants.*;
 @Slf4j
 @Service
 public class TelegramBot extends TelegramLongPollingBot {
-    @Autowired
-    private ScreenerProcessor screenerProcessor;
+    //    @Autowired
+//    private ScreenerProcessor screenerProcessor;
     @Autowired
     private SettingsService settingsService;
     @Autowired
@@ -133,7 +132,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         log.info("-> {}", BotMenu.FIND.name());
         stopTestTrade(chatIdStr);
         sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
-        screenerProcessor.findBestAsync(chatIdStr);
+//        screenerProcessor.findBestAsync(chatIdStr);
     }
 
     private void getSettingsCommand(String chatIdStr) {
@@ -186,23 +185,23 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void test3commasApiCommand(String chatIdStr) {
         log.info("-> {}", BotMenu.TEST_3COMMAS_API.name());
-        screenerProcessor.test3commasApi(chatIdStr);
+//        screenerProcessor.test3commasApi(chatIdStr);
     }
 
     private void findAndTestNewTradeCommand(String chatIdStr) {
         log.info("-> {}", BotMenu.FIND_AND_START_TEST_TRADE.name());
         stopTestTrade(chatIdStr);
         sendMessage(chatIdStr, "🔍 Поиск лучшей пары запущен...");
-        screenerProcessor.findBest(chatIdStr);
+//        screenerProcessor.findBest(chatIdStr);
         startTestTrade(chatIdStr);
     }
 
     private void startRealTrade(String chatIdStr) {
-        screenerProcessor.startRealTrade(chatIdStr);
+//        screenerProcessor.startRealTrade(chatIdStr);
     }
 
     private void stopRealTrade(String chatIdStr) {
-        screenerProcessor.stopRealTrade(chatIdStr);
+//        screenerProcessor.stopRealTrade(chatIdStr);
     }
 
     private void setSettings(String text, String chatIdStr) {
@@ -243,7 +242,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         testTradeTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                screenerProcessor.testTradeAsync(chatId);
+//                screenerProcessor.testTradeAsync(chatId);
             } catch (Exception e) {
                 log.error("Ошибка в testTrade()", e);
             }

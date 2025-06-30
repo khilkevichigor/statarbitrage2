@@ -26,36 +26,12 @@ public class ValidateService {
         }
     }
 
-    public boolean isLastZLessThenMinZ(List<ZScoreData> zScoreDataList, Settings settings) {
-        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
-            throw new IllegalArgumentException("ZScoreData list is null or empty");
-        }
-
-        for (ZScoreData zScoreData : zScoreDataList) {
-            if (zScoreData == null || zScoreData.getZscoreParams() == null || zScoreData.getZscoreParams().isEmpty()) {
-                throw new IllegalArgumentException("ZScoreData or its zscoreParams is null or empty");
-            }
-
-            List<ZScoreParam> zscoreParams = zScoreData.getZscoreParams();
-            ZScoreParam latestParam = zscoreParams.get(zscoreParams.size() - 1);
-
-            double latestZ = latestParam.getZscore();
-            if (latestZ < settings.getMinZ()) {
-                log.warn("Skip this pair {{}} - {{}}. Z-score {{}} < minZ {{}}",
-                        zScoreData.getLongTicker(), zScoreData.getShortTicker(), latestZ, settings.getMinZ());
-                return true;
-            }
-        }
-        return false;
-    }
-
     public boolean isLastZLessThenMinZ(PairData pairData, Settings settings) {
         if (pairData == null) {
             throw new IllegalArgumentException("pairData is null");
         }
         if (pairData.getZScoreCurrent() < settings.getMinZ()) {
-            log.warn("Skip this pair {{}} - {{}}. Z-score {{}} < minZ {{}}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), pairData.getZScoreCurrent(), settings.getMinZ());
+            log.warn("Skip this pair {{}} - {{}}. Z-score {{}} < minZ {{}}", pairData.getLongTicker(), pairData.getShortTicker(), pairData.getZScoreCurrent(), settings.getMinZ());
             return true;
         }
 

@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 @Entity
 @Data
@@ -24,13 +23,11 @@ public class PairData {
 
     @Transient
     private List<ZScoreParam> zScoreParams;
-    @Transient
-    private Map<String, List<Candle>> candles;
 
     @Transient
-    private List<Candle> longCandles;
+    private List<Candle> longTickerCandles;
     @Transient
-    private List<Candle> shortCandles;
+    private List<Candle> shortTickerCandles;
 
     @Enumerated(EnumType.STRING)
     private TradeStatus status = TradeStatus.SELECTED; // Значение по умолчанию

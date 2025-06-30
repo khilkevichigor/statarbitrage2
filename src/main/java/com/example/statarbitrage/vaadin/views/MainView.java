@@ -7,8 +7,8 @@ import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
 import com.example.statarbitrage.services.StatisticsService;
 import com.example.statarbitrage.vaadin.processors.FetchPairsProcessor;
-import com.example.statarbitrage.vaadin.processors.TestTradeProcessor;
-import com.example.statarbitrage.vaadin.schedulers.PairMaintainerScheduler;
+import com.example.statarbitrage.vaadin.processors.StartNewTradeProcessor;
+import com.example.statarbitrage.vaadin.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.vaadin.schedulers.TradeAndSimulationScheduler;
 import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.vaadin.flow.component.AttachEvent;
@@ -53,26 +53,26 @@ public class MainView extends VerticalLayout {
 
 
     private final Binder<Settings> settingsBinder = new Binder<>(Settings.class);
-    private final TestTradeProcessor testTradeProcessor;
     private Settings currentSettings;
 
     private FetchPairsProcessor fetchPairsProcessor;
+    private StartNewTradeProcessor startNewTradeProcessor;
+    private UpdateTradeProcessor updateTradeProcessor;
     private SettingsService settingsService;
     private PairDataService pairDataService;
     private StatisticsService statisticsService; // добей в поле класса
-    private PairMaintainerScheduler pairMaintainerScheduler; // добей в поле класса
 
     private Checkbox simulationCheckbox;
     private ScheduledExecutorService uiUpdateExecutor;
     private TradeAndSimulationScheduler tradeAndSimulationScheduler;
 
-    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, TestTradeProcessor testTradeProcessor, StatisticsService statisticsService, PairMaintainerScheduler pairMaintainerScheduler, TradeAndSimulationScheduler tradeAndSimulationScheduler) {
+    public MainView(FetchPairsProcessor fetchPairsProcessor, SettingsService settingsService, PairDataService pairDataService, UpdateTradeProcessor updateTradeProcessor, StartNewTradeProcessor startNewTradeProcessor, StatisticsService statisticsService, TradeAndSimulationScheduler tradeAndSimulationScheduler) {
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.settingsService = settingsService;
         this.pairDataService = pairDataService;
-        this.testTradeProcessor = testTradeProcessor;
+        this.updateTradeProcessor = updateTradeProcessor;
+        this.startNewTradeProcessor = startNewTradeProcessor;
         this.statisticsService = statisticsService;
-        this.pairMaintainerScheduler = pairMaintainerScheduler;
         this.tradeAndSimulationScheduler = tradeAndSimulationScheduler;
 
         add(new H1("Welcome to StatArbitrage"));
@@ -436,7 +436,7 @@ public class MainView extends VerticalLayout {
 
                 //TODO: здесь открытие реальной сделки лонг/шорт
 
-                testTradeProcessor.testTrade(pair);
+                startNewTradeProcessor.startNewTrade(pair);
 
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
@@ -465,7 +465,7 @@ public class MainView extends VerticalLayout {
 
                 //TODO: здесь закрытие реальной сделки лонг/шорт
 
-                testTradeProcessor.testTrade(pair); //сначала обновим пару полностью
+                updateTradeProcessor.updateTrade(pair); //сначала обновим пару полностью
 
                 pair.setStatus(TradeStatus.CLOSED);
                 pair.setExitReason(EXIT_REASON_MANUALLY);

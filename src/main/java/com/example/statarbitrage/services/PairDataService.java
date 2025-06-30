@@ -37,7 +37,7 @@ public class PairDataService {
 
         pairData.setZScoreParams(zScoreData.getZscoreParams());
 
-        pairData.setCandles(candlesMap);
+//        pairData.setCandles(candlesMap);
 
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
@@ -74,9 +74,9 @@ public class PairDataService {
 
         for (ZScoreData zScoreData : top) {
             try {
-                List<Candle> longCandles = candlesMap.get(zScoreData.getLongTicker());
-                List<Candle> shortCandles = candlesMap.get(zScoreData.getShortTicker());
-                PairData newPairData = createPairData(zScoreData, longCandles, shortCandles);
+                List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
+                List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
+                PairData newPairData = createPairData(zScoreData, longTickerCandles, shortTickerCandles);
                 result.add(newPairData);
             } catch (Exception e) {
                 log.error("Ошибка при создании PairData для пары {}/{}: {}",
@@ -91,10 +91,10 @@ public class PairDataService {
         return result;
     }
 
-    private static PairData createPairData(ZScoreData zScoreData, List<Candle> longCandles, List<Candle> shortCandles) {
+    private static PairData createPairData(ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles) {
         // Проверяем наличие данных
-        if (longCandles == null || longCandles.isEmpty() ||
-                shortCandles == null || shortCandles.isEmpty()) {
+        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
+                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
             log.warn("Нет данных по свечам для пары: {} - {}",
                     zScoreData.getLongTicker(), zScoreData.getShortTicker());
             throw new IllegalArgumentException("Отсутствуют данные свечей");
@@ -108,15 +108,15 @@ public class PairDataService {
         pairData.setLongTicker(zScoreData.getLongTicker());
         pairData.setShortTicker(zScoreData.getShortTicker());
         pairData.setZScoreParams(zScoreData.getZscoreParams());
-        pairData.setLongCandles(longCandles);
-        pairData.setShortCandles(shortCandles);
+        pairData.setLongTickerCandles(longTickerCandles);
+        pairData.setShortTickerCandles(shortTickerCandles);
 
         // Получаем последние параметры
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         // Устанавливаем текущие цены
-        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(longCandles));
-        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(shortCandles));
+        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(longTickerCandles));
+        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(shortTickerCandles));
 
         // Устанавливаем статистические параметры
         pairData.setZScoreCurrent(latestParam.getZscore());
@@ -175,28 +175,30 @@ public class PairDataService {
         }
     }
 
-    public void update(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candles) {
-        pairData.setCandles(candles);
+    public void update(PairData pairData, ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles) {
+        // Проверяем наличие данных
+        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
+                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
+            log.warn("Нет данных по свечам для пары: {} - {}",
+                    zScoreData.getLongTicker(), zScoreData.getShortTicker());
+            throw new IllegalArgumentException("Отсутствуют данные свечей");
+        }
 
-        //updateCurrentPrices
-        List<Candle> longTickerCandles = candles.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candles.get(pairData.getShortTicker());
+        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
 
-        double aCurrentPrice = longTickerCandles.get(longTickerCandles.size() - 1).getClose();
-        double bCurrentPrice = shortTickerCandles.get(shortTickerCandles.size() - 1).getClose();
-
-        pairData.setLongTickerCurrentPrice(aCurrentPrice);
-        pairData.setShortTickerCurrentPrice(bCurrentPrice);
+        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
 
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
-        //setupEntryPointsIfNeeded
+        //Точки входа
         if (pairData.getStatus() == TradeStatus.SELECTED) { //по статусу надежнее
 
             pairData.setStatus(TradeStatus.TRADING);
 
-            pairData.setLongTickerEntryPrice(aCurrentPrice);
-            pairData.setShortTickerEntryPrice(bCurrentPrice);
+            pairData.setLongTickerEntryPrice(longTickerCurrentPrice);
+            pairData.setShortTickerEntryPrice(shortTickerCurrentPrice);
 
             pairData.setZScoreEntry(latestParam.getZscore());
             pairData.setCorrelationEntry(latestParam.getCorrelation());
