@@ -225,8 +225,7 @@ public class MainView extends VerticalLayout {
             settings.setSimulationEnabled(event.getValue());
             settingsService.saveSettingsInDb(settings);
             if (event.getValue()) {
-//                pairMaintainerScheduler.maintainActivePairs();
-                tradeAndSimulationScheduler.updateTradesAndMaintainPairs(); //пока разрабатываю что б не ждать
+                tradeAndSimulationScheduler.maintainPairs(); //пока разрабатываю что б не ждать
             }
             log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
         });

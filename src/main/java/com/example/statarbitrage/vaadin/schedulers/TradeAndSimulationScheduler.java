@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -30,12 +31,23 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(fixedRate = 120_000)
-    public void updateTradesAndMaintainPairs() {
+    private final AtomicBoolean isUpdatingTrades = new AtomicBoolean(false);
+
+
+    @Scheduled(fixedRate = 60_000)
+    public void updateTrades() {
+        if (isUpdatingTrades.get()) {
+            log.warn("⏳ updateTrades уже выполняется, пропускаем запуск");
+            return;
+        }
+
+        isUpdatingTrades.set(true); // Устанавливаем флаг
+
         long schedulerStart = System.currentTimeMillis();
-        log.info("🔄 Scheduler started...");
+        log.info("🔄 Update Trades Scheduler started...");
+
         try {
-            // 1. ВСЕГДА обновляем трейды
+            // ВСЕГДА обновляем трейды
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {
                 log.info("Update trading pairs...");
@@ -46,8 +58,35 @@ public class TradeAndSimulationScheduler {
                 log.info("✅ Обновлены {} трейдов", tradingPairs.size());
             }
 
-            // 2. ЕСЛИ симуляция включена — поддерживаем нужное количество трейдов
+            // Обновляем UI
+            eventSendService.updateUI(UpdateUiEvent.builder().build());
+        } catch (Exception e) {
+            log.error("❌ Ошибка в updateTrades()", e);
+        } finally {
+            isUpdatingTrades.set(false); // Сбрасываем флаг
+        }
+
+        long schedulerEnd = System.currentTimeMillis();
+        log.info("⏱️ Update Trades Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
+
+    }
+
+    @Scheduled(fixedRate = 120_000)
+    public void maintainPairs() {
+        long schedulerStart = System.currentTimeMillis();
+        log.info("🔄 Maintain Pairs Scheduler started...");
+        try {
+            // Ждём, пока updateTrades() завершится
+            int maxWait = 20; // максимум 20 попыток по 3000мс = 60 сек
+            int waited = 0;
+            while (isUpdatingTrades.get() && waited < maxWait) {
+                log.info("⏳ Ждём завершения updateTrades()...");
+                Thread.sleep(3_000);
+                waited++;
+            }
+            // ЕСЛИ симуляция включена — поддерживаем нужное количество трейдов
             Settings settings = settingsService.getSettingsFromDb();
+            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (settings.isSimulationEnabled()) {
                 int maxActive = (int) settings.getUsePairs();
                 int currentActive = tradingPairs.size();
@@ -82,14 +121,14 @@ public class TradeAndSimulationScheduler {
                 }
             }
 
-            // 3. Обновляем UI
+            // Обновляем UI
             eventSendService.updateUI(UpdateUiEvent.builder().build());
 
         } catch (Exception e) {
-            log.error("❌ Ошибка в TradeAndSimulationScheduler", e);
+            log.error("❌ Ошибка в maintainPairs()", e);
         }
 
         long schedulerEnd = System.currentTimeMillis();
-        log.info("⏱️ Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
+        log.info("⏱️ Maintain Pairs Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
     }
 }
