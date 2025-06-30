@@ -30,8 +30,9 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(fixedRate = 9120_000)
+    @Scheduled(fixedRate = 120_000)
     public void updateTradesAndMaintainPairs() {
+        long schedulerStart = System.currentTimeMillis();
         log.info("🔄 Scheduler started...");
         try {
             // 1. ВСЕГДА обновляем трейды
@@ -87,5 +88,8 @@ public class TradeAndSimulationScheduler {
         } catch (Exception e) {
             log.error("❌ Ошибка в TradeAndSimulationScheduler", e);
         }
+
+        long schedulerEnd = System.currentTimeMillis();
+        log.info("⏱️ Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
     }
 }

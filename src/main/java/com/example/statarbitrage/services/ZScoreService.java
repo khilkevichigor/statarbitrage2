@@ -88,7 +88,7 @@ public class ZScoreService {
 
             boolean isIncompleteByZ = data.getLastZScoreParam().getZscore() <= settings.getMinZ();
             if (isIncompleteByZ) {
-                log.warn("❌ Удаляем пару {} / {} — Z={} < MinZ={})",
+                log.warn("❌ Удаляем пару {} / {} — Z={} < MinZ={}",
                         data.getLongTicker(), data.getShortTicker(), data.getLastZScoreParam().getZscore(), settings.getMinZ());
             }
             return isIncompleteBySize || isIncompleteByZ;
