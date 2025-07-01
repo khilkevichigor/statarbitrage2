@@ -181,17 +181,18 @@ public class MainView extends VerticalLayout {
                 new StatisticRow("Сделки", stats.getTradesToday(), stats.getTradesTotal()),
                 new StatisticRow("Avg Профит (%)", format(stats.getAvgProfitToday()), format(stats.getAvgProfitTotal())),
 
-//                new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
-                new StatisticRow("Профит нереализованный (%)", format(stats.getSumProfitUnrealized()), ""),
-                new StatisticRow("Профит реализованный (%)", format(stats.getSumProfitRealized()), ""),
-                new StatisticRow("Профит общий (%)", format(stats.getSumProfitCombined()), ""),
+                new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
 
                 new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
                 new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
                 new StatisticRow("Выход: Z MIN", stats.getExitByZMinToday(), stats.getExitByZMinTotal()),
                 new StatisticRow("Выход: Z MAX", stats.getExitByZMaxToday(), stats.getExitByZMaxTotal()),
                 new StatisticRow("Выход: TIME", stats.getExitByTimeToday(), stats.getExitByTimeTotal()),
-                new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal())
+                new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal()),
+
+                new StatisticRow("Профит нереализованный (%)", "", format(stats.getSumProfitUnrealized())),
+                new StatisticRow("Профит реализованный (%)", "", format(stats.getSumProfitRealized())),
+                new StatisticRow("Профит общий (%)", "", format(stats.getSumProfitCombined()))
         ));
 
         layout.add(grid);
