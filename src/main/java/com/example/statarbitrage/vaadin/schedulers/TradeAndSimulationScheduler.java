@@ -32,16 +32,17 @@ public class TradeAndSimulationScheduler {
     private final EventSendService eventSendService;
 
     private final AtomicBoolean isUpdatingTrades = new AtomicBoolean(false);
+    private final AtomicBoolean isMaintainPairs = new AtomicBoolean(false);
 
 
     @Scheduled(fixedRate = 60_000)
     public void updateTrades() {
-        if (isUpdatingTrades.get()) {
-            log.warn("⏳ updateTrades уже выполняется, пропускаем запуск");
-            return;
-        }
-
-        isUpdatingTrades.set(true); // Устанавливаем флаг
+//        if (isUpdatingTrades.get()) {
+//            log.warn("⏳ updateTrades уже выполняется, пропускаем запуск");
+//            return;
+//        }
+//
+//        isUpdatingTrades.set(true); // Устанавливаем флаг
 
         long schedulerStart = System.currentTimeMillis();
         log.info("🔄 Update Trades Scheduler started...");
@@ -71,19 +72,27 @@ public class TradeAndSimulationScheduler {
 
     }
 
-    @Scheduled(fixedRate = 120_000)
+    @Scheduled(fixedRate = 180_000)
     public void maintainPairs() {
+//        if (isMaintainPairs.get()) {
+//            log.warn("⏳ maintainPairs уже выполняется, пропускаем запуск");
+//            return;
+//        }
+//
+//        isMaintainPairs.set(true); // Устанавливаем флаг
+//
+//        // Ждём, пока updateTrades() завершится чтобы не мешать логи
+//        int maxWait = 20; // максимум 20 попыток по 3000мс = 60 сек
+//        int waited = 0;
+//        while (isUpdatingTrades.get() && waited < maxWait) {
+//            log.info("⏳ Ждём завершения updateTrades()...");
+//            ThreadUtil.sleep(3_000);
+//            waited++;
+//        }
+
         long schedulerStart = System.currentTimeMillis();
         log.info("🔄 Maintain Pairs Scheduler started...");
         try {
-            // Ждём, пока updateTrades() завершится
-            int maxWait = 20; // максимум 20 попыток по 3000мс = 60 сек
-            int waited = 0;
-            while (isUpdatingTrades.get() && waited < maxWait) {
-                log.info("⏳ Ждём завершения updateTrades()...");
-                Thread.sleep(3_000);
-                waited++;
-            }
             // ЕСЛИ симуляция включена — поддерживаем нужное количество трейдов
             Settings settings = settingsService.getSettingsFromDb();
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
@@ -126,6 +135,8 @@ public class TradeAndSimulationScheduler {
 
         } catch (Exception e) {
             log.error("❌ Ошибка в maintainPairs()", e);
+        } finally {
+            isMaintainPairs.set(false); // Сбрасываем флаг
         }
 
         long schedulerEnd = System.currentTimeMillis();

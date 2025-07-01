@@ -35,4 +35,7 @@ public class TradeStatisticsDto {
 
     private long exitByTimeToday;
     private long exitByTimeTotal;
+
+    private long exitByManuallyToday;
+    private long exitByManuallyTotal;
 }

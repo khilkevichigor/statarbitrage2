@@ -2,6 +2,7 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.TradeStatisticsDto;
+import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.repositories.TradeLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static com.example.statarbitrage.constant.Constants.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
     private final EventSendService eventSendService;
 
+    private final PairDataRepository pairDataRepository;
     private final TradeLogRepository tradeLogRepository;
 
     @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще
@@ -95,20 +99,33 @@ public class StatisticsService {
                 .sumProfitToday(tradeLogRepository.getSumProfitToday())
                 .sumProfitTotal(tradeLogRepository.getSumProfitTotal())
 
-                .exitByStopToday(tradeLogRepository.getExitByStopToday())
-                .exitByStopTotal(tradeLogRepository.getExitByStopTotal())
+//                .exitByStopToday(tradeLogRepository.getExitByStopToday())
+//                .exitByStopTotal(tradeLogRepository.getExitByStopTotal())
+                .exitByStopToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_STOP))
+                .exitByStopTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_STOP))
 
-                .exitByTakeToday(tradeLogRepository.getExitByTakeToday())
-                .exitByTakeTotal(tradeLogRepository.getExitByTakeTotal())
+//                .exitByTakeToday(tradeLogRepository.getExitByTakeToday())
+//                .exitByTakeTotal(tradeLogRepository.getExitByTakeTotal())
+                .exitByTakeToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_TAKE))
+                .exitByTakeTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_TAKE))
 
-                .exitByZMinToday(tradeLogRepository.getExitByZMinToday())
-                .exitByZMinTotal(tradeLogRepository.getExitByZMinTotal())
+//                .exitByZMinToday(tradeLogRepository.getExitByZMinToday())
+//                .exitByZMinTotal(tradeLogRepository.getExitByZMinTotal())
+                .exitByZMinToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_Z_MIN))
+                .exitByZMinTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_Z_MIN))
 
-                .exitByZMaxToday(tradeLogRepository.getExitByZMaxToday())
-                .exitByZMaxTotal(tradeLogRepository.getExitByZMaxTotal())
+//                .exitByZMaxToday(tradeLogRepository.getExitByZMaxToday())
+//                .exitByZMaxTotal(tradeLogRepository.getExitByZMaxTotal())
+                .exitByZMaxToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_Z_MAX))
+                .exitByZMaxTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_Z_MAX))
 
-                .exitByTimeToday(tradeLogRepository.getExitByTimeToday())
-                .exitByTimeTotal(tradeLogRepository.getExitByTimeTotal())
+//                .exitByTimeToday(tradeLogRepository.getExitByTimeToday())
+//                .exitByTimeTotal(tradeLogRepository.getExitByTimeTotal())
+                .exitByTimeToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_TIME))
+                .exitByTimeTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_TIME))
+
+                .exitByManuallyToday(tradeLogRepository.getExitByToday(EXIT_REASON_MANUALLY))
+                .exitByManuallyTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_MANUALLY))
 
                 .build();
     }
