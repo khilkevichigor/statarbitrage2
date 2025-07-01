@@ -1,5 +1,8 @@
 package com.example.statarbitrage.services;
 
+import lombok.Getter;
+
+@Getter
 public enum TradeStatus {
     SELECTED("Отобрано"),
     TRADING("Торгуется"),
@@ -11,7 +14,4 @@ public enum TradeStatus {
         this.displayName = displayName;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
 }

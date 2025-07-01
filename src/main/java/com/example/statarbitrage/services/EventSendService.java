@@ -1,6 +1,8 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.events.*;
+import com.example.statarbitrage.events.SendAsPhotoEvent;
+import com.example.statarbitrage.events.SendAsTextEvent;
+import com.example.statarbitrage.events.UpdateUiEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -17,14 +19,6 @@ public class EventSendService {
     }
 
     public void sendTelegramMessageAsPhotoEvent(SendAsPhotoEvent event) {
-        applicationEventPublisher.publishEvent(event);
-    }
-
-    public void sendResetProfitEvent(ResetProfitEvent event) {
-        applicationEventPublisher.publishEvent(event);
-    }
-
-    public void sendStartNewTradeEvent(StartNewTradeEvent event) {
         applicationEventPublisher.publishEvent(event);
     }
 

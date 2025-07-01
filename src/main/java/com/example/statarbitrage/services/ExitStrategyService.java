@@ -22,11 +22,6 @@ public class ExitStrategyService {
         long entryTimeMillis = pairData.getEntryTime();
         long nowMillis = System.currentTimeMillis();
 
-//        if (zScoreEntry <= 0) { //todo зачем???
-//            log.error("zScoreEntry {{}} <= 0", zScoreEntry);
-//            throw new RuntimeException("zScoreEntry {" + zScoreEntry + "} <= 0");
-//        }
-
         // Проверка прибыли
         if (settings.getExitStop() != 0.0 && profit <= settings.getExitStop()) {
             log.info("Выход по стопу: profit = {}%", profit);

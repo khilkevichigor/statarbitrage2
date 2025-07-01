@@ -6,18 +6,14 @@ import com.example.statarbitrage.dto.ZScoreParam;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.utils.CandlesUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.example.statarbitrage.constant.Constants.PAIR_DATA_FILE_NAME;
 
 @Slf4j
 @Service
@@ -27,46 +23,6 @@ public class PairDataService {
     private final ExitStrategyService exitStrategyService;
     private final PairDataRepository pairDataRepository;
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    public PairData createPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
-        PairData pairData = new PairData();
-
-        pairData.setLongTicker(zScoreData.getLongTicker());
-        pairData.setShortTicker(zScoreData.getShortTicker());
-
-        pairData.setZScoreParams(zScoreData.getZscoreParams());
-
-//        pairData.setCandles(candlesMap);
-
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-
-        List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
-
-        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
-                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getLongTicker(), zScoreData.getShortTicker());
-        }
-
-        pairData.setLongTickerCurrentPrice(longTickerCandles.get(longTickerCandles.size() - 1).getClose());
-        pairData.setShortTickerCurrentPrice(shortTickerCandles.get(shortTickerCandles.size() - 1).getClose());
-
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
-
-        saveToJson(pairData);
-
-        log.info("Создали pair_data.json");
-
-        return pairData;
-    }
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();
@@ -134,44 +90,6 @@ public class PairDataService {
         }
 
         return pairData;
-    }
-
-    private void calculateAdditionalMetrics(PairData pairData) {
-        // Здесь можно добавить дополнительные расчеты метрик
-        // Например:
-        BigDecimal zScoreChanges = BigDecimal.valueOf(pairData.getZScoreCurrent())
-                .subtract(BigDecimal.valueOf(pairData.getZScoreEntry()));
-        pairData.setZScoreChanges(zScoreChanges);
-
-        // Добавьте другие расчеты по необходимости
-    }
-
-    public PairData getPairData() {
-        PairData pairData = readPairDataJson(PAIR_DATA_FILE_NAME);
-        if (pairData == null) {
-            String message = "⚠️pair_data.json пустой или не найден";
-            log.warn(message);
-            throw new RuntimeException(message);
-        }
-        return pairData;
-    }
-
-    public PairData readPairDataJson(String entryDataJsonFilePath) {
-        try {
-            return MAPPER.readValue(new File(entryDataJsonFilePath), new TypeReference<>() {
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public void saveToJson(PairData pairData) {
-        try {
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(PAIR_DATA_FILE_NAME), pairData);
-        } catch (Exception e) {
-            log.error("Ошибка при записи pair_data.json: {}", e.getMessage(), e);
-        }
     }
 
     public void update(PairData pairData, ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles) {
@@ -285,10 +203,6 @@ public class PairDataService {
         List<String> sorted = Arrays.asList(ticker1, ticker2);
         Collections.sort(sorted);
         return sorted.get(0) + "-" + sorted.get(1);
-    }
-
-    public int countByStatus(TradeStatus status) {
-        return pairDataRepository.countByStatus(status);
     }
 
     public BigDecimal getUnrealizedProfitTotal() {

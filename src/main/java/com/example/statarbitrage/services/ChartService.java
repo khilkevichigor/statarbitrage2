@@ -21,7 +21,6 @@ import static com.example.statarbitrage.constant.Constants.CHARTS_DIR;
 public class ChartService {
     private final EventSendService eventSendService;
 
-
     public void clearChartDir() {
         File dir = new File(CHARTS_DIR);
         if (dir.exists() && dir.isDirectory()) {

@@ -1,10 +1,6 @@
 package com.example.statarbitrage.constant;
 
 public interface Constants {
-    String SET_SETTINGS = "/set_settings";
-    String SET_SETTINGS_SHORT = "/ss";
-
-    String Z_SCORE_FILE_NAME = "z_score.json";
     String PAIR_DATA_FILE_NAME = "pair_data.json";
     String CANDLES_FILE_NAME = "candles.json";
     String SETTINGS_FILE_NAME = "settings.json";
@@ -26,27 +22,9 @@ public interface Constants {
                     "exit_reason," +
                     "entry_time," +
                     "timestamp";
-    int TEST_TRADES_CSV_EXISTING_ROW_VALIDITY_HOURS = 8;
 
-    String LONG_DCA_BOT_NAME = "stat_long";
-    String SHORT_DCA_BOT_NAME = "stat_short";
-
-    String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
-
-    String FIND_COMMAND = "/find";
-    String START_TEST_TRADE_COMMAND = "/start_test_trade";
-    String STOP_TEST_TRADE_COMMAND = "/stop_test_trade";
-    String GET_SETTINGS_COMMAND = "/get_settings";
-    String RESET_SETTINGS_COMMAND = "/reset_settings";
-    String FIND_AND_TEST_TRADE_COMMAND = "/find_and_test_trade";
-    String START_REAL_TRADE_COMMAND = "/start_real_trade";
-    String STOP_REAL_TRADE_COMMAND = "/stop_real_trade";
-    String TEST_3COMMAS_API_COMMAND = "/test_3commas_api";
-    String DELETE_FILES_COMMAND = "/delete_files";
-    String START_SIMULATION_COMMAND = "/start_simulation";
     String GET_CSV_COMMAND = "/get_csv";
     String GET_STATISTIC_COMMAND = "/get_statistic";
-
 
     String EXIT_REASON_BY_TAKE = "EXIT_REASON_BY_TAKE";
     String EXIT_REASON_BY_STOP = "EXIT_REASON_BY_STOP";
@@ -54,5 +32,4 @@ public interface Constants {
     String EXIT_REASON_BY_Z_MAX = "EXIT_REASON_BY_Z_MAX";
     String EXIT_REASON_BY_TIME = "EXIT_REASON_BY_TIME";
     String EXIT_REASON_MANUALLY = "EXIT_REASON_MANUALLY";
-
 }
