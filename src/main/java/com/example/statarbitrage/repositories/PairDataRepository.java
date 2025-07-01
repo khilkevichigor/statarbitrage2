@@ -1,7 +1,7 @@
 package com.example.statarbitrage.repositories;
 
 import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.vaadin.services.TradeStatus;
+import com.example.statarbitrage.services.TradeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

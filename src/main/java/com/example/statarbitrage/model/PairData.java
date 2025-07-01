@@ -1,6 +1,8 @@
 package com.example.statarbitrage.model;
 
-import com.example.statarbitrage.vaadin.services.TradeStatus;
+import com.example.statarbitrage.dto.Candle;
+import com.example.statarbitrage.dto.ZScoreParam;
+import com.example.statarbitrage.services.TradeStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,12 +1,11 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.dto.Candle;
+import com.example.statarbitrage.dto.ZScoreData;
+import com.example.statarbitrage.dto.ZScoreParam;
 import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreData;
-import com.example.statarbitrage.model.ZScoreParam;
 import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.utils.CandlesUtil;
-import com.example.statarbitrage.vaadin.services.TradeStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

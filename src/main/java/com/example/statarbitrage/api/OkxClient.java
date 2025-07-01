@@ -1,6 +1,6 @@
 package com.example.statarbitrage.api;
 
-import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.dto.Candle;
 import com.example.statarbitrage.model.Settings;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

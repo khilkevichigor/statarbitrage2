@@ -1,7 +1,7 @@
 package com.example.statarbitrage.utils;
 
+import com.example.statarbitrage.dto.ZScoreParam;
 import com.example.statarbitrage.model.PairData;
-import com.example.statarbitrage.model.ZScoreParam;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.XYChart;

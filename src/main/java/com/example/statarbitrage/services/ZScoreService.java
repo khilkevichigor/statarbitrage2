@@ -1,10 +1,10 @@
 package com.example.statarbitrage.services;
 
-import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.api.PythonRestClient;
+import com.example.statarbitrage.dto.Candle;
+import com.example.statarbitrage.dto.ZScoreData;
+import com.example.statarbitrage.dto.ZScoreParam;
 import com.example.statarbitrage.model.Settings;
-import com.example.statarbitrage.model.ZScoreData;
-import com.example.statarbitrage.model.ZScoreParam;
-import com.example.statarbitrage.vaadin.python.PythonRestClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

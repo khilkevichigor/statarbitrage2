@@ -2,7 +2,7 @@ package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.adapters.ZonedDateTimeAdapter;
 import com.example.statarbitrage.api.OkxClient;
-import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.dto.Candle;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.Settings;
 import com.google.gson.Gson;

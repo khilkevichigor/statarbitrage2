@@ -1,6 +1,6 @@
 package com.example.statarbitrage.utils;
 
-import com.example.statarbitrage.model.Candle;
+import com.example.statarbitrage.dto.Candle;
 
 import java.util.List;
 
