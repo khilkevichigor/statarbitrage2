@@ -155,4 +155,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
                     "WHERE EXIT_REASON = :reason",
             nativeQuery = true)
     Long getExitByTotal(@Param("reason") String reason);
+
+    @Query("SELECT SUM(currentProfitPercent) FROM TradeLog WHERE exitReason IS NOT NULL")
+    BigDecimal getSumRealizedProfit();
 }

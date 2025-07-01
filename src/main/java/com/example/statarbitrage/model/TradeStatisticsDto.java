@@ -38,4 +38,8 @@ public class TradeStatisticsDto {
 
     private long exitByManuallyToday;
     private long exitByManuallyTotal;
+
+    private BigDecimal sumProfitUnrealized;
+    private BigDecimal sumProfitRealized;
+    private BigDecimal sumProfitCombined;
 }

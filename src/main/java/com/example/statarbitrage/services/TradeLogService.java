@@ -8,10 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -78,5 +80,13 @@ public class TradeLogService {
         tradeLog.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
         return tradeLogRepository.save(tradeLog);
+    }
+
+    public BigDecimal getSumRealizedProfit() {
+        return tradeLogRepository.getSumRealizedProfit();
+    }
+
+    public List<TradeLog> getAll() {
+        return tradeLogRepository.findAll();
     }
 }

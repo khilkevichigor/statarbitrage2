@@ -291,4 +291,13 @@ public class PairDataService {
     public int countByStatus(TradeStatus status) {
         return pairDataRepository.countByStatus(status);
     }
+
+    public BigDecimal getUnrealizedProfitTotal() {
+        List<PairData> tradingPairs = findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        return tradingPairs.stream()
+                .map(PairData::getProfitChanges)
+                .filter(p -> p != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
 }

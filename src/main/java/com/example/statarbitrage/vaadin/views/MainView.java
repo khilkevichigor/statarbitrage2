@@ -42,17 +42,13 @@ import java.util.concurrent.TimeUnit;
 
 import static com.example.statarbitrage.constant.Constants.EXIT_REASON_MANUALLY;
 
-//todo сделать еще одну таблицу или просто строка текста с | ааа | ббб | ввв под TRAIDING для отображения инфы по незакрытым сделкам (профит и тд)
-//todo добавить в Статистика трейдов строку с нереализуемым профитом из TRAIDING таблицы
-//todo добавить в Статистика трейдов еще одну строку c суммарным Профитом - реализуемый+нереализуемый
-//todo добавить в Статистика трейдов строку с "Выход: MANUALLY"
-
 @Slf4j
 @Route("") // Maps to root URL
 public class MainView extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> tradingPairsGrid = new Grid<>(PairData.class, false);
     private final Grid<PairData> closedPairsGrid = new Grid<>(PairData.class, false);
+    private final VerticalLayout unrealizedProfitLayout = new VerticalLayout();
     private VerticalLayout statisticsLayout; // Добавь в поля класса
 
 
@@ -113,6 +109,7 @@ public class MainView extends VerticalLayout {
                 selectedPairsGrid,
                 new H2("Торгуемые пары (TRADING)"),
                 tradingPairsGrid,
+                unrealizedProfitLayout, // ⬅️ добавлено
                 new H2("Закрытые пары (CLOSED)"),
                 closedPairsGrid,
                 new H2("📊 Статистика трейдов"),
@@ -122,6 +119,15 @@ public class MainView extends VerticalLayout {
 
         // Запускаем обновление UI каждые 5 секунд
         startUiUpdater();
+    }
+
+    private void updateUnrealizedProfitBlock() {
+        unrealizedProfitLayout.removeAll();
+        BigDecimal unrealizedProfit = pairDataService.getUnrealizedProfitTotal();
+        String formatted = unrealizedProfit.setScale(2, RoundingMode.HALF_UP) + " %";
+
+        H2 profitInfo = new H2("💰 Нереализованный профит: " + formatted);
+        unrealizedProfitLayout.add(profitInfo);
     }
 
     private void updateStatisticsBlock() {
@@ -137,13 +143,19 @@ public class MainView extends VerticalLayout {
         grid.setItems(List.of(
                 new StatisticRow("Сделки", stats.getTradesToday(), stats.getTradesTotal()),
                 new StatisticRow("Avg Профит (%)", format(stats.getAvgProfitToday()), format(stats.getAvgProfitTotal())),
+
                 new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
+
                 new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
                 new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
                 new StatisticRow("Выход: Z MIN", stats.getExitByZMinToday(), stats.getExitByZMinTotal()),
                 new StatisticRow("Выход: Z MAX", stats.getExitByZMaxToday(), stats.getExitByZMaxTotal()),
                 new StatisticRow("Выход: TIME", stats.getExitByTimeToday(), stats.getExitByTimeTotal()),
-                new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal())
+                new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal()),
+
+                new StatisticRow("Профит нереализованный (%)", "", format(stats.getSumProfitUnrealized())),
+                new StatisticRow("Профит реализованный (%)", "", format(stats.getSumProfitRealized())),
+                new StatisticRow("Профит общий (%)", "", format(stats.getSumProfitCombined()))
         ));
 
         statisticsLayout.add(grid);
@@ -168,7 +180,12 @@ public class MainView extends VerticalLayout {
         grid.setItems(List.of(
                 new StatisticRow("Сделки", stats.getTradesToday(), stats.getTradesTotal()),
                 new StatisticRow("Avg Профит (%)", format(stats.getAvgProfitToday()), format(stats.getAvgProfitTotal())),
-                new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
+
+//                new StatisticRow("Сумма Профита (%)", format(stats.getSumProfitToday()), format(stats.getSumProfitTotal())),
+                new StatisticRow("Профит нереализованный (%)", format(stats.getSumProfitUnrealized()), ""),
+                new StatisticRow("Профит реализованный (%)", format(stats.getSumProfitRealized()), ""),
+                new StatisticRow("Профит общий (%)", format(stats.getSumProfitCombined()), ""),
+
                 new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
                 new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
                 new StatisticRow("Выход: Z MIN", stats.getExitByZMinToday(), stats.getExitByZMinTotal()),
@@ -208,6 +225,7 @@ public class MainView extends VerticalLayout {
                 getSelectedPairs();
                 getTraidingPairs();
                 getClosedPairs();
+                updateUnrealizedProfitBlock();
                 updateStatisticsBlock(); // ⬅️ вот здесь!
             } catch (Exception e) {
                 log.error("Ошибка при обновлении UI", e);

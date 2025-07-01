@@ -1,9 +1,11 @@
 package com.example.statarbitrage.services;
 
 import com.example.statarbitrage.events.SendAsTextEvent;
+import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.model.TradeStatisticsDto;
 import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.repositories.TradeLogRepository;
+import com.example.statarbitrage.vaadin.services.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -13,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Objects;
+import java.util.Optional;
 
 import static com.example.statarbitrage.constant.Constants.*;
 
@@ -24,6 +28,8 @@ public class StatisticsService {
 
     private final PairDataRepository pairDataRepository;
     private final TradeLogRepository tradeLogRepository;
+    private final PairDataService pairDataService;
+    private final TradeLogService tradeLogService;
 
     @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще
     @Transactional
@@ -89,7 +95,17 @@ public class StatisticsService {
     }
 
     public TradeStatisticsDto collectStatistics() {
+        BigDecimal unrealized = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+                .map(PairData::getProfitChanges)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal realized = Optional.ofNullable(tradeLogService.getSumRealizedProfit()).orElse(BigDecimal.ZERO);
+
+        BigDecimal combined = unrealized.add(realized);
+
         return TradeStatisticsDto.builder()
+
                 .tradesToday(tradeLogRepository.getTradesToday())
                 .tradesTotal(tradeLogRepository.getTradesTotal())
 
@@ -99,36 +115,31 @@ public class StatisticsService {
                 .sumProfitToday(tradeLogRepository.getSumProfitToday())
                 .sumProfitTotal(tradeLogRepository.getSumProfitTotal())
 
-//                .exitByStopToday(tradeLogRepository.getExitByStopToday())
-//                .exitByStopTotal(tradeLogRepository.getExitByStopTotal())
                 .exitByStopToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_STOP))
                 .exitByStopTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_STOP))
 
-//                .exitByTakeToday(tradeLogRepository.getExitByTakeToday())
-//                .exitByTakeTotal(tradeLogRepository.getExitByTakeTotal())
                 .exitByTakeToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_TAKE))
                 .exitByTakeTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_TAKE))
 
-//                .exitByZMinToday(tradeLogRepository.getExitByZMinToday())
-//                .exitByZMinTotal(tradeLogRepository.getExitByZMinTotal())
                 .exitByZMinToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_Z_MIN))
                 .exitByZMinTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_Z_MIN))
 
-//                .exitByZMaxToday(tradeLogRepository.getExitByZMaxToday())
-//                .exitByZMaxTotal(tradeLogRepository.getExitByZMaxTotal())
                 .exitByZMaxToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_Z_MAX))
                 .exitByZMaxTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_Z_MAX))
 
-//                .exitByTimeToday(tradeLogRepository.getExitByTimeToday())
-//                .exitByTimeTotal(tradeLogRepository.getExitByTimeTotal())
                 .exitByTimeToday(tradeLogRepository.getExitByToday(EXIT_REASON_BY_TIME))
                 .exitByTimeTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_BY_TIME))
 
                 .exitByManuallyToday(tradeLogRepository.getExitByToday(EXIT_REASON_MANUALLY))
                 .exitByManuallyTotal(tradeLogRepository.getExitByTotal(EXIT_REASON_MANUALLY))
 
+                .sumProfitUnrealized(unrealized)
+                .sumProfitRealized(realized)
+                .sumProfitCombined(combined)
+
                 .build();
     }
+
 
     public void sendMessage(String chatId, String text, boolean withLogging) {
         try {
