@@ -18,12 +18,13 @@ public class ZScoreService {
 
     private final PairDataService pairDataService;
     private final ValidateService validateService;
+    private final PythonRestClient pythonRestClient;
 
     /**
      * Считает Z для всех пар из свечей.
      */
     private List<ZScoreData> calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, boolean excludeExistingPairs) {
-        List<ZScoreData> rawZScoreList = PythonRestClient.fetchZScoreData(settings, candlesMap);
+        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
         if (rawZScoreList == null || rawZScoreList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
             return Collections.emptyList();
@@ -89,7 +90,7 @@ public class ZScoreService {
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
 
         // Получаем результат из Python
-        List<ZScoreData> rawZScoreList = PythonRestClient.fetchZScoreData(settings, candlesMap);
+        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
         if (rawZScoreList == null || rawZScoreList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
             throw new IllegalStateException("⚠️ ZScoreService: получен пустой список от Python");
@@ -101,7 +102,7 @@ public class ZScoreService {
     }
 
     public Optional<ZScoreData> calculateZScoreDataForNewTrade(Settings settings, Map<String, List<Candle>> candlesMap) {
-        List<ZScoreData> rawZScoreList = PythonRestClient.fetchZScoreData(settings, candlesMap);
+        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
         if (rawZScoreList == null || rawZScoreList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
             throw new IllegalStateException("⚠️ ZScoreService: получен пустой список от Python");
