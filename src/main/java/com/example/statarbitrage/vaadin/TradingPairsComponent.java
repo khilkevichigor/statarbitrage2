@@ -5,7 +5,7 @@ import com.example.statarbitrage.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.TradeLogService;
-import com.example.statarbitrage.services.TradeStatus;
+import com.example.statarbitrage.model.TradeStatus;
 import com.example.statarbitrage.utils.NumberFormatter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -203,7 +203,7 @@ public class TradingPairsComponent extends VerticalLayout {
             try {
                 updateTradeProcessor.updateTrade(pair);
 
-                pair.setStatus(TradeStatus.CLOSED);
+                pair.setStatus(com.example.statarbitrage.model.TradeStatus.CLOSED);
                 pair.setExitReason(EXIT_REASON_MANUALLY);
                 pairDataService.saveToDb(pair);
                 tradeLogService.saveFromPairData(pair);

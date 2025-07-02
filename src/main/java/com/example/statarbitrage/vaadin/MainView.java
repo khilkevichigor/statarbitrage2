@@ -3,7 +3,7 @@ package com.example.statarbitrage.vaadin;
 import com.example.statarbitrage.model.PairData;
 import com.example.statarbitrage.processors.FetchPairsProcessor;
 import com.example.statarbitrage.services.PairDataService;
-import com.example.statarbitrage.services.TradeStatus;
+import com.example.statarbitrage.model.TradeStatus;
 import com.example.statarbitrage.services.UIUpdateService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;

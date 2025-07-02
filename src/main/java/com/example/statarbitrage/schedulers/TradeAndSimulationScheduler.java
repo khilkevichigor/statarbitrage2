@@ -9,7 +9,7 @@ import com.example.statarbitrage.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.services.EventSendService;
 import com.example.statarbitrage.services.PairDataService;
 import com.example.statarbitrage.services.SettingsService;
-import com.example.statarbitrage.services.TradeStatus;
+import com.example.statarbitrage.model.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

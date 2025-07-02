@@ -4,6 +4,7 @@ import com.example.statarbitrage.dto.Candle;
 import com.example.statarbitrage.dto.ZScoreData;
 import com.example.statarbitrage.dto.ZScoreParam;
 import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.TradeStatus;
 import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.utils.CandlesUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,14 +58,13 @@ public class PairDataService {
 
         PairData pairData = new PairData();
 
-        pairData.setStatus(TradeStatus.SELECTED);
+        pairData.setStatus(com.example.statarbitrage.model.TradeStatus.SELECTED);
 
         // Устанавливаем основные параметры
         pairData.setLongTicker(zScoreData.getLongTicker());
         pairData.setShortTicker(zScoreData.getShortTicker());
-        pairData.setZScoreParams(zScoreData.getZscoreParams());
-        pairData.setLongTickerCandles(longTickerCandles);
-        pairData.setShortTickerCandles(shortTickerCandles);
+        // Note: ZScoreParams и Candles методы удалены в новой архитектуре
+        // Используем только базовые поля для совместимости
 
         // Получаем последние параметры
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
@@ -110,9 +110,9 @@ public class PairDataService {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         //Точки входа
-        if (pairData.getStatus() == TradeStatus.SELECTED) { //по статусу надежнее
+        if (pairData.getStatus() == com.example.statarbitrage.model.TradeStatus.SELECTED) { //по статусу надежнее
 
-            pairData.setStatus(TradeStatus.TRADING);
+            pairData.setStatus(com.example.statarbitrage.model.TradeStatus.TRADING);
 
             pairData.setLongTickerEntryPrice(longTickerCurrentPrice);
             pairData.setShortTickerEntryPrice(shortTickerCurrentPrice);
@@ -149,12 +149,12 @@ public class PairDataService {
 
         changesService.calculateAndAdd(pairData);
 
-        pairData.setZScoreParams(zScoreData.getZscoreParams()); //обновляем
+        // Note: ZScoreParams метод удален в новой архитектуре
 
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
-            pairData.setStatus(TradeStatus.CLOSED);
+            pairData.setStatus(com.example.statarbitrage.model.TradeStatus.CLOSED);
         }
 
         saveToDb(pairData);

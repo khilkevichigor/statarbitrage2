@@ -1,12 +1,13 @@
 package com.example.statarbitrage.model;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
 
 @Entity
+@Table(name = "settings")
 @Data
 @Builder
 @NoArgsConstructor
@@ -38,7 +39,5 @@ public class Settings {
     private double minVolume;
 
     private double usePairs;
-
-    @Column(name = "simulation_enabled")
     private boolean simulationEnabled = false;
 }

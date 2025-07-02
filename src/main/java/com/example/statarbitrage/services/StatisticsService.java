@@ -3,6 +3,7 @@ package com.example.statarbitrage.services;
 import com.example.statarbitrage.dto.TradeStatisticsDto;
 import com.example.statarbitrage.events.SendAsTextEvent;
 import com.example.statarbitrage.model.PairData;
+import com.example.statarbitrage.model.TradeStatus;
 import com.example.statarbitrage.repositories.PairDataRepository;
 import com.example.statarbitrage.repositories.TradeLogRepository;
 import lombok.RequiredArgsConstructor;
