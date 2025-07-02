@@ -35,11 +35,11 @@ public class ZScoreData {
 
     // Методы для обратной совместимости со старым кодом
     public String getLongTicker() {
-        return longTicker != null ? longTicker : overvaluedTicker;
+        return longTicker != null ? longTicker : undervaluedTicker;
     }
     
     public String getShortTicker() {
-        return shortTicker != null ? shortTicker : undervaluedTicker;
+        return shortTicker != null ? shortTicker : overvaluedTicker;
     }
     
     // Новые методы с четкой семантикой
