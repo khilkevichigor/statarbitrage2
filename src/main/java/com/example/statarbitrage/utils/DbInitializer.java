@@ -23,11 +23,11 @@ public class DbInitializer {
                     .timeframe("1m")
 
                     .candleLimit(300)
-                    .minZ(2)
-                    .minWindowSize(250)
-                    .minPvalue(0.01)
-                    .minAdfValue(0.01)
-                    .minCorrelation(0.8)
+                    .minZ(0.5)
+                    .minWindowSize(20)
+                    .minPvalue(0.1)
+                    .minAdfValue(0.1)
+                    .minCorrelation(0.5)
                     .minVolume(1.0)
 
                     .checkInterval(1)

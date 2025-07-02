@@ -43,7 +43,7 @@ public class PythonRestClient {
         Map<String, List<ApiCandle>> apiCandlesMap = convertCandlesMap(candlesMap);
         DiscoveryRequest requestBody = new DiscoveryRequest(apiCandlesMap, settingsMap);
 
-        DiscoveryResponse response = sendRequestWithRestTemplate("/discover-pairs", requestBody, new TypeReference<DiscoveryResponse>() {
+        DiscoveryResponse response = sendRequestWithRestTemplate("/discover-pairs", requestBody, new TypeReference<>() {
         });
         return response.getResults();
     }
@@ -90,7 +90,7 @@ public class PythonRestClient {
     private <T> T sendRequestWithRestTemplate(String endpoint, Object requestBody, TypeReference<T> responseType) {
         try {
             String json = objectMapper.writeValueAsString(requestBody);
-            log.info("📤 Sending request to {}: {}", baseUrl + endpoint, json);
+            log.info("📤 Sending request to {}", baseUrl + endpoint);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -106,7 +106,7 @@ public class PythonRestClient {
                     String.class
             );
 
-            log.debug("📥 Response from {}: status={}, body={}", baseUrl + endpoint, response.getStatusCode(), response.getBody());
+            log.debug("📥 Response from {}: status={}", baseUrl + endpoint, response.getStatusCode());
 
             if (response.getStatusCode() != HttpStatus.OK) {
                 log.error("Ошибка от Cointegration API: {} - {}", response.getStatusCode(), response.getBody());

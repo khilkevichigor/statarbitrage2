@@ -32,30 +32,25 @@ public class TradeAndSimulationScheduler {
 
     @Scheduled(fixedRate = 60_000)
     public void updateTrades() {
-        long schedulerStart = System.currentTimeMillis();
-        log.info("🔄 Update Trades Scheduler started...");
-
         try {
             // ВСЕГДА обновляем трейды
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {
-                log.info("Update trading pairs...");
+                long schedulerStart = System.currentTimeMillis();
+                log.info("🔄 Update Trades Scheduler started...");
                 long updateTradeStart = System.currentTimeMillis();
                 tradingPairs.forEach(updateTradeProcessor::updateTrade);
                 long updateTradeEnd = System.currentTimeMillis();
                 log.info("⏱️ Update trading pairs finished in {} сек", (updateTradeEnd - updateTradeStart) / 1000.0);
                 log.info("✅ Обновлены {} трейдов", tradingPairs.size());
+                // Обновляем UI
+                eventSendService.updateUI(UpdateUiEvent.builder().build());
+                long schedulerEnd = System.currentTimeMillis();
+                log.info("⏱️ Update Trades Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
             }
-
-            // Обновляем UI
-            eventSendService.updateUI(UpdateUiEvent.builder().build());
         } catch (Exception e) {
             log.error("❌ Ошибка в updateTrades()", e);
         }
-
-        long schedulerEnd = System.currentTimeMillis();
-        log.info("⏱️ Update Trades Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
-
     }
 
     @Scheduled(fixedRate = 180_000)

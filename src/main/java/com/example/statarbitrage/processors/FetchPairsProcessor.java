@@ -28,8 +28,14 @@ public class FetchPairsProcessor {
     private final SettingsService settingsService;
 
     public List<PairData> fetchPairs(Integer countOfPairs) {
+        long startTime = System.currentTimeMillis();
+        log.info("🚀 Начинаем поиск пар для торговли...");
+        
         Settings settings = settingsService.getSettingsFromDb();
+        long candlesStartTime = System.currentTimeMillis();
         Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(settings);
+        long candlesEndTime = System.currentTimeMillis();
+        log.info("✅ Собрали карту свечей за {}с", String.format("%.2f", (candlesEndTime - candlesStartTime) / 1000.0));
         int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();
         List<ZScoreData> zScoreDataList = zScoreService.getTopNPairs(settings, candlesMap, count);
 
@@ -40,7 +46,9 @@ public class FetchPairsProcessor {
         }
 
         List<PairData> topPairs = pairDataService.createPairDataList(zScoreDataList, candlesMap);
+        long endTime = System.currentTimeMillis();
         log.info("Создали {} новых PairData", topPairs.size());
+        log.info("✅ Поиск пар завершен за {}с", String.format("%.2f", (endTime - startTime) / 1000.0));
         return topPairs;
     }
 }
