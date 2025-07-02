@@ -23,8 +23,8 @@ public class DbInitializer {
                     .timeframe("1m")
 
                     .candleLimit(300)
-                    .minZ(0.5)
                     .minWindowSize(20)
+                    .minZ(0.5)
                     .minPvalue(0.1)
                     .minAdfValue(0.1)
                     .minCorrelation(0.5)
@@ -43,7 +43,7 @@ public class DbInitializer {
                     .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
                     .exitTimeHours(1)
 
-                    .usePairs(10.0)
+                    .usePairs(1.0)
 
                     .build()
             );
