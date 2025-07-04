@@ -1,6 +1,6 @@
-package com.example.statarbitrage.core.services;
+package com.example.statarbitrage.ui.services;
 
-import com.example.statarbitrage.ui.MainView;
+import com.example.statarbitrage.ui.views.MainView;
 import com.vaadin.flow.component.UI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

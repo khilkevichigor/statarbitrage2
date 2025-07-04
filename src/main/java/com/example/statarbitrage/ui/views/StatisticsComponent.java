@@ -1,4 +1,4 @@
-package com.example.statarbitrage.ui;
+package com.example.statarbitrage.ui.views;
 
 import com.example.statarbitrage.common.dto.TradeStatisticsDto;
 import com.example.statarbitrage.core.services.StatisticsService;

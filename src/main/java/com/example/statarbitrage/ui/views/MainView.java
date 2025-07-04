@@ -1,10 +1,10 @@
-package com.example.statarbitrage.ui;
+package com.example.statarbitrage.ui.views;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.core.processors.FetchPairsProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.core.services.UIUpdateService;
+import com.example.statarbitrage.ui.services.UIUpdateService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
