@@ -6,5 +6,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DataQuality {
-    // Добавить поля по мере необходимости
+    private Double avg_r_squared;
+    private Double avg_adf_pvalue;
+    private Integer stable_periods;
 }

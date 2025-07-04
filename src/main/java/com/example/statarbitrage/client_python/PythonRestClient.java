@@ -194,10 +194,9 @@ public class PythonRestClient {
                         ZScoreParam param = new ZScoreParam();
                         param.setTimestamp(item.getTimestamp());
                         param.setZscore(item.getZscore());
-                        // Устанавливаем значения по умолчанию для отсутствующих полей
                         param.setCorrelation(result.getCorrelation());
                         param.setPvalue(result.getCorrelation_pvalue());
-                        param.setAdfpvalue(result.getCointegration_pvalue());
+                        param.setAdfpvalue(item.getAdf_pvalue() != null ? item.getAdf_pvalue() : result.getCointegration_pvalue());
                         return param;
                     })
                     .collect(Collectors.toList());

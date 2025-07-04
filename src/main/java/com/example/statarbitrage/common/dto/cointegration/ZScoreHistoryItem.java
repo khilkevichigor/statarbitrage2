@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZScoreHistoryItem {
-    private Long timestamp;
+    private Integer index;
     private Double zscore;
-    // Добавить другие поля по мере необходимости
+    private Double adf_pvalue;
+    private Double r_squared;
+    private Long timestamp;
 }
