@@ -42,14 +42,14 @@ public class ZScoreService {
         for (ZScoreData z : rawZScoreList) {
             List<ZScoreParam> params = z.getZscoreParams();
             int size = params != null ? params.size() : 0;
-            String longTicker = z.getLongTicker();
-            String shortTicker = z.getShortTicker();
+            String longTicker = z.getUndervaluedTicker();
+            String shortTicker = z.getOvervaluedTicker();
 
             // Используем данные из нового API если zscoreParams отсутствуют
-            double lastZ = size > 0 ? params.get(size - 1).getZscore() : 
-                          (z.getLatest_zscore() != null ? z.getLatest_zscore() : 0.0);
-            int observations = size > 0 ? size : 
-                              (z.getTotal_observations() != null ? z.getTotal_observations() : 0);
+            double lastZ = size > 0 ? params.get(size - 1).getZscore() :
+                    (z.getLatest_zscore() != null ? z.getLatest_zscore() : 0.0);
+            int observations = size > 0 ? size :
+                    (z.getTotal_observations() != null ? z.getTotal_observations() : 0);
 
             String msg = String.format(
                     "📊 Пара: %s / %s | Наблюдений: %d | Последний Z: %.2f",
@@ -68,9 +68,9 @@ public class ZScoreService {
         zScoreDataList.removeIf(data -> {
             // Проверяем размер данных (используем новые поля API если zscoreParams отсутствуют)
             List<ZScoreParam> params = data.getZscoreParams();
-            int actualSize = params != null ? params.size() : 
-                           (data.getTotal_observations() != null ? data.getTotal_observations() : 0);
-            
+            int actualSize = params != null ? params.size() :
+                    (data.getTotal_observations() != null ? data.getTotal_observations() : 0);
+
             // Для нового API не проверяем количество наблюдений - данные уже агрегированы
             boolean isIncompleteBySize = false;
             if (params != null && !params.isEmpty()) {
@@ -78,7 +78,7 @@ public class ZScoreService {
                 isIncompleteBySize = actualSize < expected;
                 if (isIncompleteBySize) {
                     log.warn("❌ Удаляем пару {} / {} — наблюдений {} (ожидалось {})",
-                            data.getLongTicker(), data.getShortTicker(), actualSize, expected);
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), actualSize, expected);
                 }
             }
 
@@ -90,14 +90,14 @@ public class ZScoreService {
                 lastZScore = data.getLatest_zscore();
             } else {
                 log.warn("❌ Удаляем пару {} / {} — отсутствует информация о Z-score",
-                        data.getLongTicker(), data.getShortTicker());
+                        data.getUndervaluedTicker(), data.getOvervaluedTicker());
                 return true;
             }
-            
+
             boolean isIncompleteByZ = lastZScore < settings.getMinZ();
             if (isIncompleteByZ) {
                 log.warn("❌ Удаляем пару {} / {} — Z={} < MinZ={}",
-                        data.getLongTicker(), data.getShortTicker(), lastZScore, settings.getMinZ());
+                        data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
             }
             return isIncompleteBySize || isIncompleteByZ;
         });
@@ -176,11 +176,11 @@ public class ZScoreService {
 
     private void logLastZ(ZScoreData zScoreData) {
         List<ZScoreParam> params = zScoreData.getZscoreParams();
-        
+
         if (params != null && !params.isEmpty()) {
             // Используем старый формат с детальными параметрами
             int size = params.size();
-            log.info("🧪 Последние 5 Z-параметров для {} / {}:", zScoreData.getLongTicker(), zScoreData.getShortTicker());
+            log.info("🧪 Последние 5 Z-параметров для {} / {}:", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
             log.info(String.format("%-5s %-8s %-10s %-10s %-20s", "N", "Z", "ADF", "Corr", "Timestamp"));
 
             for (int i = Math.max(0, size - 5); i < size; i++) {
@@ -192,7 +192,7 @@ public class ZScoreService {
             }
         } else {
             // Используем новый формат с агрегированными данными
-            log.info("🧪 Статистика для {} / {}:", zScoreData.getLongTicker(), zScoreData.getShortTicker());
+            log.info("🧪 Статистика для {} / {}:", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
             log.info("  Latest Z-Score: {}", zScoreData.getLatest_zscore());
             log.info("  Correlation: {}", zScoreData.getCorrelation());
             log.info("  Correlation P-Value: {}", zScoreData.getCorrelation_pvalue());
@@ -208,9 +208,9 @@ public class ZScoreService {
 
         for (ZScoreData z : dataList) {
             List<ZScoreParam> params = z.getZscoreParams();
-            
+
             double zVal, pValue, adf, corr;
-            
+
             if (params != null && !params.isEmpty()) {
                 // Используем старый формат с детальными параметрами
                 ZScoreParam last = params.get(params.size() - 1);
@@ -221,10 +221,10 @@ public class ZScoreService {
             } else {
                 // Используем новый формат с агрегированными данными
                 if (z.getLatest_zscore() == null || z.getCorrelation() == null) continue;
-                
+
                 zVal = z.getLatest_zscore();
                 corr = z.getCorrelation();
-                
+
                 // Для новых полей используем разумные значения по умолчанию
                 pValue = z.getCorrelation_pvalue() != null ? z.getCorrelation_pvalue() : 0.0;
                 adf = z.getCointegration_pvalue() != null ? z.getCointegration_pvalue() : 0.0;

@@ -15,15 +15,12 @@ import java.util.Map;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZScoreData {
-    // Старые поля для обратной совместимости
-    private String longTicker;
-    private String shortTicker;
     private List<ZScoreParam> zscoreParams;
-    
+
     // Новые четкие поля из Python API
     private String overvaluedTicker;
     private String undervaluedTicker;
-    
+
     // Статистические данные
     private Double correlation;
     private Double correlation_pvalue;
@@ -32,24 +29,6 @@ public class ZScoreData {
     private Double latest_zscore;
     private Integer total_observations;
     private Double avg_r_squared;
-
-    // Методы для обратной совместимости со старым кодом
-    public String getLongTicker() {
-        return longTicker != null ? longTicker : undervaluedTicker;
-    }
-    
-    public String getShortTicker() {
-        return shortTicker != null ? shortTicker : overvaluedTicker;
-    }
-    
-    // Новые методы с четкой семантикой
-    public String getTickerToShort() {
-        return overvaluedTicker != null ? overvaluedTicker : longTicker;
-    }
-    
-    public String getTickerToLong() {
-        return undervaluedTicker != null ? undervaluedTicker : shortTicker;
-    }
 
     public ZScoreParam getLastZScoreParam() {
         if (zscoreParams == null || zscoreParams.isEmpty()) {

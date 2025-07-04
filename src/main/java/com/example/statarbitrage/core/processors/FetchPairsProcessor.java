@@ -16,8 +16,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-//todo проверять были ли Z ниже -2 и выше +2
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,7 +28,7 @@ public class FetchPairsProcessor {
     public List<PairData> fetchPairs(Integer countOfPairs) {
         long startTime = System.currentTimeMillis();
         log.info("🚀 Начинаем поиск пар для торговли...");
-        
+
         Settings settings = settingsService.getSettingsFromDb();
         long candlesStartTime = System.currentTimeMillis();
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings);
@@ -40,9 +38,9 @@ public class FetchPairsProcessor {
         List<ZScoreData> zScoreDataList = zScoreService.getTopNPairs(settings, candlesMap, count);
 
         for (int i = 0; i < zScoreDataList.size(); i++) {
-            ZScoreData pair = zScoreDataList.get(i);
-            ZScoreParam latest = pair.getLastZScoreParam();
-            log.info(String.format("%d. Пара: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", i + 1, pair.getLongTicker(), pair.getShortTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+            ZScoreData zScoreData = zScoreDataList.get(i);
+            ZScoreParam latest = zScoreData.getLastZScoreParam();
+            log.info(String.format("%d. Пара: undervaluedTicker=%s overvaluedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", i + 1, zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
         }
 
         List<PairData> topPairs = pairDataService.createPairDataList(zScoreDataList, candlesMap);

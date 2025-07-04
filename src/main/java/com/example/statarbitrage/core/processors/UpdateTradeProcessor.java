@@ -40,8 +40,8 @@ public class UpdateTradeProcessor {
 
     private static void logData(ZScoreData zScoreData) {
         ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
-        log.info(String.format("Наша пара: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                zScoreData.getLongTicker(), zScoreData.getShortTicker(),
+        log.info(String.format("Наша пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+                zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));
     }

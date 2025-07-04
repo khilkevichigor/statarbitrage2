@@ -46,7 +46,7 @@ public class StartNewTradeProcessor {
         ZScoreData zScoreData = maybeZScoreData.get();
 
         ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
-        log.info(String.format("Наш новый трейд: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getLongTicker(), zScoreData.getShortTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+        log.info(String.format("Наш новый трейд: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());

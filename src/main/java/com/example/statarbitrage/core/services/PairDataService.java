@@ -5,8 +5,8 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.example.statarbitrage.common.utils.CandlesUtil;
+import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,14 +30,14 @@ public class PairDataService {
 
         for (ZScoreData zScoreData : top) {
             try {
-                List<Candle> longTickerCandles = candlesMap.get(zScoreData.getLongTicker());
-                List<Candle> shortTickerCandles = candlesMap.get(zScoreData.getShortTicker());
-                PairData newPairData = createPairData(zScoreData, longTickerCandles, shortTickerCandles);
+                List<Candle> undervaluedTickerCandles = candlesMap.get(zScoreData.getUndervaluedTicker());
+                List<Candle> overValuedTickerCandles = candlesMap.get(zScoreData.getOvervaluedTicker());
+                PairData newPairData = createPairData(zScoreData, undervaluedTickerCandles, overValuedTickerCandles);
                 result.add(newPairData);
             } catch (Exception e) {
                 log.error("Ошибка при создании PairData для пары {}/{}: {}",
-                        zScoreData.getLongTicker(),
-                        zScoreData.getShortTicker(),
+                        zScoreData.getUndervaluedTicker(),
+                        zScoreData.getOvervaluedTicker(),
                         e.getMessage());
             }
         }
@@ -47,12 +47,10 @@ public class PairDataService {
         return result;
     }
 
-    private static PairData createPairData(ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles) {
+    private static PairData createPairData(ZScoreData zScoreData, List<Candle> undervaluedTickerCandles, List<Candle> overValuedTickerCandles) {
         // Проверяем наличие данных
-        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
-                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}",
-                    zScoreData.getLongTicker(), zScoreData.getShortTicker());
+        if (undervaluedTickerCandles == null || undervaluedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
+            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
             throw new IllegalArgumentException("Отсутствуют данные свечей");
         }
 
@@ -61,8 +59,8 @@ public class PairDataService {
         pairData.setStatus(TradeStatus.SELECTED);
 
         // Устанавливаем основные параметры
-        pairData.setLongTicker(zScoreData.getLongTicker());
-        pairData.setShortTicker(zScoreData.getShortTicker());
+        pairData.setLongTicker(zScoreData.getUndervaluedTicker());
+        pairData.setShortTicker(zScoreData.getOvervaluedTicker());
         // Note: ZScoreParams и Candles методы удалены в новой архитектуре
         // Используем только базовые поля для совместимости
 
@@ -70,8 +68,8 @@ public class PairDataService {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         // Устанавливаем текущие цены
-        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(longTickerCandles));
-        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(shortTickerCandles));
+        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedTickerCandles));
+        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overValuedTickerCandles));
 
         // Устанавливаем статистические параметры
         pairData.setZScoreCurrent(latestParam.getZscore());
@@ -97,7 +95,7 @@ public class PairDataService {
         if (longTickerCandles == null || longTickerCandles.isEmpty() ||
                 shortTickerCandles == null || shortTickerCandles.isEmpty()) {
             log.warn("Нет данных по свечам для пары: {} - {}",
-                    zScoreData.getLongTicker(), zScoreData.getShortTicker());
+                    zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
             throw new IllegalArgumentException("Отсутствуют данные свечей");
         }
 
@@ -193,7 +191,7 @@ public class PairDataService {
 
         // Удаляем из списка те пары, которые уже торгуются
         zScoreDataList.removeIf(z -> {
-            String key = buildKey(z.getLongTicker(), z.getShortTicker());
+            String key = buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker());
             return tradingSet.contains(key);
         });
     }
