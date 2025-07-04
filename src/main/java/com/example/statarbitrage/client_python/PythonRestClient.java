@@ -42,8 +42,7 @@ public class PythonRestClient {
         Map<String, List<ApiCandle>> apiCandlesMap = convertCandlesMap(candlesMap);
         DiscoveryRequest requestBody = new DiscoveryRequest(apiCandlesMap, settingsMap);
 
-        DiscoveryResponse response = sendRequestWithRestTemplate("/discover-pairs", requestBody, new TypeReference<>() {
-        });
+        DiscoveryResponse response = sendRequestWithRestTemplate("/discover-pairs", requestBody, new TypeReference<>() {});
         return response.getResults();
     }
 
@@ -52,8 +51,13 @@ public class PythonRestClient {
         Map<String, List<ApiCandle>> apiPair = convertCandlesMap(pair);
         PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZscoreHistory);
 
-        return sendRequest("/analyze-pair", requestBody, new TypeReference<ZScoreData>() {
-        });
+        PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<PairAnalysisResponse>() {});
+        
+        if (response.isSuccess()) {
+            return response.getResult();
+        } else {
+            throw new RuntimeException("Python API returned success=false");
+        }
     }
 
     public boolean validateCointegration(String ticker1, String ticker2, Map<String, List<Candle>> candlesMap, Settings settings) {
