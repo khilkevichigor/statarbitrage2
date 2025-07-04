@@ -1,8 +1,8 @@
 package com.example.statarbitrage.bot;
 
-import com.example.statarbitrage.events.SendAsPhotoEvent;
-import com.example.statarbitrage.events.SendAsTextEvent;
-import com.example.statarbitrage.services.StatisticsService;
+import com.example.statarbitrage.common.events.SendAsPhotoEvent;
+import com.example.statarbitrage.common.events.SendAsTextEvent;
+import com.example.statarbitrage.core.services.StatisticsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -23,7 +23,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.statarbitrage.constant.Constants.*;
+import static com.example.statarbitrage.common.constant.Constants.*;
 
 @Slf4j
 @Service

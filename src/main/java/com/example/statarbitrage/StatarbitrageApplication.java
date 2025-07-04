@@ -1,9 +1,9 @@
 package com.example.statarbitrage;
 
-import com.example.statarbitrage.api.CointegrationApiHealthCheck;
-import com.example.statarbitrage.api.PythonRestClient;
-import com.example.statarbitrage.dto.Candle;
-import com.example.statarbitrage.model.Settings;
+import com.example.statarbitrage.client_python.CointegrationApiHealthCheck;
+import com.example.statarbitrage.client_python.PythonRestClient;
+import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.model.Settings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

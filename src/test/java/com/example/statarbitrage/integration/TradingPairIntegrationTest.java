@@ -1,6 +1,6 @@
 package com.example.statarbitrage.integration;
 
-import com.example.statarbitrage.dto.TradingPair;
+import com.example.statarbitrage.common.dto.TradingPair;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

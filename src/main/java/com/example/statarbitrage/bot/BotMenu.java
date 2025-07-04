@@ -2,8 +2,8 @@ package com.example.statarbitrage.bot;
 
 import lombok.Getter;
 
-import static com.example.statarbitrage.constant.Constants.GET_CSV_COMMAND;
-import static com.example.statarbitrage.constant.Constants.GET_STATISTIC_COMMAND;
+import static com.example.statarbitrage.common.constant.Constants.GET_CSV_COMMAND;
+import static com.example.statarbitrage.common.constant.Constants.GET_STATISTIC_COMMAND;
 
 @Getter
 public enum BotMenu {
