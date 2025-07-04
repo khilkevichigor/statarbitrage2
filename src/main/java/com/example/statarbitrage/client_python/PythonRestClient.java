@@ -2,6 +2,7 @@ package com.example.statarbitrage.client_python;
 
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
+import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.dto.cointegration.*;
 import com.example.statarbitrage.common.model.Settings;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -42,7 +43,8 @@ public class PythonRestClient {
         Map<String, List<ApiCandle>> apiCandlesMap = convertCandlesMap(candlesMap);
         DiscoveryRequest requestBody = new DiscoveryRequest(apiCandlesMap, settingsMap);
 
-        DiscoveryResponse response = sendRequestWithRestTemplate("/discover-pairs", requestBody, new TypeReference<>() {});
+        DiscoveryResponse response = sendRequestWithRestTemplate("/discover-pairs", requestBody, new TypeReference<>() {
+        });
         return response.getResults();
     }
 
@@ -51,10 +53,11 @@ public class PythonRestClient {
         Map<String, List<ApiCandle>> apiPair = convertCandlesMap(pair);
         PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZscoreHistory);
 
-        PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<PairAnalysisResponse>() {});
-        
+        PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<PairAnalysisResponse>() {
+        });
+
         if (response.isSuccess()) {
-            return response.getResult();
+            return convertPairAnalysisResultToZScoreData(response.getResult());
         } else {
             throw new RuntimeException("Python API returned success=false");
         }
@@ -172,5 +175,35 @@ public class PythonRestClient {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to parse response", e);
         }
+    }
+
+    private ZScoreData convertPairAnalysisResultToZScoreData(PairAnalysisResult result) {
+        ZScoreData zScoreData = new ZScoreData();
+        zScoreData.setOvervaluedTicker(result.getOvervaluedTicker());
+        zScoreData.setUndervaluedTicker(result.getUndervaluedTicker());
+        zScoreData.setCorrelation(result.getCorrelation());
+        zScoreData.setCorrelation_pvalue(result.getCorrelation_pvalue());
+        zScoreData.setCointegration_pvalue(result.getCointegration_pvalue());
+        zScoreData.setLatest_zscore(result.getLatest_zscore());
+        zScoreData.setTotal_observations(result.getTotal_observations());
+
+        // Конвертируем zscore_history в zscoreParams если есть
+        if (result.getZscore_history() != null && !result.getZscore_history().isEmpty()) {
+            List<ZScoreParam> zscoreParams = result.getZscore_history().stream()
+                    .map(item -> {
+                        ZScoreParam param = new ZScoreParam();
+                        param.setTimestamp(item.getTimestamp());
+                        param.setZscore(item.getZscore());
+                        // Устанавливаем значения по умолчанию для отсутствующих полей
+                        param.setCorrelation(result.getCorrelation());
+                        param.setPvalue(result.getCorrelation_pvalue());
+                        param.setAdfpvalue(result.getCointegration_pvalue());
+                        return param;
+                    })
+                    .collect(Collectors.toList());
+            zScoreData.setZscoreParams(zscoreParams);
+        }
+
+        return zScoreData;
     }
 }
