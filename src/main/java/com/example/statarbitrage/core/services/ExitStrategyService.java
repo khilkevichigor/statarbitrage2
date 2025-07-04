@@ -15,7 +15,7 @@ public class ExitStrategyService {
     private final SettingsService settingsService;
 
     public String getExitReason(PairData pairData) {
-        Settings settings = settingsService.getSettingsFromDb();
+        Settings settings = settingsService.getSettings();
         double profit = pairData.getProfitChanges().doubleValue();
         double zScoreCurrent = pairData.getZScoreCurrent();
         double zScoreEntry = pairData.getZScoreEntry();

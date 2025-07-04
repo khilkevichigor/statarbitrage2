@@ -54,7 +54,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private void loadCurrentSettings() {
         try {
-            currentSettings = settingsService.getSettingsFromDb();
+            currentSettings = settingsService.getSettings();
         } catch (Exception e) {
             log.error("Error loading settings", e);
             currentSettings = new Settings(); // fallback to default
@@ -77,7 +77,7 @@ public class SettingsComponent extends VerticalLayout {
 
         simulationCheckbox.addValueChangeListener(event -> {
             try {
-                Settings settings = settingsService.getSettingsFromDb();
+                Settings settings = settingsService.getSettings();
                 settings.setSimulationEnabled(event.getValue());
                 settingsService.saveSettingsInDb(settings);
 

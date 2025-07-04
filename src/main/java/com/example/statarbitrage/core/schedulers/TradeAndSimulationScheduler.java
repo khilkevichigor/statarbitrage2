@@ -3,16 +3,15 @@ package com.example.statarbitrage.core.schedulers;
 import com.example.statarbitrage.common.events.UpdateUiEvent;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.processors.FetchPairsProcessor;
 import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.EventSendService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
-import com.example.statarbitrage.common.model.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -30,7 +29,7 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
 
-//    @Scheduled(fixedRate = 60_000)
+    //    @Scheduled(fixedRate = 60_000)
     public void updateTrades() {
         try {
             // ВСЕГДА обновляем трейды
@@ -53,13 +52,13 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-//    @Scheduled(fixedRate = 180_000)
+    //    @Scheduled(fixedRate = 180_000)
     public void maintainPairs() {
         long schedulerStart = System.currentTimeMillis();
         log.info("🔄 Maintain Pairs Scheduler started...");
         try {
             // ЕСЛИ симуляция включена — поддерживаем нужное количество трейдов
-            Settings settings = settingsService.getSettingsFromDb();
+            Settings settings = settingsService.getSettings();
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (settings.isSimulationEnabled()) {
                 int maxActive = (int) settings.getUsePairs();

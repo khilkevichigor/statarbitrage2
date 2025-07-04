@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class SettingsService {
     private final SettingsRepository settingsRepository;
 
-    public Settings getSettingsFromDb() {
+    public Settings getSettings() {
         return settingsRepository.findAll().get(0);
     }
 

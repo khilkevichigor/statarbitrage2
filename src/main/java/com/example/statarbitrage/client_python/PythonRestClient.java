@@ -135,7 +135,6 @@ public class PythonRestClient {
                 .uri(URI.create(baseUrl + endpoint))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
-                .header("Content-Length", String.valueOf(json.getBytes(StandardCharsets.UTF_8).length))
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();
 

@@ -29,7 +29,7 @@ public class FetchPairsProcessor {
         long startTime = System.currentTimeMillis();
         log.info("🚀 Начинаем поиск пар для торговли...");
 
-        Settings settings = settingsService.getSettingsFromDb();
+        Settings settings = settingsService.getSettings();
         long candlesStartTime = System.currentTimeMillis();
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings);
         long candlesEndTime = System.currentTimeMillis();
@@ -40,7 +40,7 @@ public class FetchPairsProcessor {
         for (int i = 0; i < zScoreDataList.size(); i++) {
             ZScoreData zScoreData = zScoreDataList.get(i);
             ZScoreParam latest = zScoreData.getLastZScoreParam();
-            log.info(String.format("%d. Пара: undervaluedTicker=%s overvaluedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", i + 1, zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+            log.info(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", i + 1, zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
         }
 
         List<PairData> topPairs = pairDataService.createPairDataList(zScoreDataList, candlesMap);

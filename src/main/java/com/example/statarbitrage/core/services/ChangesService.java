@@ -16,7 +16,7 @@ public class ChangesService {
     private final SettingsService settingsService;
 
     public void calculateAndAdd(PairData pairData) {
-        Settings settings = settingsService.getSettingsFromDb();
+        Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();
         double capitalShort = settings.getCapitalShort();

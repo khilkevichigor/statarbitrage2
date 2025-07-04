@@ -30,9 +30,9 @@ public class PairDataService {
 
         for (ZScoreData zScoreData : top) {
             try {
-                List<Candle> undervaluedTickerCandles = candlesMap.get(zScoreData.getUndervaluedTicker());
+                List<Candle> underValuedTickerCandles = candlesMap.get(zScoreData.getUndervaluedTicker());
                 List<Candle> overValuedTickerCandles = candlesMap.get(zScoreData.getOvervaluedTicker());
-                PairData newPairData = createPairData(zScoreData, undervaluedTickerCandles, overValuedTickerCandles);
+                PairData newPairData = createPairData(zScoreData, underValuedTickerCandles, overValuedTickerCandles);
                 result.add(newPairData);
             } catch (Exception e) {
                 log.error("Ошибка при создании PairData для пары {}/{}: {}",
@@ -42,14 +42,14 @@ public class PairDataService {
             }
         }
 
-        result.forEach(this::saveToDb);
+        result.forEach(this::save);
 
         return result;
     }
 
-    private static PairData createPairData(ZScoreData zScoreData, List<Candle> undervaluedTickerCandles, List<Candle> overValuedTickerCandles) {
+    private static PairData createPairData(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
         // Проверяем наличие данных
-        if (undervaluedTickerCandles == null || undervaluedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
+        if (underValuedTickerCandles == null || underValuedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
             log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
             throw new IllegalArgumentException("Отсутствуют данные свечей");
         }
@@ -61,14 +61,12 @@ public class PairDataService {
         // Устанавливаем основные параметры
         pairData.setLongTicker(zScoreData.getUndervaluedTicker());
         pairData.setShortTicker(zScoreData.getOvervaluedTicker());
-        // Note: ZScoreParams и Candles методы удалены в новой архитектуре
-        // Используем только базовые поля для совместимости
 
         // Получаем последние параметры
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         // Устанавливаем текущие цены
-        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedTickerCandles));
+        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(underValuedTickerCandles));
         pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overValuedTickerCandles));
 
         // Устанавливаем статистические параметры
@@ -92,10 +90,8 @@ public class PairDataService {
 
     public void update(PairData pairData, ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles) {
         // Проверяем наличие данных
-        if (longTickerCandles == null || longTickerCandles.isEmpty() ||
-                shortTickerCandles == null || shortTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}",
-                    zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
+        if (longTickerCandles == null || longTickerCandles.isEmpty() || shortTickerCandles == null || shortTickerCandles.isEmpty()) {
+            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
             throw new IllegalArgumentException("Отсутствуют данные свечей");
         }
 
@@ -108,7 +104,7 @@ public class PairDataService {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         //Точки входа
-        if (pairData.getStatus() == TradeStatus.SELECTED) { //по статусу надежнее
+        if (pairData.getStatus() == TradeStatus.SELECTED) {
 
             pairData.setStatus(TradeStatus.TRADING);
 
@@ -147,18 +143,16 @@ public class PairDataService {
 
         changesService.calculateAndAdd(pairData);
 
-        // Note: ZScoreParams метод удален в новой архитектуре
-
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);
         }
 
-        saveToDb(pairData);
+        save(pairData);
     }
 
-    public void saveToDb(PairData pairData) {
+    public void save(PairData pairData) {
         pairDataRepository.save(pairData);
     }
 

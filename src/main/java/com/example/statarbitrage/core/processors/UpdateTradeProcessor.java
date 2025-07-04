@@ -25,7 +25,7 @@ public class UpdateTradeProcessor {
     private final ValidateService validateService;
 
     public void updateTrade(PairData pairData) {
-        Settings settings = settingsService.getSettingsFromDb();
+        Settings settings = settingsService.getSettings();
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);

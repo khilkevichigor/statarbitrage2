@@ -24,7 +24,7 @@ public class ZScoreService {
      * Считает Z для всех пар из свечей.
      */
     private List<ZScoreData> calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, boolean excludeExistingPairs) {
-        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
+        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
         if (rawZScoreList == null || rawZScoreList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
             return Collections.emptyList();
@@ -59,7 +59,7 @@ public class ZScoreService {
         }
     }
 
-    public void filterIncompleteZScoreParams(List<ZScoreData> zScoreDataList, Settings settings) {
+    private void filterIncompleteZScoreParams(List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = calculateExpectedZParamsCount(settings);
         log.info("🔍 Ожидаемое количество наблюдений: {}", expected);
 
@@ -107,7 +107,7 @@ public class ZScoreService {
     }
 
 
-    public double calculateExpectedZParamsCount(Settings settings) {
+    private double calculateExpectedZParamsCount(Settings settings) {
         return settings.getCandleLimit() - settings.getMinWindowSize();
     }
 
@@ -147,10 +147,10 @@ public class ZScoreService {
                                          int count) {
 
         List<ZScoreData> all = calculateZScoreData(settings, candlesMap, true);
-        return obtainTopNBestPairs(settings, all, count);
+        return obtainTopNBestPairs(candlesMap, settings, all, count);
     }
 
-    private List<ZScoreData> obtainTopNBestPairs(Settings settings, List<ZScoreData> zScoreDataList, int topN) {
+    private List<ZScoreData> obtainTopNBestPairs(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             throw new IllegalArgumentException("Отобрано 0 пар");
         }
@@ -166,12 +166,28 @@ public class ZScoreService {
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
                 logLastZ(best);
-                bestPairs.add(best);
+                ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings); //детальная инфа
+                bestPairs.add(detailedZScoreData);
                 remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
             }
         }
 
         return bestPairs;
+    }
+
+    private ZScoreData getDetailedZScoreData(ZScoreData best, Map<String, List<Candle>> candlesMap, Settings settings) {
+        String overvalued = best.getOvervaluedTicker();
+        String undervalued = best.getUndervaluedTicker();
+
+        if (overvalued == null || undervalued == null) {
+            throw new IllegalArgumentException("Tickers in 'best' are not initialized");
+        }
+
+        // Оставляем в карте только два тикера
+        candlesMap.keySet().retainAll(Set.of(overvalued, undervalued));
+
+        // Передаём отфильтрованные данные в Python
+        return pythonRestClient.analyzePair(candlesMap, settings, true);
     }
 
     private void logLastZ(ZScoreData zScoreData) {
