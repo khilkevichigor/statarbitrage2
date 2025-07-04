@@ -25,7 +25,6 @@ public class StartNewTradeProcessor {
     private final ZScoreService zScoreService;
     private final ValidateService validateService;
 
-    //todo сделать юнит тесты что бы понять как меняется Z а то ощущение что он пляшет ппц
     public PairData startNewTrade(PairData pairData) {
         Settings settings = settingsService.getSettingsFromDb();
 
@@ -36,7 +35,7 @@ public class StartNewTradeProcessor {
             return null;
         }
 
-        Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(pairData, settings);
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {

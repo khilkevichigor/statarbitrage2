@@ -22,13 +22,13 @@ public class CandlesService {
         return okxClient.getCandlesMap(swapTickers, settings, isSorted);
     }
 
-    public Map<String, List<Candle>> getCandlesMap(PairData pairData, Settings settings) {
+    public Map<String, List<Candle>> getApplicableCandlesMap(PairData pairData, Settings settings) {
         Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
         validateService.validateCandlesLimitAndThrow(candlesMap);
         return candlesMap;
     }
 
-    public Map<String, List<Candle>> getCandlesMap(Settings settings) {
+    public Map<String, List<Candle>> getApplicableCandlesMap(Settings settings) {
         List<String> applicableTickers = getApplicableTickers(settings, "1D", true);
         Map<String, List<Candle>> candlesMap = getCandles(settings, applicableTickers, true);
         validateService.validateCandlesLimitAndThrow(candlesMap);

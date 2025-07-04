@@ -28,8 +28,7 @@ import java.util.stream.Collectors;
 @Component
 public class PythonRestClient {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private static final ObjectMapper objectMapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     @Value("${cointegration.api.url}")
     private String baseUrl;

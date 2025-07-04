@@ -33,7 +33,7 @@ public class FetchPairsProcessor {
         
         Settings settings = settingsService.getSettingsFromDb();
         long candlesStartTime = System.currentTimeMillis();
-        Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(settings);
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings);
         long candlesEndTime = System.currentTimeMillis();
         log.info("✅ Собрали карту свечей за {}с", String.format("%.2f", (candlesEndTime - candlesStartTime) / 1000.0));
         int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();

@@ -24,13 +24,12 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final ValidateService validateService;
 
-    //todo сделать юнит тесты что бы понять как меняется Z а то ощущение что он пляшет ппц
     public void updateTrade(PairData pairData) {
         Settings settings = settingsService.getSettingsFromDb();
 
-        Map<String, List<Candle>> candlesMap = candlesService.getCandlesMap(pairData, settings);
-        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap); //todo -ZEntry !!!
-        logData(zScoreData); //todo ???
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+        logData(zScoreData);
 
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
