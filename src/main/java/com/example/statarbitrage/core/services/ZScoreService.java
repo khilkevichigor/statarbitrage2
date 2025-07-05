@@ -190,7 +190,13 @@ public class ZScoreService {
         candlesMap.keySet().retainAll(Set.of(overvalued, undervalued));
 
         // Передаём отфильтрованные данные в Python
-        return pythonRestClient.analyzePair(candlesMap, settings, true);
+        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
+        if (zScoreData.getLatest_zscore() < 0) {
+            String message = String.format("Последний Z {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatest_zscore(), undervalued, overvalued);
+            log.error(message);
+            throw new IllegalStateException(message);
+        }
+        return zScoreData;
     }
 
     private void logLastZ(ZScoreData zScoreData) {
