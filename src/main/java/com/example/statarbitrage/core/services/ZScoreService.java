@@ -166,7 +166,10 @@ public class ZScoreService {
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
                 logLastZ(best);
-                ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings); //детальная инфа
+
+                //детальная инфа
+                ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings);
+
                 bestPairs.add(detailedZScoreData);
                 remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
             }
