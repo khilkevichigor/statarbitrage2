@@ -29,6 +29,7 @@ public class StartNewTradeProcessor {
     public PairData startNewTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
 
+        //Проверка на дурака
         if (validateService.isLastZLessThenMinZ(pairData, settings)) {
             //если впервые прогоняем и Z<ZMin
             pairDataService.delete(pairData);

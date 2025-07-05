@@ -28,8 +28,21 @@ public class ValidateService {
         if (pairData == null) {
             throw new IllegalArgumentException("pairData is null");
         }
-        if (pairData.getZScoreCurrent() < settings.getMinZ()) {
-            log.warn("Skip this pair {{}} - {{}}. Z-score {{}} < minZ {{}}", pairData.getLongTicker(), pairData.getShortTicker(), pairData.getZScoreCurrent(), settings.getMinZ());
+
+        double zScore = pairData.getZScoreCurrent();
+        if (zScore < settings.getMinZ()) {
+            if (zScore < 0) {
+                log.warn("Skip this pair {} - {}. Z-score {} < 0",
+                        pairData.getLongTicker(),
+                        pairData.getShortTicker(),
+                        zScore);
+            } else {
+                log.warn("Skip this pair {} - {}. Z-score {} < minZ {}",
+                        pairData.getLongTicker(),
+                        pairData.getShortTicker(),
+                        zScore,
+                        settings.getMinZ());
+            }
             return true;
         }
 
