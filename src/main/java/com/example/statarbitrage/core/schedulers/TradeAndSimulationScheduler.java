@@ -33,12 +33,12 @@ public class TradeAndSimulationScheduler {
     @Scheduled(fixedRate = 60_000)
     public void updateTrades() {
         long schedulerStart = System.currentTimeMillis();
+        log.info("🔄 Шедуллера обновления трейдов запущен...");
         List<PairData> tradingPairs = List.of();
         try {
             // ВСЕГДА обновляем трейды
             tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {
-                log.info("🔄 Запуск шедуллера обновления трейдов...");
                 tradingPairs.forEach(updateTradeProcessor::updateTrade);
                 // Обновляем UI
                 eventSendService.updateUI(UpdateUiEvent.builder().build());
