@@ -7,10 +7,13 @@ import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.TradeLogService;
+import com.example.statarbitrage.ui.components.ZScoreChartDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -33,6 +36,7 @@ public class TradingPairsComponent extends VerticalLayout {
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final TradeLogService tradeLogService;
+    private final ZScoreChartDialog zScoreChartDialog;
 
     private final Grid<PairData> selectedPairsGrid;
     private final Grid<PairData> tradingPairsGrid;
@@ -44,11 +48,13 @@ public class TradingPairsComponent extends VerticalLayout {
     public TradingPairsComponent(PairDataService pairDataService,
                                  StartNewTradeProcessor startNewTradeProcessor,
                                  UpdateTradeProcessor updateTradeProcessor,
-                                 TradeLogService tradeLogService) {
+                                 TradeLogService tradeLogService,
+                                 ZScoreChartDialog zScoreChartDialog) {
         this.pairDataService = pairDataService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.tradeLogService = tradeLogService;
+        this.zScoreChartDialog = zScoreChartDialog;
 
         this.selectedPairsGrid = new Grid<>(PairData.class, false);
         this.tradingPairsGrid = new Grid<>(PairData.class, false);
@@ -95,7 +101,7 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent()))
                 .setHeader("Корр.").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createStartTradingButton))
+        selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createSelectedPairsActionButtons))
                 .setHeader("Действие");
     }
 
@@ -131,7 +137,7 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent()))
                 .setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createStopTradingButton))
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsActionButtons))
                 .setHeader("Действие");
     }
 
@@ -168,6 +174,9 @@ public class TradingPairsComponent extends VerticalLayout {
                 .setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(PairData::getExitReason)
                 .setHeader("Причина выхода").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        closedPairsGrid.addColumn(new ComponentRenderer<>(this::createClosedPairsActionButtons))
+                .setHeader("Чарт");
     }
 
     private void setupCommonGridProperties() {
@@ -282,5 +291,71 @@ public class TradingPairsComponent extends VerticalLayout {
         if (uiUpdateCallback != null) {
             uiUpdateCallback.accept(null);
         }
+    }
+
+    /**
+     * Создает кнопки действий для Selected Pairs Grid
+     */
+    private HorizontalLayout createSelectedPairsActionButtons(PairData pair) {
+        HorizontalLayout buttonsLayout = new HorizontalLayout();
+        buttonsLayout.setSpacing(true);
+        buttonsLayout.setPadding(false);
+
+        // Кнопка Chart
+        Button chartButton = createChartButton(pair);
+
+        // Кнопка Торговать
+        Button tradeButton = createStartTradingButton(pair);
+
+        buttonsLayout.add(chartButton, tradeButton);
+        return buttonsLayout;
+    }
+
+    /**
+     * Создает кнопки действий для Trading Pairs Grid
+     */
+    private HorizontalLayout createTradingPairsActionButtons(PairData pair) {
+        HorizontalLayout buttonsLayout = new HorizontalLayout();
+        buttonsLayout.setSpacing(true);
+        buttonsLayout.setPadding(false);
+
+        // Кнопка Chart
+        Button chartButton = createChartButton(pair);
+
+        // Кнопка Закрыть
+        Button closeButton = createStopTradingButton(pair);
+
+        buttonsLayout.add(chartButton, closeButton);
+        return buttonsLayout;
+    }
+
+    /**
+     * Создает кнопки действий для Closed Pairs Grid (только Chart)
+     */
+    private Button createClosedPairsActionButtons(PairData pair) {
+        return createChartButton(pair);
+    }
+
+    /**
+     * Создает кнопку Chart для отображения Z-Score графика
+     */
+    private Button createChartButton(PairData pair) {
+        Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
+        chartButton.getElement().setAttribute("title", "Показать Z-Score график");
+        chartButton.getStyle().set("color", "#2196F3");
+
+        chartButton.addClickListener(event -> {
+            try {
+                log.info("📊 Открываем Z-Score чарт для пары: {} / {}",
+                        pair.getLongTicker(), pair.getShortTicker());
+                zScoreChartDialog.showChart(pair);
+            } catch (Exception e) {
+                log.error("❌ Ошибка при показе чарта для пары: {} / {}",
+                        pair.getLongTicker(), pair.getShortTicker(), e);
+                Notification.show("Ошибка при загрузке чарта: " + e.getMessage());
+            }
+        });
+
+        return chartButton;
     }
 }

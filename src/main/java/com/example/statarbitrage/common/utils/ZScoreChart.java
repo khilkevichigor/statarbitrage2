@@ -10,6 +10,7 @@ import org.knowm.xchart.style.markers.None;
 import org.knowm.xchart.style.markers.SeriesMarkers;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
@@ -24,21 +25,47 @@ public final class ZScoreChart {
     }
 
     public static void create(PairData pairData) {
-        // В новой архитектуре создаем простой график с текущими данными
-        log.info("Создание графика для пары: {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
-        
+        XYChart chart = buildZScoreChart(pairData);
+
+        // Сохраняем график
+        String fileName = CHARTS_DIR + "/" + System.currentTimeMillis() + "_zscore.png";
+        saveChart(chart, fileName);
+    }
+
+    /**
+     * Создает BufferedImage с Z-Score графиком для отображения в UI
+     *
+     * @param pairData данные торговой пары
+     * @return BufferedImage с Z-Score графиком
+     */
+    public static BufferedImage createBufferedImage(PairData pairData) {
+        log.info("Создание BufferedImage Z-Score графика для пары: {} / {}",
+                pairData.getLongTicker(), pairData.getShortTicker());
+
+        XYChart chart = buildZScoreChart(pairData);
+
+        // Возвращаем BufferedImage для UI
+        return BitmapEncoder.getBufferedImage(chart);
+    }
+
+    /**
+     * Создает XYChart с Z-Score данными
+     *
+     * @param pairData данные торговой пары
+     * @return настроенный XYChart
+     */
+    private static XYChart buildZScoreChart(PairData pairData) {
         // Создаем простые данные для демонстрации (в реальности должна быть история)
         List<Long> timestamps = generateTimeStamps(30); // 30 точек данных
         List<Double> zScores = generateZScoreHistory(pairData.getZScoreCurrent(), 30);
-        
-        log.info("Временной диапазон графика от: {} - до: {}", 
-            new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
-        log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
 
+        log.info("Временной диапазон графика от: {} - до: {}",
+                new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
+        log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
 
         if (timestamps.size() != zScores.size()) {
             log.warn("Неверные входные данные для построения Z-графика");
-            return;
+            throw new IllegalArgumentException("Timestamps and zScores lists must have the same size");
         }
 
         List<Date> timeAxis = timestamps.stream().map(Date::new).collect(Collectors.toList());
@@ -98,9 +125,7 @@ public final class ZScoreChart {
             }
         }
 
-        // Сохраняем график
-        String fileName = CHARTS_DIR + "/" + System.currentTimeMillis() + "_zscore.png";
-        saveChart(chart, fileName);
+        return chart;
     }
 
     public static void saveChart(XYChart chart, String filePath) {
@@ -128,7 +153,7 @@ public final class ZScoreChart {
         }
         return OptionalInt.empty();
     }
-    
+
     /**
      * Генерация временных меток для демонстрационного графика
      */
@@ -136,25 +161,25 @@ public final class ZScoreChart {
         List<Long> timestamps = new ArrayList<>();
         long currentTime = System.currentTimeMillis();
         long interval = 60000; // 1 минута между точками
-        
+
         for (int i = count - 1; i >= 0; i--) {
             timestamps.add(currentTime - (i * interval));
         }
-        
+
         return timestamps;
     }
-    
+
     /**
      * Генерация истории Z-Score для демонстрационного графика
      */
     private static List<Double> generateZScoreHistory(double currentZScore, int count) {
         List<Double> zScores = new ArrayList<>();
         Random random = new Random();
-        
+
         // Создаем реалистичную историю, которая приводит к текущему значению
         double baseValue = 0.0;
         double volatility = 0.3;
-        
+
         for (int i = 0; i < count - 1; i++) {
             // Постепенно приближаемся к текущему значению
             double progress = (double) i / (count - 1);
@@ -162,10 +187,10 @@ public final class ZScoreChart {
             baseValue = targetValue + (random.nextGaussian() * volatility);
             zScores.add(baseValue);
         }
-        
+
         // Последняя точка - точное текущее значение
         zScores.add(currentZScore);
-        
+
         return zScores;
     }
 }
