@@ -84,6 +84,17 @@ public class PairDataService {
             pairData.setZScoreChanges(zScoreChanges);
         }
 
+        // Добавляем всю историю Z-Score из ZScoreData
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю историю, если она есть
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
+            }
+        } else {
+            // Если истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
+        }
+
         return pairData;
     }
 
@@ -141,6 +152,17 @@ public class PairDataService {
         pairData.setBetaCurrent(latestParam.getBeta());
 
         changesService.calculateAndAdd(pairData);
+
+        // Добавляем новые точки в историю Z-Score при каждом обновлении
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю новую историю из ZScoreData
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
+            }
+        } else {
+            // Если новой истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
+        }
 
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {

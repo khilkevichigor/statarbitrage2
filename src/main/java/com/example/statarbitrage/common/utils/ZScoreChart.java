@@ -1,5 +1,6 @@
 package com.example.statarbitrage.common.utils;
 
+import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
@@ -55,9 +56,30 @@ public final class ZScoreChart {
      * @return настроенный XYChart
      */
     private static XYChart buildZScoreChart(PairData pairData) {
-        // Создаем простые данные для демонстрации (в реальности должна быть история)
-        List<Long> timestamps = generateTimeStamps(30); // 30 точек данных
-        List<Double> zScores = generateZScoreHistory(pairData.getZScoreCurrent(), 30);
+        // Получаем реальную историю Z-Score из PairData
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+        
+        List<Long> timestamps;
+        List<Double> zScores;
+        
+        if (history.isEmpty()) {
+            // Fallback: если истории нет, создаем минимальную точку с текущими данными
+            log.warn("История Z-Score пуста для пары {}/{}, создаем минимальные данные", 
+                    pairData.getLongTicker(), pairData.getShortTicker());
+            timestamps = Collections.singletonList(System.currentTimeMillis());
+            zScores = Collections.singletonList(pairData.getZScoreCurrent());
+        } else {
+            // Используем реальную историю
+            timestamps = history.stream()
+                    .map(ZScoreParam::getTimestamp)
+                    .collect(Collectors.toList());
+            zScores = history.stream()
+                    .map(ZScoreParam::getZscore)
+                    .collect(Collectors.toList());
+            
+            log.info("Используем реальную историю Z-Score: {} точек для пары {}/{}", 
+                    history.size(), pairData.getLongTicker(), pairData.getShortTicker());
+        }
 
         log.info("Временной диапазон графика от: {} - до: {}",
                 new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));

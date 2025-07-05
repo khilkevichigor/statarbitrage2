@@ -1,14 +1,19 @@
 package com.example.statarbitrage.common.model;
 
+import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.utils.ZScoreChart;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.awt.image.BufferedImage;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -17,6 +22,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@Slf4j
 public class PairData {
 
     @Id
@@ -36,6 +42,14 @@ public class PairData {
     private BufferedImage cachedZScoreChart;
     @Transient
     private long chartGeneratedAt;
+
+    // История Z-Score данных (сохраняется в БД как JSON)
+    @Column(columnDefinition = "TEXT")
+    private String zScoreHistoryJson;
+
+    // Временный список для работы с историей Z-Score (не сохраняется в БД)
+    @Transient
+    private List<ZScoreParam> zScoreHistory;
 
     private String longTicker;
     private String shortTicker;
@@ -193,6 +207,69 @@ public class PairData {
         this.timestamp = timestamp;
         if (this.updatedTime == 0) {
             this.updatedTime = timestamp;
+        }
+    }
+
+    /**
+     * Добавить новую точку в историю Z-Score
+     * @param zScoreParam новая точка данных
+     */
+    public void addZScorePoint(ZScoreParam zScoreParam) {
+        if (zScoreHistory == null) {
+            zScoreHistory = new ArrayList<>();
+        }
+        
+        // Проверяем, нет ли уже точки с таким же timestamp (избегаем дубликатов)
+        boolean exists = zScoreHistory.stream()
+                .anyMatch(existing -> existing.getTimestamp() == zScoreParam.getTimestamp());
+        
+        if (!exists) {
+            zScoreHistory.add(zScoreParam);
+            
+            // Ограничиваем размер истории (последние 100 точек)
+            if (zScoreHistory.size() > 100) {
+                zScoreHistory.remove(0);
+            }
+            
+            saveZScoreHistoryToJson();
+            clearChartCache(); // Очищаем кеш чарта при добавлении новых данных
+        }
+    }
+
+    /**
+     * Получить историю Z-Score данных
+     * @return список ZScoreParam
+     */
+    public List<ZScoreParam> getZScoreHistory() {
+        if (zScoreHistory == null && zScoreHistoryJson != null && !zScoreHistoryJson.isEmpty()) {
+            loadZScoreHistoryFromJson();
+        }
+        return zScoreHistory != null ? zScoreHistory : new ArrayList<>();
+    }
+
+    /**
+     * Сериализация истории Z-Score в JSON для сохранения в БД
+     */
+    private void saveZScoreHistoryToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.zScoreHistoryJson = mapper.writeValueAsString(zScoreHistory);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации истории Z-Score для пары {}/{}", longTicker, shortTicker, e);
+        }
+    }
+
+    /**
+     * Десериализация истории Z-Score из JSON при загрузке из БД
+     */
+    private void loadZScoreHistoryFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<List<ZScoreParam>> typeRef = new TypeReference<>() {};
+            this.zScoreHistory = mapper.readValue(zScoreHistoryJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации истории Z-Score для пары {}/{}", longTicker, shortTicker, e);
+            this.zScoreHistory = new ArrayList<>();
         }
     }
 
