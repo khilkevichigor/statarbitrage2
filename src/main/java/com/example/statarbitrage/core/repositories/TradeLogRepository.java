@@ -32,7 +32,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     @Query(value =
             "SELECT COUNT(*) " +
                     "FROM TRADE_LOG " +
-                    "WHERE CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+                    "WHERE DATE(ENTRY_TIME) = DATE('now')", nativeQuery = true)
     Long getTradesToday();
 
     @Query(value =
@@ -43,7 +43,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     @Query(value =
             "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
                     "FROM TRADE_LOG " +
-                    "WHERE LEFT(ENTRY_TIME, 10) = FORMATDATETIME(CURRENT_DATE(), 'yyyy-MM-dd') " +
+                    "WHERE DATE(ENTRY_TIME) = DATE('now') " +
                     "AND EXIT_REASON IS NOT NULL",
             nativeQuery = true)
     BigDecimal getSumProfitToday();
@@ -58,7 +58,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     @Query(value =
             "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
                     "FROM TRADE_LOG " +
-                    "WHERE LEFT(ENTRY_TIME, 10) = FORMATDATETIME(CURRENT_DATE(), 'yyyy-MM-dd') " +
+                    "WHERE DATE(ENTRY_TIME) = DATE('now') " +
                     "AND EXIT_REASON IS NOT NULL", nativeQuery = true)
     BigDecimal getAvgProfitToday();
 
@@ -72,7 +72,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
             "SELECT COUNT(*) " +
                     "FROM TRADE_LOG " +
                     "WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP' " +
-                    "AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+                    "AND DATE(ENTRY_TIME) = DATE('now')", nativeQuery = true)
     Long getExitByStopToday();
 
     @Query(value = "SELECT COUNT(*) " +
@@ -84,7 +84,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
             "SELECT COUNT(*) " +
                     "FROM TRADE_LOG " +
                     "WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE' " +
-                    "AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+                    "AND DATE(ENTRY_TIME) = DATE('now')", nativeQuery = true)
     Long getExitByTakeToday();
 
     @Query(value =
@@ -145,7 +145,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
             "SELECT COUNT(*) " +
                     "FROM PAIR_DATA " +
                     "WHERE EXIT_REASON = :reason " +
-                    "AND CAST(DATEADD('MILLISECOND', ENTRY_TIME, DATE '1970-01-01') AS DATE) = CURRENT_DATE",
+                    "AND DATE(DATETIME(ENTRY_TIME / 1000, 'unixepoch')) = DATE('now')",
             nativeQuery = true)
     Long getExitByToday(@Param("reason") String reason);
 
