@@ -50,15 +50,16 @@ public class TradeAndSimulationScheduler {
         log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов", (schedulerEnd - schedulerStart) / 1000.0, tradingPairs.size());
     }
 
-    //    @Scheduled(fixedRate = 180_000)
+    @Scheduled(fixedRate = 180_000)
     public void maintainPairs() {
+        log.info("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
         long schedulerStart = System.currentTimeMillis();
-        log.info("🔄 Maintain Pairs Scheduler started...");
+        AtomicInteger count = new AtomicInteger();
         try {
             // ЕСЛИ симуляция включена — поддерживаем нужное количество трейдов
             Settings settings = settingsService.getSettings();
-            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (settings.isSimulationEnabled()) {
+                List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
                 int maxActive = (int) settings.getUsePairs();
                 int currentActive = tradingPairs.size();
                 int missing = maxActive - currentActive;
@@ -70,36 +71,25 @@ public class TradeAndSimulationScheduler {
                     pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
 
                     // Находим новые и сразу запускаем
-                    log.info("Fetching pairs...");
-                    long fetchPairsStart = System.currentTimeMillis();
                     List<PairData> newPairs = fetchPairsProcessor.fetchPairs(missing);
-                    long fetchPairsStartEnd = System.currentTimeMillis();
-                    log.info("⏱️ Fetching pairs finished in {} сек", (fetchPairsStartEnd - fetchPairsStart) / 1000.0);
-
-                    log.info("Trading new pairs...");
-                    long testTradeStart = System.currentTimeMillis();
-                    AtomicInteger count = new AtomicInteger();
                     newPairs.forEach((v) -> {
                         PairData startedNewTrade = startNewTradeProcessor.startNewTrade(v);
                         if (startedNewTrade != null) {
                             count.getAndIncrement();
                         }
                     });
-                    long testTradeEnd = System.currentTimeMillis();
-                    log.info("⏱️ Trading new pairs finished in {} сек", (testTradeEnd - testTradeStart) / 1000.0);
-
-                    log.info("▶️ Запущено {} новых пар", count);
+                }
+                if (count.get() > 0) {
+                    // Обновляем UI
+                    eventSendService.updateUI(UpdateUiEvent.builder().build());
                 }
             }
-
-            // Обновляем UI
-            eventSendService.updateUI(UpdateUiEvent.builder().build());
 
         } catch (Exception e) {
             log.error("❌ Ошибка в maintainPairs()", e);
         }
 
         long schedulerEnd = System.currentTimeMillis();
-        log.info("⏱️ Maintain Pairs Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
+        log.info("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар", (schedulerEnd - schedulerStart) / 1000.0, count);
     }
 }
