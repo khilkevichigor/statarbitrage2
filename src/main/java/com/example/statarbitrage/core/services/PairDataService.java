@@ -23,7 +23,6 @@ public class PairDataService {
     private final ChangesService changesService;
     private final ExitStrategyService exitStrategyService;
     private final PairDataRepository pairDataRepository;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();

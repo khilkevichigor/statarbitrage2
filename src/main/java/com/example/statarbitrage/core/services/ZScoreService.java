@@ -207,6 +207,7 @@ public class ZScoreService {
 
         // Передаём отфильтрованные данные в Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(filteredCandlesMap, settings, true);
+
         if (zScoreData.getLatest_zscore() < 0) {
             String message = String.format("Последний Z {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatest_zscore(), undervalued, overvalued);
             log.error(message);
