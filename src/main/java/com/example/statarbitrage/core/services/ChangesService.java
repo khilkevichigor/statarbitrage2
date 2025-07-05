@@ -120,7 +120,7 @@ public class ChangesService {
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
                 pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
 
-        log.info("📊 Z: Entry: {}, Current: {}, ΔZ: {}",
+        log.info("📊 Z Entry: {}, Current: {}, ΔZ: {}",
                 zScoreEntry, zScoreCurrent, zScoreRounded);
 
         log.info("💰 Профит (плечо {}x, комиссия {}%): {}%", leverage, feePctPerTrade, profitRounded);

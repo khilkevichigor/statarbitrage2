@@ -12,6 +12,7 @@ import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,23 +30,20 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
 
-    //    @Scheduled(fixedRate = 60_000)
+    @Scheduled(fixedRate = 60_000)
     public void updateTrades() {
         try {
             // ВСЕГДА обновляем трейды
             List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {
                 long schedulerStart = System.currentTimeMillis();
-                log.info("🔄 Update Trades Scheduler started...");
-                long updateTradeStart = System.currentTimeMillis();
+                log.info("🔄 Запуск шедуллера обновления трейдов...");
                 tradingPairs.forEach(updateTradeProcessor::updateTrade);
                 long updateTradeEnd = System.currentTimeMillis();
-                log.info("⏱️ Update trading pairs finished in {} сек", (updateTradeEnd - updateTradeStart) / 1000.0);
-                log.info("✅ Обновлены {} трейдов", tradingPairs.size());
                 // Обновляем UI
                 eventSendService.updateUI(UpdateUiEvent.builder().build());
-                long schedulerEnd = System.currentTimeMillis();
-                log.info("⏱️ Update Trades Scheduler finished in {} сек", (schedulerEnd - schedulerStart) / 1000.0);
+                log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек", (updateTradeEnd - schedulerStart) / 1000.0);
+                log.info("✅ Обновлены {} трейдов", tradingPairs.size());
             }
         } catch (Exception e) {
             log.error("❌ Ошибка в updateTrades()", e);
