@@ -32,7 +32,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     @Query(value =
             "SELECT COUNT(*) " +
                     "FROM TRADE_LOG " +
-                    "WHERE DATE(ENTRY_TIME) = DATE('now')", nativeQuery = true)
+                    "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime')", nativeQuery = true)
     Long getTradesToday();
 
     @Query(value =
@@ -43,7 +43,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     @Query(value =
             "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
                     "FROM TRADE_LOG " +
-                    "WHERE DATE(ENTRY_TIME) = DATE('now') " +
+                    "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime') " +
                     "AND EXIT_REASON IS NOT NULL",
             nativeQuery = true)
     BigDecimal getSumProfitToday();
@@ -58,7 +58,7 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     @Query(value =
             "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
                     "FROM TRADE_LOG " +
-                    "WHERE DATE(ENTRY_TIME) = DATE('now') " +
+                    "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime') " +
                     "AND EXIT_REASON IS NOT NULL", nativeQuery = true)
     BigDecimal getAvgProfitToday();
 

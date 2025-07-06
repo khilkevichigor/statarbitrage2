@@ -43,7 +43,7 @@ public class DbInitializer {
                     .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
                     .exitTimeHours(1)
 
-                    .usePairs(1.0)
+                    .usePairs(3.0)
 
                     .build()
             );

@@ -24,7 +24,7 @@ public class TradeLogService {
 
     private final TradeLogRepository tradeLogRepository;
 
-    public TradeLog saveFromPairData(PairData pairData) {
+    public void saveFromPairData(PairData pairData) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
@@ -79,7 +79,7 @@ public class TradeLogService {
         tradeLog.setEntryTime(formattedEntryTime);
         tradeLog.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-        return tradeLogRepository.save(tradeLog);
+        tradeLogRepository.save(tradeLog);
     }
 
     public BigDecimal getSumRealizedProfit() {
