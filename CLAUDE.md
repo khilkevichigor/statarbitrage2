@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Language
+- Always communicate in Russian language (Русский язык)
+- All responses, explanations, and interactions should be in Russian
+
 ## Project Overview
 
 This is a statistical arbitrage trading application built with Spring Boot, Vaadin, and Python integration. The system identifies trading opportunities between correlated cryptocurrency pairs, executes trades via 3Commas API, and provides a web interface for monitoring and control.
