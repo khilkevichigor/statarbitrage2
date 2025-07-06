@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Route("") // Maps to root URL
@@ -35,6 +36,9 @@ public class MainView extends VerticalLayout {
     private final SettingsComponent settingsComponent;
     private final TradingPairsComponent tradingPairsComponent;
     private final StatisticsComponent statisticsComponent;
+
+    // UI elements
+    private Button getCointPairsButton;
 
     public MainView(FetchPairsProcessor fetchPairsProcessor,
                     PairDataService pairDataService,
@@ -52,22 +56,16 @@ public class MainView extends VerticalLayout {
 
         initializeLayout();
         setupUIUpdateCallback();
+        setupAutoTradingCallback();
     }
 
     private void initializeLayout() {
         add(new H1("Welcome to StatArbitrage"));
 
-        Button getCointPairsButton = new Button("Получить пары", new Icon(VaadinIcon.REFRESH), e -> {
-            try {
-                tradingPairsComponent.setSelectedPairs(Collections.emptyList());
-                int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
-                log.info("Deleted all {} pairs from database", deleteAllByStatus);
-                findSelectedPairs();
-            } catch (Exception ex) {
-                log.error("Error fetching pairs", ex);
-                Notification.show("Ошибка при получении пар: " + ex.getMessage());
-            }
-        });
+        getCointPairsButton = new Button("Получить пары", new Icon(VaadinIcon.REFRESH), e -> handleFetchPairsClick());
+
+        // Устанавливаем начальное состояние кнопки
+        updateButtonState();
 
         add(
                 settingsComponent,
@@ -81,6 +79,65 @@ public class MainView extends VerticalLayout {
         tradingPairsComponent.setUiUpdateCallback(v -> updateUI());
     }
 
+    private void setupAutoTradingCallback() {
+        settingsComponent.setAutoTradingChangeCallback(this::updateButtonState);
+    }
+
+    private void updateButtonState() {
+        getUI().ifPresent(ui -> ui.access(() -> {
+            boolean autoTradingEnabled = settingsComponent.isAutoTradingEnabled();
+            getCointPairsButton.setEnabled(!autoTradingEnabled);
+
+            if (autoTradingEnabled) {
+                getCointPairsButton.setText("Автотрейдинг активен");
+                getCointPairsButton.setIcon(new Icon(VaadinIcon.AUTOMATION));
+            } else {
+                getCointPairsButton.setText("Получить пары");
+                getCointPairsButton.setIcon(new Icon(VaadinIcon.REFRESH));
+            }
+        }));
+    }
+
+    private void handleFetchPairsClick() {
+        setButtonLoadingState(true);
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Выполняем UI операции в UI потоке
+                getUI().ifPresent(ui -> ui.access(() -> {
+                    tradingPairsComponent.setSelectedPairs(Collections.emptyList());
+                }));
+
+                // Выполняем операции с базой данных в background потоке
+                int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+                log.info("Deleted all {} pairs from database", deleteAllByStatus);
+                List<PairData> pairs = fetchPairsProcessor.fetchPairs(null);
+
+                // Обновляем UI в UI потоке
+                getUI().ifPresent(ui -> ui.access(() -> {
+                    tradingPairsComponent.setSelectedPairs(pairs);
+                }));
+            } catch (Exception ex) {
+                log.error("Error fetching pairs", ex);
+                getUI().ifPresent(ui -> ui.access(() ->
+                        Notification.show("Ошибка при получении пар: " + ex.getMessage())
+                ));
+            } finally {
+                getUI().ifPresent(ui -> ui.access(() -> setButtonLoadingState(false)));
+            }
+        });
+    }
+
+    private void setButtonLoadingState(boolean loading) {
+        if (loading) {
+            getCointPairsButton.setEnabled(false);
+            getCointPairsButton.setText("Ищем пары...");
+            getCointPairsButton.setIcon(new Icon(VaadinIcon.SPINNER));
+        } else {
+            updateButtonState(); // Восстанавливаем состояние на основе автотрейдинга
+        }
+    }
+
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
@@ -88,6 +145,8 @@ public class MainView extends VerticalLayout {
         uiUpdateService.registerView(UI.getCurrent(), this);
         // Initial data load
         updateUI();
+        // Обновляем состояние кнопки при присоединении компонента
+        updateButtonState();
     }
 
     public void handleUiUpdateRequest() {
@@ -110,17 +169,6 @@ public class MainView extends VerticalLayout {
     protected void onDetach(DetachEvent detachEvent) {
         uiUpdateService.unregisterView(UI.getCurrent());
         super.onDetach(detachEvent);
-    }
-
-
-    private void findSelectedPairs() {
-        try {
-            List<PairData> pairs = fetchPairsProcessor.fetchPairs(null);
-            tradingPairsComponent.setSelectedPairs(pairs);
-        } catch (Exception e) {
-            log.error("Error fetching pairs", e);
-            Notification.show("Ошибка при получении пар: " + e.getMessage());
-        }
     }
 
 

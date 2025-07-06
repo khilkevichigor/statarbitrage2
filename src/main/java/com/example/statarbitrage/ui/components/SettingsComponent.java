@@ -39,6 +39,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private Settings currentSettings;
     private Checkbox autoTradingCheckbox;
+    private Runnable autoTradingChangeCallback;
 
     public SettingsComponent(SettingsService settingsService,
                              TradeAndSimulationScheduler tradeAndSimulationScheduler) {
@@ -125,6 +126,11 @@ public class SettingsComponent extends VerticalLayout {
 
                 log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
                 Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
+
+                // Уведомляем об изменении состояния автотрейдинга
+                if (autoTradingChangeCallback != null) {
+                    autoTradingChangeCallback.run();
+                }
             } catch (Exception e) {
                 log.error("Error updating autoTrading mode", e);
                 Notification.show("Ошибка при изменении режима автотрейдинга: " + e.getMessage());
@@ -369,5 +375,13 @@ public class SettingsComponent extends VerticalLayout {
         loadCurrentSettings();
         autoTradingCheckbox.setValue(currentSettings.isAutoTradingEnabled());
         settingsBinder.readBean(currentSettings);
+    }
+
+    public void setAutoTradingChangeCallback(Runnable callback) {
+        this.autoTradingChangeCallback = callback;
+    }
+
+    public boolean isAutoTradingEnabled() {
+        return autoTradingCheckbox.getValue();
     }
 }
