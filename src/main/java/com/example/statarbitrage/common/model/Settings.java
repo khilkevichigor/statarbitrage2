@@ -1,10 +1,10 @@
 package com.example.statarbitrage.common.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.*;
 
 @Entity
 @Table(name = "settings")
@@ -40,4 +40,8 @@ public class Settings {
 
     private double usePairs;
     private boolean simulationEnabled = false;
+
+    public double getExpectedZParamsCount() {
+        return this.getCandleLimit() - this.getMinWindowSize();
+    }
 }

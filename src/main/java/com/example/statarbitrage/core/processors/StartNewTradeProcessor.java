@@ -34,7 +34,7 @@ public class StartNewTradeProcessor {
         if (validateService.isLastZLessThenMinZ(pairData, settings)) {
             //если впервые прогоняем и Z<ZMin
             pairDataService.delete(pairData);
-            log.warn("Удалили пару {} - {} тк ZCurrent < ZMin", pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("Удалили пару {} - {} т.к. ZCurrent < ZMin", pairData.getLongTicker(), pairData.getShortTicker());
             return null;
         }
 
@@ -56,7 +56,7 @@ public class StartNewTradeProcessor {
             throw new IllegalArgumentException(message);
         }
 
-        log.info(String.format("Наш новый трейд: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+        log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());

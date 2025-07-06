@@ -61,7 +61,7 @@ public class ZScoreService {
     }
 
     private void filterIncompleteZScoreParams(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
-        double expected = calculateExpectedZParamsCount(settings);
+        double expected = settings.getExpectedZParamsCount();
         log.info("🔍 Ожидаемое количество наблюдений: {}", expected);
 
         int before = zScoreDataList.size();
@@ -134,16 +134,18 @@ public class ZScoreService {
     }
 
     public Optional<ZScoreData> calculateZScoreDataForNewTrade(PairData pairData, Settings settings, Map<String, List<Candle>> candlesMap) {
-        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
-        if (rawZScoreList == null || rawZScoreList.isEmpty()) {
-            log.warn("⚠️ ZScoreService: получен пустой список от Python");
-            throw new IllegalStateException("⚠️ ZScoreService: получен пустой список от Python");
+        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
+        if (zScoreData == null) {
+            log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
+            throw new IllegalStateException("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
         }
 
-        checkZScoreParamsSize(rawZScoreList);
-        filterIncompleteZScoreParams(pairData, rawZScoreList, settings);
+        List<ZScoreData> zScoreSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
 
-        return rawZScoreList.size() == 1 ? Optional.of(rawZScoreList.get(0)) : Optional.empty();
+        checkZScoreParamsSize(zScoreSingletonList);
+        filterIncompleteZScoreParams(pairData, zScoreSingletonList, settings);
+
+        return Optional.of(zScoreData);
     }
 
     /**
