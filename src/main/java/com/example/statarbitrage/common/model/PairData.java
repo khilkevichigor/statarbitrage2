@@ -28,6 +28,10 @@ public class PairData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
+
     @Enumerated(EnumType.STRING)
     private TradeStatus status = TradeStatus.SELECTED;
 
@@ -311,5 +315,14 @@ public class PairData {
     public void clearChartCache() {
         this.cachedZScoreChart = null;
         this.chartGeneratedAt = 0;
+    }
+
+    // Методы для версионности (нужны для работы с @Version)
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

@@ -9,7 +9,9 @@ import com.example.statarbitrage.common.utils.CandlesUtil;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -40,7 +42,16 @@ public class PairDataService {
             }
         }
 
-        result.forEach(this::save);
+        // Сохраняем с обработкой конфликтов
+        for (PairData pair : result) {
+            try {
+                save(pair);
+            } catch (RuntimeException e) {
+                log.error("❌ Ошибка при сохранении новой пары {}/{}: {}",
+                        pair.getLongTicker(), pair.getShortTicker(), e.getMessage());
+                // Продолжаем обработку остальных пар
+            }
+        }
 
         return result;
     }
@@ -97,6 +108,7 @@ public class PairDataService {
         return pairData;
     }
 
+    @Transactional
     public void update(PairData pairData, ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles) {
         // Проверяем наличие данных
         if (longTickerCandles == null || longTickerCandles.isEmpty() || shortTickerCandles == null || shortTickerCandles.isEmpty()) {
@@ -172,8 +184,137 @@ public class PairDataService {
         save(pairData);
     }
 
+    @Transactional
     public void save(PairData pairData) {
-        pairDataRepository.save(pairData);
+        saveWithRetry(pairData, 3);
+    }
+
+    private void saveWithRetry(PairData pairData, int maxRetries) {
+        int attempts = 0;
+        PairData currentEntity = pairData;
+
+        while (attempts < maxRetries) {
+            try {
+                log.debug("💾 Попытка сохранения PairData #{} (попытка {}/{}) версия: {}",
+                        currentEntity.getId(), attempts + 1, maxRetries, currentEntity.getVersion());
+
+                PairData savedEntity = pairDataRepository.save(currentEntity);
+                log.debug("✅ Успешно сохранено PairData #{} версия: {}",
+                        savedEntity.getId(), savedEntity.getVersion());
+                return; // Успешное сохранение
+
+            } catch (OptimisticLockingFailureException e) {
+                attempts++;
+                log.warn("⚠️ Конфликт при сохранении PairData #{} (попытка {}/{}) для пары {}/{}: {}",
+                        currentEntity.getId(), attempts, maxRetries,
+                        currentEntity.getLongTicker(), currentEntity.getShortTicker(), e.getMessage());
+
+                if (attempts >= maxRetries) {
+                    log.error("❌ Не удалось сохранить PairData #{} после {} попыток для пары {}/{}",
+                            currentEntity.getId(), maxRetries,
+                            currentEntity.getLongTicker(), currentEntity.getShortTicker());
+                    throw new RuntimeException("Не удалось сохранить данные пары после " + maxRetries + " попыток", e);
+                }
+
+                // Перезагружаем актуальную версию из БД и создаем новый entity для следующей попытки
+                try {
+                    Thread.sleep(50 + (attempts * 25L)); // Exponential backoff: 50ms, 75ms, 100ms
+
+                    if (currentEntity.getId() != null) {
+                        // Перезагружаем свежие данные из БД
+                        Optional<PairData> freshDataOpt = pairDataRepository.findById(currentEntity.getId());
+                        if (freshDataOpt.isPresent()) {
+                            PairData freshData = freshDataOpt.get();
+
+                            // Создаем новый entity с актуальной версией и нашими изменениями
+                            currentEntity = mergeWithFreshData(currentEntity, freshData);
+
+                            log.info("🔄 Обновлена версия для попытки #{}: старая={}, новая={}",
+                                    attempts + 1, freshData.getVersion(), currentEntity.getVersion());
+                        } else {
+                            log.warn("❓ Не удалось найти PairData #{} в БД для повторной попытки", currentEntity.getId());
+                        }
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Прерван поток при повторной попытке сохранения", ie);
+                }
+            }
+        }
+    }
+
+    /**
+     * Объединяет изменения из detached entity с актуальными данными из БД
+     */
+    private PairData mergeWithFreshData(PairData modifiedEntity, PairData freshEntity) {
+        // Копируем все наши изменения в свежую entity с актуальной версией
+        freshEntity.setStatus(modifiedEntity.getStatus());
+        freshEntity.setLongTicker(modifiedEntity.getLongTicker());
+        freshEntity.setShortTicker(modifiedEntity.getShortTicker());
+
+        // Цены
+        freshEntity.setLongTickerEntryPrice(modifiedEntity.getLongTickerEntryPrice());
+        freshEntity.setLongTickerCurrentPrice(modifiedEntity.getLongTickerCurrentPrice());
+        freshEntity.setShortTickerEntryPrice(modifiedEntity.getShortTickerEntryPrice());
+        freshEntity.setShortTickerCurrentPrice(modifiedEntity.getShortTickerCurrentPrice());
+
+        // Статистические параметры входа
+        freshEntity.setZScoreEntry(modifiedEntity.getZScoreEntry());
+        freshEntity.setCorrelationEntry(modifiedEntity.getCorrelationEntry());
+        freshEntity.setAdfPvalueEntry(modifiedEntity.getAdfPvalueEntry());
+        freshEntity.setPValueEntry(modifiedEntity.getPValueEntry());
+        freshEntity.setMeanEntry(modifiedEntity.getMeanEntry());
+        freshEntity.setStdEntry(modifiedEntity.getStdEntry());
+        freshEntity.setSpreadEntry(modifiedEntity.getSpreadEntry());
+        freshEntity.setAlphaEntry(modifiedEntity.getAlphaEntry());
+        freshEntity.setBetaEntry(modifiedEntity.getBetaEntry());
+
+        // Текущие статистические параметры
+        freshEntity.setZScoreCurrent(modifiedEntity.getZScoreCurrent());
+        freshEntity.setCorrelationCurrent(modifiedEntity.getCorrelationCurrent());
+        freshEntity.setAdfPvalueCurrent(modifiedEntity.getAdfPvalueCurrent());
+        freshEntity.setPValueCurrent(modifiedEntity.getPValueCurrent());
+        freshEntity.setMeanCurrent(modifiedEntity.getMeanCurrent());
+        freshEntity.setStdCurrent(modifiedEntity.getStdCurrent());
+        freshEntity.setSpreadCurrent(modifiedEntity.getSpreadCurrent());
+        freshEntity.setAlphaCurrent(modifiedEntity.getAlphaCurrent());
+        freshEntity.setBetaCurrent(modifiedEntity.getBetaCurrent());
+
+        // Изменения и статистика
+        freshEntity.setZScoreChanges(modifiedEntity.getZScoreChanges());
+        freshEntity.setLongChanges(modifiedEntity.getLongChanges());
+        freshEntity.setShortChanges(modifiedEntity.getShortChanges());
+        freshEntity.setProfitChanges(modifiedEntity.getProfitChanges());
+
+        // Времена и метрики
+        freshEntity.setEntryTime(modifiedEntity.getEntryTime());
+        freshEntity.setUpdatedTime(modifiedEntity.getUpdatedTime());
+        freshEntity.setTimestamp(modifiedEntity.getTimestamp());
+
+        // Минимумы и максимумы
+        freshEntity.setMaxProfitRounded(modifiedEntity.getMaxProfitRounded());
+        freshEntity.setMinProfitRounded(modifiedEntity.getMinProfitRounded());
+        freshEntity.setTimeInMinutesSinceEntryToMin(modifiedEntity.getTimeInMinutesSinceEntryToMin());
+        freshEntity.setTimeInMinutesSinceEntryToMax(modifiedEntity.getTimeInMinutesSinceEntryToMax());
+
+        freshEntity.setMaxZ(modifiedEntity.getMaxZ());
+        freshEntity.setMinZ(modifiedEntity.getMinZ());
+        freshEntity.setMaxLong(modifiedEntity.getMaxLong());
+        freshEntity.setMinLong(modifiedEntity.getMinLong());
+        freshEntity.setMaxShort(modifiedEntity.getMaxShort());
+        freshEntity.setMinShort(modifiedEntity.getMinShort());
+        freshEntity.setMaxCorr(modifiedEntity.getMaxCorr());
+        freshEntity.setMinCorr(modifiedEntity.getMinCorr());
+
+        // Причина выхода
+        freshEntity.setExitReason(modifiedEntity.getExitReason());
+
+        // История Z-Score (только если изменилась)
+        if (modifiedEntity.getZScoreHistoryJson() != null) {
+            freshEntity.setZScoreHistoryJson(modifiedEntity.getZScoreHistoryJson());
+        }
+
+        return freshEntity;
     }
 
     public List<PairData> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
