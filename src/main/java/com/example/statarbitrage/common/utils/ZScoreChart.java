@@ -102,18 +102,28 @@ public final class ZScoreChart {
         addHorizontalLine(chart, timeAxis, -1.0, Color.GRAY);
         addHorizontalLine(chart, timeAxis, -2.0, Color.RED);
 
-        // Вертикальная линия входа (используем timestamp вместо entryTime)
-        if (pairData.getTimestamp() > 0
-                && pairData.getTimestamp() >= timestamps.get(0)
-                && pairData.getTimestamp() <= timestamps.get(timestamps.size() - 1)) {
+        // Вертикальная линия входа - используем entryTime (время создания трейда)
+        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        long historyStart = timestamps.get(0);
+        long historyEnd = timestamps.get(timestamps.size() - 1);
 
-            OptionalInt indexOpt = findClosestIndex(timestamps, pairData.getTimestamp());
+        log.info("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
+                new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
+        log.info("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
+
+        // Проверяем попадает ли время входа в диапазон истории
+        boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+
+        if (inRange) {
+            log.info("Время входа попадает в диапазон истории - рисуем точную линию входа");
+
+            OptionalInt indexOpt = findClosestIndex(timestamps, entryTimestamp);
 
             // Рисуем линию и точку только если timestamp попадает в текущее окно данных
             if (indexOpt.isPresent()) {
                 int index = indexOpt.getAsInt();
 
-                Date entryDate = new Date(pairData.getTimestamp());
+                Date entryDate = new Date(entryTimestamp);
                 List<Date> lineX = Arrays.asList(entryDate, entryDate);
 
                 double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
@@ -133,7 +143,50 @@ public final class ZScoreChart {
                 entryPoint.setLineColor(Color.BLUE.darker());
                 entryPoint.setMarker(SeriesMarkers.CIRCLE);
                 entryPoint.setLineStyle(new BasicStroke(0f));
+
+                log.info("✅ Линия входа добавлена на графике в позиции {}", index);
             }
+        } else if (entryTimestamp > 0) {
+            log.warn("Время входа не попадает в диапазон истории - показываем приблизительную линию");
+
+            // Показываем линию входа на ближайшей границе
+            Date entryDate;
+            int index;
+
+            if (entryTimestamp < historyStart) {
+                // Время входа раньше истории - показываем в начале
+                entryDate = new Date(historyStart);
+                index = 0;
+                log.info("Показываем линию входа в начале графика");
+            } else {
+                // Время входа позже истории - показываем в конце
+                entryDate = new Date(historyEnd);
+                index = timestamps.size() - 1;
+                log.info("Показываем линию входа в конце графика");
+            }
+
+            List<Date> lineX = Arrays.asList(entryDate, entryDate);
+            double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
+            double maxY = zScores.stream().max(Double::compareTo).orElse(2.0);
+            List<Double> lineY = Arrays.asList(minY, maxY);
+
+            XYSeries entryLine = chart.addSeries("Entry (approx)", lineX, lineY);
+            entryLine.setLineColor(Color.ORANGE);
+            entryLine.setMarker(new None());
+            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+            // Точка входа
+            XYSeries entryPoint = chart.addSeries("Entry Point (approx)",
+                    Collections.singletonList(timeAxis.get(index)),
+                    Collections.singletonList(zScores.get(index)));
+            entryPoint.setMarkerColor(Color.ORANGE.darker());
+            entryPoint.setLineColor(Color.ORANGE.darker());
+            entryPoint.setMarker(SeriesMarkers.CIRCLE);
+            entryPoint.setLineStyle(new BasicStroke(0f));
+
+            log.info("✅ Приблизительная линия входа добавлена на графике");
+        } else {
+            log.warn("Время входа не задано (0) - линия входа не будет показана");
         }
 
         return chart;
