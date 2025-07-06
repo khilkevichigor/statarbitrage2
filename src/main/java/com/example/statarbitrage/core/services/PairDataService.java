@@ -43,15 +43,19 @@ public class PairDataService {
         }
 
         // Сохраняем с обработкой конфликтов
+        List<PairData> savedPairs = new ArrayList<>();
         for (PairData pair : result) {
             try {
                 save(pair);
+                savedPairs.add(pair);
             } catch (RuntimeException e) {
-                log.error("❌ Ошибка при сохранении новой пары {}/{}: {}",
+                log.warn("⚠️ Не удалось сохранить пару {}/{}: {} - пропускаем",
                         pair.getLongTicker(), pair.getShortTicker(), e.getMessage());
                 // Продолжаем обработку остальных пар
             }
         }
+
+        log.info("✅ Успешно сохранено {}/{} пар", savedPairs.size(), result.size());
 
         return result;
     }
@@ -232,7 +236,9 @@ public class PairDataService {
                             log.info("🔄 Обновлена версия для попытки #{}: старая={}, новая={}",
                                     attempts + 1, freshData.getVersion(), currentEntity.getVersion());
                         } else {
-                            log.warn("❓ Не удалось найти PairData #{} в БД для повторной попытки", currentEntity.getId());
+                            log.warn("❌ PairData #{} была удалена из БД другим процессом для пары {}/{}. Прекращаем попытки сохранения.",
+                                    currentEntity.getId(), currentEntity.getLongTicker(), currentEntity.getShortTicker());
+                            return; // Запись удалена - прекращаем попытки
                         }
                     }
                 } catch (InterruptedException ie) {
