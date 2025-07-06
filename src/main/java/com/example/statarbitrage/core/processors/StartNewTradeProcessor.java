@@ -51,7 +51,7 @@ public class StartNewTradeProcessor {
         ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
 
         if (!Objects.equals(pairData.getLongTicker(), zScoreData.getUndervaluedTicker()) || !Objects.equals(pairData.getShortTicker(), zScoreData.getOvervaluedTicker())) {
-            String message = String.format("Начало нового терейда для пары лонг=%s шорт=%s. Тикеры поменялись местами!!! Торговать нельзя!!!", pairData.getLongTicker(), pairData.getShortTicker());
+            String message = String.format("Ошибка начала нового терейда для пары лонг=%s шорт=%s. Тикеры поменялись местами!!! Торговать нельзя!!!", pairData.getLongTicker(), pairData.getShortTicker());
             log.error(message);
             throw new IllegalArgumentException(message);
         }

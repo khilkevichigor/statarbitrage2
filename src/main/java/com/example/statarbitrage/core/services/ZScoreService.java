@@ -116,12 +116,6 @@ public class ZScoreService {
         log.info("✅ После фильтрации осталось {} из {} пар", after, before);
     }
 
-
-    private double calculateExpectedZParamsCount(Settings settings) {
-        return settings.getCandleLimit() - settings.getMinWindowSize();
-    }
-
-
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
         // Получаем результат из Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
