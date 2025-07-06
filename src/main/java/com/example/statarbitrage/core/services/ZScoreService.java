@@ -256,7 +256,7 @@ public class ZScoreService {
 
             double zVal, pValue, adf, corr;
 
-            if (params != null && !params.isEmpty()) {
+            if (params != null && !params.isEmpty()) { //todo params=null
                 // Используем старый формат с детальными параметрами
                 ZScoreParam last = params.get(params.size() - 1);
                 zVal = last.getZscore();
