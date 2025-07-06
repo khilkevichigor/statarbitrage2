@@ -123,7 +123,7 @@ public class SettingsComponent extends VerticalLayout {
 
         NumberField exitTakeField = new NumberField("Exit Тейк (%)");
         NumberField exitStopField = new NumberField("Exit Стоп (%)");
-        NumberField exitZMinField = new NumberField("Exit Мин Z");
+        NumberField exitZMinField = new NumberField("отExit Мин Z");
         NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
         NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
 
@@ -144,7 +144,7 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(feePctPerTradeField, 0.01, 0.0);
         setNumberFieldProperties(exitTakeField, 0.01, 0.0);
         setNumberFieldProperties(exitStopField, 0.01, 0.0);
-        setNumberFieldProperties(exitZMinField, 0.01, 0.0);
+        setNumberFieldProperties(exitZMinField, 0.01, -10.0);
         setNumberFieldProperties(exitZMaxPercentField, 0.01, 0.0);
         setNumberFieldProperties(exitTimeHoursField, 0.1, 0.1);
         setNumberFieldProperties(usePairsField, 1.0, 1.0);
