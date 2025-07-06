@@ -39,7 +39,7 @@ public class Settings {
     private double minVolume;
 
     private double usePairs;
-    private boolean simulationEnabled = false;
+    private boolean autoTradingEnabled = false;
 
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

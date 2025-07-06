@@ -16,7 +16,7 @@ public class SettingsService {
         return settingsRepository.findAll().get(0);
     }
 
-    public void saveSettingsInDb(Settings settings) {
+    public void save(Settings settings) {
         settingsRepository.save(settings);
     }
 }

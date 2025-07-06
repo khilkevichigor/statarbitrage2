@@ -56,9 +56,9 @@ public class TradeAndSimulationScheduler {
         long schedulerStart = System.currentTimeMillis();
         AtomicInteger count = new AtomicInteger();
         try {
-            // ЕСЛИ симуляция включена — поддерживаем нужное количество трейдов
+            // ЕСЛИ автотрейдинг включен — поддерживаем нужное количество трейдов
             Settings settings = settingsService.getSettings();
-            if (settings.isSimulationEnabled()) {
+            if (settings.isAutoTradingEnabled()) {
                 List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
                 int maxActive = (int) settings.getUsePairs();
                 int currentActive = tradingPairs.size();

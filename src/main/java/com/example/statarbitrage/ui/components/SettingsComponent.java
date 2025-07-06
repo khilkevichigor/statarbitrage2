@@ -29,7 +29,7 @@ public class SettingsComponent extends VerticalLayout {
     private final Binder<Settings> settingsBinder;
 
     private Settings currentSettings;
-    private Checkbox simulationCheckbox;
+    private Checkbox autoTradingCheckbox;
     private FormLayout settingsForm;
 
     public SettingsComponent(SettingsService settingsService,
@@ -62,34 +62,34 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     private void createSettingsForm() {
-        createSimulationCheckbox();
+        createAutoTradingCheckbox();
         createSettingsFormLayout();
 
         Button saveButton = new Button("Сохранить настройки", e -> saveSettings());
         saveButton.getStyle().set("margin-top", "10px");
 
-        add(simulationCheckbox, settingsForm, saveButton);
+        add(autoTradingCheckbox, settingsForm, saveButton);
     }
 
-    private void createSimulationCheckbox() {
-        simulationCheckbox = new Checkbox("Симуляция");
-        simulationCheckbox.setValue(currentSettings.isSimulationEnabled());
+    private void createAutoTradingCheckbox() {
+        autoTradingCheckbox = new Checkbox("Автотрейдинг");
+        autoTradingCheckbox.setValue(currentSettings.isAutoTradingEnabled());
 
-        simulationCheckbox.addValueChangeListener(event -> {
+        autoTradingCheckbox.addValueChangeListener(event -> {
             try {
                 Settings settings = settingsService.getSettings();
-                settings.setSimulationEnabled(event.getValue());
-                settingsService.saveSettingsInDb(settings);
+                settings.setAutoTradingEnabled(event.getValue());
+                settingsService.save(settings);
 
                 if (event.getValue()) {
                     tradeAndSimulationScheduler.maintainPairs();
                 }
 
-                log.info(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
-                Notification.show(event.getValue() ? "Симуляция включена" : "Симуляция отключена");
+                log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
+                Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
             } catch (Exception e) {
-                log.error("Error updating simulation mode", e);
-                Notification.show("Ошибка при изменении режима симуляции: " + e.getMessage());
+                log.error("Error updating autoTrading mode", e);
+                Notification.show("Ошибка при изменении режима автотрейдинга: " + e.getMessage());
             }
         });
     }
@@ -223,7 +223,7 @@ public class SettingsComponent extends VerticalLayout {
     private void saveSettings() {
         try {
             settingsBinder.writeBean(currentSettings);
-            settingsService.saveSettingsInDb(currentSettings);
+            settingsService.save(currentSettings);
             Notification.show("Настройки сохранены успешно");
             log.info("Settings saved successfully");
         } catch (ValidationException e) {
@@ -244,7 +244,7 @@ public class SettingsComponent extends VerticalLayout {
 
     public void refreshSettings() {
         loadCurrentSettings();
-        simulationCheckbox.setValue(currentSettings.isSimulationEnabled());
+        autoTradingCheckbox.setValue(currentSettings.isAutoTradingEnabled());
         settingsBinder.readBean(currentSettings);
     }
 }
