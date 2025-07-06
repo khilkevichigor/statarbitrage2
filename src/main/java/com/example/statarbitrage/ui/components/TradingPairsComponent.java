@@ -1,4 +1,4 @@
-package com.example.statarbitrage.ui.views;
+package com.example.statarbitrage.ui.components;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -7,7 +7,6 @@ import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.TradeLogService;
-import com.example.statarbitrage.ui.components.ZScoreChartDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;

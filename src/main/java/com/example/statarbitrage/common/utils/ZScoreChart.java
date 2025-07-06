@@ -12,25 +12,14 @@ import org.knowm.xchart.style.markers.SeriesMarkers;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.example.statarbitrage.common.constant.Constants.CHARTS_DIR;
 
 @Slf4j
 public final class ZScoreChart {
 
     private ZScoreChart() {
-    }
-
-    public static void create(PairData pairData) {
-        XYChart chart = buildZScoreChart(pairData);
-
-        // Сохраняем график
-        String fileName = CHARTS_DIR + "/" + System.currentTimeMillis() + "_zscore.png";
-        saveChart(chart, fileName);
     }
 
     /**
@@ -58,13 +47,13 @@ public final class ZScoreChart {
     private static XYChart buildZScoreChart(PairData pairData) {
         // Получаем реальную историю Z-Score из PairData
         List<ZScoreParam> history = pairData.getZScoreHistory();
-        
+
         List<Long> timestamps;
         List<Double> zScores;
-        
+
         if (history.isEmpty()) {
             // Fallback: если истории нет, создаем минимальную точку с текущими данными
-            log.warn("История Z-Score пуста для пары {}/{}, создаем минимальные данные", 
+            log.warn("История Z-Score пуста для пары {}/{}, создаем минимальные данные",
                     pairData.getLongTicker(), pairData.getShortTicker());
             timestamps = Collections.singletonList(System.currentTimeMillis());
             zScores = Collections.singletonList(pairData.getZScoreCurrent());
@@ -76,8 +65,8 @@ public final class ZScoreChart {
             zScores = history.stream()
                     .map(ZScoreParam::getZscore)
                     .collect(Collectors.toList());
-            
-            log.info("Используем реальную историю Z-Score: {} точек для пары {}/{}", 
+
+            log.info("Используем реальную историю Z-Score: {} точек для пары {}/{}",
                     history.size(), pairData.getLongTicker(), pairData.getShortTicker());
         }
 
@@ -150,15 +139,6 @@ public final class ZScoreChart {
         return chart;
     }
 
-    public static void saveChart(XYChart chart, String filePath) {
-        try {
-            BitmapEncoder.saveBitmap(chart, filePath.replace(".png", ""), BitmapEncoder.BitmapFormat.PNG);
-            log.info("График сохранён: {}", filePath);
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении графика", e);
-        }
-    }
-
     private static void addHorizontalLine(XYChart chart, List<Date> timeAxis, double yValue, Color color) {
         List<Double> yLine = Arrays.asList(yValue, yValue);
         XYSeries line = chart.addSeries("level_" + yValue, Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1)), yLine);
@@ -174,45 +154,5 @@ public final class ZScoreChart {
             }
         }
         return OptionalInt.empty();
-    }
-
-    /**
-     * Генерация временных меток для демонстрационного графика
-     */
-    private static List<Long> generateTimeStamps(int count) {
-        List<Long> timestamps = new ArrayList<>();
-        long currentTime = System.currentTimeMillis();
-        long interval = 60000; // 1 минута между точками
-
-        for (int i = count - 1; i >= 0; i--) {
-            timestamps.add(currentTime - (i * interval));
-        }
-
-        return timestamps;
-    }
-
-    /**
-     * Генерация истории Z-Score для демонстрационного графика
-     */
-    private static List<Double> generateZScoreHistory(double currentZScore, int count) {
-        List<Double> zScores = new ArrayList<>();
-        Random random = new Random();
-
-        // Создаем реалистичную историю, которая приводит к текущему значению
-        double baseValue = 0.0;
-        double volatility = 0.3;
-
-        for (int i = 0; i < count - 1; i++) {
-            // Постепенно приближаемся к текущему значению
-            double progress = (double) i / (count - 1);
-            double targetValue = currentZScore * progress;
-            baseValue = targetValue + (random.nextGaussian() * volatility);
-            zScores.add(baseValue);
-        }
-
-        // Последняя точка - точное текущее значение
-        zScores.add(currentZScore);
-
-        return zScores;
     }
 }

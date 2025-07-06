@@ -1,4 +1,4 @@
-package com.example.statarbitrage.ui.views;
+package com.example.statarbitrage.ui.components;
 
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.core.schedulers.TradeAndSimulationScheduler;

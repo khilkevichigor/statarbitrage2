@@ -7,7 +7,6 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

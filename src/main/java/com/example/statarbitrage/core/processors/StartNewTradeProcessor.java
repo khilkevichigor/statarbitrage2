@@ -28,17 +28,18 @@ public class StartNewTradeProcessor {
 
     public PairData startNewTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
+        log.info("🚀 Начинаем новый трейд...");
 
         //Проверка на дурака
         if (validateService.isLastZLessThenMinZ(pairData, settings)) {
             //если впервые прогоняем и Z<ZMin
             pairDataService.delete(pairData);
-            log.warn("ZCurrent < ZMin, deleted the pair");
+            log.warn("Удалили пару {} - {} тк ZCurrent < ZMin", pairData.getLongTicker(), pairData.getShortTicker());
             return null;
         }
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(settings, candlesMap);
+        Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {
             log.warn("ZScore data is empty");

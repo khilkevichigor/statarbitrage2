@@ -4,6 +4,7 @@ import com.example.statarbitrage.client_python.PythonRestClient;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
+import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         checkZScoreParamsSize(rawZScoreList);
-        filterIncompleteZScoreParams(rawZScoreList, settings);
+        filterIncompleteZScoreParams(null, rawZScoreList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreList);
         }
@@ -59,7 +60,7 @@ public class ZScoreService {
         }
     }
 
-    private void filterIncompleteZScoreParams(List<ZScoreData> zScoreDataList, Settings settings) {
+    private void filterIncompleteZScoreParams(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = calculateExpectedZParamsCount(settings);
         log.info("🔍 Ожидаемое количество наблюдений: {}", expected);
 
@@ -77,8 +78,11 @@ public class ZScoreService {
                 // Только для старого формата проверяем количество наблюдений
                 isIncompleteBySize = actualSize < expected;
                 if (isIncompleteBySize) {
-                    log.warn("❌ Удаляем пару {} / {} — наблюдений {} (ожидалось {})",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), actualSize, expected);
+                    if (pairData != null) {
+                        pairDataService.delete(pairData);
+                        log.warn("❌ Удалили пару {} / {} — наблюдений {} (ожидалось {})",
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), actualSize, expected);
+                    }
                 }
             }
 
@@ -89,15 +93,21 @@ public class ZScoreService {
             } else if (data.getLatest_zscore() != null) {
                 lastZScore = data.getLatest_zscore();
             } else {
-                log.warn("❌ Удаляем пару {} / {} — отсутствует информация о Z-score",
-                        data.getUndervaluedTicker(), data.getOvervaluedTicker());
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("❌ Удалили пару {} / {} — отсутствует информация о Z-score",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker());
+                }
                 return true;
             }
 
             boolean isIncompleteByZ = lastZScore < settings.getMinZ();
             if (isIncompleteByZ) {
-                log.warn("❌ Удаляем пару {} / {} — Z={} < MinZ={}",
-                        data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("❌ Удалили пару {} / {} — Z={} < MinZ={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
+                }
             }
             return isIncompleteBySize || isIncompleteByZ;
         });
@@ -113,20 +123,17 @@ public class ZScoreService {
 
 
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
-
         // Получаем результат из Python
-        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
-        if (rawZScoreList == null || rawZScoreList.isEmpty()) {
-            log.warn("⚠️ ZScoreService: получен пустой список от Python");
-            throw new IllegalStateException("⚠️ ZScoreService: получен пустой список от Python");
+        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
+        if (zScoreData == null) {
+            log.warn("⚠️ Обновление трейда - zScoreData is null");
+            throw new IllegalStateException("⚠️ ⚠️ Обновление трейда - zScoreData is null");
         }
 
-        validateService.validateSizeOfPairsAndThrow(rawZScoreList, 1);
-
-        return rawZScoreList.get(0);
+        return zScoreData;
     }
 
-    public Optional<ZScoreData> calculateZScoreDataForNewTrade(Settings settings, Map<String, List<Candle>> candlesMap) {
+    public Optional<ZScoreData> calculateZScoreDataForNewTrade(PairData pairData, Settings settings, Map<String, List<Candle>> candlesMap) {
         List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap);
         if (rawZScoreList == null || rawZScoreList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
@@ -134,7 +141,7 @@ public class ZScoreService {
         }
 
         checkZScoreParamsSize(rawZScoreList);
-        filterIncompleteZScoreParams(rawZScoreList, settings);
+        filterIncompleteZScoreParams(pairData, rawZScoreList, settings);
 
         return rawZScoreList.size() == 1 ? Optional.of(rawZScoreList.get(0)) : Optional.empty();
     }
@@ -190,7 +197,7 @@ public class ZScoreService {
 
         // Создаём новую карту только с нужными тикерами в правильном порядке
         Map<String, List<Candle>> filteredCandlesMap = new LinkedHashMap<>();
-        
+
         // Проверяем наличие данных для каждого тикера
         if (!candlesMap.containsKey(undervalued)) {
             throw new IllegalArgumentException("Missing candles data for undervalued ticker: " + undervalued);

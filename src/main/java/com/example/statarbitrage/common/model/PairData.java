@@ -212,25 +212,21 @@ public class PairData {
 
     /**
      * Добавить новую точку в историю Z-Score
+     *
      * @param zScoreParam новая точка данных
      */
     public void addZScorePoint(ZScoreParam zScoreParam) {
         if (zScoreHistory == null) {
             zScoreHistory = new ArrayList<>();
         }
-        
+
         // Проверяем, нет ли уже точки с таким же timestamp (избегаем дубликатов)
         boolean exists = zScoreHistory.stream()
                 .anyMatch(existing -> existing.getTimestamp() == zScoreParam.getTimestamp());
-        
+
         if (!exists) {
             zScoreHistory.add(zScoreParam);
-            
-            // Ограничиваем размер истории (последние 100 точек)
-            if (zScoreHistory.size() > 100) {
-                zScoreHistory.remove(0);
-            }
-            
+
             saveZScoreHistoryToJson();
             clearChartCache(); // Очищаем кеш чарта при добавлении новых данных
         }
@@ -238,6 +234,7 @@ public class PairData {
 
     /**
      * Получить историю Z-Score данных
+     *
      * @return список ZScoreParam
      */
     public List<ZScoreParam> getZScoreHistory() {
@@ -265,7 +262,8 @@ public class PairData {
     private void loadZScoreHistoryFromJson() {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            TypeReference<List<ZScoreParam>> typeRef = new TypeReference<>() {};
+            TypeReference<List<ZScoreParam>> typeRef = new TypeReference<>() {
+            };
             this.zScoreHistory = mapper.readValue(zScoreHistoryJson, typeRef);
         } catch (Exception e) {
             log.error("Ошибка десериализации истории Z-Score для пары {}/{}", longTicker, shortTicker, e);

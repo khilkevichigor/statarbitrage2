@@ -22,10 +22,10 @@ public class UpdateTradeProcessor {
     private final SettingsService settingsService;
     private final TradeLogService tradeLogService;
     private final ZScoreService zScoreService;
-    private final ValidateService validateService;
 
     public void updateTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
+        log.info("🚀 Начинаем обновление трейда...");
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
@@ -40,7 +40,7 @@ public class UpdateTradeProcessor {
 
     private static void logData(ZScoreData zScoreData) {
         ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
-        log.info(String.format("Наша пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+        log.info(String.format("Наша пара: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));

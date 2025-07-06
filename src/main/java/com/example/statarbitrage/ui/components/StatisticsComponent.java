@@ -1,8 +1,8 @@
-package com.example.statarbitrage.ui.views;
+package com.example.statarbitrage.ui.components;
 
 import com.example.statarbitrage.common.dto.TradeStatisticsDto;
-import com.example.statarbitrage.core.services.StatisticsService;
 import com.example.statarbitrage.common.utils.NumberFormatter;
+import com.example.statarbitrage.core.services.StatisticsService;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
