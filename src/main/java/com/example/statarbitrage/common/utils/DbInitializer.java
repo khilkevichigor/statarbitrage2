@@ -60,7 +60,7 @@ public class DbInitializer {
                     .exitZMin(0)
 
                     .useExitZMax(true)
-                    .exitZMax(3.5)
+                    .exitZMax(0.5)
 
                     .useExitZMaxPercent(false)
                     .exitZMaxPercent(0) //от 3.22 + 50% = 4.83
