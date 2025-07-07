@@ -6,6 +6,8 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.trading.services.TradingIntegrationService;
+import com.example.statarbitrage.common.model.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,7 @@ public class UpdateTradeProcessor {
     private final SettingsService settingsService;
     private final TradeLogService tradeLogService;
     private final ZScoreService zScoreService;
+    private final TradingIntegrationService tradingIntegrationService;
 
     public void updateTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
@@ -33,7 +36,39 @@ public class UpdateTradeProcessor {
 
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        
+        // Сохраняем статус до обновления для проверки изменения
+        TradeStatus statusBefore = pairData.getStatus();
+        
         pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles);
+        
+        // Обновляем реальный PnL из торговой системы
+        java.math.BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
+        if (realPnL.compareTo(java.math.BigDecimal.ZERO) != 0) {
+            // Конвертируем в проценты для совместимости с существующей системой
+            pairData.setProfitChanges(realPnL);
+            log.debug("🔄 Обновлен реальный PnL для пары {}/{}: {}", 
+                    pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
+        }
+        
+        // Если статус изменился на CLOSED, закрываем позиции в торговой системе
+        if (statusBefore == TradeStatus.TRADING && pairData.getStatus() == TradeStatus.CLOSED) {
+            tradingIntegrationService.closeArbitragePair(pairData)
+                .thenAccept(success -> {
+                    if (success) {
+                        log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}", 
+                                pairData.getLongTicker(), pairData.getShortTicker());
+                    } else {
+                        log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}", 
+                                pairData.getLongTicker(), pairData.getShortTicker());
+                    }
+                })
+                .exceptionally(throwable -> {
+                    log.error("❌ Ошибка при закрытии арбитражной пары {}/{}: {}", 
+                            pairData.getLongTicker(), pairData.getShortTicker(), throwable.getMessage());
+                    return null;
+                });
+        }
 
         tradeLogService.saveFromPairData(pairData);
     }

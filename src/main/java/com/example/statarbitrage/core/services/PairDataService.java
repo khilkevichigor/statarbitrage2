@@ -238,7 +238,8 @@ public class PairDataService {
                         } else {
                             log.warn("❌ PairData #{} была удалена из БД другим процессом для пары {}/{}. Прекращаем попытки сохранения.",
                                     currentEntity.getId(), currentEntity.getLongTicker(), currentEntity.getShortTicker());
-                            return; // Запись удалена - прекращаем попытки
+                            // Помечаем транзакцию для rollback и выбрасываем исключение
+                            throw new RuntimeException("Запись была удалена другим процессом во время сохранения");
                         }
                     }
                 } catch (InterruptedException ie) {

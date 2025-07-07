@@ -96,11 +96,13 @@ public final class ZScoreChart {
         zSeries.setMarker(new None());
 
         // Горизонтальные уровни
+        addHorizontalLine(chart, timeAxis, 3.0, Color.ORANGE);
         addHorizontalLine(chart, timeAxis, 2.0, Color.RED);
         addHorizontalLine(chart, timeAxis, 1.0, Color.GRAY);
         addHorizontalLine(chart, timeAxis, 0.0, Color.BLACK);
         addHorizontalLine(chart, timeAxis, -1.0, Color.GRAY);
         addHorizontalLine(chart, timeAxis, -2.0, Color.RED);
+        addHorizontalLine(chart, timeAxis, -3.0, Color.ORANGE);
 
         // Вертикальная линия входа - используем entryTime (время создания трейда)
         long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();

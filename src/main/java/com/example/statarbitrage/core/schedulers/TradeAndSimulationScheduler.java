@@ -10,6 +10,7 @@ import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.EventSendService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
+import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +30,7 @@ public class TradeAndSimulationScheduler {
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
+    private final TradingIntegrationService tradingIntegrationService;
 
     @Scheduled(fixedRate = 60_000)
     public void updateTrades() {
@@ -39,6 +41,9 @@ public class TradeAndSimulationScheduler {
             // ВСЕГДА обновляем трейды
             tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {
+                // Обновляем цены позиций в торговой системе
+                tradingIntegrationService.updateAllPositions();
+                
                 tradingPairs.forEach(updateTradeProcessor::updateTrade);
                 // Обновляем UI
                 eventSendService.updateUI(UpdateUiEvent.builder().build());
@@ -73,9 +78,15 @@ public class TradeAndSimulationScheduler {
                     // Находим новые и сразу запускаем
                     List<PairData> newPairs = fetchPairsProcessor.fetchPairs(missing);
                     newPairs.forEach((v) -> {
-                        PairData startedNewTrade = startNewTradeProcessor.startNewTrade(v);
-                        if (startedNewTrade != null) {
-                            count.getAndIncrement();
+                        try {
+                            PairData startedNewTrade = startNewTradeProcessor.startNewTrade(v);
+                            if (startedNewTrade != null) {
+                                count.getAndIncrement();
+                            }
+                        } catch (Exception e) {
+                            log.warn("⚠️ Не удалось запустить новый трейд для пары {}/{}: {}",
+                                    v.getLongTicker(), v.getShortTicker(), e.getMessage());
+                            // Продолжаем обработку остальных пар
                         }
                     });
                 }

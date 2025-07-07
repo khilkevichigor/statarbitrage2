@@ -6,6 +6,7 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class StartNewTradeProcessor {
     private final TradeLogService tradeLogService;
     private final ZScoreService zScoreService;
     private final ValidateService validateService;
+    private final TradingIntegrationService tradingIntegrationService;
 
     public PairData startNewTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
@@ -61,6 +63,29 @@ public class StartNewTradeProcessor {
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
         pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles);
+
+        // Проверяем, можем ли открыть новую пару на торговом депо
+        if (tradingIntegrationService.canOpenNewPair()) {
+            // Открываем арбитражную пару через торговую систему
+            tradingIntegrationService.openArbitragePair(pairData)
+                .thenAccept(success -> {
+                    if (success) {
+                        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}", 
+                                pairData.getLongTicker(), pairData.getShortTicker());
+                    } else {
+                        log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}", 
+                                pairData.getLongTicker(), pairData.getShortTicker());
+                    }
+                })
+                .exceptionally(throwable -> {
+                    log.error("❌ Ошибка при открытии арбитражной пары {}/{}: {}", 
+                            pairData.getLongTicker(), pairData.getShortTicker(), throwable.getMessage());
+                    return null;
+                });
+        } else {
+            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}", 
+                    pairData.getLongTicker(), pairData.getShortTicker());
+        }
 
         tradeLogService.saveFromPairData(pairData);
         return pairData;

@@ -164,24 +164,24 @@ public class SettingsComponent extends VerticalLayout {
         NumberField usePairsField = new NumberField("Кол-во пар");
 
         // Set step and min values for number fields
-        setNumberFieldProperties(candleLimitField, 1.0, 1.0);
-        setNumberFieldProperties(minZField, 0.01, 0.0);
-        setNumberFieldProperties(minWindowSizeField, 1.0, 1.0);
+        setNumberFieldProperties(candleLimitField, 1, 1);
+        setNumberFieldProperties(minZField, 0.1, 0.0);
+        setNumberFieldProperties(minWindowSizeField, 1, 1);
         setNumberFieldProperties(minPValueField, 0.01, 0.0);
         setNumberFieldProperties(minAdfValueField, 0.01, 0.0);
-        setNumberFieldProperties(minCorrelationField, 0.01, -1.0);
-        setNumberFieldProperties(minVolumeField, 0.1, 0.0);
-        setNumberFieldProperties(checkIntervalField, 1.0, 1.0);
+        setNumberFieldProperties(minCorrelationField, 0.1, -1.0);
+        setNumberFieldProperties(minVolumeField, 1, 0.0);
+        setNumberFieldProperties(checkIntervalField, 1, 1);
         setNumberFieldProperties(capitalLongField, 1.0, 0.0);
         setNumberFieldProperties(capitalShortField, 1.0, 0.0);
-        setNumberFieldProperties(leverageField, 0.1, 0.1);
+        setNumberFieldProperties(leverageField, 1, 1);
         setNumberFieldProperties(feePctPerTradeField, 0.01, 0.0);
-        setNumberFieldProperties(exitTakeField, 0.01, 0.0);
-        setNumberFieldProperties(exitStopField, 0.01, 0.0);
-        setNumberFieldProperties(exitZMinField, 0.01, -10.0);
-        setNumberFieldProperties(exitZMaxPercentField, 0.01, 0.0);
-        setNumberFieldProperties(exitTimeHoursField, 0.1, 0.1);
-        setNumberFieldProperties(usePairsField, 1.0, 1.0);
+        setNumberFieldProperties(exitTakeField, 0.1, 0.0);
+        setNumberFieldProperties(exitStopField, 0.1, -10.0);
+        setNumberFieldProperties(exitZMinField, 0.1, -10.0);
+        setNumberFieldProperties(exitZMaxPercentField, 0.1, 0.0);
+        setNumberFieldProperties(exitTimeHoursField, 1, 1);
+        setNumberFieldProperties(usePairsField, 1, 1);
 
         // Create sections
         add(createAnalysisSection(timeframeField, candleLimitField, minZField, minWindowSizeField,

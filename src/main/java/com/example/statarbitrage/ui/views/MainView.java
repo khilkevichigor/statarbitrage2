@@ -7,6 +7,7 @@ import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.ui.components.SettingsComponent;
 import com.example.statarbitrage.ui.components.StatisticsComponent;
 import com.example.statarbitrage.ui.components.TradingPairsComponent;
+import com.example.statarbitrage.ui.components.PortfolioComponent;
 import com.example.statarbitrage.ui.services.UIUpdateService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -36,6 +37,7 @@ public class MainView extends VerticalLayout {
     private final SettingsComponent settingsComponent;
     private final TradingPairsComponent tradingPairsComponent;
     private final StatisticsComponent statisticsComponent;
+    private final PortfolioComponent portfolioComponent;
 
     // UI elements
     private Button getCointPairsButton;
@@ -45,7 +47,8 @@ public class MainView extends VerticalLayout {
                     UIUpdateService uiUpdateService,
                     SettingsComponent settingsComponent,
                     TradingPairsComponent tradingPairsComponent,
-                    StatisticsComponent statisticsComponent) {
+                    StatisticsComponent statisticsComponent,
+                    PortfolioComponent portfolioComponent) {
 
         this.fetchPairsProcessor = fetchPairsProcessor;
         this.pairDataService = pairDataService;
@@ -53,6 +56,7 @@ public class MainView extends VerticalLayout {
         this.settingsComponent = settingsComponent;
         this.tradingPairsComponent = tradingPairsComponent;
         this.statisticsComponent = statisticsComponent;
+        this.portfolioComponent = portfolioComponent;
 
         initializeLayout();
         setupUIUpdateCallback();
@@ -68,6 +72,7 @@ public class MainView extends VerticalLayout {
         updateButtonState();
 
         add(
+                portfolioComponent,
                 settingsComponent,
                 getCointPairsButton,
                 tradingPairsComponent,
@@ -157,6 +162,7 @@ public class MainView extends VerticalLayout {
     public void updateUI() {
         getUI().ifPresent(ui -> ui.access(() -> {
             try {
+                portfolioComponent.updatePortfolioInfo();
                 tradingPairsComponent.updateAllData();
                 statisticsComponent.updateStatistics();
             } catch (Exception e) {
