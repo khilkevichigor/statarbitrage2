@@ -182,7 +182,7 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(feePctPerTradeField, 0.01, 0.0);
         setNumberFieldProperties(exitTakeField, 0.1, 0.0);
         setNumberFieldProperties(exitStopField, 0.1, -10.0);
-        setNumberFieldProperties(exitZMinField, 0.1, -10.0);
+        setNumberFieldProperties(exitZMinField, 0.01, -10.0);
         setNumberFieldProperties(exitZMaxField, 0.1, 0.0);
         setNumberFieldProperties(exitZMaxPercentField, 0.1, 0.0);
         setNumberFieldProperties(exitTimeHoursField, 1, 1);

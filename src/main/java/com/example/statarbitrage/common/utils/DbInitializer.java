@@ -25,9 +25,9 @@ public class DbInitializer {
                     .candleLimit(300)
                     .minWindowSize(100)
                     .minZ(3.0)
-                    .minPValue(0.001)
+                    .minPValue(0.01)
                     .minAdfValue(0.1)
-                    .minCorrelation(0.95)
+                    .minCorrelation(0.8)
                     .minVolume(1.0)
                     .minRSquared(0.8)
 
@@ -38,9 +38,9 @@ public class DbInitializer {
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
 
-                    .exitTake(1.0)
+                    .exitTake(5.0)
                     .exitStop(0.0)
-                    .exitZMin(-3.0)
+                    .exitZMin(-0.01)
                     .exitZMax(3.5)
                     .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
                     .exitTimeHours(8)
