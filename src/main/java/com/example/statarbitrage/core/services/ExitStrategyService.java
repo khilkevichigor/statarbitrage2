@@ -23,27 +23,27 @@ public class ExitStrategyService {
         long nowMillis = System.currentTimeMillis();
 
         // Проверка прибыли
-        if (settings.getExitStop() != 0.0 && profit <= settings.getExitStop()) {
+        if (settings.isUseExitStop() && settings.getExitStop() != 0.0 && profit <= settings.getExitStop()) {
             log.info("Выход по стопу: profit = {}%", profit);
             return EXIT_REASON_BY_STOP;
         }
-        if (settings.getExitTake() != 0.0 && profit >= settings.getExitTake()) { //todo не сетится - в бд null
+        if (settings.isUseExitTake() && settings.getExitTake() != 0.0 && profit >= settings.getExitTake()) { //todo не сетится - в бд null
             log.info("Выход по тейку: profit = {}%", profit);
             return EXIT_REASON_BY_TAKE;
         }
 
         // Проверка Z-Score
-        if (settings.getExitZMin() != 0.0 && zScoreCurrent <= settings.getExitZMin()) {
+        if (settings.isUseExitZMin() && settings.getExitZMin() != 0.0 && zScoreCurrent <= settings.getExitZMin()) {
             log.info("Выход по zMin: zMin = {}", zScoreCurrent);
             return EXIT_REASON_BY_Z_MIN;
         }
-        if (settings.getExitZMaxPercent() != 0.0 && zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
+        if (settings.isUseExitZMaxPercent() && settings.getExitZMaxPercent() != 0.0 && zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
             log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
             return EXIT_REASON_BY_Z_MAX;
         }
 
         // Проверка по времени
-        if (entryTimeMillis > 0) {
+        if (settings.isUseExitTimeHours() && entryTimeMillis > 0) {
             long holdingHours = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
             if (holdingHours >= settings.getExitTimeHours()) {
                 log.info("Выход по времени: ожидали {} часов", holdingHours);

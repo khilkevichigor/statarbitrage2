@@ -43,7 +43,36 @@ public class Settings {
 
     private double usePairs;
 
+    @Builder.Default
     private boolean autoTradingEnabled = false;
+
+    // Флаги включения/выключения фильтров
+    @Builder.Default
+    private boolean useMinZFilter = true;
+    @Builder.Default
+    private boolean useMinRSquaredFilter = true;
+    @Builder.Default
+    private boolean useMinPValueFilter = true;
+    @Builder.Default
+    private boolean useMinAdfValueFilter = true;
+    @Builder.Default
+    private boolean useMinCorrelationFilter = true;
+    @Builder.Default
+    private boolean useMinVolumeFilter = true;
+
+    // Флаги включения/выключения стратегий выхода
+    @Builder.Default
+    private boolean useExitTake = true;
+    @Builder.Default
+    private boolean useExitStop = true;
+    @Builder.Default
+    private boolean useExitZMin = true;
+    @Builder.Default
+    private boolean useExitZMax = true;
+    @Builder.Default
+    private boolean useExitZMaxPercent = true;
+    @Builder.Default
+    private boolean useExitTimeHours = true;
 
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

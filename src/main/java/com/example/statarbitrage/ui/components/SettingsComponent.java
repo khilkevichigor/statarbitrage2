@@ -151,6 +151,14 @@ public class SettingsComponent extends VerticalLayout {
         NumberField minCorrelationField = new NumberField("Min corr");
         NumberField minVolumeField = new NumberField("Min Vol (млн $)");
         NumberField checkIntervalField = new NumberField("Обновление (мин)");
+        
+        // Create filter checkboxes
+        Checkbox useMinZFilterCheckbox = new Checkbox("Использовать Min Z фильтр");
+        Checkbox useMinRSquaredFilterCheckbox = new Checkbox("Использовать Min R-Squared фильтр");
+        Checkbox useMinPValueFilterCheckbox = new Checkbox("Использовать Min pValue фильтр");
+        Checkbox useMinAdfValueFilterCheckbox = new Checkbox("Использовать Min adfValue фильтр");
+        Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
+        Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
 
         NumberField capitalLongField = new NumberField("Depo лонг ($)");
         NumberField capitalShortField = new NumberField("Depo шорт ($)");
@@ -163,6 +171,14 @@ public class SettingsComponent extends VerticalLayout {
         NumberField exitZMaxField = new NumberField("Exit Макс Z");
         NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
         NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
+        
+        // Create exit strategy checkboxes
+        Checkbox useExitTakeCheckbox = new Checkbox("Использовать Exit Тейк");
+        Checkbox useExitStopCheckbox = new Checkbox("Использовать Exit Стоп");
+        Checkbox useExitZMinCheckbox = new Checkbox("Использовать Exit Мин Z");
+        Checkbox useExitZMaxCheckbox = new Checkbox("Использовать Exit Макс Z");
+        Checkbox useExitZMaxPercentCheckbox = new Checkbox("Использовать Exit Макс Z (%)");
+        Checkbox useExitTimeHoursCheckbox = new Checkbox("Использовать Exit Таймаут");
 
         NumberField usePairsField = new NumberField("Кол-во пар");
 
@@ -191,19 +207,26 @@ public class SettingsComponent extends VerticalLayout {
         // Create sections
         add(createAnalysisSection(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, minCorrelationField, minVolumeField,
-                checkIntervalField, usePairsField));
+                checkIntervalField, usePairsField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
+                useMinPValueFilterCheckbox, useMinAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
+                useMinVolumeFilterCheckbox));
 
         add(createCapitalSection(capitalLongField, capitalShortField, leverageField, feePctPerTradeField));
 
         add(createExitStrategySection(exitTakeField, exitStopField, exitZMinField, exitZMaxField,
-                exitZMaxPercentField, exitTimeHoursField));
+                exitZMaxPercentField, exitTimeHoursField, useExitTakeCheckbox, useExitStopCheckbox,
+                useExitZMinCheckbox, useExitZMaxCheckbox, useExitZMaxPercentCheckbox, useExitTimeHoursCheckbox));
 
         // Bind fields to settings object
         bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, checkIntervalField, minCorrelationField,
                 minVolumeField, usePairsField, capitalLongField, capitalShortField,
                 leverageField, feePctPerTradeField, exitTakeField, exitStopField,
-                exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField);
+                exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField,
+                useMinZFilterCheckbox, useMinRSquaredFilterCheckbox, useMinPValueFilterCheckbox,
+                useMinAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox, useMinVolumeFilterCheckbox,
+                useExitTakeCheckbox, useExitStopCheckbox, useExitZMinCheckbox, useExitZMaxCheckbox,
+                useExitZMaxPercentCheckbox, useExitTimeHoursCheckbox);
 
         settingsBinder.readBean(currentSettings);
     }
@@ -213,13 +236,25 @@ public class SettingsComponent extends VerticalLayout {
                                           NumberField minWindowSizeField, NumberField minPValueField,
                                           NumberField minAdfValueField, NumberField minCorrelationField,
                                           NumberField minVolumeField, NumberField checkIntervalField,
-                                          NumberField usePairsField) {
+                                          NumberField usePairsField, Checkbox useMinZFilterCheckbox,
+                                          Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
+                                          Checkbox useMinAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
+                                          Checkbox useMinVolumeFilterCheckbox) {
 
         FormLayout analysisForm = createFormLayout();
+        
+        // Создаем компоненты фильтров с чекбоксами
+        HorizontalLayout minZLayout = createFilterLayout(useMinZFilterCheckbox, minZField);
+        HorizontalLayout minRSquaredLayout = createFilterLayout(useMinRSquaredFilterCheckbox, minRSquaredField);
+        HorizontalLayout minPValueLayout = createFilterLayout(useMinPValueFilterCheckbox, minPValueField);
+        HorizontalLayout minAdfValueLayout = createFilterLayout(useMinAdfValueFilterCheckbox, minAdfValueField);
+        HorizontalLayout minCorrelationLayout = createFilterLayout(useMinCorrelationFilterCheckbox, minCorrelationField);
+        HorizontalLayout minVolumeLayout = createFilterLayout(useMinVolumeFilterCheckbox, minVolumeField);
+        
         analysisForm.add(
                 timeframeField, candleLimitField, checkIntervalField,
-                minZField, minRSquaredField, minWindowSizeField, minPValueField,
-                minAdfValueField, minCorrelationField, minVolumeField, usePairsField
+                minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
+                minAdfValueLayout, minCorrelationLayout, minVolumeLayout, usePairsField
         );
 
         Details analysisSection = createDetailsCard("🔍 Анализ и фильтры",
@@ -243,13 +278,25 @@ public class SettingsComponent extends VerticalLayout {
 
     private Details createExitStrategySection(NumberField exitTakeField, NumberField exitStopField,
                                               NumberField exitZMinField, NumberField exitZMaxField, NumberField exitZMaxPercentField,
-                                              NumberField exitTimeHoursField) {
+                                              NumberField exitTimeHoursField, Checkbox useExitTakeCheckbox,
+                                              Checkbox useExitStopCheckbox, Checkbox useExitZMinCheckbox,
+                                              Checkbox useExitZMaxCheckbox, Checkbox useExitZMaxPercentCheckbox,
+                                              Checkbox useExitTimeHoursCheckbox) {
 
         FormLayout exitForm = createFormLayout();
+        
+        // Создаем компоненты стратегий выхода с чекбоксами
+        HorizontalLayout exitTakeLayout = createFilterLayout(useExitTakeCheckbox, exitTakeField);
+        HorizontalLayout exitStopLayout = createFilterLayout(useExitStopCheckbox, exitStopField);
+        HorizontalLayout exitZMinLayout = createFilterLayout(useExitZMinCheckbox, exitZMinField);
+        HorizontalLayout exitZMaxLayout = createFilterLayout(useExitZMaxCheckbox, exitZMaxField);
+        HorizontalLayout exitZMaxPercentLayout = createFilterLayout(useExitZMaxPercentCheckbox, exitZMaxPercentField);
+        HorizontalLayout exitTimeHoursLayout = createFilterLayout(useExitTimeHoursCheckbox, exitTimeHoursField);
+        
         exitForm.add(
-                exitTakeField, exitStopField,
-                exitZMinField, exitZMaxField,
-                exitZMaxPercentField, exitTimeHoursField
+                exitTakeLayout, exitStopLayout,
+                exitZMinLayout, exitZMaxLayout,
+                exitZMaxPercentLayout, exitTimeHoursLayout
         );
 
         return createDetailsCard("🚪 Стратегии выхода",
@@ -318,7 +365,13 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField leverageField, NumberField feePctPerTradeField,
                             NumberField exitTakeField, NumberField exitStopField,
                             NumberField exitZMinField, NumberField exitZMaxField,
-                            NumberField exitZMaxPercentField, NumberField exitTimeHoursField) {
+                            NumberField exitZMaxPercentField, NumberField exitTimeHoursField,
+                            Checkbox useMinZFilterCheckbox, Checkbox useMinRSquaredFilterCheckbox,
+                            Checkbox useMinPValueFilterCheckbox, Checkbox useMinAdfValueFilterCheckbox,
+                            Checkbox useMinCorrelationFilterCheckbox, Checkbox useMinVolumeFilterCheckbox,
+                            Checkbox useExitTakeCheckbox, Checkbox useExitStopCheckbox,
+                            Checkbox useExitZMinCheckbox, Checkbox useExitZMaxCheckbox,
+                            Checkbox useExitZMaxPercentCheckbox, Checkbox useExitTimeHoursCheckbox) {
 
         settingsBinder.forField(timeframeField)
                 .withValidator(new StringLengthValidator("Таймфрейм не может быть пустым", 1, null))
@@ -351,6 +404,22 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
         settingsBinder.forField(usePairsField).bind(Settings::getUsePairs, Settings::setUsePairs);
+        
+        // Bind filter checkboxes
+        settingsBinder.forField(useMinZFilterCheckbox).bind(Settings::isUseMinZFilter, Settings::setUseMinZFilter);
+        settingsBinder.forField(useMinRSquaredFilterCheckbox).bind(Settings::isUseMinRSquaredFilter, Settings::setUseMinRSquaredFilter);
+        settingsBinder.forField(useMinPValueFilterCheckbox).bind(Settings::isUseMinPValueFilter, Settings::setUseMinPValueFilter);
+        settingsBinder.forField(useMinAdfValueFilterCheckbox).bind(Settings::isUseMinAdfValueFilter, Settings::setUseMinAdfValueFilter);
+        settingsBinder.forField(useMinCorrelationFilterCheckbox).bind(Settings::isUseMinCorrelationFilter, Settings::setUseMinCorrelationFilter);
+        settingsBinder.forField(useMinVolumeFilterCheckbox).bind(Settings::isUseMinVolumeFilter, Settings::setUseMinVolumeFilter);
+        
+        // Bind exit strategy checkboxes
+        settingsBinder.forField(useExitTakeCheckbox).bind(Settings::isUseExitTake, Settings::setUseExitTake);
+        settingsBinder.forField(useExitStopCheckbox).bind(Settings::isUseExitStop, Settings::setUseExitStop);
+        settingsBinder.forField(useExitZMinCheckbox).bind(Settings::isUseExitZMin, Settings::setUseExitZMin);
+        settingsBinder.forField(useExitZMaxCheckbox).bind(Settings::isUseExitZMax, Settings::setUseExitZMax);
+        settingsBinder.forField(useExitZMaxPercentCheckbox).bind(Settings::isUseExitZMaxPercent, Settings::setUseExitZMaxPercent);
+        settingsBinder.forField(useExitTimeHoursCheckbox).bind(Settings::isUseExitTimeHours, Settings::setUseExitTimeHours);
     }
 
     private void setupValidation() {
@@ -391,5 +460,28 @@ public class SettingsComponent extends VerticalLayout {
 
     public boolean isAutoTradingEnabled() {
         return autoTradingCheckbox.getValue();
+    }
+    
+    /**
+     * Создает компоновку для фильтра с чекбоксом и полем ввода
+     */
+    private HorizontalLayout createFilterLayout(Checkbox checkbox, NumberField field) {
+        HorizontalLayout layout = new HorizontalLayout();
+        layout.setAlignItems(HorizontalLayout.Alignment.CENTER);
+        layout.setSpacing(true);
+        
+        // Устанавливаем начальное состояние поля в зависимости от чекбокса
+        field.setEnabled(checkbox.getValue());
+        
+        // Добавляем listener для активации/деактивации поля
+        checkbox.addValueChangeListener(event -> {
+            field.setEnabled(event.getValue());
+        });
+        
+        layout.add(checkbox, field);
+        layout.setFlexGrow(0, checkbox);
+        layout.setFlexGrow(1, field);
+        
+        return layout;
     }
 }

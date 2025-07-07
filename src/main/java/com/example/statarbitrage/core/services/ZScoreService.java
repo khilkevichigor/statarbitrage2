@@ -100,7 +100,7 @@ public class ZScoreService {
                 return true;
             }
 
-            boolean isIncompleteByZ = lastZScore < settings.getMinZ();
+            boolean isIncompleteByZ = settings.isUseMinZFilter() && lastZScore < settings.getMinZ();
             if (isIncompleteByZ) {
                 if (pairData != null) {
                     pairDataService.delete(pairData);
@@ -111,7 +111,7 @@ public class ZScoreService {
 
             // Фильтрация по R-squared
             boolean isIncompleteByRSquared = false;
-            if (data.getAvg_r_squared() != null && data.getAvg_r_squared() < settings.getMinRSquared()) {
+            if (settings.isUseMinRSquaredFilter() && data.getAvg_r_squared() != null && data.getAvg_r_squared() < settings.getMinRSquared()) {
                 isIncompleteByRSquared = true;
                 if (pairData != null) {
                     pairDataService.delete(pairData);
@@ -122,7 +122,7 @@ public class ZScoreService {
 
             // Фильтрация по Correlation
             boolean isIncompleteByCorrelation = false;
-            if (data.getCorrelation() != null && data.getCorrelation() < settings.getMinCorrelation()) {
+            if (settings.isUseMinCorrelationFilter() && data.getCorrelation() != null && data.getCorrelation() < settings.getMinCorrelation()) {
                 isIncompleteByCorrelation = true;
                 if (pairData != null) {
                     pairDataService.delete(pairData);
@@ -133,41 +133,45 @@ public class ZScoreService {
 
             // Фильтрация по pValue
             boolean isIncompleteByPValue = false;
-            Double pValue = null;
-            if (params != null && !params.isEmpty()) {
-                // Для старого формата используем pValue из последнего параметра
-                pValue = params.get(params.size() - 1).getPvalue();
-            } else if (data.getCorrelation_pvalue() != null) {
-                // Для нового формата используем correlation_pvalue
-                pValue = data.getCorrelation_pvalue();
-            }
+            if (settings.isUseMinPValueFilter()) {
+                Double pValue = null;
+                if (params != null && !params.isEmpty()) {
+                    // Для старого формата используем pValue из последнего параметра
+                    pValue = params.get(params.size() - 1).getPvalue();
+                } else if (data.getCorrelation_pvalue() != null) {
+                    // Для нового формата используем correlation_pvalue
+                    pValue = data.getCorrelation_pvalue();
+                }
 
-            if (pValue != null && pValue > settings.getMinPValue()) {
-                isIncompleteByPValue = true;
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
-                    log.warn("❌ Удалили пару {} / {} — pValue={} > MinPValue={}",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), pValue, settings.getMinPValue());
+                if (pValue != null && pValue > settings.getMinPValue()) {
+                    isIncompleteByPValue = true;
+                    if (pairData != null) {
+                        pairDataService.delete(pairData);
+                        log.warn("❌ Удалили пару {} / {} — pValue={} > MinPValue={}",
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), pValue, settings.getMinPValue());
+                    }
                 }
             }
 
             // Фильтрация по adfValue
             boolean isIncompleteByAdfValue = false;
-            Double adfValue = null;
-            if (params != null && !params.isEmpty()) {
-                // Для старого формата используем adfpvalue из последнего параметра
-                adfValue = params.get(params.size() - 1).getAdfpvalue();
-            } else if (data.getCointegration_pvalue() != null) {
-                // Для нового формата используем cointegration_pvalue
-                adfValue = data.getCointegration_pvalue();
-            }
+            if (settings.isUseMinAdfValueFilter()) {
+                Double adfValue = null;
+                if (params != null && !params.isEmpty()) {
+                    // Для старого формата используем adfpvalue из последнего параметра
+                    adfValue = params.get(params.size() - 1).getAdfpvalue();
+                } else if (data.getCointegration_pvalue() != null) {
+                    // Для нового формата используем cointegration_pvalue
+                    adfValue = data.getCointegration_pvalue();
+                }
 
-            if (adfValue != null && adfValue > settings.getMinAdfValue()) {
-                isIncompleteByAdfValue = true;
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
-                    log.warn("❌ Удалили пару {} / {} — adfValue={} > MinAdfValue={}",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMinAdfValue());
+                if (adfValue != null && adfValue > settings.getMinAdfValue()) {
+                    isIncompleteByAdfValue = true;
+                    if (pairData != null) {
+                        pairDataService.delete(pairData);
+                        log.warn("❌ Удалили пару {} / {} — adfValue={} > MinAdfValue={}",
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMinAdfValue());
+                    }
                 }
             }
 
@@ -338,16 +342,16 @@ public class ZScoreService {
             }
 
             // 1. Z >= minZ (только положительные Z-score, исключаем зеркальные пары)
-            if (zVal < settings.getMinZ()) continue;
+            if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) continue;
 
             // 2. pValue <= minPValue
-            if (pValue > settings.getMinPValue()) continue;
+            if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
 
             // 3. adfValue <= minAdfValue
-            if (adf > settings.getMinAdfValue()) continue;
+            if (settings.isUseMinAdfValueFilter() && adf > settings.getMinAdfValue()) continue;
 
             // 4. corr >= minCorr
-            if (corr < settings.getMinCorrelation()) continue;
+            if (settings.isUseMinCorrelationFilter() && corr < settings.getMinCorrelation()) continue;
 
             // 5. Выбираем с максимальным Z (только положительные)
             if (zVal > maxZ) {

@@ -37,6 +37,7 @@ public class CandlesService {
 
     public List<String> getApplicableTickers(Settings settings, String timeFrame, boolean isSorted) {
         List<String> swapTickers = okxClient.getAllSwapTickers(isSorted);
-        return okxClient.getValidTickers(swapTickers, timeFrame, settings.getCandleLimit(), settings.getMinVolume() * 1_000_000, isSorted);
+        double minVolume = settings.isUseMinVolumeFilter() ? settings.getMinVolume() * 1_000_000 : 0.0;
+        return okxClient.getValidTickers(swapTickers, timeFrame, settings.getCandleLimit(), minVolume, isSorted);
     }
 }
