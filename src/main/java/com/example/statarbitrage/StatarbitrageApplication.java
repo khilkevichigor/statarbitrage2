@@ -55,7 +55,7 @@ public class StatarbitrageApplication {
 
                 Settings settings = Settings.builder()
                         .minCorrelation(0.85)
-                        .minPvalue(0.05)
+                        .minPValue(0.05)
                         .build();
 
                 pythonRestClient.discoverPairs(testData, settings);

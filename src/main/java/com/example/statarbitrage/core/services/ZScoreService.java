@@ -18,7 +18,6 @@ import java.util.*;
 public class ZScoreService {
 
     private final PairDataService pairDataService;
-    private final ValidateService validateService;
     private final PythonRestClient pythonRestClient;
 
     /**
@@ -89,7 +88,7 @@ public class ZScoreService {
             // Получаем последний Z-score (используем новые поля API если zscoreParams отсутствуют)
             double lastZScore;
             if (params != null && !params.isEmpty()) {
-                lastZScore = params.get(params.size() - 1).getZscore();
+                lastZScore = params.get(params.size() - 1).getZscore(); //todo
             } else if (data.getLatest_zscore() != null) {
                 lastZScore = data.getLatest_zscore();
             } else {
@@ -109,7 +108,70 @@ public class ZScoreService {
                             data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
                 }
             }
-            return isIncompleteBySize || isIncompleteByZ;
+
+            // Фильтрация по R-squared
+            boolean isIncompleteByRSquared = false;
+            if (data.getAvg_r_squared() != null && data.getAvg_r_squared() < settings.getMinRSquared()) {
+                isIncompleteByRSquared = true;
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("❌ Удалили пару {} / {} — RSquared={} < MinRSquared={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getAvg_r_squared(), settings.getMinRSquared());
+                }
+            }
+
+            // Фильтрация по Correlation
+            boolean isIncompleteByCorrelation = false;
+            if (data.getCorrelation() != null && data.getCorrelation() < settings.getMinCorrelation()) {
+                isIncompleteByCorrelation = true;
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("❌ Удалили пару {} / {} — Correlation={} < MinCorrelation={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getCorrelation(), settings.getMinCorrelation());
+                }
+            }
+
+            // Фильтрация по pValue
+            boolean isIncompleteByPValue = false;
+            Double pValue = null;
+            if (params != null && !params.isEmpty()) {
+                // Для старого формата используем pValue из последнего параметра
+                pValue = params.get(params.size() - 1).getPvalue();
+            } else if (data.getCorrelation_pvalue() != null) {
+                // Для нового формата используем correlation_pvalue
+                pValue = data.getCorrelation_pvalue();
+            }
+
+            if (pValue != null && pValue > settings.getMinPValue()) {
+                isIncompleteByPValue = true;
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("❌ Удалили пару {} / {} — pValue={} > MinPValue={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), pValue, settings.getMinPValue());
+                }
+            }
+
+            // Фильтрация по adfValue
+            boolean isIncompleteByAdfValue = false;
+            Double adfValue = null;
+            if (params != null && !params.isEmpty()) {
+                // Для старого формата используем adfpvalue из последнего параметра
+                adfValue = params.get(params.size() - 1).getAdfpvalue();
+            } else if (data.getCointegration_pvalue() != null) {
+                // Для нового формата используем cointegration_pvalue
+                adfValue = data.getCointegration_pvalue();
+            }
+
+            if (adfValue != null && adfValue > settings.getMinAdfValue()) {
+                isIncompleteByAdfValue = true;
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("❌ Удалили пару {} / {} — adfValue={} > MinAdfValue={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMinAdfValue());
+                }
+            }
+
+            return isIncompleteBySize || isIncompleteByZ || isIncompleteByRSquared || isIncompleteByCorrelation || isIncompleteByPValue || isIncompleteByAdfValue;
         });
 
         int after = zScoreDataList.size();
@@ -279,7 +341,7 @@ public class ZScoreService {
             if (zVal < settings.getMinZ()) continue;
 
             // 2. pValue <= minPValue
-            if (pValue > settings.getMinPvalue()) continue;
+            if (pValue > settings.getMinPValue()) continue;
 
             // 3. adfValue <= minAdfValue
             if (adf > settings.getMinAdfValue()) continue;

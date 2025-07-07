@@ -21,6 +21,7 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.data.binder.ValidationResult;
 import com.vaadin.flow.data.validator.DoubleRangeValidator;
 import com.vaadin.flow.data.validator.StringLengthValidator;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -143,6 +144,7 @@ public class SettingsComponent extends VerticalLayout {
         TextField timeframeField = new TextField("Таймфрейм");
         NumberField candleLimitField = new NumberField("Свечей (шт)");
         NumberField minZField = new NumberField("Min Z");
+        NumberField minRSquaredField = new NumberField("Min R-Squared");
         NumberField minWindowSizeField = new NumberField("Min windowSize");
         NumberField minPValueField = new NumberField("Min pValue");
         NumberField minAdfValueField = new NumberField("Min adfValue");
@@ -158,6 +160,7 @@ public class SettingsComponent extends VerticalLayout {
         NumberField exitTakeField = new NumberField("Exit Тейк (%)");
         NumberField exitStopField = new NumberField("Exit Стоп (%)");
         NumberField exitZMinField = new NumberField("Exit Мин Z");
+        NumberField exitZMaxField = new NumberField("Exit Макс Z");
         NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
         NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
 
@@ -166,10 +169,11 @@ public class SettingsComponent extends VerticalLayout {
         // Set step and min values for number fields
         setNumberFieldProperties(candleLimitField, 1, 1);
         setNumberFieldProperties(minZField, 0.1, 0.0);
+        setNumberFieldProperties(minRSquaredField, 0.1, 0.5);
         setNumberFieldProperties(minWindowSizeField, 1, 1);
-        setNumberFieldProperties(minPValueField, 0.01, 0.0);
-        setNumberFieldProperties(minAdfValueField, 0.01, 0.0);
-        setNumberFieldProperties(minCorrelationField, 0.1, -1.0);
+        setNumberFieldProperties(minPValueField, 0.001, 0.0);
+        setNumberFieldProperties(minAdfValueField, 0.001, 0.0);
+        setNumberFieldProperties(minCorrelationField, 0.01, -1.0);
         setNumberFieldProperties(minVolumeField, 1, 0.0);
         setNumberFieldProperties(checkIntervalField, 1, 1);
         setNumberFieldProperties(capitalLongField, 1.0, 0.0);
@@ -179,40 +183,42 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(exitTakeField, 0.1, 0.0);
         setNumberFieldProperties(exitStopField, 0.1, -10.0);
         setNumberFieldProperties(exitZMinField, 0.1, -10.0);
+        setNumberFieldProperties(exitZMaxField, 0.1, 0.0);
         setNumberFieldProperties(exitZMaxPercentField, 0.1, 0.0);
         setNumberFieldProperties(exitTimeHoursField, 1, 1);
         setNumberFieldProperties(usePairsField, 1, 1);
 
         // Create sections
-        add(createAnalysisSection(timeframeField, candleLimitField, minZField, minWindowSizeField,
+        add(createAnalysisSection(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, minCorrelationField, minVolumeField,
                 checkIntervalField, usePairsField));
 
         add(createCapitalSection(capitalLongField, capitalShortField, leverageField, feePctPerTradeField));
 
-        add(createExitStrategySection(exitTakeField, exitStopField, exitZMinField,
+        add(createExitStrategySection(exitTakeField, exitStopField, exitZMinField, exitZMaxField,
                 exitZMaxPercentField, exitTimeHoursField));
 
         // Bind fields to settings object
-        bindFields(timeframeField, candleLimitField, minZField, minWindowSizeField,
+        bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, checkIntervalField, minCorrelationField,
                 minVolumeField, usePairsField, capitalLongField, capitalShortField,
                 leverageField, feePctPerTradeField, exitTakeField, exitStopField,
-                exitZMinField, exitZMaxPercentField, exitTimeHoursField);
+                exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField);
 
         settingsBinder.readBean(currentSettings);
     }
 
     private Details createAnalysisSection(TextField timeframeField, NumberField candleLimitField,
-                                          NumberField minZField, NumberField minWindowSizeField,
-                                          NumberField minPValueField, NumberField minAdfValueField,
-                                          NumberField minCorrelationField, NumberField minVolumeField,
-                                          NumberField checkIntervalField, NumberField usePairsField) {
+                                          NumberField minZField, NumberField minRSquaredField,
+                                          NumberField minWindowSizeField, NumberField minPValueField,
+                                          NumberField minAdfValueField, NumberField minCorrelationField,
+                                          NumberField minVolumeField, NumberField checkIntervalField,
+                                          NumberField usePairsField) {
 
         FormLayout analysisForm = createFormLayout();
         analysisForm.add(
                 timeframeField, candleLimitField, checkIntervalField,
-                minZField, minWindowSizeField, minPValueField,
+                minZField, minRSquaredField, minWindowSizeField, minPValueField,
                 minAdfValueField, minCorrelationField, minVolumeField, usePairsField
         );
 
@@ -236,14 +242,14 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     private Details createExitStrategySection(NumberField exitTakeField, NumberField exitStopField,
-                                              NumberField exitZMinField, NumberField exitZMaxPercentField,
+                                              NumberField exitZMinField, NumberField exitZMaxField, NumberField exitZMaxPercentField,
                                               NumberField exitTimeHoursField) {
 
         FormLayout exitForm = createFormLayout();
         exitForm.add(
                 exitTakeField, exitStopField,
-                exitZMinField, exitZMaxPercentField,
-                exitTimeHoursField
+                exitZMinField, exitZMaxField,
+                exitZMaxPercentField, exitTimeHoursField
         );
 
         return createDetailsCard("🚪 Стратегии выхода",
@@ -304,15 +310,15 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     private void bindFields(TextField timeframeField, NumberField candleLimitField,
-                            NumberField minZField, NumberField minWindowSizeField,
+                            NumberField minZField, NumberField minRSquaredField, NumberField minWindowSizeField,
                             NumberField minPValueField, NumberField minAdfValueField,
                             NumberField checkIntervalField, NumberField minCorrelationField,
                             NumberField minVolumeField, NumberField usePairsField,
                             NumberField capitalLongField, NumberField capitalShortField,
                             NumberField leverageField, NumberField feePctPerTradeField,
                             NumberField exitTakeField, NumberField exitStopField,
-                            NumberField exitZMinField, NumberField exitZMaxPercentField,
-                            NumberField exitTimeHoursField) {
+                            NumberField exitZMinField, NumberField exitZMaxField,
+                            NumberField exitZMaxPercentField, NumberField exitTimeHoursField) {
 
         settingsBinder.forField(timeframeField)
                 .withValidator(new StringLengthValidator("Таймфрейм не может быть пустым", 1, null))
@@ -323,8 +329,9 @@ public class SettingsComponent extends VerticalLayout {
                 .bind(Settings::getCandleLimit, Settings::setCandleLimit);
 
         settingsBinder.forField(minZField).bind(Settings::getMinZ, Settings::setMinZ);
+        settingsBinder.forField(minRSquaredField).bind(Settings::getMinRSquared, Settings::setMinRSquared);
         settingsBinder.forField(minWindowSizeField).bind(Settings::getMinWindowSize, Settings::setMinWindowSize);
-        settingsBinder.forField(minPValueField).bind(Settings::getMinPvalue, Settings::setMinPvalue);
+        settingsBinder.forField(minPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
         settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
         settingsBinder.forField(capitalLongField).bind(Settings::getCapitalLong, Settings::setCapitalLong);
@@ -338,6 +345,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(exitTakeField).bind(Settings::getExitTake, Settings::setExitTake);
         settingsBinder.forField(exitStopField).bind(Settings::getExitStop, Settings::setExitStop);
         settingsBinder.forField(exitZMinField).bind(Settings::getExitZMin, Settings::setExitZMin);
+        settingsBinder.forField(exitZMaxField).bind(Settings::getExitZMax, Settings::setExitZMax);
         settingsBinder.forField(exitZMaxPercentField).bind(Settings::getExitZMaxPercent, Settings::setExitZMaxPercent);
         settingsBinder.forField(exitTimeHoursField).bind(Settings::getExitTimeHours, Settings::setExitTimeHours);
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
@@ -358,7 +366,7 @@ public class SettingsComponent extends VerticalLayout {
         } catch (ValidationException e) {
             String errorMessage = "Проверьте правильность заполнения полей: " +
                     e.getValidationErrors().stream()
-                            .map(error -> error.getErrorMessage())
+                            .map(ValidationResult::getErrorMessage)
                             .reduce((a, b) -> a + ", " + b)
                             .orElse("Неизвестная ошибка");
 

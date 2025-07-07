@@ -21,9 +21,14 @@ public class Settings {
     private double candleLimit;
     private double minZ;
     private double minWindowSize;
-    private double minPvalue;
+    private double minPValue;
     private double minAdfValue;
+    private double minRSquared;
+    private double minCorrelation;
+    private double minVolume;
+
     private double checkInterval;
+
     private double capitalLong;
     private double capitalShort;
     private double leverage;
@@ -32,13 +37,12 @@ public class Settings {
     private double exitTake;
     private double exitStop;
     private double exitZMin;
+    private double exitZMax;
     private double exitZMaxPercent;
     private double exitTimeHours;
 
-    private double minCorrelation;
-    private double minVolume;
-
     private double usePairs;
+
     private boolean autoTradingEnabled = false;
 
     public double getExpectedZParamsCount() {
