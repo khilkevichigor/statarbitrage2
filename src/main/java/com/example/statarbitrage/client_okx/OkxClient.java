@@ -213,7 +213,7 @@ public class OkxClient {
             executor.shutdown();
         }
         long endTime = System.currentTimeMillis();
-        log.info("✅ Собрали цены для {} монет в {} потоков за {}с", candlesMap.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.info("✅ Собрали свечи для {} монет с таймфреймом {} в {} потоков за {}с", candlesMap.size(), settings.getTimeframe(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
         return candlesMap;
     }
 

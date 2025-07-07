@@ -18,10 +18,6 @@ public class CandlesService {
     private final ValidateService validateService;
     private final OkxClient okxClient;
 
-    public Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
-        return okxClient.getCandlesMap(swapTickers, settings, isSorted);
-    }
-
     public Map<String, List<Candle>> getApplicableCandlesMap(PairData pairData, Settings settings) {
         Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
         validateService.validateCandlesLimitAndThrow(candlesMap);
@@ -33,6 +29,10 @@ public class CandlesService {
         Map<String, List<Candle>> candlesMap = getCandles(settings, applicableTickers, true);
         validateService.validateCandlesLimitAndThrow(candlesMap);
         return candlesMap;
+    }
+
+    public Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
+        return okxClient.getCandlesMap(swapTickers, settings, isSorted);
     }
 
     public List<String> getApplicableTickers(Settings settings, String timeFrame, boolean isSorted) {
