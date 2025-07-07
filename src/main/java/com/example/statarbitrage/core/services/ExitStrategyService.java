@@ -37,6 +37,10 @@ public class ExitStrategyService {
             log.info("Выход по zMin: zMin = {}", zScoreCurrent);
             return EXIT_REASON_BY_Z_MIN;
         }
+        if (settings.isUseExitZMax() && zScoreCurrent >= zScoreEntry + settings.getExitZMax()) { //z превысит на х%
+            log.info("Выход по zMax: currentZ {} >= entryZ {} + exitZMax {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
+            return EXIT_REASON_BY_Z_MAX;
+        }
         if (settings.isUseExitZMaxPercent() && zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
             log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
             return EXIT_REASON_BY_Z_MAX;
