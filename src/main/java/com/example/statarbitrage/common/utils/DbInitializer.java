@@ -24,11 +24,23 @@ public class DbInitializer {
 
                     .candleLimit(300)
                     .minWindowSize(100)
+
+                    .useMinZFilter(true)
                     .minZ(3.0)
+
+                    .useMinPValueFilter(true)
                     .minPValue(0.01)
+
+                    .useMinAdfValueFilter(true)
                     .minAdfValue(0.1)
+
+                    .useMinCorrelationFilter(true)
                     .minCorrelation(0.8)
+
+                    .useMinVolumeFilter(true)
                     .minVolume(1.0)
+
+                    .useMinRSquaredFilter(true)
                     .minRSquared(0.8)
 
                     .checkInterval(1)
@@ -38,12 +50,23 @@ public class DbInitializer {
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
 
+                    .useExitTake(false)
                     .exitTake(5.0)
+
+                    .useExitStop(false)
                     .exitStop(0.0)
-                    .exitZMin(-0.01)
+
+                    .useExitZMin(true)
+                    .exitZMin(0)
+
+                    .useExitZMax(true)
                     .exitZMax(3.5)
-                    .exitZMaxPercent(0.0) //от 3.22 + 50% = 4.83
-                    .exitTimeHours(8)
+
+                    .useExitZMaxPercent(false)
+                    .exitZMaxPercent(0) //от 3.22 + 50% = 4.83
+
+                    .useExitTimeHours(true)
+                    .exitTimeHours(3)
 
                     .usePairs(10.0)
 
