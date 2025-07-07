@@ -1,0 +1,81 @@
+package com.example.statarbitrage.trading.interfaces;
+
+import com.example.statarbitrage.trading.model.Portfolio;
+import com.example.statarbitrage.trading.model.Position;
+import com.example.statarbitrage.trading.model.TradeResult;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * Основной интерфейс для провайдеров торговли.
+ * Позволяет легко переключаться между виртуальной и реальной торговлей.
+ */
+public interface TradingProvider {
+
+    /**
+     * Получение информации о портфолио
+     */
+    Portfolio getPortfolio();
+
+    /**
+     * Проверка доступности средств для торговли
+     */
+    boolean hasAvailableBalance(BigDecimal amount);
+
+    /**
+     * Открытие длинной позиции
+     */
+    CompletableFuture<TradeResult> openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage);
+
+    /**
+     * Открытие короткой позиции
+     */
+    CompletableFuture<TradeResult> openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage);
+
+    /**
+     * Закрытие позиции
+     */
+    CompletableFuture<TradeResult> closePosition(String positionId);
+
+    /**
+     * Получение всех активных позиций
+     */
+    List<Position> getActivePositions();
+
+    /**
+     * Получение позиции по ID
+     */
+    Position getPosition(String positionId);
+
+    /**
+     * Обновление цен всех позиций
+     */
+    CompletableFuture<Void> updatePositionPrices();
+
+    /**
+     * Получение текущей рыночной цены
+     */
+    BigDecimal getCurrentPrice(String symbol);
+
+    /**
+     * Расчет комиссий для операции
+     */
+    BigDecimal calculateFees(BigDecimal amount, BigDecimal leverage);
+
+    /**
+     * Получение типа провайдера (VIRTUAL, REAL_3COMMAS, REAL_OKX, etc.)
+     */
+    TradingProviderType getProviderType();
+
+    /**
+     * Проверка соединения с провайдером
+     */
+    boolean isConnected();
+
+    /**
+     * Получение истории операций
+     */
+    List<TradeResult> getTradeHistory(int limit);
+}
