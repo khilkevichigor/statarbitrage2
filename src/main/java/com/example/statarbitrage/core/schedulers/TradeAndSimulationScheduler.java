@@ -17,12 +17,17 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TradeAndSimulationScheduler {
+
+    // Флаги для синхронизации шедуллеров
+    private final AtomicBoolean updateTradesRunning = new AtomicBoolean(false);
+    private final AtomicBoolean maintainPairsRunning = new AtomicBoolean(false);
 
     private final SettingsService settingsService;
     private final PairDataService pairDataService;
@@ -32,34 +37,79 @@ public class TradeAndSimulationScheduler {
     private final EventSendService eventSendService;
     private final TradingIntegrationService tradingIntegrationService;
 
-    @Scheduled(fixedRate = 60_000)
+    @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
     public void updateTrades() {
+        // Проверяем, не выполняется ли поддержание пар
+        if (maintainPairsRunning.get()) {
+            log.info("⏸️ Обновление трейдов пропущено - выполняется поддержание пар");
+            return;
+        }
+
+        // Устанавливаем флаг выполнения
+        if (!updateTradesRunning.compareAndSet(false, true)) {
+            log.warn("⚠️ Обновление трейдов уже выполняется");
+            return;
+        }
+
         long schedulerStart = System.currentTimeMillis();
-        log.info("🔄 Шедуллера обновления трейдов запущен...");
         List<PairData> tradingPairs = List.of();
+
         try {
+            log.info("🔄 Шедуллера обновления трейдов запущен...");
             // ВСЕГДА обновляем трейды
             tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (!tradingPairs.isEmpty()) {
                 // Обновляем цены позиций в торговой системе
                 tradingIntegrationService.updateAllPositions();
-                
+
                 tradingPairs.forEach(updateTradeProcessor::updateTrade);
                 // Обновляем UI
                 eventSendService.updateUI(UpdateUiEvent.builder().build());
             }
         } catch (Exception e) {
             log.error("❌ Ошибка в updateTrades()", e);
+        } finally {
+            // Сбрасываем флаг выполнения
+            updateTradesRunning.set(false);
         }
+
         long schedulerEnd = System.currentTimeMillis();
         log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов", (schedulerEnd - schedulerStart) / 1000.0, tradingPairs.size());
     }
 
-    @Scheduled(fixedRate = 180_000)
+    @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
     public void maintainPairs() {
+        // Ждем завершения обновления трейдов если оно выполняется
+        if (updateTradesRunning.get()) {
+            log.info("⏳ Поддержание пар ждет завершения обновления трейдов...");
+            // Ждем максимум 60 секунд
+            int waitTime = 0;
+            while (updateTradesRunning.get() && waitTime < 60_000) {
+                try {
+                    Thread.sleep(1000);
+                    waitTime += 1000;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Прерывание ожидания завершения обновления трейдов");
+                    return;
+                }
+            }
+            if (updateTradesRunning.get()) {
+                log.warn("⚠️ Поддержание пар отменено - обновление трейдов выполняется слишком долго");
+                return;
+            }
+        }
+
+        // Устанавливаем флаг выполнения
+        if (!maintainPairsRunning.compareAndSet(false, true)) {
+            log.warn("⚠️ Поддержание пар уже выполняется");
+            return;
+        }
+
         log.info("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
         long schedulerStart = System.currentTimeMillis();
         AtomicInteger count = new AtomicInteger();
+
         try {
             // ЕСЛИ автотрейдинг включен — поддерживаем нужное количество трейдов
             Settings settings = settingsService.getSettings();
@@ -95,9 +145,11 @@ public class TradeAndSimulationScheduler {
                     eventSendService.updateUI(UpdateUiEvent.builder().build());
                 }
             }
-
         } catch (Exception e) {
             log.error("❌ Ошибка в maintainPairs()", e);
+        } finally {
+            // Сбрасываем флаг выполнения
+            maintainPairsRunning.set(false);
         }
 
         long schedulerEnd = System.currentTimeMillis();
