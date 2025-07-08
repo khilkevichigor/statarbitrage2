@@ -6,11 +6,11 @@ import com.example.statarbitrage.trading.model.TradeResult;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Основной интерфейс для провайдеров торговли.
  * Позволяет легко переключаться между виртуальной и реальной торговлей.
+ * ВСЕ МЕТОДЫ СИНХРОННЫЕ - асинхронность убрана для устранения SQLite BUSY!
  */
 public interface TradingProvider {
 
@@ -25,19 +25,19 @@ public interface TradingProvider {
     boolean hasAvailableBalance(BigDecimal amount);
 
     /**
-     * Открытие длинной позиции
+     * Открытие длинной позиции - СИНХРОННО
      */
-    CompletableFuture<TradeResult> openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage);
+    TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage);
 
     /**
-     * Открытие короткой позиции
+     * Открытие короткой позиции - СИНХРОННО
      */
-    CompletableFuture<TradeResult> openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage);
+    TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage);
 
     /**
-     * Закрытие позиции
+     * Закрытие позиции - СИНХРОННО
      */
-    CompletableFuture<TradeResult> closePosition(String positionId);
+    TradeResult closePosition(String positionId);
 
     /**
      * Получение всех активных позиций
@@ -50,9 +50,9 @@ public interface TradingProvider {
     Position getPosition(String positionId);
 
     /**
-     * Обновление цен всех позиций
+     * Обновление цен всех позиций - СИНХРОННО
      */
-    CompletableFuture<Void> updatePositionPrices();
+    void updatePositionPrices();
 
     /**
      * Получение текущей рыночной цены

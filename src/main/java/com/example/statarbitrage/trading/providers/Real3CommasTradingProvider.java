@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Реальная торговля через 3Commas API
  * ЗАГЛУШКА - для будущей реализации
+ * ВСЕ МЕТОДЫ СИНХРОННЫЕ - асинхронность убрана!
  */
 @Slf4j
 @Service
@@ -33,27 +33,24 @@ public class Real3CommasTradingProvider implements TradingProvider {
     }
 
     @Override
-    public CompletableFuture<TradeResult> openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-        return CompletableFuture.completedFuture(
-                TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Реальная торговля через 3Commas пока не реализована")
-        );
+    public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
+        // СИНХРОННЫЙ метод - убрана асинхронность!
+        return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                "Реальная торговля через 3Commas пока не реализована");
     }
 
     @Override
-    public CompletableFuture<TradeResult> openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-        return CompletableFuture.completedFuture(
-                TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Реальная торговля через 3Commas пока не реализована")
-        );
+    public TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
+        // СИНХРОННЫЙ метод - убрана асинхронность!
+        return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
+                "Реальная торговля через 3Commas пока не реализована");
     }
 
     @Override
-    public CompletableFuture<TradeResult> closePosition(String positionId) {
-        return CompletableFuture.completedFuture(
-                TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN",
-                        "Реальная торговля через 3Commas пока не реализована")
-        );
+    public TradeResult closePosition(String positionId) {
+        // СИНХРОННЫЙ метод - убрана асинхронность!
+        return TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN",
+                "Реальная торговля через 3Commas пока не реализована");
     }
 
     @Override
@@ -67,8 +64,9 @@ public class Real3CommasTradingProvider implements TradingProvider {
     }
 
     @Override
-    public CompletableFuture<Void> updatePositionPrices() {
-        return CompletableFuture.completedFuture(null);
+    public void updatePositionPrices() {
+        // СИНХРОННЫЙ метод - убрана асинхронность!
+        log.warn("Обновление цен позиций через 3Commas не реализовано");
     }
 
     @Override

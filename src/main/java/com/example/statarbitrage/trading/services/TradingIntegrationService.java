@@ -61,7 +61,7 @@ public class TradingIntegrationService {
                 // Открываем позиции ПОСЛЕДОВАТЕЛЬНО и СИНХРОННО
                 log.info("🔵 Открытие LONG позиции: {} с размером {}", pairData.getLongTicker(), longAmount);
                 TradeResult longResult = provider.openLongPosition(
-                        pairData.getLongTicker(), longAmount, leverage).get();
+                        pairData.getLongTicker(), longAmount, leverage);
 
                 if (!longResult.isSuccess()) {
                     log.error("❌ Не удалось открыть LONG позицию: {}", longResult.getErrorMessage());
@@ -70,7 +70,7 @@ public class TradingIntegrationService {
 
                 log.info("🔴 Открытие SHORT позиции: {} с размером {}", pairData.getShortTicker(), shortAmount);
                 TradeResult shortResult = provider.openShortPosition(
-                        pairData.getShortTicker(), shortAmount, leverage).get();
+                        pairData.getShortTicker(), shortAmount, leverage);
 
                 if (longResult.isSuccess() && shortResult.isSuccess()) {
                     // Сохраняем связи
@@ -128,8 +128,8 @@ public class TradingIntegrationService {
                 log.info("🔄 Начинаем закрытие арбитражной пары: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                TradeResult longCloseResult = provider.closePosition(longPositionId).get();
-                TradeResult shortCloseResult = provider.closePosition(shortPositionId).get();
+                TradeResult longCloseResult = provider.closePosition(longPositionId);
+                TradeResult shortCloseResult = provider.closePosition(shortPositionId);
 
                 boolean success = longCloseResult.isSuccess() && shortCloseResult.isSuccess();
 
@@ -169,7 +169,7 @@ public class TradingIntegrationService {
     public void updateAllPositions() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         try {
-            provider.updatePositionPrices().get(); // Ждем завершения синхронно
+            provider.updatePositionPrices(); // Полностью синхронно
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
         }
