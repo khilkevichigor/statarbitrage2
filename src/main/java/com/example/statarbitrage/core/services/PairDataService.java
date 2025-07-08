@@ -129,7 +129,7 @@ public class PairDataService {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         //Точки входа
-        if (pairData.getStatus() == TradeStatus.SELECTED) {
+        if (pairData.getStatus() == TradeStatus.SELECTED) { //todo по хорошему делать уже после открытия сделок
 
             pairData.setStatus(TradeStatus.TRADING);
 
@@ -166,7 +166,7 @@ public class PairDataService {
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
 
-        changesService.calculateAndAdd(pairData);
+        changesService.calculateAndAdd(pairData); //todo по хорошему делать уже после открытия сделок
 
         // Добавляем новые точки в историю Z-Score при каждом обновлении
         if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
@@ -179,7 +179,7 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-        String exitReason = exitStrategyService.getExitReason(pairData);
+        String exitReason = exitStrategyService.getExitReason(pairData); //todo по хорошему делать уже после открытия сделок
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);

@@ -190,12 +190,21 @@ public class TradingPairsComponent extends VerticalLayout {
     private Button createStartTradingButton(PairData pair) {
         Button actionButton = new Button("Торговать", event -> {
             try {
-                startNewTradeProcessor.startNewTrade(pair);
-                Notification.show(String.format(
-                        "Статус пары %s/%s изменен на %s",
-                        pair.getLongTicker(), pair.getShortTicker(), TradeStatus.TRADING
-                ));
-                notifyUIUpdate();
+                PairData pairData = startNewTradeProcessor.startNewTrade(pair);
+                if (pairData != null) {
+                    Notification.show(String.format(
+                            "Статус пары %s/%s изменен на %s",
+                            pair.getLongTicker(), pair.getShortTicker(), TradeStatus.TRADING
+                    ));
+                    notifyUIUpdate();
+                } else {
+                    Notification.show(String.format(
+                            "Открытие сделки %s - %s не произошло",
+                            pair.getLongTicker(), pair.getShortTicker()
+                    ));
+                    notifyUIUpdate();
+                }
+
             } catch (Exception e) {
                 log.error("Error starting trade for pair: {}/{}", pair.getLongTicker(), pair.getShortTicker(), e);
                 Notification.show("Ошибка при открытии торговли: " + e.getMessage());

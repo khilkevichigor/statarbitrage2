@@ -2,11 +2,13 @@ package com.example.statarbitrage.trading.services;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
+import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.model.TradeResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TradingIntegrationService {
 
+    private final SettingsService settingsService;
     private final TradingProviderFactory tradingProviderFactory;
 
     // Синхронизация открытия позиций для избежания конфликтов SQLite
@@ -29,10 +33,6 @@ public class TradingIntegrationService {
     // Хранилище связей между PairData и торговыми позициями
     private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
-
-    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory) {
-        this.tradingProviderFactory = tradingProviderFactory;
-    }
 
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
@@ -53,7 +53,7 @@ public class TradingIntegrationService {
 
                 BigDecimal longAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
                 BigDecimal shortAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
-                BigDecimal leverage = BigDecimal.valueOf(1); // Можно вынести в настройки
+                BigDecimal leverage = BigDecimal.valueOf(settingsService.getSettings().getLeverage());
 
                 log.info("🔄 Начинаем открытие арбитражной пары: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());

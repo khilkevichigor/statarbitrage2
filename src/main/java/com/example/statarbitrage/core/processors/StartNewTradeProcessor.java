@@ -60,10 +60,6 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles);
-
         // Проверяем, можем ли открыть новую пару на торговом депо
         if (tradingIntegrationService.canOpenNewPair()) {
             // Открываем арбитражную пару через торговую систему СИНХРОННО
@@ -71,6 +67,12 @@ public class StartNewTradeProcessor {
             if (success) {
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
+
+                List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+                List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+                pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles); //todo по идее здесь только обновление инфы - без торговли! тогда этот метод должен быть после открытия сделок
+                tradeLogService.saveFromPairData(pairData);
+                return pairData;
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
@@ -79,8 +81,6 @@ public class StartNewTradeProcessor {
             log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
         }
-
-        tradeLogService.saveFromPairData(pairData);
-        return pairData;
+        return null;
     }
 }
