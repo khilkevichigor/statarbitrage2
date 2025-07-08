@@ -50,6 +50,8 @@ public class DbInitializer {
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
 
+                    .portfolioCapital(10_000)
+
                     .useExitTake(false)
                     .exitTake(5.0)
 
