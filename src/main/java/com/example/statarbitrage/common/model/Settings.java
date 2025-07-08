@@ -29,7 +29,6 @@ public class Settings {
 
     private double checkInterval;
 
-    private double initialBalance;
     private double capitalLong;
     private double capitalShort;
     private double leverage;
