@@ -49,213 +49,222 @@ public class VirtualTradingProvider implements TradingProvider {
 
     @Override
     public CompletableFuture<TradeResult> openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                // Проверяем доступность средств
-                if (!portfolioManager.hasAvailableBalance(amount)) {
-                    return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                            "Недостаточно средств: требуется " + amount + ", доступно " +
-                                    portfolioManager.getCurrentPortfolio().getAvailableBalance());
-                }
-
-                // Получаем текущую цену
-                BigDecimal currentPrice = getCurrentPrice(symbol);
-                if (currentPrice == null) {
-                    return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                            "Не удалось получить текущую цену для " + symbol);
-                }
-
-                // Резервируем средства
-                if (!portfolioManager.reserveBalance(amount)) {
-                    return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                            "Не удалось зарезервировать средства");
-                }
-
-                // Рассчитываем размер позиции
-                BigDecimal positionSize = amount.multiply(leverage).divide(currentPrice, 8, RoundingMode.HALF_UP);
-
-                // Рассчитываем комиссии
-                BigDecimal fees = calculateFees(amount, leverage);
-
-                // Создаем позицию
-                String positionId = UUID.randomUUID().toString();
-                Position position = Position.builder()
-                        .positionId(positionId)
-                        .symbol(symbol)
-                        .type(PositionType.LONG)
-                        .size(positionSize)
-                        .entryPrice(currentPrice)
-                        .currentPrice(currentPrice)
-                        .leverage(leverage)
-                        .allocatedAmount(amount)
-                        .unrealizedPnL(BigDecimal.ZERO)
-                        .unrealizedPnLPercent(BigDecimal.ZERO)
-                        .openingFees(fees)
-                        .status(PositionStatus.OPEN)
-                        .openTime(LocalDateTime.now())
-                        .lastUpdated(LocalDateTime.now())
-                        .build();
-
-                // Сохраняем позицию
-                positions.put(positionId, position);
-
-                // Уведомляем портфолио
-                portfolioManager.onPositionOpened(position);
-
-                // Создаем результат
-                TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
-                        symbol, positionSize, currentPrice, fees);
-                result.setPnl(BigDecimal.ZERO);
-
-                tradeHistory.add(result);
-
-                log.info("🟢 Виртуально открыта LONG позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
-                        symbol, positionSize, currentPrice, fees);
-
-                return result;
-
-            } catch (Exception e) {
-                log.error("Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
+        // СИНХРОННОЕ выполнение - убираем асинхронность!
+        try {
+            // Проверяем доступность средств
+            if (!portfolioManager.hasAvailableBalance(amount)) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                                "Недостаточно средств: требуется " + amount + ", доступно " +
+                                        portfolioManager.getCurrentPortfolio().getAvailableBalance()));
             }
-        });
+
+            // Получаем текущую цену
+            BigDecimal currentPrice = getCurrentPrice(symbol);
+            if (currentPrice == null) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                                "Не удалось получить текущую цену для " + symbol));
+            }
+
+            // Резервируем средства
+            if (!portfolioManager.reserveBalance(amount)) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                                "Не удалось зарезервировать средства"));
+            }
+
+            // Рассчитываем размер позиции
+            BigDecimal positionSize = amount.multiply(leverage).divide(currentPrice, 8, RoundingMode.HALF_UP);
+
+            // Рассчитываем комиссии
+            BigDecimal fees = calculateFees(amount, leverage);
+
+            // Создаем позицию
+            String positionId = UUID.randomUUID().toString();
+            Position position = Position.builder()
+                    .positionId(positionId)
+                    .symbol(symbol)
+                    .type(PositionType.LONG)
+                    .size(positionSize)
+                    .entryPrice(currentPrice)
+                    .currentPrice(currentPrice)
+                    .leverage(leverage)
+                    .allocatedAmount(amount)
+                    .unrealizedPnL(BigDecimal.ZERO)
+                    .unrealizedPnLPercent(BigDecimal.ZERO)
+                    .openingFees(fees)
+                    .status(PositionStatus.OPEN)
+                    .openTime(LocalDateTime.now())
+                    .lastUpdated(LocalDateTime.now())
+                    .build();
+
+            // Сохраняем позицию
+            positions.put(positionId, position);
+
+            // Уведомляем портфолио
+            portfolioManager.onPositionOpened(position);
+
+            // Создаем результат
+            TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
+                    symbol, positionSize, currentPrice, fees);
+            result.setPnl(BigDecimal.ZERO);
+
+            tradeHistory.add(result);
+
+            log.info("🟢 Виртуально открыта LONG позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
+                    symbol, positionSize, currentPrice, fees);
+
+            return CompletableFuture.completedFuture(result);
+
+        } catch (Exception e) {
+            log.error("Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
+            return CompletableFuture.completedFuture(
+                    TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage()));
+        }
     }
 
     @Override
     public CompletableFuture<TradeResult> openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                // Проверяем доступность средств
-                if (!portfolioManager.hasAvailableBalance(amount)) {
-                    return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                            "Недостаточно средств: требуется " + amount + ", доступно " +
-                                    portfolioManager.getCurrentPortfolio().getAvailableBalance());
-                }
-
-                // Получаем текущую цену
-                BigDecimal currentPrice = getCurrentPrice(symbol);
-                if (currentPrice == null) {
-                    return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                            "Не удалось получить текущую цену для " + symbol);
-                }
-
-                // Резервируем средства
-                if (!portfolioManager.reserveBalance(amount)) {
-                    return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                            "Не удалось зарезервировать средства");
-                }
-
-                // Рассчитываем размер позиции
-                BigDecimal positionSize = amount.multiply(leverage).divide(currentPrice, 8, RoundingMode.HALF_UP);
-
-                // Рассчитываем комиссии
-                BigDecimal fees = calculateFees(amount, leverage);
-
-                // Создаем позицию
-                String positionId = UUID.randomUUID().toString();
-                Position position = Position.builder()
-                        .positionId(positionId)
-                        .symbol(symbol)
-                        .type(PositionType.SHORT)
-                        .size(positionSize)
-                        .entryPrice(currentPrice)
-                        .currentPrice(currentPrice)
-                        .leverage(leverage)
-                        .allocatedAmount(amount)
-                        .unrealizedPnL(BigDecimal.ZERO)
-                        .unrealizedPnLPercent(BigDecimal.ZERO)
-                        .openingFees(fees)
-                        .status(PositionStatus.OPEN)
-                        .openTime(LocalDateTime.now())
-                        .lastUpdated(LocalDateTime.now())
-                        .build();
-
-                // Сохраняем позицию
-                positions.put(positionId, position);
-
-                // Уведомляем портфолио
-                portfolioManager.onPositionOpened(position);
-
-                // Создаем результат
-                TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_SHORT,
-                        symbol, positionSize, currentPrice, fees);
-                result.setPnl(BigDecimal.ZERO);
-
-                tradeHistory.add(result);
-
-                log.info("🔴 Виртуально открыта SHORT позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
-                        symbol, positionSize, currentPrice, fees);
-
-                return result;
-
-            } catch (Exception e) {
-                log.error("Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, e.getMessage());
+        // СИНХРОННОЕ выполнение - убираем асинхронность!
+        try {
+            // Проверяем доступность средств
+            if (!portfolioManager.hasAvailableBalance(amount)) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
+                                "Недостаточно средств: требуется " + amount + ", доступно " +
+                                        portfolioManager.getCurrentPortfolio().getAvailableBalance()));
             }
-        });
+
+            // Получаем текущую цену
+            BigDecimal currentPrice = getCurrentPrice(symbol);
+            if (currentPrice == null) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
+                                "Не удалось получить текущую цену для " + symbol));
+            }
+
+            // Резервируем средства
+            if (!portfolioManager.reserveBalance(amount)) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
+                                "Не удалось зарезервировать средства"));
+            }
+
+            // Рассчитываем размер позиции
+            BigDecimal positionSize = amount.multiply(leverage).divide(currentPrice, 8, RoundingMode.HALF_UP);
+
+            // Рассчитываем комиссии
+            BigDecimal fees = calculateFees(amount, leverage);
+
+            // Создаем позицию
+            String positionId = UUID.randomUUID().toString();
+            Position position = Position.builder()
+                    .positionId(positionId)
+                    .symbol(symbol)
+                    .type(PositionType.SHORT)
+                    .size(positionSize)
+                    .entryPrice(currentPrice)
+                    .currentPrice(currentPrice)
+                    .leverage(leverage)
+                    .allocatedAmount(amount)
+                    .unrealizedPnL(BigDecimal.ZERO)
+                    .unrealizedPnLPercent(BigDecimal.ZERO)
+                    .openingFees(fees)
+                    .status(PositionStatus.OPEN)
+                    .openTime(LocalDateTime.now())
+                    .lastUpdated(LocalDateTime.now())
+                    .build();
+
+            // Сохраняем позицию
+            positions.put(positionId, position);
+
+            // Уведомляем портфолио
+            portfolioManager.onPositionOpened(position);
+
+            // Создаем результат
+            TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_SHORT,
+                    symbol, positionSize, currentPrice, fees);
+            result.setPnl(BigDecimal.ZERO);
+
+            tradeHistory.add(result);
+
+            log.info("🔴 Виртуально открыта SHORT позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
+                    symbol, positionSize, currentPrice, fees);
+
+            return CompletableFuture.completedFuture(result);
+
+        } catch (Exception e) {
+            log.error("Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
+            return CompletableFuture.completedFuture(
+                    TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, e.getMessage()));
+        }
     }
 
     @Override
     public CompletableFuture<TradeResult> closePosition(String positionId) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                Position position = positions.get(positionId);
-                if (position == null) {
-                    return TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN",
-                            "Позиция не найдена: " + positionId);
-                }
-
-                if (position.getStatus() != PositionStatus.OPEN) {
-                    return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(),
-                            "Позиция не открыта: " + position.getStatus());
-                }
-
-                // Получаем текущую цену
-                BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
-                if (currentPrice == null) {
-                    return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(),
-                            "Не удалось получить текущую цену для " + position.getSymbol());
-                }
-
-                // Обновляем цену и рассчитываем PnL
-                position.setCurrentPrice(currentPrice);
-                position.calculateUnrealizedPnL();
-
-                // Рассчитываем комиссии за закрытие
-                BigDecimal closingFees = calculateFees(position.getAllocatedAmount(), position.getLeverage());
-                BigDecimal totalFees = position.getOpeningFees().add(closingFees);
-
-                // Финальный PnL с учетом комиссий
-                BigDecimal finalPnL = position.getUnrealizedPnL().subtract(closingFees);
-
-                // Закрываем позицию
-                position.setStatus(PositionStatus.CLOSED);
-                position.setLastUpdated(LocalDateTime.now());
-
-                // Освобождаем средства и уведомляем портфолио
-                portfolioManager.releaseReservedBalance(position.getAllocatedAmount());
-                portfolioManager.onPositionClosed(position, finalPnL, totalFees);
-
-                // Удаляем из активных позиций
-                positions.remove(positionId);
-
-                // Создаем результат
-                TradeResult result = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
-                        position.getSymbol(), position.getSize(), currentPrice, closingFees);
-                result.setPnl(finalPnL);
-
-                tradeHistory.add(result);
-
-                log.info("⚫ Виртуально закрыта позиция: {} {} | Цена: {} | PnL: {} | Комиссии: {}",
-                        position.getSymbol(), position.getDirectionString(), currentPrice, finalPnL, totalFees);
-
-                return result;
-
-            } catch (Exception e) {
-                log.error("Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
-                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN", e.getMessage());
+        // СИНХРОННОЕ выполнение - убираем асинхронность!
+        try {
+            Position position = positions.get(positionId);
+            if (position == null) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN",
+                                "Позиция не найдена: " + positionId));
             }
-        });
+
+            if (position.getStatus() != PositionStatus.OPEN) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(),
+                                "Позиция не открыта: " + position.getStatus()));
+            }
+
+            // Получаем текущую цену
+            BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
+            if (currentPrice == null) {
+                return CompletableFuture.completedFuture(
+                        TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(),
+                                "Не удалось получить текущую цену для " + position.getSymbol()));
+            }
+
+            // Обновляем цену и рассчитываем PnL
+            position.setCurrentPrice(currentPrice);
+            position.calculateUnrealizedPnL();
+
+            // Рассчитываем комиссии за закрытие
+            BigDecimal closingFees = calculateFees(position.getAllocatedAmount(), position.getLeverage());
+            BigDecimal totalFees = position.getOpeningFees().add(closingFees);
+
+            // Финальный PnL с учетом комиссий
+            BigDecimal finalPnL = position.getUnrealizedPnL().subtract(closingFees);
+
+            // Закрываем позицию
+            position.setStatus(PositionStatus.CLOSED);
+            position.setLastUpdated(LocalDateTime.now());
+
+            // Освобождаем средства и уведомляем портфолио
+            portfolioManager.releaseReservedBalance(position.getAllocatedAmount());
+            portfolioManager.onPositionClosed(position, finalPnL, totalFees);
+
+            // Удаляем из активных позиций
+            positions.remove(positionId);
+
+            // Создаем результат
+            TradeResult result = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
+                    position.getSymbol(), position.getSize(), currentPrice, closingFees);
+            result.setPnl(finalPnL);
+
+            tradeHistory.add(result);
+
+            log.info("⚫ Виртуально закрыта позиция: {} {} | Цена: {} | PnL: {} | Комиссии: {}",
+                    position.getSymbol(), position.getDirectionString(), currentPrice, finalPnL, totalFees);
+
+            return CompletableFuture.completedFuture(result);
+
+        } catch (Exception e) {
+            log.error("Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
+            return CompletableFuture.completedFuture(
+                    TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN", e.getMessage()));
+        }
     }
 
     @Override
@@ -270,7 +279,8 @@ public class VirtualTradingProvider implements TradingProvider {
 
     @Override
     public CompletableFuture<Void> updatePositionPrices() {
-        return CompletableFuture.runAsync(() -> {
+        // СИНХРОННОЕ выполнение - убираем асинхронность!
+        try {
             for (Position position : positions.values()) {
                 try {
                     BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
@@ -287,7 +297,12 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Обновляем портфолио
             portfolioManager.updatePortfolioValue();
-        });
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении цен позиций: {}", e.getMessage());
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     @Override

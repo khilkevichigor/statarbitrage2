@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -24,6 +23,9 @@ public class TradingIntegrationService {
 
     private final TradingProviderFactory tradingProviderFactory;
 
+    // Синхронизация открытия позиций для избежания конфликтов SQLite
+    private final Object openPositionLock = new Object();
+
     // Хранилище связей между PairData и торговыми позициями
     private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
@@ -33,29 +35,40 @@ public class TradingIntegrationService {
     }
 
     /**
-     * Открытие пары позиций для статарбитража
+     * Открытие пары позиций для статарбитража - СИНХРОННО
      */
-    public CompletableFuture<Boolean> openArbitragePair(PairData pairData) {
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-
-        // Рассчитываем размер позиций на основе нового портфолио
-        BigDecimal positionSize = calculatePositionSize(provider);
-        if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-            log.warn("❌ Недостаточно средств для открытия позиций по паре {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-            return CompletableFuture.completedFuture(false);
-        }
-
-        BigDecimal longAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
-        BigDecimal shortAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
-        BigDecimal leverage = BigDecimal.valueOf(1); // Можно вынести в настройки
-
-        return CompletableFuture.supplyAsync(() -> {
+    public boolean openArbitragePair(PairData pairData) {
+        // Синхронизируем всю операцию открытия пары
+        synchronized (openPositionLock) {
             try {
-                // Открываем позиции ПОСЛЕДОВАТЕЛЬНО для избежания блокировки SQLite
+                TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+
+                // Рассчитываем размер позиций на основе нового портфолио
+                BigDecimal positionSize = calculatePositionSize(provider);
+                if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                    log.warn("❌ Недостаточно средств для открытия позиций по паре {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+                    return false;
+                }
+
+                BigDecimal longAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
+                BigDecimal shortAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
+                BigDecimal leverage = BigDecimal.valueOf(1); // Можно вынести в настройки
+
+                log.info("🔄 Начинаем открытие арбитражной пары: {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+
+                // Открываем позиции ПОСЛЕДОВАТЕЛЬНО и СИНХРОННО
+                log.info("🔵 Открытие LONG позиции: {} с размером {}", pairData.getLongTicker(), longAmount);
                 TradeResult longResult = provider.openLongPosition(
                         pairData.getLongTicker(), longAmount, leverage).get();
 
+                if (!longResult.isSuccess()) {
+                    log.error("❌ Не удалось открыть LONG позицию: {}", longResult.getErrorMessage());
+                    return false;
+                }
+
+                log.info("🔴 Открытие SHORT позиции: {} с размером {}", pairData.getShortTicker(), shortAmount);
                 TradeResult shortResult = provider.openShortPosition(
                         pairData.getShortTicker(), shortAmount, leverage).get();
 
@@ -90,27 +103,31 @@ public class TradingIntegrationService {
                         pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
                 return false;
             }
-        });
+        }
     }
 
     /**
-     * Закрытие пары позиций
+     * Закрытие пары позиций - СИНХРОННО
      */
-    public CompletableFuture<Boolean> closeArbitragePair(PairData pairData) {
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
-
-        if (longPositionId == null || shortPositionId == null) {
-            log.warn("⚠️ Не найдены позиции для пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-            return CompletableFuture.completedFuture(false);
-        }
-
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-
-        return CompletableFuture.supplyAsync(() -> {
+    public boolean closeArbitragePair(PairData pairData) {
+        // Синхронизируем всю операцию закрытия пары
+        synchronized (openPositionLock) {
             try {
-                // Закрываем позиции ПОСЛЕДОВАТЕЛЬНО для избежания блокировки SQLite
+                String longPositionId = pairToLongPositionMap.get(pairData.getId());
+                String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+
+                if (longPositionId == null || shortPositionId == null) {
+                    log.warn("⚠️ Не найдены позиции для пары {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+                    return false;
+                }
+
+                TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+
+                // Закрываем позиции ПОСЛЕДОВАТЕЛЬНО и СИНХРОННО
+                log.info("🔄 Начинаем закрытие арбитражной пары: {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+
                 TradeResult longCloseResult = provider.closePosition(longPositionId).get();
                 TradeResult shortCloseResult = provider.closePosition(shortPositionId).get();
 
@@ -143,15 +160,19 @@ public class TradingIntegrationService {
                         pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
                 return false;
             }
-        });
+        }
     }
 
     /**
-     * Обновление цен и PnL для всех активных пар
+     * Обновление цен и PnL для всех активных пар - СИНХРОННО
      */
-    public CompletableFuture<Void> updateAllPositions() {
+    public void updateAllPositions() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        return provider.updatePositionPrices();
+        try {
+            provider.updatePositionPrices().get(); // Ждем завершения синхронно
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
+        }
     }
 
     /**

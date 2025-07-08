@@ -190,7 +190,7 @@ public class PairDataService {
 
     @Transactional
     public void save(PairData pairData) {
-        saveWithRetry(pairData, 3);
+        saveWithRetry(pairData, 10);
     }
 
     private void saveWithRetry(PairData pairData, int maxRetries) {
@@ -222,7 +222,7 @@ public class PairDataService {
 
                 // Перезагружаем актуальную версию из БД и создаем новый entity для следующей попытки
                 try {
-                    Thread.sleep(50 + (attempts * 25L)); // Exponential backoff: 50ms, 75ms, 100ms
+                    Thread.sleep(1000 + (attempts * 1000L)); // Exponential backoff: 50ms, 75ms, 100ms
 
                     if (currentEntity.getId() != null) {
                         // Перезагружаем свежие данные из БД

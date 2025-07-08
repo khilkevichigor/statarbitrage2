@@ -66,24 +66,17 @@ public class StartNewTradeProcessor {
 
         // Проверяем, можем ли открыть новую пару на торговом депо
         if (tradingIntegrationService.canOpenNewPair()) {
-            // Открываем арбитражную пару через торговую систему
-            tradingIntegrationService.openArbitragePair(pairData)
-                .thenAccept(success -> {
-                    if (success) {
-                        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}", 
-                                pairData.getLongTicker(), pairData.getShortTicker());
-                    } else {
-                        log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}", 
-                                pairData.getLongTicker(), pairData.getShortTicker());
-                    }
-                })
-                .exceptionally(throwable -> {
-                    log.error("❌ Ошибка при открытии арбитражной пары {}/{}: {}", 
-                            pairData.getLongTicker(), pairData.getShortTicker(), throwable.getMessage());
-                    return null;
-                });
+            // Открываем арбитражную пару через торговую систему СИНХРОННО
+            boolean success = tradingIntegrationService.openArbitragePair(pairData);
+            if (success) {
+                log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+            } else {
+                log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+            }
         } else {
-            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}", 
+            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
         }
 
