@@ -98,6 +98,11 @@ public class Position {
     private String metadata;
 
     /**
+     * Идентификатор внешнего ордера (для связи с биржей)
+     */
+    private String externalOrderId;
+
+    /**
      * Расчет нереализованной прибыли/убытка
      */
     public void calculateUnrealizedPnL() {

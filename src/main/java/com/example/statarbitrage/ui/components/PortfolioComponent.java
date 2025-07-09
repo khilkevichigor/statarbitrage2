@@ -2,6 +2,7 @@ package com.example.statarbitrage.ui.components;
 
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.Portfolio;
+import com.example.statarbitrage.trading.model.TradingProviderSwitchResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
@@ -100,14 +101,7 @@ public class PortfolioComponent extends VerticalLayout {
         tradingModeComboBox.addValueChangeListener(event -> {
             TradingProviderType newMode = event.getValue();
             if (newMode != null && newMode != event.getOldValue()) {
-                boolean success = tradingIntegrationService.switchTradingMode(newMode);
-                if (success) {
-                    Notification.show("✅ Режим торговли изменен на: " + newMode.getDisplayName());
-                    updatePortfolioInfo(); // Обновляем информацию о портфолио
-                } else {
-                    Notification.show("❌ Не удалось переключиться на: " + newMode.getDisplayName());
-                    tradingModeComboBox.setValue(event.getOldValue()); // Возвращаем старое значение
-                }
+                handleTradingModeSwitch(newMode, event.getOldValue());
             }
         });
 
@@ -342,5 +336,98 @@ public class PortfolioComponent extends VerticalLayout {
     private String formatPercent(BigDecimal value) {
         if (value == null) return "0.00%";
         return value.setScale(2, RoundingMode.HALF_UP).toString() + "%";
+    }
+
+    /**
+     * Обработка переключения режима торговли с детальными сообщениями об ошибках
+     */
+    private void handleTradingModeSwitch(TradingProviderType newMode, TradingProviderType oldMode) {
+        try {
+            log.info("Переключение режима торговли с {} на {}", oldMode, newMode);
+
+            // Используем метод с детальной информацией об ошибках
+            TradingProviderSwitchResult result = tradingIntegrationService.switchTradingModeWithDetails(newMode);
+
+            if (result.isSuccess()) {
+                // Успешное переключение
+                String successMessage = "✅ Режим торговли успешно изменен на: " + newMode.getDisplayName();
+                Notification successNotification = Notification.show(successMessage);
+                successNotification.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_SUCCESS);
+
+                // Обновляем информацию о портфолио
+                updatePortfolioInfo();
+
+                log.info("Успешное переключение на режим: {}", newMode.getDisplayName());
+
+            } else {
+                // Ошибка переключения - показываем детальное сообщение
+                handleSwitchError(result, newMode, oldMode);
+            }
+
+        } catch (Exception e) {
+            // Неожиданная ошибка
+            log.error("Неожиданная ошибка при переключении режима торговли", e);
+
+            String errorMessage = "❌ Системная ошибка при переключении режима торговли: " + e.getMessage();
+            Notification errorNotification = Notification.show(errorMessage);
+            errorNotification.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_ERROR);
+            errorNotification.setDuration(5000);
+
+            // Возвращаем старое значение
+            tradingModeComboBox.setValue(oldMode);
+        }
+    }
+
+    /**
+     * Обработка ошибок переключения с детальными сообщениями
+     */
+    private void handleSwitchError(TradingProviderSwitchResult result, TradingProviderType newMode, TradingProviderType oldMode) {
+        log.error("Ошибка переключения режима торговли: тип={}, сообщение={}",
+                result.getErrorType(), result.getErrorMessage());
+
+        // Базовое сообщение об ошибке
+        String errorMessage = result.getUserMessage() != null ?
+                result.getUserMessage() :
+                "❌ Не удалось переключиться на режим: " + newMode.getDisplayName();
+
+        // Добавляем рекомендации если есть
+        if (result.getRecommendation() != null && !result.getRecommendation().isEmpty()) {
+            errorMessage += "\n\n💡 Рекомендация: " + result.getRecommendation();
+        }
+
+        // Определяем тип уведомления и длительность показа в зависимости от типа ошибки
+        Notification errorNotification = createErrorNotification(result.getErrorType(), errorMessage);
+        errorNotification.open();
+
+        // Возвращаем старое значение в комбобокс
+        tradingModeComboBox.setValue(oldMode);
+    }
+
+    /**
+     * Создание уведомления об ошибке в зависимости от типа
+     */
+    private Notification createErrorNotification(TradingProviderSwitchResult.SwitchErrorType errorType, String message) {
+        Notification notification = Notification.show(message);
+        notification.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_ERROR);
+
+        // Устанавливаем длительность в зависимости от типа ошибки
+        switch (errorType) {
+            case PROVIDER_NOT_IMPLEMENTED:
+                notification.setDuration(3000); // Короткое уведомление для не реализованных провайдеров
+                break;
+            case CONFIGURATION_MISSING:
+            case INVALID_CREDENTIALS:
+                notification.setDuration(7000); // Длинное уведомление для проблем с конфигурацией
+                break;
+            case CONNECTION_ERROR:
+                notification.setDuration(5000); // Среднее уведомление для проблем с соединением
+                break;
+            case INTERNAL_ERROR:
+            default:
+                notification.setDuration(4000); // Стандартное уведомление
+                break;
+        }
+
+        return notification;
     }
 }

@@ -73,6 +73,11 @@ public class TradeResult {
     private String metadata;
 
     /**
+     * Идентификатор внешнего ордера (для связи с биржей)
+     */
+    private String externalOrderId;
+
+    /**
      * Создание успешного результата
      */
     public static TradeResult success(String positionId, TradeOperationType operationType,

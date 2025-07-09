@@ -7,6 +7,7 @@ import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.model.TradeResult;
+import com.example.statarbitrage.trading.model.TradingProviderSwitchResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -268,6 +269,14 @@ public class TradingIntegrationService {
     public boolean switchTradingMode(TradingProviderType providerType) {
         log.info("🔄 Переключение режима торговли на: {}", providerType.getDisplayName());
         return tradingProviderFactory.switchToProvider(providerType);
+    }
+
+    /**
+     * Переключение режима торговли с детальной информацией
+     */
+    public TradingProviderSwitchResult switchTradingModeWithDetails(TradingProviderType providerType) {
+        log.info("🔄 Переключение режима торговли на: {}", providerType.getDisplayName());
+        return tradingProviderFactory.switchToProviderWithDetails(providerType);
     }
 
     /**
