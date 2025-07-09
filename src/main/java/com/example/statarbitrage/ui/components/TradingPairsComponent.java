@@ -69,12 +69,9 @@ public class TradingPairsComponent extends VerticalLayout {
         setPadding(false);
 
         add(
-                new H2("Отобранные пары (SELECTED)"),
                 selectedPairsGrid,
-                new H2("Торгуемые пары (TRADING)"),
                 tradingPairsGrid,
                 unrealizedProfitLayout,
-                new H2("Закрытые пары (CLOSED)"),
                 closedPairsGrid
         );
     }

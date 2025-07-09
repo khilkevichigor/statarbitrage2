@@ -41,14 +41,10 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Портфолио", PortfolioView.class, VaadinIcon.WALLET.create()));
         nav.addItem(new SideNavItem("Настройки", SettingsView.class, VaadinIcon.COG.create()));
 
-        // Группа торговых пар
-        SideNavItem tradingPairsGroup = new SideNavItem("Торговые пары");
-        tradingPairsGroup.setPrefixComponent(VaadinIcon.EXCHANGE.create());
-        tradingPairsGroup.addItem(new SideNavItem("Отобранные", SelectedPairsView.class, VaadinIcon.FILTER.create()));
-        tradingPairsGroup.addItem(new SideNavItem("Торгуемые", TradingPairsView.class, VaadinIcon.PLAY.create()));
-        tradingPairsGroup.addItem(new SideNavItem("Закрытые", ClosedPairsView.class, VaadinIcon.STOP.create()));
-
-        nav.addItem(tradingPairsGroup);
+        // Пункты меню для торговых пар
+        nav.addItem(new SideNavItem("Отобранные пары", SelectedPairsView.class, VaadinIcon.FILTER.create()));
+        nav.addItem(new SideNavItem("Торгуемые пары", TradingPairsView.class, VaadinIcon.PLAY.create()));
+        nav.addItem(new SideNavItem("Закрытые пары", ClosedPairsView.class, VaadinIcon.STOP.create()));
         nav.addItem(new SideNavItem("Статистика", StatisticsView.class, VaadinIcon.CHART.create()));
 
         // Стилизуем меню
