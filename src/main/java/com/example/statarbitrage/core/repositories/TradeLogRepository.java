@@ -157,9 +157,9 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
     Long getExitByTotal(@Param("reason") String reason);
 
     @Query(value =
-            "SELECT COALESCE(SUM(profit_changes), 0)" +
-                    "FROM pair_data" +
-                    "WHERE STATUS='CLOSED'",
+            "SELECT COALESCE(SUM(profit_changes), 0) " +
+                    "FROM pair_data " + //todo wrong table
+                    "WHERE STATUS = 'CLOSED'",
             nativeQuery = true)
     BigDecimal getSumRealizedProfit();
 }
