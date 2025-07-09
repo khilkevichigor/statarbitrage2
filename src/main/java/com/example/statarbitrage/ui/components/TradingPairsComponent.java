@@ -357,4 +357,34 @@ public class TradingPairsComponent extends VerticalLayout {
 
         return chartButton;
     }
+
+    // Методы для фильтрации отображения различных типов пар
+
+    public void showOnlySelectedPairs() {
+        selectedPairsGrid.setVisible(true);
+        tradingPairsGrid.setVisible(false);
+        closedPairsGrid.setVisible(false);
+        unrealizedProfitLayout.setVisible(false);
+    }
+
+    public void showOnlyTradingPairs() {
+        selectedPairsGrid.setVisible(false);
+        tradingPairsGrid.setVisible(true);
+        closedPairsGrid.setVisible(false);
+        unrealizedProfitLayout.setVisible(true);
+    }
+
+    public void showOnlyClosedPairs() {
+        selectedPairsGrid.setVisible(false);
+        tradingPairsGrid.setVisible(false);
+        closedPairsGrid.setVisible(true);
+        unrealizedProfitLayout.setVisible(false);
+    }
+
+    public void showAllPairs() {
+        selectedPairsGrid.setVisible(true);
+        tradingPairsGrid.setVisible(true);
+        closedPairsGrid.setVisible(true);
+        unrealizedProfitLayout.setVisible(true);
+    }
 }

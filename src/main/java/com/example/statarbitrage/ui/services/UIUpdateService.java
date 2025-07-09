@@ -1,6 +1,6 @@
 package com.example.statarbitrage.ui.services;
 
-import com.example.statarbitrage.ui.views.MainView;
+import com.example.statarbitrage.ui.interfaces.UIUpdateable;
 import com.vaadin.flow.component.UI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,14 +15,14 @@ import java.util.concurrent.TimeUnit;
 public class UIUpdateService {
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final ConcurrentHashMap<UI, MainView> activeViews = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UI, UIUpdateable> activeViews = new ConcurrentHashMap<>();
 
     public UIUpdateService() {
         startPeriodicUpdates();
     }
 
-    public void registerView(UI ui, MainView mainView) {
-        activeViews.put(ui, mainView);
+    public void registerView(UI ui, UIUpdateable view) {
+        activeViews.put(ui, view);
         log.debug("Registered UI view: {}", ui.getUIId());
     }
 
@@ -32,10 +32,10 @@ public class UIUpdateService {
     }
 
     public void triggerUpdate() {
-        activeViews.forEach((ui, mainView) -> {
+        activeViews.forEach((ui, view) -> {
             if (ui.isAttached()) {
                 try {
-                    ui.access(mainView::updateUI);
+                    view.handleUiUpdateRequest();
                 } catch (Exception e) {
                     log.error("Error updating UI for view: {}", ui.getUIId(), e);
                 }
