@@ -8,10 +8,12 @@ import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -25,8 +27,9 @@ public class UpdateTradeProcessor {
     private final TradeLogService tradeLogService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
+    private final TradingProviderFactory tradingProviderFactory;
 
-    public void updateTrade(PairData pairData) {
+    public void updateTrade(PairData pairData, boolean isCloseManually) {
         Settings settings = settingsService.getSettings();
         log.info("🚀 Начинаем обновление трейда...");
 
@@ -40,30 +43,37 @@ public class UpdateTradeProcessor {
         // Сохраняем статус до обновления для проверки изменения
         TradeStatus statusBefore = pairData.getStatus();
 
-        pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles);
+        if (tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual()) {
+            pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles, isCloseManually);
+            tradeLogService.saveFromPairData(pairData);
+        } else {
+            //todo допилить
 
-        // Обновляем реальный PnL из торговой системы
-        java.math.BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-        if (realPnL.compareTo(java.math.BigDecimal.ZERO) != 0) {
-            // Конвертируем в проценты для совместимости с существующей системой
-            pairData.setProfitChanges(realPnL);
-            log.debug("🔄 Обновлен реальный PnL для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
-        }
+            // Обновляем реальный PnL из торговой системы
+            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
+            if (realPnL.compareTo(BigDecimal.ZERO) != 0) {
+                // Конвертируем в проценты для совместимости с существующей системой
+                pairData.setProfitChanges(realPnL);
+                log.debug("🔄 Обновлен реальный PnL для пары {}/{}: {}", pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
+            }
 
-        // Если статус изменился на CLOSED, закрываем позиции в торговой системе СИНХРОННО
-        if (statusBefore == TradeStatus.TRADING && pairData.getStatus() == TradeStatus.CLOSED) {
-            boolean success = tradingIntegrationService.closeArbitragePair(pairData);
-            if (success) {
-                log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-            } else {
-                log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
+            // Если статус изменился на CLOSED, закрываем позиции в торговой системе СИНХРОННО
+            if (statusBefore == TradeStatus.TRADING && isCloseManually) {
+                boolean success = tradingIntegrationService.closeArbitragePair(pairData);
+                if (success) {
+                    log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    tradeLogService.saveFromPairData(pairData);
+                } else {
+                    log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    pairData.setStatus(TradeStatus.ERROR_200);
+                    pairDataService.save(pairData);
+                }
             }
         }
-
-        tradeLogService.saveFromPairData(pairData);
     }
 
     private static void logData(ZScoreData zScoreData) {

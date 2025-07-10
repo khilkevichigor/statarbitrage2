@@ -5,8 +5,10 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ public class StartNewTradeProcessor {
     private final ZScoreService zScoreService;
     private final ValidateService validateService;
     private final TradingIntegrationService tradingIntegrationService;
+    private final TradingProviderFactory tradingProviderFactory;
 
     public PairData startNewTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
@@ -60,27 +63,40 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles);
-
-        // Проверяем, можем ли открыть новую пару на торговом депо
-        if (tradingIntegrationService.canOpenNewPair()) {
-            // Открываем арбитражную пару через торговую систему СИНХРОННО
-            boolean success = tradingIntegrationService.openArbitragePair(pairData);
-            if (success) {
-                log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-            } else {
-                log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-            }
+        if (tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual()) {
+            List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+            List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+            pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles, false);
+            tradeLogService.saveFromPairData(pairData);
         } else {
-            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-        }
+            //todo запилить
 
-        tradeLogService.saveFromPairData(pairData);
+            // Проверяем, можем ли открыть новую пару на торговом депо
+            if (tradingIntegrationService.canOpenNewPair()) {
+                // Открываем арбитражную пару через торговую систему СИНХРОННО
+                boolean success = tradingIntegrationService.openArbitragePair(pairData);
+                if (success) {
+                    log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    //тут обновляем pairData
+
+                    tradeLogService.saveFromPairData(pairData);
+                } else {
+                    log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    pairData.setStatus(TradeStatus.ERROR_100);
+                    pairDataService.save(pairData);
+                }
+            } else {
+                log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+
+                pairData.setStatus(TradeStatus.ERROR_110);
+                pairDataService.save(pairData);
+            }
+        }
         return pairData;
     }
 }

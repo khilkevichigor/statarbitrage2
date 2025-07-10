@@ -62,7 +62,7 @@ public class TradeAndSimulationScheduler {
                 // Обновляем цены позиций в торговой системе
                 tradingIntegrationService.updateAllPositions();
 
-                tradingPairs.forEach(updateTradeProcessor::updateTrade);
+                tradingPairs.forEach(p -> updateTradeProcessor.updateTrade(p, false));
                 // Обновляем UI
                 eventSendService.updateUI(UpdateUiEvent.builder().build());
             }

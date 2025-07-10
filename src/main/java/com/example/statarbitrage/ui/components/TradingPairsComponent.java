@@ -24,8 +24,6 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static com.example.statarbitrage.common.constant.Constants.EXIT_REASON_MANUALLY;
-
 @Slf4j
 @SpringComponent
 @UIScope
@@ -206,13 +204,7 @@ public class TradingPairsComponent extends VerticalLayout {
     private Button createStopTradingButton(PairData pair) {
         Button actionButton = new Button("Закрыть", event -> {
             try {
-                updateTradeProcessor.updateTrade(pair);
-
-                pair.setStatus(TradeStatus.CLOSED);
-                pair.setExitReason(EXIT_REASON_MANUALLY);
-                pairDataService.save(pair);
-                tradeLogService.saveFromPairData(pair);
-
+                updateTradeProcessor.updateTrade(pair, true);
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
                         pair.getLongTicker(), pair.getShortTicker(), TradeStatus.CLOSED

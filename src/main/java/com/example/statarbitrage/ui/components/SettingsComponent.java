@@ -81,7 +81,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private void createSettingsForm() {
         createAutoTradingToggle();
-        createVirtualTradingToggle();
+//        createVirtualTradingToggle(); //todo пока отключим что бы не создавать кашу
         createSettingsFormSections();
         createSaveButton();
     }
