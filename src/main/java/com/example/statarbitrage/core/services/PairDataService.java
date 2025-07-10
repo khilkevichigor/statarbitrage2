@@ -17,8 +17,6 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.example.statarbitrage.common.constant.Constants.EXIT_REASON_MANUALLY;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -115,7 +113,9 @@ public class PairDataService {
     }
 
     @Transactional
-    public void update(PairData pairData, ZScoreData zScoreData, List<Candle> longTickerCandles, List<Candle> shortTickerCandles, boolean isCloseManually) {
+    public void update(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
         // Проверяем наличие данных
         if (longTickerCandles == null || longTickerCandles.isEmpty() || shortTickerCandles == null || shortTickerCandles.isEmpty()) {
             log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
@@ -168,7 +168,7 @@ public class PairDataService {
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
 
-        changesService.calculateAndAdd(pairData);
+//        changesService.calculateAndAdd(pairData);
 
         // Добавляем новые точки в историю Z-Score при каждом обновлении
         if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
@@ -181,17 +181,17 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-        String exitReason = exitStrategyService.getExitReason(pairData);
-        if (exitReason != null) {
-            pairData.setExitReason(exitReason);
-            pairData.setStatus(TradeStatus.CLOSED);
-        }
-
-        //после всех обновлений профита закрываем если нужно
-        if (isCloseManually) {
-            pairData.setStatus(TradeStatus.CLOSED);
-            pairData.setExitReason(EXIT_REASON_MANUALLY);
-        }
+//        String exitReason = exitStrategyService.getExitReason(pairData);
+//        if (exitReason != null) {
+//            pairData.setExitReason(exitReason);
+//            pairData.setStatus(TradeStatus.CLOSED);
+//        }
+//
+//        //после всех обновлений профита закрываем если нужно
+//        if (isCloseManually) {
+//            pairData.setStatus(TradeStatus.CLOSED);
+//            pairData.setExitReason(EXIT_REASON_MANUALLY);
+//        }
 
         save(pairData);
     }

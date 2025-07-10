@@ -30,6 +30,8 @@ public class StartNewTradeProcessor {
     private final ValidateService validateService;
     private final TradingIntegrationService tradingIntegrationService;
     private final TradingProviderFactory tradingProviderFactory;
+    private final ChangesService changesService;
+    private final ExitStrategyService exitStrategyService;
 
     public PairData startNewTrade(PairData pairData) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
@@ -72,9 +74,14 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles, false);
+        pairDataService.update(pairData, zScoreData, candlesMap);
+        changesService.calculateAndAdd(pairData);
+        String exitReason = exitStrategyService.getExitReason(pairData);
+        if (exitReason != null) {
+            pairData.setExitReason(exitReason);
+            pairData.setStatus(TradeStatus.CLOSED);
+        }
+
         tradeLogService.saveFromPairData(pairData);
 
         return pairData;

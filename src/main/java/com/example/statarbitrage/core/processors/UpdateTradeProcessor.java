@@ -17,6 +17,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.statarbitrage.common.constant.Constants.EXIT_REASON_MANUALLY;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -28,37 +30,55 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final TradingProviderFactory tradingProviderFactory;
+    private final ChangesService changesService;
+    private final ExitStrategyService exitStrategyService;
 
-    public void updateTrade(PairData pair, boolean isCloseManually) {
+    public void updateTrade(PairData pairData, boolean isCloseManually) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-            updateVirtualTrade(pair, isCloseManually);
+            updateVirtualTrade(pairData, isCloseManually);
         } else {
-            updateRealTrade(pair, isCloseManually);
+            updateRealTrade(pairData, isCloseManually);
         }
     }
 
     private void updateVirtualTrade(PairData pairData, boolean isCloseManually) {
-        Settings settings = settingsService.getSettings();
         log.info("🚀 Начинаем обновление трейда...");
+        Settings settings = settingsService.getSettings();
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+
         logData(zScoreData);
 
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        pairDataService.update(pairData, zScoreData, candlesMap);
 
-        pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles, isCloseManually);
+        changesService.calculateAndAdd(pairData);
+
+        String exitReason = exitStrategyService.getExitReason(pairData);
+        if (exitReason != null) {
+            pairData.setExitReason(exitReason);
+            pairData.setStatus(TradeStatus.CLOSED);
+        }
+
+        //после всех обновлений профита закрываем если нужно
+        if (isCloseManually) {
+            pairData.setStatus(TradeStatus.CLOSED);
+            pairData.setExitReason(EXIT_REASON_MANUALLY);
+        }
+
+        pairDataService.save(pairData);
+
         tradeLogService.saveFromPairData(pairData);
     }
 
     private void updateRealTrade(PairData pairData, boolean isCloseManually) {
-        Settings settings = settingsService.getSettings();
         log.info("🚀 Начинаем обновление трейда...");
+        Settings settings = settingsService.getSettings();
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+
         logData(zScoreData);
 
         // Сохраняем статус до обновления для проверки изменения
