@@ -475,12 +475,15 @@ public class RealOkxTradingProvider implements TradingProvider {
                     MediaType.get("application/json")
             );
 
+            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String signature = generateSignature("POST", endpoint, orderData.toString(), timestamp);
+
             Request request = new Request.Builder()
                     .url(baseUrl + endpoint)
                     .post(body)
                     .addHeader("OK-ACCESS-KEY", apiKey)
-                    .addHeader("OK-ACCESS-SIGN", generateSignature("POST", endpoint, orderData.toString()))
-                    .addHeader("OK-ACCESS-TIMESTAMP", String.valueOf(Instant.now().getEpochSecond()))
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .addHeader("Content-Type", "application/json")
                     .build();
@@ -523,12 +526,15 @@ public class RealOkxTradingProvider implements TradingProvider {
                     MediaType.get("application/json")
             );
 
+            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String signature = generateSignature("POST", endpoint, orderData.toString(), timestamp);
+
             Request request = new Request.Builder()
                     .url(baseUrl + endpoint)
                     .post(body)
                     .addHeader("OK-ACCESS-KEY", apiKey)
-                    .addHeader("OK-ACCESS-SIGN", generateSignature("POST", endpoint, orderData.toString()))
-                    .addHeader("OK-ACCESS-TIMESTAMP", String.valueOf(Instant.now().getEpochSecond()))
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .addHeader("Content-Type", "application/json")
                     .build();
@@ -567,12 +573,15 @@ public class RealOkxTradingProvider implements TradingProvider {
                     MediaType.get("application/json")
             );
 
+            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String signature = generateSignature("POST", endpoint, cancelData.toString(), timestamp);
+
             Request request = new Request.Builder()
                     .url(baseUrl + endpoint)
                     .post(body)
                     .addHeader("OK-ACCESS-KEY", apiKey)
-                    .addHeader("OK-ACCESS-SIGN", generateSignature("POST", endpoint, cancelData.toString()))
-                    .addHeader("OK-ACCESS-TIMESTAMP", String.valueOf(Instant.now().getEpochSecond()))
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .addHeader("Content-Type", "application/json")
                     .build();
@@ -591,16 +600,21 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = ACCOUNT_BALANCE_ENDPOINT;
 
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
             Request request = new Request.Builder()
                     .url(baseUrl + endpoint)
                     .addHeader("OK-ACCESS-KEY", apiKey)
-                    .addHeader("OK-ACCESS-SIGN", generateSignature("GET", endpoint, ""))
-                    .addHeader("OK-ACCESS-TIMESTAMP", String.valueOf(Instant.now().getEpochSecond()))
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .build();
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
+                log.info("OKX API запрос: {} {}", baseUrl + endpoint, timestamp);
+                log.info("OKX API ответ: {}", responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
                 return "0".equals(jsonResponse.get("code").getAsString());
             }
@@ -615,11 +629,14 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = ACCOUNT_BALANCE_ENDPOINT;
 
+            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
             Request request = new Request.Builder()
                     .url(baseUrl + endpoint)
                     .addHeader("OK-ACCESS-KEY", apiKey)
-                    .addHeader("OK-ACCESS-SIGN", generateSignature("GET", endpoint, ""))
-                    .addHeader("OK-ACCESS-TIMESTAMP", String.valueOf(Instant.now().getEpochSecond()))
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .build();
 
@@ -663,11 +680,14 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_POSITIONS_ENDPOINT;
 
+            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
             Request request = new Request.Builder()
                     .url(baseUrl + endpoint)
                     .addHeader("OK-ACCESS-KEY", apiKey)
-                    .addHeader("OK-ACCESS-SIGN", generateSignature("GET", endpoint, ""))
-                    .addHeader("OK-ACCESS-TIMESTAMP", String.valueOf(Instant.now().getEpochSecond()))
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .build();
 
@@ -691,9 +711,8 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
-    private String generateSignature(String method, String endpoint, String body) {
+    private String generateSignature(String method, String endpoint, String body, String timestamp) {
         try {
-            String timestamp = String.valueOf(Instant.now().getEpochSecond());
             String message = timestamp + method + endpoint + body;
 
             Mac mac = Mac.getInstance("HmacSHA256");
