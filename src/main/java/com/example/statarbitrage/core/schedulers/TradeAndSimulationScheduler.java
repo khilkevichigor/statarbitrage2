@@ -11,6 +11,7 @@ import com.example.statarbitrage.core.services.EventSendService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -36,6 +37,7 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
     private final TradingIntegrationService tradingIntegrationService;
+    private final TradingProviderFactory tradingProviderFactory;
 
     @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
     public void updateTrades() {

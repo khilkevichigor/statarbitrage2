@@ -7,6 +7,7 @@ import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.TradeLogService;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
@@ -41,17 +42,19 @@ public class TradingPairsComponent extends VerticalLayout {
     private final VerticalLayout unrealizedProfitLayout;
 
     private Consumer<Void> uiUpdateCallback;
+    private TradingProviderFactory tradingProviderFactory;
 
     public TradingPairsComponent(PairDataService pairDataService,
                                  StartNewTradeProcessor startNewTradeProcessor,
                                  UpdateTradeProcessor updateTradeProcessor,
                                  TradeLogService tradeLogService,
-                                 ZScoreChartDialog zScoreChartDialog) {
+                                 ZScoreChartDialog zScoreChartDialog, TradingProviderFactory tradingProviderFactory) {
         this.pairDataService = pairDataService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.tradeLogService = tradeLogService;
         this.zScoreChartDialog = zScoreChartDialog;
+        this.tradingProviderFactory = tradingProviderFactory;
 
         this.selectedPairsGrid = new Grid<>(PairData.class, false);
         this.tradingPairsGrid = new Grid<>(PairData.class, false);

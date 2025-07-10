@@ -32,6 +32,15 @@ public class StartNewTradeProcessor {
     private final TradingProviderFactory tradingProviderFactory;
 
     public PairData startNewTrade(PairData pairData) {
+        boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
+        if (isVirtual) {
+            return startNewVirtualTrade(pairData);
+        } else {
+            return startNewRealTrade(pairData);
+        }
+    }
+
+    private PairData startNewVirtualTrade(PairData pairData) {
         Settings settings = settingsService.getSettings();
         log.info("🚀 Начинаем новый трейд...");
 
@@ -63,40 +72,74 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        if (tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual()) {
-            List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-            List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-            pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles, false);
-            tradeLogService.saveFromPairData(pairData);
-        } else {
-            //todo запилить
+        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        pairDataService.update(pairData, zScoreData, longTickerCandles, shortTickerCandles, false);
+        tradeLogService.saveFromPairData(pairData);
 
-            // Проверяем, можем ли открыть новую пару на торговом депо
-            if (tradingIntegrationService.canOpenNewPair()) {
-                // Открываем арбитражную пару через торговую систему СИНХРОННО
-                boolean success = tradingIntegrationService.openArbitragePair(pairData);
-                if (success) {
-                    log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
-                            pairData.getLongTicker(), pairData.getShortTicker());
+        return pairData;
+    }
 
-                    //тут обновляем pairData
+    private PairData startNewRealTrade(PairData pairData) {
+        Settings settings = settingsService.getSettings();
+        log.info("🚀 Начинаем новый трейд...");
 
-                    tradeLogService.saveFromPairData(pairData);
-                } else {
-                    log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
-                            pairData.getLongTicker(), pairData.getShortTicker());
+        //Проверка на дурака
+        if (validateService.isLastZLessThenMinZ(pairData, settings)) {
+            //если впервые прогоняем и Z<ZMin
+            pairDataService.delete(pairData);
+            log.warn("Удалили пару {} - {} т.к. ZCurrent < ZMin", pairData.getLongTicker(), pairData.getShortTicker());
+            return null;
+        }
 
-                    pairData.setStatus(TradeStatus.ERROR_100);
-                    pairDataService.save(pairData);
-                }
-            } else {
-                log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
+
+        if (maybeZScoreData.isEmpty()) {
+            log.warn("ZScore data is empty");
+            return null;
+        }
+
+        ZScoreData zScoreData = maybeZScoreData.get();
+
+        ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
+
+        if (!Objects.equals(pairData.getLongTicker(), zScoreData.getUndervaluedTicker()) || !Objects.equals(pairData.getShortTicker(), zScoreData.getOvervaluedTicker())) {
+            String message = String.format("Ошибка начала нового терейда для пары лонг=%s шорт=%s. Тикеры поменялись местами!!! Торговать нельзя!!!", pairData.getLongTicker(), pairData.getShortTicker());
+            log.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+
+        //todo запилить
+
+        // Проверяем, можем ли открыть новую пару на торговом депо
+        if (tradingIntegrationService.canOpenNewPair()) {
+            // Открываем арбитражную пару через торговую систему СИНХРОННО
+            boolean success = tradingIntegrationService.openArbitragePair(pairData);
+            if (success) {
+                log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                pairData.setStatus(TradeStatus.ERROR_110);
+                //тут обновляем pairData
+
+                tradeLogService.saveFromPairData(pairData);
+            } else {
+                log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+
+                pairData.setStatus(TradeStatus.ERROR_100);
                 pairDataService.save(pairData);
             }
+        } else {
+            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
+                    pairData.getLongTicker(), pairData.getShortTicker());
+
+            pairData.setStatus(TradeStatus.ERROR_110);
+            pairDataService.save(pairData);
         }
+
         return pairData;
     }
 }

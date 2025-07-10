@@ -1,6 +1,5 @@
 package com.example.statarbitrage.trading.providers;
 
-import com.example.statarbitrage.client_okx.OkxClient;
 import com.example.statarbitrage.trading.interfaces.PortfolioManager;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
@@ -26,15 +25,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VirtualTradingProvider implements TradingProvider {
 
     private final PortfolioManager portfolioManager;
-    private final OkxClient okxClient; // Для получения реальных цен
 
     // Хранилище виртуальных позиций
     private final ConcurrentHashMap<String, Position> positions = new ConcurrentHashMap<>();
     private final List<TradeResult> tradeHistory = new ArrayList<>();
 
-    public VirtualTradingProvider(PortfolioManager portfolioManager, OkxClient okxClient) {
+    public VirtualTradingProvider(PortfolioManager portfolioManager) {
         this.portfolioManager = portfolioManager;
-        this.okxClient = okxClient;
     }
 
     @Override
