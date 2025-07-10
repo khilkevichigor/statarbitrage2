@@ -475,7 +475,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     MediaType.get("application/json")
             );
 
-            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("POST", endpoint, orderData.toString(), timestamp);
 
             Request request = new Request.Builder()
@@ -526,7 +526,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     MediaType.get("application/json")
             );
 
-            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("POST", endpoint, orderData.toString(), timestamp);
 
             Request request = new Request.Builder()
@@ -573,7 +573,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     MediaType.get("application/json")
             );
 
-            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("POST", endpoint, cancelData.toString(), timestamp);
 
             Request request = new Request.Builder()
@@ -629,7 +629,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = ACCOUNT_BALANCE_ENDPOINT;
 
-            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("GET", endpoint, "", timestamp);
 
             Request request = new Request.Builder()
@@ -680,7 +680,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_POSITIONS_ENDPOINT;
 
-            String timestamp = String.valueOf(Instant.now().toEpochMilli());
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("GET", endpoint, "", timestamp);
 
             Request request = new Request.Builder()
