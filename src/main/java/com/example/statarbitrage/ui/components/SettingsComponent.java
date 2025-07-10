@@ -40,7 +40,9 @@ public class SettingsComponent extends VerticalLayout {
 
     private Settings currentSettings;
     private Checkbox autoTradingCheckbox;
+    private Checkbox virtualTradingCheckbox;
     private Runnable autoTradingChangeCallback;
+    private Runnable virtualTradingChangeCallback;
 
     public SettingsComponent(SettingsService settingsService,
                              TradeAndSimulationScheduler tradeAndSimulationScheduler) {
@@ -79,6 +81,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private void createSettingsForm() {
         createAutoTradingToggle();
+        createVirtualTradingToggle();
         createSettingsFormSections();
         createSaveButton();
     }
@@ -139,6 +142,58 @@ public class SettingsComponent extends VerticalLayout {
         });
     }
 
+    private void createVirtualTradingToggle() {
+        Div virtualTradingCard = new Div();
+        virtualTradingCard.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.BorderRadius.LARGE);
+        virtualTradingCard.getStyle().set("padding", "1.5rem").set("margin-bottom", "2rem");
+
+        HorizontalLayout toggleHeader = new HorizontalLayout();
+        toggleHeader.setAlignItems(HorizontalLayout.Alignment.CENTER);
+        toggleHeader.setWidthFull();
+
+        Icon icon = new Icon(VaadinIcon.CAR);
+        icon.addClassNames(LumoUtility.TextColor.SUCCESS);
+
+        Div titleSection = new Div();
+        H3 title = new H3("Виртуальный трейдинг");
+        title.getStyle().set("margin", "0").set("color", "var(--lumo-primary-text-color)");
+
+        Div description = new Div();
+        description.setText("Виртуальное выполнение торговых операций");
+        description.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
+
+        titleSection.add(title, description);
+
+        virtualTradingCheckbox = new Checkbox();
+        virtualTradingCheckbox.setValue(currentSettings.isVirtualTradingEnabled());
+        virtualTradingCheckbox.getStyle().set("transform", "scale(1.3)");
+
+        toggleHeader.add(icon, titleSection, virtualTradingCheckbox);
+        toggleHeader.setFlexGrow(1, titleSection);
+
+        virtualTradingCard.add(toggleHeader);
+        add(virtualTradingCard);
+
+        virtualTradingCheckbox.addValueChangeListener(event -> {
+            try {
+                Settings settings = settingsService.getSettings();
+                settings.setVirtualTradingEnabled(event.getValue());
+                settingsService.save(settings);
+
+                log.info(event.getValue() ? "Виртуальный трейдинг включен" : "Виртуальный трейдинг отключен");
+                Notification.show(event.getValue() ? "Виртуальный трейдинг включен" : "Виртуальный трейдинг отключен");
+
+                // Уведомляем об изменении состояния автотрейдинга
+                if (virtualTradingChangeCallback != null) {
+                    virtualTradingChangeCallback.run();
+                }
+            } catch (Exception e) {
+                log.error("Error updating virtualTrading mode", e);
+                Notification.show("Ошибка при изменении режима виртуального трейдинга: " + e.getMessage());
+            }
+        });
+    }
+
     private void createSettingsFormSections() {
         // Create form fields
         TextField timeframeField = new TextField("Таймфрейм");
@@ -151,7 +206,7 @@ public class SettingsComponent extends VerticalLayout {
         NumberField minCorrelationField = new NumberField("Min corr");
         NumberField minVolumeField = new NumberField("Min Vol (млн $)");
         NumberField checkIntervalField = new NumberField("Обновление (мин)");
-        
+
         // Create filter checkboxes
         Checkbox useMinZFilterCheckbox = new Checkbox("Использовать Min Z фильтр");
         Checkbox useMinRSquaredFilterCheckbox = new Checkbox("Использовать Min R-Squared фильтр");
@@ -171,7 +226,7 @@ public class SettingsComponent extends VerticalLayout {
         NumberField exitZMaxField = new NumberField("Exit Макс Z");
         NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
         NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
-        
+
         // Create exit strategy checkboxes
         Checkbox useExitTakeCheckbox = new Checkbox("Использовать Exit Тейк");
         Checkbox useExitStopCheckbox = new Checkbox("Использовать Exit Стоп");
@@ -242,7 +297,7 @@ public class SettingsComponent extends VerticalLayout {
                                           Checkbox useMinVolumeFilterCheckbox) {
 
         FormLayout analysisForm = createFormLayout();
-        
+
         // Создаем компоненты фильтров с чекбоксами
         HorizontalLayout minZLayout = createFilterLayout(useMinZFilterCheckbox, minZField);
         HorizontalLayout minRSquaredLayout = createFilterLayout(useMinRSquaredFilterCheckbox, minRSquaredField);
@@ -250,7 +305,7 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout minAdfValueLayout = createFilterLayout(useMinAdfValueFilterCheckbox, minAdfValueField);
         HorizontalLayout minCorrelationLayout = createFilterLayout(useMinCorrelationFilterCheckbox, minCorrelationField);
         HorizontalLayout minVolumeLayout = createFilterLayout(useMinVolumeFilterCheckbox, minVolumeField);
-        
+
         analysisForm.add(
                 timeframeField, candleLimitField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
@@ -284,7 +339,7 @@ public class SettingsComponent extends VerticalLayout {
                                               Checkbox useExitTimeHoursCheckbox) {
 
         FormLayout exitForm = createFormLayout();
-        
+
         // Создаем компоненты стратегий выхода с чекбоксами
         HorizontalLayout exitTakeLayout = createFilterLayout(useExitTakeCheckbox, exitTakeField);
         HorizontalLayout exitStopLayout = createFilterLayout(useExitStopCheckbox, exitStopField);
@@ -292,7 +347,7 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout exitZMaxLayout = createFilterLayout(useExitZMaxCheckbox, exitZMaxField);
         HorizontalLayout exitZMaxPercentLayout = createFilterLayout(useExitZMaxPercentCheckbox, exitZMaxPercentField);
         HorizontalLayout exitTimeHoursLayout = createFilterLayout(useExitTimeHoursCheckbox, exitTimeHoursField);
-        
+
         exitForm.add(
                 exitTakeLayout, exitStopLayout,
                 exitZMinLayout, exitZMaxLayout,
@@ -404,7 +459,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
         settingsBinder.forField(usePairsField).bind(Settings::getUsePairs, Settings::setUsePairs);
-        
+
         // Bind filter checkboxes
         settingsBinder.forField(useMinZFilterCheckbox).bind(Settings::isUseMinZFilter, Settings::setUseMinZFilter);
         settingsBinder.forField(useMinRSquaredFilterCheckbox).bind(Settings::isUseMinRSquaredFilter, Settings::setUseMinRSquaredFilter);
@@ -412,7 +467,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(useMinAdfValueFilterCheckbox).bind(Settings::isUseMinAdfValueFilter, Settings::setUseMinAdfValueFilter);
         settingsBinder.forField(useMinCorrelationFilterCheckbox).bind(Settings::isUseMinCorrelationFilter, Settings::setUseMinCorrelationFilter);
         settingsBinder.forField(useMinVolumeFilterCheckbox).bind(Settings::isUseMinVolumeFilter, Settings::setUseMinVolumeFilter);
-        
+
         // Bind exit strategy checkboxes
         settingsBinder.forField(useExitTakeCheckbox).bind(Settings::isUseExitTake, Settings::setUseExitTake);
         settingsBinder.forField(useExitStopCheckbox).bind(Settings::isUseExitStop, Settings::setUseExitStop);
@@ -458,10 +513,14 @@ public class SettingsComponent extends VerticalLayout {
         this.autoTradingChangeCallback = callback;
     }
 
+    public void setVirtualTradingChangeCallback(Runnable callback) {
+        this.virtualTradingChangeCallback = callback;
+    }
+
     public boolean isAutoTradingEnabled() {
         return autoTradingCheckbox.getValue();
     }
-    
+
     /**
      * Создает компоновку для фильтра с чекбоксом и полем ввода
      */
@@ -469,19 +528,19 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout layout = new HorizontalLayout();
         layout.setAlignItems(HorizontalLayout.Alignment.CENTER);
         layout.setSpacing(true);
-        
+
         // Устанавливаем начальное состояние поля в зависимости от чекбокса
         field.setEnabled(checkbox.getValue());
-        
+
         // Добавляем listener для активации/деактивации поля
         checkbox.addValueChangeListener(event -> {
             field.setEnabled(event.getValue());
         });
-        
+
         layout.add(checkbox, field);
         layout.setFlexGrow(0, checkbox);
         layout.setFlexGrow(1, field);
-        
+
         return layout;
     }
 }

@@ -62,6 +62,7 @@ public class MainView extends VerticalLayout implements UIUpdateable {
         initializeLayout();
         setupUIUpdateCallback();
         setupAutoTradingCallback();
+        setupVirtualTradingCallback();
     }
 
     private void initializeLayout() {
@@ -87,6 +88,10 @@ public class MainView extends VerticalLayout implements UIUpdateable {
 
     private void setupAutoTradingCallback() {
         settingsComponent.setAutoTradingChangeCallback(this::updateButtonState);
+    }
+
+    private void setupVirtualTradingCallback() {
+        settingsComponent.setVirtualTradingChangeCallback(this::updateButtonState);
     }
 
     private void updateButtonState() {
