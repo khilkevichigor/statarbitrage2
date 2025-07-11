@@ -131,7 +131,7 @@ public class StartNewTradeProcessor {
 
                 //тут обновляем pairData
 
-                tradeLogService.saveLogVirtual(pairData);
+                tradeLogService.saveLogVirtual(pairData); //todo real
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());

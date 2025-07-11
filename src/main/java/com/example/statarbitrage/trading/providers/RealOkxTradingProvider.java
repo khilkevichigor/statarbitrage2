@@ -76,6 +76,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String MARKET_TICKER_ENDPOINT = "/api/v5/market/ticker";
     private static final String PUBLIC_INSTRUMENTS_ENDPOINT = "/api/v5/public/instruments";
     private static final String ACCOUNT_CONFIG_ENDPOINT = "/api/v5/account/config";
+    private static final String SET_LEVERAGE_ENDPOINT = "/api/v5/account/set-leverage";
 
     public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient) {
         this.okxPortfolioManager = okxPortfolioManager;
@@ -134,6 +135,11 @@ public class RealOkxTradingProvider implements TradingProvider {
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
                         "Размер позиции слишком мал для торговли");
+            }
+
+            // Устанавливаем правильное плечо перед открытием позиции
+            if (!setLeverage(symbol, leverage)) {
+                log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
             // Создаем заявку на OKX
@@ -232,6 +238,11 @@ public class RealOkxTradingProvider implements TradingProvider {
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
                         "Размер позиции слишком мал для торговли");
+            }
+
+            // Устанавливаем правильное плечо перед открытием позиции
+            if (!setLeverage(symbol, leverage)) {
+                log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
             // Создаем заявку на OKX
@@ -490,6 +501,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("sz", size);
             orderData.addProperty("lever", leverage);
 
+            log.info("📋 Создание ордера OKX: symbol={}, side={}, posSide={}, size={}, leverage={}",
+                    symbol, side, correctPosSide, size, leverage);
+
             RequestBody body = RequestBody.create(
                     orderData.toString(),
                     MediaType.get("application/json")
@@ -510,17 +524,53 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
-                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+                log.info("🔍 OKX API ответ: {}", responseBody);
 
-                if ("0".equals(jsonResponse.get("code").getAsString())) {
-                    JsonArray data = jsonResponse.getAsJsonArray("data");
-                    if (data.size() > 0) {
-                        return data.get(0).getAsJsonObject().get("ordId").getAsString();
-                    }
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+                log.info("🔍 Парсинг JSON успешен, проверяем код ответа...");
+
+                JsonElement codeElement = jsonResponse.get("code");
+                if (codeElement == null) {
+                    log.error("❌ Поле 'code' отсутствует в ответе OKX");
+                    return null;
                 }
 
-                log.error("Ошибка при создании ордера: {}", responseBody);
-                return null;
+                String code = codeElement.getAsString();
+                log.info("🔍 Код ответа OKX: '{}'", code);
+
+                if ("0".equals(code)) {
+                    log.info("✅ Успешный ответ от OKX, проверяем данные...");
+
+                    JsonElement dataElement = jsonResponse.get("data");
+                    if (dataElement == null) {
+                        log.error("❌ Поле 'data' отсутствует в ответе OKX");
+                        return null;
+                    }
+
+                    JsonArray data = dataElement.getAsJsonArray();
+                    log.info("🔍 Размер массива data: {}", data.size());
+
+                    if (data.size() > 0) {
+                        JsonObject orderInfo = data.get(0).getAsJsonObject();
+                        log.info("🔍 Информация о заказе: {}", orderInfo.toString());
+
+                        JsonElement orderIdElement = orderInfo.get("ordId");
+                        if (orderIdElement == null) {
+                            log.error("❌ Поле 'ordId' отсутствует в данных заказа");
+                            return null;
+                        }
+
+                        String orderId = orderIdElement.getAsString();
+                        log.info("✅ Получен orderId: {}", orderId);
+                        return orderId;
+                    } else {
+                        log.error("❌ Массив 'data' пуст");
+                        return null;
+                    }
+                } else {
+                    log.error("❌ OKX вернул код ошибки: '{}', полный ответ: {}", code, responseBody);
+                    return null;
+                }
             }
         } catch (Exception e) {
             log.error("Ошибка при создании ордера: {}", e.getMessage());
@@ -534,9 +584,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             String endpoint = TRADE_ORDER_ENDPOINT;
 
             // Для закрытия позиции всегда используем "net" в Net режиме
-            String correctPosSide = isHedgeMode() ? 
-                (side.equals("buy") ? "short" : "long") : // В hedge режиме - противоположная сторона
-                "net"; // В net режиме - всегда net
+            String correctPosSide = isHedgeMode() ?
+                    (side.equals("buy") ? "short" : "long") : // В hedge режиме - противоположная сторона
+                    "net"; // В net режиме - всегда net
 
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
@@ -877,6 +927,76 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     /**
+     * Настройка плеча для инструмента на OKX
+     */
+    private boolean setLeverage(String symbol, BigDecimal leverage) {
+        try {
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = SET_LEVERAGE_ENDPOINT;
+            String fullUrl = baseUrl + endpoint;
+
+            JsonObject leverageData = new JsonObject();
+            leverageData.addProperty("instId", symbol);
+            leverageData.addProperty("lever", leverage.toString());
+            leverageData.addProperty("mgnMode", "isolated"); // Изолированная маржа
+
+            log.info("🔧 Настройка плеча OKX: symbol={}, leverage={}", symbol, leverage);
+            log.info("🔧 URL: {}", fullUrl);
+            log.info("🔧 Payload: {}", leverageData.toString());
+            log.info("🔧 API Key: {}", apiKey != null ? apiKey.substring(0, Math.min(8, apiKey.length())) + "..." : "null");
+
+            RequestBody body = RequestBody.create(
+                    leverageData.toString(),
+                    MediaType.get("application/json")
+            );
+
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
+            log.info("🔧 Timestamp: {}", timestamp);
+
+            String signature = generateSignature("POST", endpoint, leverageData.toString(), timestamp);
+            log.info("🔧 Signature: {}", signature != null ? signature.substring(0, Math.min(8, signature.length())) + "..." : "null");
+
+            Request request = new Request.Builder()
+                    .url(fullUrl)
+                    .post(body)
+                    .addHeader("OK-ACCESS-KEY", apiKey)
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
+                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+            log.info("🔧 Отправляем запрос на установку плеча...");
+            try (Response response = httpClient.newCall(request).execute()) {
+                log.info("🔧 Получен ответ: HTTP {}", response.code());
+
+                if (!response.isSuccessful()) {
+                    log.error("❌ HTTP ошибка: {}", response.code());
+                    return false;
+                }
+
+                String responseBody = response.body().string();
+                log.info("🔧 OKX установка плеча ответ: {}", responseBody);
+
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                if ("0".equals(jsonResponse.get("code").getAsString())) {
+                    log.info("✅ Плечо {} успешно установлено для {}", leverage, symbol);
+                    return true;
+                } else {
+                    log.error("❌ Ошибка установки плеча: {}", responseBody);
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при установке плеча для {}: {}", symbol, e.getMessage());
+            log.error("❌ Тип ошибки: {}", e.getClass().getSimpleName());
+            log.error("❌ Стек ошибки: ", e);
+            return false;
+        }
+    }
+
+    /**
      * Определяет правильный posSide в зависимости от режима аккаунта
      */
     private String determinePosSide(String intendedPosSide) {
@@ -916,27 +1036,27 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 String responseBody = response.body().string();
                 log.debug("🔍 Конфигурация аккаунта OKX: {}", responseBody);
-                
+
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-                
+
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
                     log.error("❌ Ошибка OKX API при получении конфигурации: {}", jsonResponse.get("msg").getAsString());
                     return false;
                 }
-                
+
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.isEmpty()) {
                     log.warn("⚠️ Данные конфигурации аккаунта пусты");
                     return false;
                 }
-                
+
                 JsonObject accountConfig = data.get(0).getAsJsonObject();
                 String posMode = accountConfig.get("posMode").getAsString();
-                
+
                 // posMode: "net_mode" = Net режим, "long_short_mode" = Hedge режим
                 boolean isHedge = "long_short_mode".equals(posMode);
                 log.info("🔍 Режим позиций OKX: {} ({})", posMode, isHedge ? "Hedge" : "Net");
-                
+
                 return isHedge;
             }
         } catch (Exception e) {
