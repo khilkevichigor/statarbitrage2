@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a statistical arbitrage trading application built with Spring Boot, Vaadin, and Python integration. The system identifies trading opportunities between correlated cryptocurrency pairs, executes trades via 3Commas API, and provides a web interface for monitoring and control.
+This is a statistical arbitrage trading application built with Spring Boot, Vaadin, and Python integration. The system identifies trading opportunities between correlated cryptocurrency pairs, executes trades via OKX API, and provides a web interface for monitoring and control.
 
 ## Build and Development Commands
 
@@ -33,10 +33,10 @@ This is a statistical arbitrage trading application built with Spring Boot, Vaad
 - WAR packaging for deployment
 
 **Database Layer**
-- H2 embedded database for persistence
+- SQLite embedded database for persistence
 - JPA repositories for data access
-- Database file located at `./data/sa-db`
-- Auto-server mode enabled for concurrent access
+- Database file located at `./data/sa-db.sqlite`
+- Uses Hibernate Community SQLite dialect
 
 **Python Integration**
 - External Python REST API for statistical calculations
@@ -45,9 +45,9 @@ This is a statistical arbitrage trading application built with Spring Boot, Vaad
 - Health check service for Python API availability
 
 **External APIs**
-- OKX exchange API for market data (using OKX v5 Java SDK)
-- 3Commas API for trade execution
+- OKX exchange API for market data and trade execution (using OKX v5 Java SDK)
 - Telegram bot for notifications
+- GeolocationService for VPN/IP location checking (protects against US IP addresses)
 
 ### Key Services
 
@@ -74,6 +74,7 @@ This is a statistical arbitrage trading application built with Spring Boot, Vaad
 - `EventSendService`: Event publishing
 - `UIUpdateService`: Real-time UI updates
 - `ChartService`: Chart generation
+- `GeolocationService`: IP geolocation checking for OKX API protection
 
 **Web Interface**
 - Vaadin-based UI in `src/main/java/com/example/statarbitrage/ui/`
@@ -85,7 +86,7 @@ This is a statistical arbitrage trading application built with Spring Boot, Vaad
 ### Configuration
 
 **Application Properties** (`application.properties`)
-- Database: H2 file-based at `./data/sa-db`
+- Database: SQLite file-based at `./data/sa-db.sqlite`
 - Telegram bot integration with configured token
 - Vaadin development mode settings
 - Cointegration API URL configuration
@@ -101,7 +102,7 @@ This is a statistical arbitrage trading application built with Spring Boot, Vaad
 - **Spring Boot 3.5.0**: Core framework
 - **Vaadin 24.3.9**: Frontend framework
 - **OKX v5 Java SDK**: Exchange API integration
-- **H2 Database**: Embedded database
+- **SQLite Database**: Embedded database with Hibernate Community dialects
 - **Telegram Bots**: Bot integration
 - **OkHttp**: HTTP client
 - **Gson**: JSON serialization
@@ -141,6 +142,11 @@ src/main/java/com/example/statarbitrage/
 │   ├── repositories/                    # Data access layer
 │   ├── schedulers/                      # Scheduled tasks
 │   └── services/                        # Business services
+├── trading/                             # Trading system components
+│   ├── interfaces/                      # Trading provider interfaces
+│   ├── model/                          # Trading domain models
+│   ├── providers/                      # Trading provider implementations
+│   └── services/                       # Trading services (including GeolocationService)
 └── ui/                                  # Vaadin UI components
     ├── AppShell.java
     ├── MainView.java
@@ -180,3 +186,34 @@ src/main/java/com/example/statarbitrage/
 - Python integration is handled via REST API calls rather than embedded Python
 - Database auto-creates schema on startup (ddl-auto=create)
 - Vaadin frontend is automatically built during Spring Boot startup
+
+## GeolocationService Details
+
+The `GeolocationService` is a critical security component that protects against accidental API calls from US IP addresses when VPN is disconnected.
+
+### Features
+- **IP Geolocation Checking**: Verifies current IP location before OKX API calls
+- **Caching**: 5-minute cache to avoid excessive API calls
+- **Multiple Service Fallbacks**: Uses ip-api.com, ipify.org, and ipgeolocation.io
+- **VPN Protection**: Blocks all OKX API calls if IP is detected as US-based
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
+
+### Integration Points
+- **RealOkxTradingProvider**: All OKX API methods check geolocation before execution
+- **StatarbitrageApplication**: Startup geolocation check with warnings
+- **Centralized Service**: Eliminates code duplication between components
+
+### Usage
+```java
+// Check if current IP location allows OKX API calls
+if (!geolocationService.isGeolocationAllowed()) {
+    log.error("🚫 БЛОКИРОВКА: OKX API заблокирован из-за геолокации!");
+    return;
+}
+```
+
+### Configuration
+- No additional configuration required
+- Uses public geolocation APIs
+- Gracefully handles API failures (allows trading to continue)
+- Startup check with critical warnings if US IP detected
