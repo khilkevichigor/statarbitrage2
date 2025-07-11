@@ -3,7 +3,16 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-!**/frontend
+**/frontend/
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.vaadin/
+webpack.config.js
+vite.config.ts
+tsconfig.json
+types.d.ts
 
 ### STS ###
 .apt_generated
