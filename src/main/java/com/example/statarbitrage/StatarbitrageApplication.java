@@ -4,6 +4,7 @@ import com.example.statarbitrage.client_python.CointegrationApiHealthCheck;
 import com.example.statarbitrage.client_python.PythonRestClient;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.trading.services.GeolocationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,10 +26,12 @@ public class StatarbitrageApplication {
 
     private final CointegrationApiHealthCheck healthCheck;
     private final PythonRestClient pythonRestClient;
+    private final GeolocationService geolocationService;
 
-    public StatarbitrageApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient) {
+    public StatarbitrageApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService) {
         this.healthCheck = healthCheck;
         this.pythonRestClient = pythonRestClient;
+        this.geolocationService = geolocationService;
     }
 
     public static void main(String[] args) {
@@ -36,7 +39,17 @@ public class StatarbitrageApplication {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    public void checkCointegrationApiHealth() {
+    public void onApplicationReady() {
+        log.info("🚀 Статарбитраж приложение готово к работе!");
+
+        // Проверка геолокации при запуске
+        geolocationService.checkGeolocationOnStartup();
+
+        // Проверка Cointegration API
+        checkCointegrationApiHealth();
+    }
+
+    private void checkCointegrationApiHealth() {
         log.info("🚀 Checking Cointegration API health...");
         boolean healthy = healthCheck.isHealthy();
 

@@ -4,6 +4,7 @@ import com.example.statarbitrage.client_okx.OkxClient;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.*;
+import com.example.statarbitrage.trading.services.GeolocationService;
 import com.example.statarbitrage.trading.services.OkxPortfolioManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -39,6 +40,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     private final OkxPortfolioManager okxPortfolioManager;
     private final OkxClient okxClient;
+    private final GeolocationService geolocationService;
 
     // OKX API конфигурация
     @Value("${okx.api.key:}")
@@ -78,9 +80,10 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String ACCOUNT_CONFIG_ENDPOINT = "/api/v5/account/config";
     private static final String SET_LEVERAGE_ENDPOINT = "/api/v5/account/set-leverage";
 
-    public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient) {
+    public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient, GeolocationService geolocationService) {
         this.okxPortfolioManager = okxPortfolioManager;
         this.okxClient = okxClient;
+        this.geolocationService = geolocationService;
     }
 
     @Override
@@ -486,6 +489,12 @@ public class RealOkxTradingProvider implements TradingProvider {
     private String placeOrder(String symbol, String side, String posSide, String size,
                               String price, String leverage) {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("🚫 БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
+                return null;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
 
@@ -580,6 +589,12 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     private String placeCloseOrder(String symbol, String side, String size, String price) {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("🚫 БЛОКИРОВКА: Закрытие ордера заблокировано из-за геолокации!");
+                return null;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
 
@@ -636,6 +651,12 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     private void cancelOrder(String orderId, String symbol) {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("🚫 БЛОКИРОВКА: Отмена ордера заблокирована из-за геолокации!");
+                return;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = "/api/v5/trade/cancel-order";
 
@@ -672,6 +693,12 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     private boolean checkApiConnection() {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("🚫 БЛОКИРОВКА: Проверка API соединения заблокирована из-за геолокации!");
+                return false;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = ACCOUNT_BALANCE_ENDPOINT;
 
@@ -931,6 +958,12 @@ public class RealOkxTradingProvider implements TradingProvider {
      */
     private boolean setLeverage(String symbol, BigDecimal leverage) {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("🚫 БЛОКИРОВКА: Установка плеча заблокирована из-за геолокации!");
+                return false;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = SET_LEVERAGE_ENDPOINT;
             String fullUrl = baseUrl + endpoint;
@@ -1014,6 +1047,12 @@ public class RealOkxTradingProvider implements TradingProvider {
      */
     private boolean isHedgeMode() {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("🚫 БЛОКИРОВКА: Проверка режима позиций заблокирована из-за геолокации!");
+                return false;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = ACCOUNT_CONFIG_ENDPOINT;
 
@@ -1063,6 +1102,14 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.error("❌ Ошибка при определении режима позиций: {}", e.getMessage());
             return false; // По умолчанию считаем Net режим
         }
+    }
+
+    /**
+     * Публичный метод для тестирования геолокации
+     * Делегирует вызов GeolocationService
+     */
+    public String testGeolocation() {
+        return geolocationService.forceCheckGeolocation();
     }
 
     private String generateSignature(String method, String endpoint, String body, String timestamp) {
