@@ -64,6 +64,9 @@ public class RealOkxTradingProvider implements TradingProvider {
     private final ConcurrentHashMap<String, Position> positions = new ConcurrentHashMap<>();
     private final List<TradeResult> tradeHistory = new ArrayList<>();
 
+    // Кэш информации о торговых инструментах
+    private final ConcurrentHashMap<String, InstrumentInfo> instrumentInfoCache = new ConcurrentHashMap<>();
+
     // Константы OKX API
     private static final String PROD_BASE_URL = "https://www.okx.com";
     private static final String SANDBOX_BASE_URL = "https://www.okx.com";
@@ -71,6 +74,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String TRADE_POSITIONS_ENDPOINT = "/api/v5/account/positions";
     private static final String ACCOUNT_BALANCE_ENDPOINT = "/api/v5/account/balance";
     private static final String MARKET_TICKER_ENDPOINT = "/api/v5/market/ticker";
+    private static final String PUBLIC_INSTRUMENTS_ENDPOINT = "/api/v5/public/instruments";
 
     public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient) {
         this.okxPortfolioManager = okxPortfolioManager;
@@ -123,6 +127,13 @@ public class RealOkxTradingProvider implements TradingProvider {
             // Рассчитываем размер позиции
             BigDecimal positionSize = amount.multiply(leverage)
                     .divide(currentPrice, 8, RoundingMode.HALF_UP);
+
+            // Корректируем размер позиции согласно lot size
+            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                        "Размер позиции слишком мал для торговли");
+            }
 
             // Создаем заявку на OKX
             String orderId = placeOrder(symbol, "buy", "long", positionSize.toString(),
@@ -214,6 +225,13 @@ public class RealOkxTradingProvider implements TradingProvider {
             // Рассчитываем размер позиции
             BigDecimal positionSize = amount.multiply(leverage)
                     .divide(currentPrice, 8, RoundingMode.HALF_UP);
+
+            // Корректируем размер позиции согласно lot size
+            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
+                        "Размер позиции слишком мал для торговли");
+            }
 
             // Создаем заявку на OKX
             String orderId = placeOrder(symbol, "sell", "short", positionSize.toString(),
@@ -706,6 +724,146 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
         } catch (Exception e) {
             log.error("Ошибка при синхронизации позиций с OKX: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Корректировка размера позиции согласно lot size OKX
+     */
+    private BigDecimal adjustPositionSizeToLotSize(String symbol, BigDecimal positionSize) {
+        try {
+            // Получаем информацию о торговом инструменте
+            InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
+            if (instrumentInfo == null) {
+                log.warn("⚠️ Не удалось получить информацию о торговом инструменте {}", symbol);
+                return positionSize;
+            }
+
+            BigDecimal lotSize = instrumentInfo.getLotSize();
+            BigDecimal minSize = instrumentInfo.getMinSize();
+
+            log.debug("🔍 Инструмент {}: lot size = {}, min size = {}, исходный размер = {}",
+                    symbol, lotSize, minSize, positionSize);
+
+            // Проверяем минимальный размер
+            if (positionSize.compareTo(minSize) < 0) {
+                log.warn("⚠️ Размер позиции {} меньше минимального {}, устанавливаем минимальный",
+                        positionSize, minSize);
+                positionSize = minSize;
+            }
+
+            // Корректируем размер до кратного lot size
+            BigDecimal adjustedSize = positionSize.divide(lotSize, 0, RoundingMode.DOWN)
+                    .multiply(lotSize);
+
+            // Если после корректировки размер стал меньше минимального, увеличиваем на один lot
+            if (adjustedSize.compareTo(minSize) < 0) {
+                adjustedSize = minSize;
+            }
+
+            log.info("📏 Скорректированный размер позиции для {}: {} -> {}",
+                    symbol, positionSize, adjustedSize);
+
+            return adjustedSize;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при корректировке размера позиции для {}: {}", symbol, e.getMessage());
+            return positionSize; // Возвращаем исходный размер при ошибке
+        }
+    }
+
+    /**
+     * Получение информации о торговом инструменте
+     */
+    private InstrumentInfo getInstrumentInfo(String symbol) {
+        try {
+            // Проверяем кэш
+            InstrumentInfo cachedInfo = instrumentInfoCache.get(symbol);
+            if (cachedInfo != null) {
+                log.debug("🔍 Использую кэшированную информацию о торговом инструменте {}", symbol);
+                return cachedInfo;
+            }
+
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = PUBLIC_INSTRUMENTS_ENDPOINT + "?instType=SWAP&instId=" + symbol; //https://www.okx.com/api/v5/public/instruments?instType=SWAP&instId=XRP-USDT-SWAP
+
+            Request request = new Request.Builder()
+                    .url(baseUrl + endpoint)
+                    .get()
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.error("❌ Ошибка HTTP при получении информации о торговом инструменте: {}", response.code());
+                    return null;
+                }
+
+                String responseBody = response.body().string();
+                log.debug("🔍 Информация о торговом инструменте {}: {}", symbol, responseBody);
+
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка OKX API при получении информации о торговом инструменте: {}",
+                            jsonResponse.get("msg").getAsString());
+                    return null;
+                }
+
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                if (data.isEmpty()) {
+                    log.warn("⚠️ Торговый инструмент {} не найден", symbol);
+                    return null;
+                }
+
+                JsonObject instrument = data.get(0).getAsJsonObject();
+
+                String lotSizeStr = instrument.get("lotSz").getAsString();
+                String minSizeStr = instrument.get("minSz").getAsString();
+
+                InstrumentInfo instrumentInfo = new InstrumentInfo(
+                        symbol,
+                        new BigDecimal(lotSizeStr),
+                        new BigDecimal(minSizeStr)
+                );
+
+                // Кэшируем информацию
+                instrumentInfoCache.put(symbol, instrumentInfo);
+                log.debug("🔍 Кэшировал информацию о торговом инструменте {}: lot size = {}, min size = {}",
+                        symbol, instrumentInfo.getLotSize(), instrumentInfo.getMinSize());
+
+                return instrumentInfo;
+
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении информации о торговом инструменте {}: {}", symbol, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Информация о торговом инструменте
+     */
+    private static class InstrumentInfo {
+        private final String symbol;
+        private final BigDecimal lotSize;
+        private final BigDecimal minSize;
+
+        public InstrumentInfo(String symbol, BigDecimal lotSize, BigDecimal minSize) {
+            this.symbol = symbol;
+            this.lotSize = lotSize;
+            this.minSize = minSize;
+        }
+
+        public String getSymbol() {
+            return symbol;
+        }
+
+        public BigDecimal getLotSize() {
+            return lotSize;
+        }
+
+        public BigDecimal getMinSize() {
+            return minSize;
         }
     }
 
