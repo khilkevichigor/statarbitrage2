@@ -15,7 +15,7 @@ import java.math.RoundingMode;
 public class ChangesService {
     private final SettingsService settingsService;
 
-    public void calculateAndAdd(PairData pairData) {
+    public void addChangesVirtual(PairData pairData) {
         Settings settings = settingsService.getSettings();
 
         double capitalLong = settings.getCapitalLong();

@@ -1,7 +1,10 @@
 package com.example.statarbitrage.trading.services;
 
 import com.example.statarbitrage.common.model.PairData;
+import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
+import com.example.statarbitrage.core.services.PairDataService;
+import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.Portfolio;
@@ -30,9 +33,13 @@ public class TradingIntegrationService {
     // Хранилище связей между PairData и торговыми позициями
     private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
+    private final SettingsService settingsService;
+    private PairDataService pairDataService;
 
-    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory) {
+    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PairDataService pairDataService) {
         this.tradingProviderFactory = tradingProviderFactory;
+        this.settingsService = settingsService;
+        this.pairDataService = pairDataService;
     }
 
     /**
@@ -54,15 +61,15 @@ public class TradingIntegrationService {
 
                 BigDecimal longAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
                 BigDecimal shortAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
-                BigDecimal leverage = BigDecimal.valueOf(1); // Можно вынести в настройки
+                Settings settings = settingsService.getSettings();
+                BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
 
                 log.info("🔄 Начинаем открытие арбитражной пары: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
                 // Открываем позиции ПОСЛЕДОВАТЕЛЬНО и СИНХРОННО
                 log.info("🔵 Открытие LONG позиции: {} с размером {}", pairData.getLongTicker(), longAmount);
-                TradeResult longResult = provider.openLongPosition(
-                        pairData.getLongTicker(), longAmount, leverage);
+                TradeResult longResult = provider.openLongPosition(pairData.getLongTicker(), longAmount, leverage);
 
                 if (!longResult.isSuccess()) {
                     log.error("❌ Не удалось открыть LONG позицию: {}", longResult.getErrorMessage());
@@ -79,7 +86,7 @@ public class TradingIntegrationService {
                     pairToShortPositionMap.put(pairData.getId(), shortResult.getPositionId());
 
                     // Обновляем PairData
-                    updatePairDataFromPositions(pairData, longResult, shortResult);
+                    pairDataService.updatePairDataFromPositions(pairData, longResult, shortResult); //todo update через сервис
 
                     log.info("✅ Открыта арбитражная пара: {} LONG / {} SHORT",
                             pairData.getLongTicker(), pairData.getShortTicker());
@@ -226,7 +233,8 @@ public class TradingIntegrationService {
         }
 
         // 10% от общего портфолио на одну пару (по умолчанию)
-        BigDecimal maxPositionPercent = BigDecimal.valueOf(10);
+        Settings settings = settingsService.getSettings();
+        BigDecimal maxPositionPercent = BigDecimal.valueOf(settings.getMaxPositionPercentPerPair());
         BigDecimal maxPositionSize = portfolio.getTotalBalance()
                 .multiply(maxPositionPercent)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);

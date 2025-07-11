@@ -74,15 +74,15 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        pairDataService.update(pairData, zScoreData, candlesMap);
-        changesService.calculateAndAdd(pairData);
-        String exitReason = exitStrategyService.getExitReason(pairData);
+        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
+        changesService.addChangesVirtual(pairData);
+        String exitReason = exitStrategyService.getExitReasonVirtual(pairData);
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);
         }
 
-        tradeLogService.saveFromPairData(pairData);
+        tradeLogService.saveLogVirtual(pairData);
 
         return pairData;
     }
@@ -131,7 +131,7 @@ public class StartNewTradeProcessor {
 
                 //тут обновляем pairData
 
-                tradeLogService.saveFromPairData(pairData);
+                tradeLogService.saveLogVirtual(pairData);
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());

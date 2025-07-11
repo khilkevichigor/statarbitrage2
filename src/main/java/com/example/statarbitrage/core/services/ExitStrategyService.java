@@ -14,7 +14,7 @@ import static com.example.statarbitrage.common.constant.Constants.*;
 public class ExitStrategyService {
     private final SettingsService settingsService;
 
-    public String getExitReason(PairData pairData) {
+    public String getExitReasonVirtual(PairData pairData) {
         Settings settings = settingsService.getSettings();
         double profit = pairData.getProfitChanges().doubleValue();
         double zScoreCurrent = pairData.getZScoreCurrent();

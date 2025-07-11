@@ -51,11 +51,11 @@ public class UpdateTradeProcessor {
 
         logData(zScoreData);
 
-        pairDataService.update(pairData, zScoreData, candlesMap);
+        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
 
-        changesService.calculateAndAdd(pairData);
+        changesService.addChangesVirtual(pairData);
 
-        String exitReason = exitStrategyService.getExitReason(pairData);
+        String exitReason = exitStrategyService.getExitReasonVirtual(pairData);
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);
@@ -69,7 +69,7 @@ public class UpdateTradeProcessor {
 
         pairDataService.save(pairData);
 
-        tradeLogService.saveFromPairData(pairData);
+        tradeLogService.saveLogVirtual(pairData);
     }
 
     private void updateRealTrade(PairData pairData, boolean isCloseManually) {
@@ -101,7 +101,7 @@ public class UpdateTradeProcessor {
                 log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                tradeLogService.saveFromPairData(pairData);
+                tradeLogService.saveLogVirtual(pairData);
             } else {
                 log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());

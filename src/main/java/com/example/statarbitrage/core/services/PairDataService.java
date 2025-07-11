@@ -7,6 +7,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
+import com.example.statarbitrage.trading.model.TradeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -113,7 +114,7 @@ public class PairDataService {
     }
 
     @Transactional
-    public void update(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    public void updateVirtual(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
         // Проверяем наличие данных
@@ -193,6 +194,20 @@ public class PairDataService {
 //            pairData.setExitReason(EXIT_REASON_MANUALLY);
 //        }
 
+        save(pairData);
+    }
+
+    @Transactional //todo перенести выше???
+    public void updatePairDataFromPositions(PairData pairData, TradeResult longResult, TradeResult shortResult) {
+        // Обновляем цены входа (они могли отличаться от текущих рыночных)
+        pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
+        pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
+
+        // Статус остается TRADING
+        pairData.setStatus(TradeStatus.TRADING);
+
+        // Время входа
+        pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
         save(pairData);
     }
 
@@ -380,5 +395,4 @@ public class PairDataService {
                 .filter(p -> p != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-
 }

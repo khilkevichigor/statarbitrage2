@@ -26,7 +26,7 @@ public class DbInitializer {
                     .minWindowSize(100)
 
                     .useMinZFilter(true)
-                    .minZ(4.0)
+                    .minZ(3.0)
 
                     .useMinPValueFilter(true)
                     .minPValue(0.01)
@@ -35,7 +35,7 @@ public class DbInitializer {
                     .minAdfValue(0.1)
 
                     .useMinCorrelationFilter(true)
-                    .minCorrelation(0.9)
+                    .minCorrelation(0.8)
 
                     .useMinVolumeFilter(true)
                     .minVolume(1.0)
@@ -45,9 +45,10 @@ public class DbInitializer {
 
                     .checkInterval(1)
 
+                    .maxPositionPercentPerPair(5.0) //для реальных сделок
                     .capitalLong(10.0)
                     .capitalShort(10.0)
-                    .leverage(10.0)
+                    .leverage(1.0)
                     .feePctPerTrade(0.05)
 
                     .useExitTake(true)
@@ -68,7 +69,7 @@ public class DbInitializer {
                     .useExitTimeHours(false)
                     .exitTimeHours(3)
 
-                    .usePairs(10.0)
+                    .usePairs(1.0)
 
                     .build()
             );

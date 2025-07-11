@@ -29,6 +29,7 @@ public class Settings {
 
     private double checkInterval;
 
+    private double maxPositionPercentPerPair;
     private double capitalLong;
     private double capitalShort;
     private double leverage;
