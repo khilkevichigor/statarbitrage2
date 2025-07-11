@@ -75,6 +75,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String ACCOUNT_BALANCE_ENDPOINT = "/api/v5/account/balance";
     private static final String MARKET_TICKER_ENDPOINT = "/api/v5/market/ticker";
     private static final String PUBLIC_INSTRUMENTS_ENDPOINT = "/api/v5/public/instruments";
+    private static final String ACCOUNT_CONFIG_ENDPOINT = "/api/v5/account/config";
 
     public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient) {
         this.okxPortfolioManager = okxPortfolioManager;
@@ -477,11 +478,14 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
 
+            // Определяем правильный posSide в зависимости от режима аккаунта
+            String correctPosSide = determinePosSide(posSide);
+
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
             orderData.addProperty("tdMode", "isolated"); // Изолированная маржа
             orderData.addProperty("side", side);
-            orderData.addProperty("posSide", posSide);
+            orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market"); // Рыночный ордер
             orderData.addProperty("sz", size);
             orderData.addProperty("lever", leverage);
@@ -529,11 +533,16 @@ public class RealOkxTradingProvider implements TradingProvider {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
 
+            // Для закрытия позиции всегда используем "net" в Net режиме
+            String correctPosSide = isHedgeMode() ? 
+                (side.equals("buy") ? "short" : "long") : // В hedge режиме - противоположная сторона
+                "net"; // В net режиме - всегда net
+
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
             orderData.addProperty("tdMode", "isolated");
             orderData.addProperty("side", side);
-            orderData.addProperty("posSide", "net"); // Закрытие позиции
+            orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
             orderData.addProperty("sz", size);
 
@@ -864,6 +873,75 @@ public class RealOkxTradingProvider implements TradingProvider {
 
         public BigDecimal getMinSize() {
             return minSize;
+        }
+    }
+
+    /**
+     * Определяет правильный posSide в зависимости от режима аккаунта
+     */
+    private String determinePosSide(String intendedPosSide) {
+        if (isHedgeMode()) {
+            // В Hedge режиме используем переданный posSide (long/short)
+            return intendedPosSide;
+        } else {
+            // В Net режиме всегда используем "net"
+            return "net";
+        }
+    }
+
+    /**
+     * Проверка режима позиции (Net или Hedge)
+     */
+    private boolean isHedgeMode() {
+        try {
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = ACCOUNT_CONFIG_ENDPOINT;
+
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
+            Request request = new Request.Builder()
+                    .url(baseUrl + endpoint)
+                    .addHeader("OK-ACCESS-KEY", apiKey)
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
+                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.error("❌ Ошибка HTTP при получении конфигурации аккаунта: {}", response.code());
+                    return false; // По умолчанию считаем Net режим
+                }
+
+                String responseBody = response.body().string();
+                log.debug("🔍 Конфигурация аккаунта OKX: {}", responseBody);
+                
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+                
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка OKX API при получении конфигурации: {}", jsonResponse.get("msg").getAsString());
+                    return false;
+                }
+                
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                if (data.isEmpty()) {
+                    log.warn("⚠️ Данные конфигурации аккаунта пусты");
+                    return false;
+                }
+                
+                JsonObject accountConfig = data.get(0).getAsJsonObject();
+                String posMode = accountConfig.get("posMode").getAsString();
+                
+                // posMode: "net_mode" = Net режим, "long_short_mode" = Hedge режим
+                boolean isHedge = "long_short_mode".equals(posMode);
+                log.info("🔍 Режим позиций OKX: {} ({})", posMode, isHedge ? "Hedge" : "Net");
+                
+                return isHedge;
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при определении режима позиций: {}", e.getMessage());
+            return false; // По умолчанию считаем Net режим
         }
     }
 
