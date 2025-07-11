@@ -1,10 +1,10 @@
 package com.example.statarbitrage.trading.providers;
 
 import com.example.statarbitrage.client_okx.OkxClient;
-import com.example.statarbitrage.trading.interfaces.PortfolioManager;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.*;
+import com.example.statarbitrage.trading.services.OkxPortfolioManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class RealOkxTradingProvider implements TradingProvider {
 
-    private final PortfolioManager portfolioManager;
+    private final OkxPortfolioManager okxPortfolioManager;
     private final OkxClient okxClient;
 
     // OKX API конфигурация
@@ -72,28 +72,26 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String ACCOUNT_BALANCE_ENDPOINT = "/api/v5/account/balance";
     private static final String MARKET_TICKER_ENDPOINT = "/api/v5/market/ticker";
 
-    public RealOkxTradingProvider(PortfolioManager portfolioManager, OkxClient okxClient) {
-        this.portfolioManager = portfolioManager;
+    public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient) {
+        this.okxPortfolioManager = okxPortfolioManager;
         this.okxClient = okxClient;
     }
 
     @Override
     public Portfolio getPortfolio() {
         try {
-            // Получаем реальный баланс с OKX
-            updatePortfolioFromOkx();
-            return portfolioManager.getCurrentPortfolio();
+            // Получаем реальный баланс с OKX через OkxPortfolioManager
+            return okxPortfolioManager.getCurrentPortfolio();
         } catch (Exception e) {
             log.error("Ошибка при получении портфолио: {}", e.getMessage());
-            return portfolioManager.getCurrentPortfolio();
+            return okxPortfolioManager.getCurrentPortfolio();
         }
     }
 
     @Override
     public boolean hasAvailableBalance(BigDecimal amount) {
         try {
-            updatePortfolioFromOkx();
-            return portfolioManager.hasAvailableBalance(amount);
+            return okxPortfolioManager.hasAvailableBalance(amount);
         } catch (Exception e) {
             log.error("Ошибка при проверке баланса: {}", e.getMessage());
             return false;
@@ -136,7 +134,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // Резервируем средства
-            if (!portfolioManager.reserveBalance(amount)) {
+            if (!okxPortfolioManager.reserveBalance(amount)) {
                 // Пытаемся отменить заявку
                 cancelOrder(orderId, symbol);
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
@@ -170,7 +168,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             positions.put(positionId, position);
 
             // Уведомляем портфолио
-            portfolioManager.onPositionOpened(position);
+            okxPortfolioManager.onPositionOpened(position);
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
@@ -227,7 +225,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // Резервируем средства
-            if (!portfolioManager.reserveBalance(amount)) {
+            if (!okxPortfolioManager.reserveBalance(amount)) {
                 // Пытаемся отменить заявку
                 cancelOrder(orderId, symbol);
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
@@ -261,7 +259,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             positions.put(positionId, position);
 
             // Уведомляем портфолио
-            portfolioManager.onPositionOpened(position);
+            okxPortfolioManager.onPositionOpened(position);
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_SHORT,
@@ -329,8 +327,8 @@ public class RealOkxTradingProvider implements TradingProvider {
             position.setLastUpdated(LocalDateTime.now());
 
             // Освобождаем средства и уведомляем портфолио
-            portfolioManager.releaseReservedBalance(position.getAllocatedAmount());
-            portfolioManager.onPositionClosed(position, finalPnL, totalFees);
+            okxPortfolioManager.releaseReservedBalance(position.getAllocatedAmount());
+            okxPortfolioManager.onPositionClosed(position, finalPnL, totalFees);
 
             // Удаляем из активных позиций
             positions.remove(positionId);
@@ -389,7 +387,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // Обновляем портфолио
-            portfolioManager.updatePortfolioValue();
+            okxPortfolioManager.updatePortfolioValue();
 
         } catch (Exception e) {
             log.error("Ошибка при обновлении цен позиций: {}", e.getMessage());
@@ -663,7 +661,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                                 // Для обновления баланса нужно будет использовать другой подход
                                 // Пока просто обновляем значения портфолио
-                                portfolioManager.updatePortfolioValue();
+                                okxPortfolioManager.updatePortfolioValue();
                                 break;
                             }
                         }
