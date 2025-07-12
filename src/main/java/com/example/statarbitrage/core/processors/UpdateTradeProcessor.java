@@ -69,7 +69,7 @@ public class UpdateTradeProcessor {
 
         pairDataService.save(pairData);
 
-        tradeLogService.saveLogVirtual(pairData);
+        tradeLogService.saveLog(pairData);
     }
 
     private void updateRealTrade(PairData pairData, boolean isCloseManually) {
@@ -101,7 +101,7 @@ public class UpdateTradeProcessor {
                 log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                tradeLogService.saveLogVirtual(pairData);
+                tradeLogService.saveLog(pairData);
             } else {
                 log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());

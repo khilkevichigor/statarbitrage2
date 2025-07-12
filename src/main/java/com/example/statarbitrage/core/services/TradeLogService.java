@@ -24,7 +24,7 @@ public class TradeLogService {
 
     private final TradeLogRepository tradeLogRepository;
 
-    public void saveLogVirtual(PairData pairData) {
+    public void saveLog(PairData pairData) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 

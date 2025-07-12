@@ -85,7 +85,7 @@ public class StartNewTradeProcessor {
         }
         pairDataService.save(pairData);
 
-        tradeLogService.saveLogVirtual(pairData);
+        tradeLogService.saveLog(pairData);
 
         return pairData;
     }
@@ -122,7 +122,7 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        //todo запилить
+        //todo ПИЛЮ...
 
         // Проверяем, можем ли открыть новую пару на торговом депо
         if (tradingIntegrationService.canOpenNewPair()) {
@@ -147,7 +147,7 @@ public class StartNewTradeProcessor {
                 }
                 pairDataService.save(pairData);
 
-                tradeLogService.saveLogVirtual(pairData); //todo real
+                tradeLogService.saveLog(pairData); //todo real
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
