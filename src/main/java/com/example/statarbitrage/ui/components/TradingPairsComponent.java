@@ -212,17 +212,17 @@ public class TradingPairsComponent extends VerticalLayout {
         return actionButton;
     }
 
-    private Button createStopTradingButton(PairData pair) {
+    private Button createStopTradingButton(PairData pairData) {
         Button actionButton = new Button("Закрыть", event -> {
             try {
-                updateTradeProcessor.updateTrade(pair, true);
+                PairData updatedPairData = updateTradeProcessor.updateTrade(pairData, true);
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
-                        pair.getLongTicker(), pair.getShortTicker(), TradeStatus.CLOSED
+                        updatedPairData.getLongTicker(), updatedPairData.getShortTicker(), updatedPairData.getStatus()
                 ));
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("Error closing trade for pair: {}/{}", pair.getLongTicker(), pair.getShortTicker(), e);
+                log.error("Error closing trade for pairData: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
                 Notification.show("Ошибка при закрытии торговли: " + e.getMessage());
             }
         });

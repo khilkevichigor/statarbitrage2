@@ -8,6 +8,7 @@ import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
+import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
@@ -36,16 +37,16 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
 
     @Transactional
-    public void updateTrade(PairData pairData, boolean isCloseManually) {
+    public PairData updateTrade(PairData pairData, boolean isCloseManually) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-            updateVirtualTrade(pairData, isCloseManually);
+            return updateVirtualTrade(pairData, isCloseManually);
         } else {
-            updateRealTrade(pairData, isCloseManually);
+            return updateRealTrade(pairData, isCloseManually);
         }
     }
 
-    private void updateVirtualTrade(PairData pairData, boolean isCloseManually) {
+    private PairData updateVirtualTrade(PairData pairData, boolean isCloseManually) {
         log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
@@ -73,9 +74,10 @@ public class UpdateTradeProcessor {
         pairDataService.save(pairData);
 
         tradeLogService.saveLog(pairData);
+        return pairData;
     }
 
-    private void updateRealTrade(PairData pairData, boolean isCloseManually) {
+    private PairData updateRealTrade(PairData pairData, boolean isCloseManually) {
         log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
@@ -84,21 +86,19 @@ public class UpdateTradeProcessor {
 
         logData(zScoreData);
 
-        // Сохраняем статус до обновления для проверки изменения
-        TradeStatus statusBefore = pairData.getStatus();
+//        // Обновляем реальный PnL из торговой системы (берём с OKX)
+//        BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
+//        if (realPnL.compareTo(BigDecimal.ZERO) != 0) {
+//            // Конвертируем в проценты для совместимости с существующей системой
+//            pairData.setProfitChanges(realPnL);
+//            log.debug("🔄 Обновлен реальный PnL для пары {} - {}: {}", pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
+//        }
 
-        //todo допилить
+        pairDataService.updateReal(pairData, zScoreData, candlesMap);
+        changesService.calculateReal(pairData);
 
-        // Обновляем реальный PnL из торговой системы
-        BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-        if (realPnL.compareTo(BigDecimal.ZERO) != 0) {
-            // Конвертируем в проценты для совместимости с существующей системой
-            pairData.setProfitChanges(realPnL);
-            log.debug("🔄 Обновлен реальный PnL для пары {} - {}: {}", pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
-        }
-
-        // Если статус изменился на CLOSED, закрываем позиции в торговой системе СИНХРОННО
-        if (statusBefore == TradeStatus.TRADING && isCloseManually) {
+        // Если нажали на "Закрыть позицию", закрываем позиции в торговой системе СИНХРОННО
+        if (isCloseManually) {
             // Проверяем наличие открытых позиций перед попыткой закрытия
             if (tradingIntegrationService.hasOpenPositions(pairData)) {
                 CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
@@ -106,6 +106,10 @@ public class UpdateTradeProcessor {
                     log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
 
+                    TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
+                    TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
+                    pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+                    changesService.calculateReal(pairData);
                     tradeLogService.saveLog(pairData);
                 } else {
                     log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
@@ -117,11 +121,47 @@ public class UpdateTradeProcessor {
             } else {
                 log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
                         pairData.getLongTicker(), pairData.getShortTicker());
-                
+
                 // Если позиции уже закрыты на бирже, просто сохраняем лог без попытки закрытия
                 tradeLogService.saveLog(pairData);
             }
+
+        } else {
+            String exitReason = exitStrategyService.getExitReason(pairData);
+            if (exitReason != null) {
+                log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
+                        exitReason, pairData.getLongTicker(), pairData.getShortTicker());
+
+                // Закрываем арбитражную пару через торговую систему СИНХРОННО
+                CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
+                if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
+                    log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
+                    TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
+                    pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+                    // Снова обновляем данные после закрытия позиций
+                    changesService.calculateReal(pairData);
+
+                    pairData.setExitReason(exitReason);
+                    pairData.setStatus(TradeStatus.CLOSED);
+                } else {
+                    log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    pairData.setExitReason("ERROR_CLOSING: " + exitReason);
+                    pairData.setStatus(TradeStatus.ERROR_200);
+                }
+            }
         }
+
+        pairDataService.save(pairData);
+        changesService.calculateReal(pairData);
+
+        tradeLogService.saveLog(pairData);
+
+        return pairData;
     }
 
     private static void logData(ZScoreData zScoreData) {

@@ -112,7 +112,6 @@ public class PairDataService {
         return pairData;
     }
 
-    //    @Transactional
     public void updateVirtual(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
@@ -168,7 +167,41 @@ public class PairDataService {
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
 
-//        changesService.calculateAndAdd(pairData);
+        // Добавляем новые точки в историю Z-Score при каждом обновлении
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю новую историю из ZScoreData
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
+            }
+        } else {
+            // Если новой истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
+        }
+
+        save(pairData);
+    }
+
+    public void updateReal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+
+        //Обновляем текущие цены
+        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+
+        //Обновляем текущие данные коинтеграции
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
 
         // Добавляем новые точки в историю Z-Score при каждом обновлении
         if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
@@ -181,22 +214,9 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-//        String exitReason = exitStrategyService.getExitReason(pairData);
-//        if (exitReason != null) {
-//            pairData.setExitReason(exitReason);
-//            pairData.setStatus(TradeStatus.CLOSED);
-//        }
-//
-//        //после всех обновлений профита закрываем если нужно
-//        if (isCloseManually) {
-//            pairData.setStatus(TradeStatus.CLOSED);
-//            pairData.setExitReason(EXIT_REASON_MANUALLY);
-//        }
-
         save(pairData);
     }
 
-    //    @Transactional //todo перенести выше???
     public void updateReal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, TradeResult longResult, TradeResult shortResult) {
 
         //Обновляем текущие цены
@@ -260,141 +280,8 @@ public class PairDataService {
         save(pairData);
     }
 
-    //    @Transactional
     public void save(PairData pairData) {
-//        saveWithRetry(pairData, 10);
         pairDataRepository.save(pairData);
-    }
-
-    private void saveWithRetry(PairData pairData, int maxRetries) {
-        int attempts = 0;
-        PairData currentEntity = pairData;
-
-        while (attempts < maxRetries) {
-            try {
-                log.debug("💾 Попытка сохранения PairData #{} (попытка {}/{}) версия: {}",
-                        currentEntity.getId(), attempts + 1, maxRetries, currentEntity.getVersion());
-
-                PairData savedEntity = pairDataRepository.save(currentEntity);
-                log.debug("✅ Успешно сохранено PairData #{} версия: {}",
-                        savedEntity.getId(), savedEntity.getVersion());
-                return; // Успешное сохранение
-
-            } catch (OptimisticLockingFailureException e) {
-                attempts++;
-                log.warn("⚠️ Конфликт при сохранении PairData #{} (попытка {}/{}) для пары {}/{}: {}",
-                        currentEntity.getId(), attempts, maxRetries,
-                        currentEntity.getLongTicker(), currentEntity.getShortTicker(), e.getMessage());
-
-                if (attempts >= maxRetries) {
-                    log.error("❌ Не удалось сохранить PairData #{} после {} попыток для пары {}/{}",
-                            currentEntity.getId(), maxRetries,
-                            currentEntity.getLongTicker(), currentEntity.getShortTicker());
-                    throw new RuntimeException("Не удалось сохранить данные пары после " + maxRetries + " попыток", e);
-                }
-
-                // Перезагружаем актуальную версию из БД и создаем новый entity для следующей попытки
-                try {
-                    Thread.sleep(1000 + (attempts * 1000L)); // Exponential backoff: 50ms, 75ms, 100ms
-
-                    if (currentEntity.getId() != null) {
-                        // Перезагружаем свежие данные из БД
-                        Optional<PairData> freshDataOpt = pairDataRepository.findById(currentEntity.getId());
-                        if (freshDataOpt.isPresent()) {
-                            PairData freshData = freshDataOpt.get();
-
-                            // Создаем новый entity с актуальной версией и нашими изменениями
-                            currentEntity = mergeWithFreshData(currentEntity, freshData);
-
-                            log.info("🔄 Обновлена версия для попытки #{}: старая={}, новая={}",
-                                    attempts + 1, freshData.getVersion(), currentEntity.getVersion());
-                        } else {
-                            log.warn("❌ PairData #{} была удалена из БД другим процессом для пары {}/{}. Прекращаем попытки сохранения.",
-                                    currentEntity.getId(), currentEntity.getLongTicker(), currentEntity.getShortTicker());
-                            // Помечаем транзакцию для rollback и выбрасываем исключение
-                            throw new RuntimeException("Запись была удалена другим процессом во время сохранения");
-                        }
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Прерван поток при повторной попытке сохранения", ie);
-                }
-            }
-        }
-    }
-
-    /**
-     * Объединяет изменения из detached entity с актуальными данными из БД
-     */
-    private PairData mergeWithFreshData(PairData modifiedEntity, PairData freshEntity) {
-        // Копируем все наши изменения в свежую entity с актуальной версией
-        freshEntity.setStatus(modifiedEntity.getStatus());
-        freshEntity.setLongTicker(modifiedEntity.getLongTicker());
-        freshEntity.setShortTicker(modifiedEntity.getShortTicker());
-
-        // Цены
-        freshEntity.setLongTickerEntryPrice(modifiedEntity.getLongTickerEntryPrice());
-        freshEntity.setLongTickerCurrentPrice(modifiedEntity.getLongTickerCurrentPrice());
-        freshEntity.setShortTickerEntryPrice(modifiedEntity.getShortTickerEntryPrice());
-        freshEntity.setShortTickerCurrentPrice(modifiedEntity.getShortTickerCurrentPrice());
-
-        // Статистические параметры входа
-        freshEntity.setZScoreEntry(modifiedEntity.getZScoreEntry());
-        freshEntity.setCorrelationEntry(modifiedEntity.getCorrelationEntry());
-        freshEntity.setAdfPvalueEntry(modifiedEntity.getAdfPvalueEntry());
-        freshEntity.setPValueEntry(modifiedEntity.getPValueEntry());
-        freshEntity.setMeanEntry(modifiedEntity.getMeanEntry());
-        freshEntity.setStdEntry(modifiedEntity.getStdEntry());
-        freshEntity.setSpreadEntry(modifiedEntity.getSpreadEntry());
-        freshEntity.setAlphaEntry(modifiedEntity.getAlphaEntry());
-        freshEntity.setBetaEntry(modifiedEntity.getBetaEntry());
-
-        // Текущие статистические параметры
-        freshEntity.setZScoreCurrent(modifiedEntity.getZScoreCurrent());
-        freshEntity.setCorrelationCurrent(modifiedEntity.getCorrelationCurrent());
-        freshEntity.setAdfPvalueCurrent(modifiedEntity.getAdfPvalueCurrent());
-        freshEntity.setPValueCurrent(modifiedEntity.getPValueCurrent());
-        freshEntity.setMeanCurrent(modifiedEntity.getMeanCurrent());
-        freshEntity.setStdCurrent(modifiedEntity.getStdCurrent());
-        freshEntity.setSpreadCurrent(modifiedEntity.getSpreadCurrent());
-        freshEntity.setAlphaCurrent(modifiedEntity.getAlphaCurrent());
-        freshEntity.setBetaCurrent(modifiedEntity.getBetaCurrent());
-
-        // Изменения и статистика
-        freshEntity.setZScoreChanges(modifiedEntity.getZScoreChanges());
-        freshEntity.setLongChanges(modifiedEntity.getLongChanges());
-        freshEntity.setShortChanges(modifiedEntity.getShortChanges());
-        freshEntity.setProfitChanges(modifiedEntity.getProfitChanges());
-
-        // Времена и метрики
-        freshEntity.setEntryTime(modifiedEntity.getEntryTime());
-        freshEntity.setUpdatedTime(modifiedEntity.getUpdatedTime());
-        freshEntity.setTimestamp(modifiedEntity.getTimestamp());
-
-        // Минимумы и максимумы
-        freshEntity.setMaxProfitRounded(modifiedEntity.getMaxProfitRounded());
-        freshEntity.setMinProfitRounded(modifiedEntity.getMinProfitRounded());
-        freshEntity.setTimeInMinutesSinceEntryToMin(modifiedEntity.getTimeInMinutesSinceEntryToMin());
-        freshEntity.setTimeInMinutesSinceEntryToMax(modifiedEntity.getTimeInMinutesSinceEntryToMax());
-
-        freshEntity.setMaxZ(modifiedEntity.getMaxZ());
-        freshEntity.setMinZ(modifiedEntity.getMinZ());
-        freshEntity.setMaxLong(modifiedEntity.getMaxLong());
-        freshEntity.setMinLong(modifiedEntity.getMinLong());
-        freshEntity.setMaxShort(modifiedEntity.getMaxShort());
-        freshEntity.setMinShort(modifiedEntity.getMinShort());
-        freshEntity.setMaxCorr(modifiedEntity.getMaxCorr());
-        freshEntity.setMinCorr(modifiedEntity.getMinCorr());
-
-        // Причина выхода
-        freshEntity.setExitReason(modifiedEntity.getExitReason());
-
-        // История Z-Score (только если изменилась)
-        if (modifiedEntity.getZScoreHistoryJson() != null) {
-            freshEntity.setZScoreHistoryJson(modifiedEntity.getZScoreHistoryJson());
-        }
-
-        return freshEntity;
     }
 
     public List<PairData> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
