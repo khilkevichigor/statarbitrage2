@@ -87,9 +87,6 @@ public class TradingIntegrationService {
                     pairToLongPositionMap.put(pairData.getId(), longResult.getPositionId());
                     pairToShortPositionMap.put(pairData.getId(), shortResult.getPositionId());
 
-                    //todo может тут сохранять в бд резалты и выше доставать что бы обновить паирДата?
-//                    pairDataService.updateReal(pairData, zScoreData, candlesMap, longResult, shortResult);
-
                     log.info("✅ Открыта арбитражная пара: {} LONG / {} SHORT",
                             pairData.getLongTicker(), pairData.getShortTicker());
 

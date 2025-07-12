@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +46,12 @@ public class UpdateTradeProcessor {
     }
 
     private PairData updateVirtualTrade(PairData pairData, boolean isCloseManually) {
+        // Проверяем статус пары - если уже закрыта, не обрабатываем
+        if (pairData.getStatus() == TradeStatus.CLOSED) {
+            log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            return pairData;
+        }
+
         log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
@@ -78,6 +83,12 @@ public class UpdateTradeProcessor {
     }
 
     private PairData updateRealTrade(PairData pairData, boolean isCloseManually) {
+        // Проверяем статус пары - если уже закрыта, не обрабатываем
+        if (pairData.getStatus() == TradeStatus.CLOSED) {
+            log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            return pairData;
+        }
+
         log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
