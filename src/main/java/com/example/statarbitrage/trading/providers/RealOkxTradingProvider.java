@@ -140,6 +140,11 @@ public class RealOkxTradingProvider implements TradingProvider {
                         "Размер позиции слишком мал для торговли");
             }
 
+            // Пересчитываем итоговую долларовую сумму после корректировки lot size
+            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц", 
+                     symbol, amount, adjustedAmount, positionSize);
+
             // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
@@ -242,6 +247,11 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
                         "Размер позиции слишком мал для торговли");
             }
+
+            // Пересчитываем итоговую долларовую сумму после корректировки lot size
+            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц", 
+                     symbol, amount, adjustedAmount, positionSize);
 
             // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
