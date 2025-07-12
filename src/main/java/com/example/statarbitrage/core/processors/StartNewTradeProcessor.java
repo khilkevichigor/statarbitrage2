@@ -137,7 +137,6 @@ public class StartNewTradeProcessor {
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                //todo может это все ниже заменить на updateRealTrade() com/example/statarbitrage/core/processors/UpdateTradeProcessor.java:78 ???
                 pairDataService.updateReal(pairData, zScoreData, candlesMap, openLongTradeResult, openShortTradeResult);
                 changesService.calculateReal(pairData);
                 String exitReason = exitStrategyService.getExitReason(pairData);
