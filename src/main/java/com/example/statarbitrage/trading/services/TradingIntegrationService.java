@@ -1,5 +1,7 @@
 package com.example.statarbitrage.trading.services;
 
+import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -7,15 +9,14 @@ import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
-import com.example.statarbitrage.trading.model.Portfolio;
-import com.example.statarbitrage.trading.model.Position;
-import com.example.statarbitrage.trading.model.TradeResult;
-import com.example.statarbitrage.trading.model.TradingProviderSwitchResult;
+import com.example.statarbitrage.trading.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -45,7 +46,7 @@ public class TradingIntegrationService {
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
      */
-    public boolean openArbitragePair(PairData pairData) {
+    public OpenArbitragePairResult openArbitragePair(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         // Синхронизируем всю операцию открытия пары
         synchronized (openPositionLock) {
             try {
@@ -56,7 +57,9 @@ public class TradingIntegrationService {
                 if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
                     log.warn("❌ Недостаточно средств для открытия позиций по паре {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
-                    return false;
+                    return OpenArbitragePairResult.builder()
+                            .success(false)
+                            .build();
                 }
 
                 BigDecimal longAmount = positionSize.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
@@ -73,7 +76,9 @@ public class TradingIntegrationService {
 
                 if (!longResult.isSuccess()) {
                     log.error("❌ Не удалось открыть LONG позицию: {}", longResult.getErrorMessage());
-                    return false;
+                    return OpenArbitragePairResult.builder()
+                            .success(false)
+                            .build();
                 }
 
                 log.info("🔴 Открытие SHORT позиции: {} с размером {}", pairData.getShortTicker(), shortAmount);
@@ -85,12 +90,17 @@ public class TradingIntegrationService {
                     pairToLongPositionMap.put(pairData.getId(), longResult.getPositionId());
                     pairToShortPositionMap.put(pairData.getId(), shortResult.getPositionId());
 
-                    // Обновляем PairData
-                    pairDataService.updatePairDataFromPositions(pairData, longResult, shortResult); //todo update через сервис
+                    //todo может тут сохранять в бд резалты и выше доставать что бы обновить паирДата?
+//                    pairDataService.updateReal(pairData, zScoreData, candlesMap, longResult, shortResult);
 
                     log.info("✅ Открыта арбитражная пара: {} LONG / {} SHORT",
                             pairData.getLongTicker(), pairData.getShortTicker());
-                    return true;
+
+                    return OpenArbitragePairResult.builder()
+                            .success(true)
+                            .longTradeResult(longResult)
+                            .shortTradeResult(shortResult)
+                            .build();
                 } else {
                     // Если одна из позиций не открылась, закрываем успешно открытую
                     if (longResult.isSuccess()) {
@@ -103,13 +113,17 @@ public class TradingIntegrationService {
                     log.error("❌ Не удалось открыть арбитражную пару {}/{}: Long={}, Short={}",
                             pairData.getLongTicker(), pairData.getShortTicker(),
                             longResult.getErrorMessage(), shortResult.getErrorMessage());
-                    return false;
+                    return OpenArbitragePairResult.builder()
+                            .success(false)
+                            .build();
                 }
 
             } catch (Exception e) {
                 log.error("❌ Ошибка при открытии арбитражной пары {}/{}: {}",
                         pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-                return false;
+                return OpenArbitragePairResult.builder()
+                        .success(false)
+                        .build();
             }
         }
     }

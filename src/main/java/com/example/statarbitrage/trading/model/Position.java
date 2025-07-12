@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 /**
@@ -124,7 +125,7 @@ public class Position {
 
         // Процентная прибыль
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            unrealizedPnLPercent = unrealizedPnL.divide(allocatedAmount, 4, java.math.RoundingMode.HALF_UP)
+            unrealizedPnLPercent = unrealizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
         }
     }

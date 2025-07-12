@@ -7,6 +7,8 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
+import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
@@ -75,12 +77,13 @@ public class StartNewTradeProcessor {
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
         pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
-        changesService.addChangesVirtual(pairData);
-        String exitReason = exitStrategyService.getExitReasonVirtual(pairData);
+        changesService.calculateVirtual(pairData);
+        String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);
         }
+        pairDataService.save(pairData);
 
         tradeLogService.saveLogVirtual(pairData);
 
@@ -124,12 +127,25 @@ public class StartNewTradeProcessor {
         // Проверяем, можем ли открыть новую пару на торговом депо
         if (tradingIntegrationService.canOpenNewPair()) {
             // Открываем арбитражную пару через торговую систему СИНХРОННО
-            boolean success = tradingIntegrationService.openArbitragePair(pairData);
-            if (success) {
+            OpenArbitragePairResult openArbitragePairResult = tradingIntegrationService.openArbitragePair(pairData, zScoreData, candlesMap);
+            if (openArbitragePairResult != null && openArbitragePairResult.isSuccess()) {
+
+                TradeResult longTradeResult = openArbitragePairResult.getLongTradeResult();
+                TradeResult shortTradeResult = openArbitragePairResult.getShortTradeResult();
+
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                //тут обновляем pairData
+                pairDataService.updateReal(pairData, zScoreData, candlesMap, longTradeResult, shortTradeResult);
+                changesService.calculateReal(pairData);
+                String exitReason = exitStrategyService.getExitReason(pairData);
+                if (exitReason != null) {
+                    //todo здесь закрыть позиции
+                    //todo снова обновить updateReal
+                    pairData.setExitReason(exitReason);
+                    pairData.setStatus(TradeStatus.CLOSED);
+                }
+                pairDataService.save(pairData);
 
                 tradeLogService.saveLogVirtual(pairData); //todo real
             } else {

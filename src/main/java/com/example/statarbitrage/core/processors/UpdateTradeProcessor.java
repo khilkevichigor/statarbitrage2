@@ -53,9 +53,9 @@ public class UpdateTradeProcessor {
 
         pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
 
-        changesService.addChangesVirtual(pairData);
+        changesService.calculateVirtual(pairData);
 
-        String exitReason = exitStrategyService.getExitReasonVirtual(pairData);
+        String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
             pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);
