@@ -413,8 +413,10 @@ public class PairDataService {
         pairDataRepository.delete(pairData);
     }
 
-    public void excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
-        if (zScoreDataList == null || zScoreDataList.isEmpty()) return;
+    public int excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            return 0;
+        }
 
         // Получаем список уже торгующихся пар
         List<PairData> tradingPairs = findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
@@ -429,6 +431,7 @@ public class PairDataService {
             String key = buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker());
             return tradingSet.contains(key);
         });
+        return zScoreDataList.size();
     }
 
     // Приватный метод для создания уникального ключа пары, независимо от порядка

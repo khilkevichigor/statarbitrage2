@@ -124,12 +124,12 @@ public class SettingsComponent extends VerticalLayout {
                 settings.setAutoTradingEnabled(event.getValue());
                 settingsService.save(settings);
 
+                log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
+                Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
+
                 if (event.getValue()) {
                     tradeAndSimulationScheduler.maintainPairs();
                 }
-
-                log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
-                Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
 
                 // Уведомляем об изменении состояния автотрейдинга
                 if (autoTradingChangeCallback != null) {

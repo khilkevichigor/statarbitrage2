@@ -24,17 +24,17 @@ public class ZScoreService {
      * Считает Z для всех пар из свечей.
      */
     private List<ZScoreData> calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, boolean excludeExistingPairs) {
-        List<ZScoreData> rawZScoreList = pythonRestClient.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
-        if (rawZScoreList == null || rawZScoreList.isEmpty()) {
+        List<ZScoreData> rawZScoreDataList = pythonRestClient.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
+        if (rawZScoreDataList == null || rawZScoreDataList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
             return Collections.emptyList();
         }
-        checkZScoreParamsSize(rawZScoreList);
-        filterIncompleteZScoreParams(null, rawZScoreList, settings);
+        checkZScoreParamsSize(rawZScoreDataList);
+        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
         if (excludeExistingPairs) {
-            pairDataService.excludeExistingTradingPairs(rawZScoreList);
+            pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }
-        return rawZScoreList;
+        return rawZScoreDataList;
     }
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
@@ -200,12 +200,12 @@ public class ZScoreService {
             throw new IllegalStateException("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
         }
 
-        List<ZScoreData> zScoreSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
+        List<ZScoreData> zScoreDataSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
 
-        checkZScoreParamsSize(zScoreSingletonList);
-        filterIncompleteZScoreParams(pairData, zScoreSingletonList, settings);
+        checkZScoreParamsSize(zScoreDataSingletonList);
+        filterIncompleteZScoreParams(pairData, zScoreDataSingletonList, settings);
 
-        return Optional.of(zScoreData);
+        return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
     }
 
     /**

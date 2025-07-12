@@ -107,7 +107,7 @@ public class StartNewTradeProcessor {
         Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {
-            log.warn("ZScore data is empty");
+            log.warn("📊 ZScore данные пусты для пары {}/{}. Пропускаем создание нового трейда.", pairData.getLongTicker(), pairData.getShortTicker());
             return null;
         }
 
@@ -141,27 +141,27 @@ public class StartNewTradeProcessor {
                 changesService.calculateReal(pairData);
                 String exitReason = exitStrategyService.getExitReason(pairData);
                 if (exitReason != null) {
-                    log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}", 
+                    log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
                             exitReason, pairData.getLongTicker(), pairData.getShortTicker());
-                    
+
                     // Закрываем арбитражную пару через торговую систему СИНХРОННО
                     CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
                     if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
-                        log.info("✅ Успешно закрыта арбитражная пара: {}/{}", 
+                        log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
                                 pairData.getLongTicker(), pairData.getShortTicker());
 
                         TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                         TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
-                        pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+                        pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult); //todo может и не надо обновлять тк там все тоже самое что и при открытии трейда выше
                         // Снова обновляем данные после закрытия позиций
                         changesService.calculateReal(pairData);
-                        
+
                         pairData.setExitReason(exitReason);
                         pairData.setStatus(TradeStatus.CLOSED);
                     } else {
-                        log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}", 
+                        log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}",
                                 pairData.getLongTicker(), pairData.getShortTicker());
-                        
+
                         pairData.setExitReason("ERROR_CLOSING: " + exitReason);
                         pairData.setStatus(TradeStatus.ERROR_200);
                     }
