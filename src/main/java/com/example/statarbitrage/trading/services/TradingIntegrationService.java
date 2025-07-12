@@ -5,7 +5,6 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
@@ -35,12 +34,10 @@ public class TradingIntegrationService {
     private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
     private final SettingsService settingsService;
-    private PairDataService pairDataService;
 
-    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PairDataService pairDataService) {
+    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService) {
         this.tradingProviderFactory = tradingProviderFactory;
         this.settingsService = settingsService;
-        this.pairDataService = pairDataService;
     }
 
     /**
