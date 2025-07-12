@@ -10,7 +10,6 @@ import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.example.statarbitrage.trading.model.TradeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -282,6 +281,10 @@ public class PairDataService {
 
     public void save(PairData pairData) {
         pairDataRepository.save(pairData);
+    }
+
+    public PairData findById(Long id) {
+        return pairDataRepository.findById(id).orElse(null);
     }
 
     public List<PairData> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {

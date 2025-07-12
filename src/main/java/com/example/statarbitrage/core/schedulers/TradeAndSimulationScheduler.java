@@ -64,7 +64,15 @@ public class TradeAndSimulationScheduler {
                 // Обновляем цены позиций в торговой системе
                 tradingIntegrationService.updateAllPositions();
 
-                tradingPairs.forEach(p -> updateTradeProcessor.updateTrade(p, false));
+                tradingPairs.forEach(p -> {
+                    try {
+                        updateTradeProcessor.updateTrade(p, false);
+                    } catch (Exception e) {
+                        log.warn("⚠️ Ошибка при обновлении пары {}/{}: {}",
+                                p.getLongTicker(), p.getShortTicker(), e.getMessage());
+                        // Продолжаем обработку остальных пар
+                    }
+                });
                 // Обновляем UI
                 eventSendService.updateUI(UpdateUiEvent.builder().build());
             }

@@ -83,11 +83,15 @@ public class UpdateTradeProcessor {
     }
 
     private PairData updateRealTrade(PairData pairData, boolean isCloseManually) {
-        // Проверяем статус пары - если уже закрыта, не обрабатываем
-        if (pairData.getStatus() == TradeStatus.CLOSED) {
+        // Перезагружаем пару из БД для получения актуального статуса
+        PairData freshPairData = pairDataService.findById(pairData.getId());
+        if (freshPairData == null || freshPairData.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
-            return pairData;
+            return freshPairData != null ? freshPairData : pairData;
         }
+
+        // Используем свежие данные из БД
+        pairData = freshPairData;
 
         log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
