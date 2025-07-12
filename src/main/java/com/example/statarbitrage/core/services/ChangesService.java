@@ -179,11 +179,11 @@ public class ChangesService {
             BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
             BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
 
-            // Получаем реальный PnL для данной пары через TradingIntegrationService
-            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-
-            // Обновляем цены позиций для актуальных данных
+            // Сначала обновляем цены позиций с биржи для актуальных данных
             tradingIntegrationService.updateAllPositions();
+            
+            // Затем получаем реальный PnL для данной пары с актуальными ценами
+            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
 
             // Расчет процентных изменений позиций на основе текущих и входных цен
             BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());

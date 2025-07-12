@@ -86,14 +86,6 @@ public class UpdateTradeProcessor {
 
         logData(zScoreData);
 
-//        // Обновляем реальный PnL из торговой системы (берём с OKX)
-//        BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-//        if (realPnL.compareTo(BigDecimal.ZERO) != 0) {
-//            // Конвертируем в проценты для совместимости с существующей системой
-//            pairData.setProfitChanges(realPnL);
-//            log.debug("🔄 Обновлен реальный PnL для пары {} - {}: {}", pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
-//        }
-
         pairDataService.updateReal(pairData, zScoreData, candlesMap);
         changesService.calculateReal(pairData);
 
