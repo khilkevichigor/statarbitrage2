@@ -131,7 +131,7 @@ public class TradingIntegrationService {
     /**
      * Закрытие пары позиций - СИНХРОННО
      */
-    public boolean closeArbitragePair(PairData pairData) {
+    public CloseArbitragePairResult closeArbitragePair(PairData pairData) {
         // Синхронизируем всю операцию закрытия пары
         synchronized (openPositionLock) {
             try {
@@ -141,7 +141,9 @@ public class TradingIntegrationService {
                 if (longPositionId == null || shortPositionId == null) {
                     log.warn("⚠️ Не найдены позиции для пары {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
-                    return false;
+                    return CloseArbitragePairResult.builder()
+                            .success(false)
+                            .build();
                 }
 
                 TradingProvider provider = tradingProviderFactory.getCurrentProvider();
@@ -175,12 +177,18 @@ public class TradingIntegrationService {
                             longCloseResult.getErrorMessage(), shortCloseResult.getErrorMessage());
                 }
 
-                return success;
+                return CloseArbitragePairResult.builder()
+                        .success(true)
+                        .longTradeResult(longCloseResult)
+                        .shortTradeResult(shortCloseResult)
+                        .build();
 
             } catch (Exception e) {
                 log.error("❌ Ошибка при закрытии арбитражной пары {}/{}: {}",
                         pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-                return false;
+                return CloseArbitragePairResult.builder()
+                        .success(false)
+                        .build();
             }
         }
     }

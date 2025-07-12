@@ -7,6 +7,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
 import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
@@ -130,24 +131,44 @@ public class StartNewTradeProcessor {
             OpenArbitragePairResult openArbitragePairResult = tradingIntegrationService.openArbitragePair(pairData, zScoreData, candlesMap);
             if (openArbitragePairResult != null && openArbitragePairResult.isSuccess()) {
 
-                TradeResult longTradeResult = openArbitragePairResult.getLongTradeResult();
-                TradeResult shortTradeResult = openArbitragePairResult.getShortTradeResult();
+                TradeResult openLongTradeResult = openArbitragePairResult.getLongTradeResult();
+                TradeResult openShortTradeResult = openArbitragePairResult.getShortTradeResult();
 
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                pairDataService.updateReal(pairData, zScoreData, candlesMap, longTradeResult, shortTradeResult);
+                pairDataService.updateReal(pairData, zScoreData, candlesMap, openLongTradeResult, openShortTradeResult);
                 changesService.calculateReal(pairData);
                 String exitReason = exitStrategyService.getExitReason(pairData);
                 if (exitReason != null) {
-                    //todo здесь закрыть позиции
-                    //todo снова обновить updateReal
-                    pairData.setExitReason(exitReason);
-                    pairData.setStatus(TradeStatus.CLOSED);
+                    log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}", 
+                            exitReason, pairData.getLongTicker(), pairData.getShortTicker());
+                    
+                    // Закрываем арбитражную пару через торговую систему СИНХРОННО
+                    CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
+                    if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
+                        log.info("✅ Успешно закрыта арбитражная пара: {}/{}", 
+                                pairData.getLongTicker(), pairData.getShortTicker());
+
+                        TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
+                        TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
+                        pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+                        // Снова обновляем данные после закрытия позиций
+                        changesService.calculateReal(pairData);
+                        
+                        pairData.setExitReason(exitReason);
+                        pairData.setStatus(TradeStatus.CLOSED);
+                    } else {
+                        log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}", 
+                                pairData.getLongTicker(), pairData.getShortTicker());
+                        
+                        pairData.setExitReason("ERROR_CLOSING: " + exitReason);
+                        pairData.setStatus(TradeStatus.ERROR_200);
+                    }
                 }
                 pairDataService.save(pairData);
 
-                tradeLogService.saveLog(pairData); //todo real
+                tradeLogService.saveLog(pairData);
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());

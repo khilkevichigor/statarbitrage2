@@ -7,6 +7,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
@@ -96,8 +97,8 @@ public class UpdateTradeProcessor {
 
         // Если статус изменился на CLOSED, закрываем позиции в торговой системе СИНХРОННО
         if (statusBefore == TradeStatus.TRADING && isCloseManually) {
-            boolean success = tradingIntegrationService.closeArbitragePair(pairData);
-            if (success) {
+            CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
+            if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
                 log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
