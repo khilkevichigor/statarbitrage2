@@ -46,8 +46,8 @@ public class StartNewTradeProcessor {
     }
 
     private PairData startNewVirtualTrade(PairData pairData) {
+        log.info("🚀 Начинаем новый трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
-        log.info("🚀 Начинаем новый трейд...");
 
         //Проверка на дурака
         if (validateService.isLastZLessThenMinZ(pairData, settings)) {
@@ -92,8 +92,8 @@ public class StartNewTradeProcessor {
     }
 
     private PairData startNewRealTrade(PairData pairData) {
+        log.info("🚀 Начинаем новый трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
-        log.info("🚀 Начинаем новый трейд...");
 
         //Проверка на дурака
         if (validateService.isLastZLessThenMinZ(pairData, settings)) {

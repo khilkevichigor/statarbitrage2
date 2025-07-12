@@ -44,7 +44,7 @@ public class UpdateTradeProcessor {
     }
 
     private void updateVirtualTrade(PairData pairData, boolean isCloseManually) {
-        log.info("🚀 Начинаем обновление трейда...");
+        log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
@@ -74,7 +74,7 @@ public class UpdateTradeProcessor {
     }
 
     private void updateRealTrade(PairData pairData, boolean isCloseManually) {
-        log.info("🚀 Начинаем обновление трейда...");
+        log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
@@ -92,7 +92,7 @@ public class UpdateTradeProcessor {
         if (realPnL.compareTo(BigDecimal.ZERO) != 0) {
             // Конвертируем в проценты для совместимости с существующей системой
             pairData.setProfitChanges(realPnL);
-            log.debug("🔄 Обновлен реальный PnL для пары {}/{}: {}", pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
+            log.debug("🔄 Обновлен реальный PnL для пары {} - {}: {}", pairData.getLongTicker(), pairData.getShortTicker(), realPnL);
         }
 
         // Если статус изменился на CLOSED, закрываем позиции в торговой системе СИНХРОННО
