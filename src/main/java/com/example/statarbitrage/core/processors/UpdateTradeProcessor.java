@@ -101,21 +101,15 @@ public class UpdateTradeProcessor {
                     TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                     TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
                     pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
-//                    changesService.calculateReal(pairData);
-//                    tradeLogService.saveLog(pairData);
                 } else {
                     log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
 
                     pairData.setStatus(TradeStatus.ERROR_200);
-//                    pairDataService.save(pairData);
                 }
             } else {
                 log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
                         pairData.getLongTicker(), pairData.getShortTicker());
-
-                // Если позиции уже закрыты на бирже, просто сохраняем лог без попытки закрытия
-//                tradeLogService.saveLog(pairData);
             }
 
         } else {
@@ -133,9 +127,6 @@ public class UpdateTradeProcessor {
                     TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                     TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
                     pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
-                    // Снова обновляем данные после закрытия позиций
-//                    changesService.calculateReal(pairData);
-
                     pairData.setExitReason(exitReason);
                     pairData.setStatus(TradeStatus.CLOSED);
                 } else {
