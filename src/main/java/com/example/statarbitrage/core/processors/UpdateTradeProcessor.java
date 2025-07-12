@@ -99,21 +99,29 @@ public class UpdateTradeProcessor {
 
         // Если статус изменился на CLOSED, закрываем позиции в торговой системе СИНХРОННО
         if (statusBefore == TradeStatus.TRADING && isCloseManually) {
-            CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
-            if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
-                log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
+            // Проверяем наличие открытых позиций перед попыткой закрытия
+            if (tradingIntegrationService.hasOpenPositions(pairData)) {
+                CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
+                if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
+                    log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
 
-                tradeLogService.saveLog(pairData);
+                    tradeLogService.saveLog(pairData);
+                } else {
+                    log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
+                            pairData.getLongTicker(), pairData.getShortTicker());
+
+                    pairData.setStatus(TradeStatus.ERROR_200);
+                    pairDataService.save(pairData);
+                }
             } else {
-                log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
+                log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
                         pairData.getLongTicker(), pairData.getShortTicker());
-
-                pairData.setStatus(TradeStatus.ERROR_200);
-                pairDataService.save(pairData);
+                
+                // Если позиции уже закрыты на бирже, просто сохраняем лог без попытки закрытия
+                tradeLogService.saveLog(pairData);
             }
         }
-
     }
 
     private static void logData(ZScoreData zScoreData) {

@@ -220,6 +220,25 @@ public class TradingIntegrationService {
     }
 
     /**
+     * Проверка наличия открытых позиций для пары
+     */
+    public boolean hasOpenPositions(PairData pairData) {
+        String longPositionId = pairToLongPositionMap.get(pairData.getId());
+        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+
+        if (longPositionId == null || shortPositionId == null) {
+            return false;
+        }
+
+        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        Position longPosition = provider.getPosition(longPositionId);
+        Position shortPosition = provider.getPosition(shortPositionId);
+
+        // Если хотя бы одна позиция не найдена, считаем что пара не имеет открытых позиций
+        return longPosition != null && shortPosition != null;
+    }
+
+    /**
      * Получение реальной прибыли позиции
      */
     public BigDecimal getPositionPnL(PairData pairData) {
