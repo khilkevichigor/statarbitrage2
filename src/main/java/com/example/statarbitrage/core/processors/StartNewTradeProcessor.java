@@ -125,8 +125,6 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        //todo ПИЛЮ...
-
         // Проверяем, можем ли открыть новую пару на торговом депо
         if (tradingIntegrationService.canOpenNewPair()) {
             // Открываем арбитражную пару через торговую систему СИНХРОННО
@@ -139,7 +137,7 @@ public class StartNewTradeProcessor {
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                //todo может это все ниже заменить на updateRealTrade() com/example/statarbitrage/core/processors/UpdateTradeProcessor.java:78
+                //todo может это все ниже заменить на updateRealTrade() com/example/statarbitrage/core/processors/UpdateTradeProcessor.java:78 ???
                 pairDataService.updateReal(pairData, zScoreData, candlesMap, openLongTradeResult, openShortTradeResult);
                 changesService.calculateReal(pairData);
                 String exitReason = exitStrategyService.getExitReason(pairData);
