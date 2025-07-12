@@ -491,7 +491,7 @@ public class SettingsComponent extends VerticalLayout {
             settingsBinder.writeBean(currentSettings);
             settingsService.save(currentSettings);
             Notification.show("Настройки сохранены успешно");
-            log.info("Settings saved successfully");
+            log.info("Настройки сохранены успешно");
         } catch (ValidationException e) {
             String errorMessage = "Проверьте правильность заполнения полей: " +
                     e.getValidationErrors().stream()

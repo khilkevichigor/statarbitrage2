@@ -13,6 +13,7 @@ import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,6 +35,7 @@ public class UpdateTradeProcessor {
     private final ChangesService changesService;
     private final ExitStrategyService exitStrategyService;
 
+    @Transactional
     public void updateTrade(PairData pairData, boolean isCloseManually) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {

@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -113,7 +112,7 @@ public class PairDataService {
         return pairData;
     }
 
-    @Transactional
+    //    @Transactional
     public void updateVirtual(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
@@ -197,7 +196,7 @@ public class PairDataService {
         save(pairData);
     }
 
-    @Transactional //todo перенести выше???
+    //    @Transactional //todo перенести выше???
     public void updateReal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, TradeResult longResult, TradeResult shortResult) {
 
         //Обновляем текущие цены
@@ -261,9 +260,10 @@ public class PairDataService {
         save(pairData);
     }
 
-    @Transactional
+    //    @Transactional
     public void save(PairData pairData) {
-        saveWithRetry(pairData, 10);
+//        saveWithRetry(pairData, 10);
+        pairDataRepository.save(pairData);
     }
 
     private void saveWithRetry(PairData pairData, int maxRetries) {

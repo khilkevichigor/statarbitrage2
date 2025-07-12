@@ -15,6 +15,7 @@ import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class StartNewTradeProcessor {
     private final ChangesService changesService;
     private final ExitStrategyService exitStrategyService;
 
+    @Transactional
     public PairData startNewTrade(PairData pairData) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
@@ -107,7 +109,7 @@ public class StartNewTradeProcessor {
         Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {
-            log.warn("📊 ZScore данные пусты для пары {}/{}. Пропускаем создание нового трейда.", pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("📊 Пропускаем создание нового трейда. ZScore данные пусты для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
             return null;
         }
 
