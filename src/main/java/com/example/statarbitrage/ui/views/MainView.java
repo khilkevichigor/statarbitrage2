@@ -70,7 +70,6 @@ public class MainView extends VerticalLayout implements UIUpdateable {
         // Устанавливаем callback'и после того, как все компоненты инициализированы
         log.info("🔗 MainView: Устанавливаем callback'и после PostConstruct");
         setupAutoTradingCallback();
-        setupVirtualTradingCallback();
     }
 
     private void initializeLayout() {
@@ -96,10 +95,6 @@ public class MainView extends VerticalLayout implements UIUpdateable {
 
     private void setupAutoTradingCallback() {
         settingsComponent.setAutoTradingChangeCallback(this::updateButtonState);
-    }
-
-    private void setupVirtualTradingCallback() {
-        settingsComponent.setVirtualTradingChangeCallback(this::updateButtonState);
     }
 
     private void updateButtonState() {

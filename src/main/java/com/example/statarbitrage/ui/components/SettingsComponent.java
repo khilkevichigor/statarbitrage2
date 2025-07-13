@@ -43,9 +43,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private Settings currentSettings;
     private Checkbox autoTradingCheckbox;
-    private Checkbox virtualTradingCheckbox;
     private Runnable autoTradingChangeCallback;
-    private Runnable virtualTradingChangeCallback;
 
     public SettingsComponent(SettingsService settingsService,
                              TradeAndSimulationScheduler tradeAndSimulationScheduler) {
@@ -92,7 +90,6 @@ public class SettingsComponent extends VerticalLayout {
 
     private void createSettingsForm() {
         createAutoTradingToggle();
-//        createVirtualTradingToggle(); //todo пока отключим что бы не создавать кашу
         createSettingsFormSections();
         createSaveButton();
     }
@@ -164,58 +161,6 @@ public class SettingsComponent extends VerticalLayout {
         });
     }
 
-    private void createVirtualTradingToggle() {
-        Div virtualTradingCard = new Div();
-        virtualTradingCard.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.BorderRadius.LARGE);
-        virtualTradingCard.getStyle().set("padding", "1.5rem").set("margin-bottom", "2rem");
-
-        HorizontalLayout toggleHeader = new HorizontalLayout();
-        toggleHeader.setAlignItems(HorizontalLayout.Alignment.CENTER);
-        toggleHeader.setWidthFull();
-
-        Icon icon = new Icon(VaadinIcon.CAR);
-        icon.addClassNames(LumoUtility.TextColor.SUCCESS);
-
-        Div titleSection = new Div();
-        H3 title = new H3("Виртуальный трейдинг");
-        title.getStyle().set("margin", "0").set("color", "var(--lumo-primary-text-color)");
-
-        Div description = new Div();
-        description.setText("Виртуальное выполнение торговых операций");
-        description.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
-
-        titleSection.add(title, description);
-
-        virtualTradingCheckbox = new Checkbox();
-        virtualTradingCheckbox.setValue(currentSettings.isVirtualTradingEnabled());
-        virtualTradingCheckbox.getStyle().set("transform", "scale(1.3)");
-
-        toggleHeader.add(icon, titleSection, virtualTradingCheckbox);
-        toggleHeader.setFlexGrow(1, titleSection);
-
-        virtualTradingCard.add(toggleHeader);
-        add(virtualTradingCard);
-
-        virtualTradingCheckbox.addValueChangeListener(event -> {
-            try {
-                Settings settings = settingsService.getSettings();
-                settings.setVirtualTradingEnabled(event.getValue());
-                settingsService.save(settings);
-
-                log.info(event.getValue() ? "Виртуальный трейдинг включен" : "Виртуальный трейдинг отключен");
-                Notification.show(event.getValue() ? "Виртуальный трейдинг включен" : "Виртуальный трейдинг отключен");
-
-                // Уведомляем об изменении состояния автотрейдинга
-                if (virtualTradingChangeCallback != null) {
-                    virtualTradingChangeCallback.run();
-                }
-            } catch (Exception e) {
-                log.error("Error updating virtualTrading mode", e);
-                Notification.show("Ошибка при изменении режима виртуального трейдинга: " + e.getMessage());
-            }
-        });
-    }
-
     private void createSettingsFormSections() {
         // Create form fields
         TextField timeframeField = new TextField("Таймфрейм");
@@ -237,7 +182,6 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
 
-//        NumberField maxPositionPercentPerPairField = new NumberField("% от депо на пару (%)");
         NumberField maxPositionSize = new NumberField("Размер позиции ($)");
         NumberField capitalShortField = new NumberField("Позиция шорт ($)");
         NumberField leverageField = new NumberField("Плечо");
@@ -270,7 +214,6 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(minCorrelationField, 0.01, -1.0);
         setNumberFieldProperties(minVolumeField, 1, 0.0);
         setNumberFieldProperties(checkIntervalField, 1, 1);
-//        setNumberFieldProperties(maxPositionPercentPerPairField, 1.0, 0.0);
         setNumberFieldProperties(maxPositionSize, 1.0, 0.0);
         setNumberFieldProperties(capitalShortField, 1.0, 0.0);
         setNumberFieldProperties(leverageField, 1, 1);
@@ -291,9 +234,7 @@ public class SettingsComponent extends VerticalLayout {
                 useMinVolumeFilterCheckbox));
 
         add(createCapitalSection(
-//                maxPositionPercentPerPairField,
                 maxPositionSize,
-//                capitalShortField,
                 leverageField, feePctPerTradeField));
 
         add(createExitStrategySection(exitTakeField, exitStopField, exitZMinField, exitZMaxField,
@@ -304,9 +245,7 @@ public class SettingsComponent extends VerticalLayout {
         bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, checkIntervalField, minCorrelationField,
                 minVolumeField, usePairsField,
-//                maxPositionPercentPerPairField,
                 maxPositionSize,
-//                capitalShortField,
                 leverageField, feePctPerTradeField, exitTakeField, exitStopField,
                 exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField,
                 useMinZFilterCheckbox, useMinRSquaredFilterCheckbox, useMinPValueFilterCheckbox,
@@ -349,17 +288,10 @@ public class SettingsComponent extends VerticalLayout {
         return analysisSection;
     }
 
-    private Details createCapitalSection(
-//            NumberField maxPositionPercentPerPairField,
-            NumberField maxPositionSize,
-//                                         NumberField capitalShortField,
-            NumberField leverageField, NumberField feePctPerTradeField) {
-
+    private Details createCapitalSection(NumberField maxPositionSize, NumberField leverageField, NumberField feePctPerTradeField) {
         FormLayout capitalForm = createFormLayout();
         capitalForm.add(
-//                maxPositionPercentPerPairField,
                 maxPositionSize,
-//                capitalShortField,
                 leverageField, feePctPerTradeField
         );
 
@@ -452,9 +384,7 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField minPValueField, NumberField minAdfValueField,
                             NumberField checkIntervalField, NumberField minCorrelationField,
                             NumberField minVolumeField, NumberField usePairsField,
-//                            NumberField maxPositionPercentPerPairField,
                             NumberField maxPositionSizeField,
-//                            NumberField capitalShortField,
                             NumberField leverageField, NumberField feePctPerTradeField,
                             NumberField exitTakeField, NumberField exitStopField,
                             NumberField exitZMinField, NumberField exitZMaxField,
@@ -480,9 +410,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
         settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
-//        settingsBinder.forField(maxPositionPercentPerPairField).bind(Settings::getMaxPositionPercentPerPair, Settings::setMaxPositionPercentPerPair);
         settingsBinder.forField(maxPositionSizeField).bind(Settings::getMaxPositionSize, Settings::setMaxPositionSize);
-//        settingsBinder.forField(capitalShortField).bind(Settings::getMaxPositionShort, Settings::setMaxPositionShort);
 
         settingsBinder.forField(leverageField)
                 .withValidator(new DoubleRangeValidator("Плечо должно быть больше 0", 0.1, Double.MAX_VALUE))
@@ -550,10 +478,6 @@ public class SettingsComponent extends VerticalLayout {
 
     public void setAutoTradingChangeCallback(Runnable callback) {
         this.autoTradingChangeCallback = callback;
-    }
-
-    public void setVirtualTradingChangeCallback(Runnable callback) {
-        this.virtualTradingChangeCallback = callback;
     }
 
     public boolean isAutoTradingEnabled() {
