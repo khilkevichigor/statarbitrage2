@@ -7,7 +7,6 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
-import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
 import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
@@ -172,44 +171,46 @@ public class StartNewTradeProcessor {
 
                 pairDataService.updateReal(pairData, zScoreData, candlesMap, openLongTradeResult, openShortTradeResult);
                 changesService.calculateReal(pairData);
-                String exitReason = exitStrategyService.getExitReason(pairData);
-                if (exitReason != null) {
-                    log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
-                            exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
-                    if (tradingIntegrationService.hasOpenPositions(pairData)) { //еще раз проверим на всякий что позиции не закрыты руками на окх
-                        // Закрываем арбитражную пару через торговую систему СИНХРОННО
-                        CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
-                        if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
-                            log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
-                                    pairData.getLongTicker(), pairData.getShortTicker());
+                //todo может getExitReason() лишнее тут и оставить для шедуллера обновления updateTrades()
+//                String exitReason = exitStrategyService.getExitReason(pairData);
+//                if (exitReason != null) {
+//                    log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
+//                            exitReason, pairData.getLongTicker(), pairData.getShortTicker());
+//
+//                    if (tradingIntegrationService.hasOpenPositions(pairData)) { //еще раз проверим на всякий что позиции не закрыты руками на окх
+//                        // Закрываем арбитражную пару через торговую систему СИНХРОННО
+//                        CloseArbitragePairResult closeArbitragePairResult = tradingIntegrationService.closeArbitragePair(pairData);
+//                        if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
+//                            log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
+//                                    pairData.getLongTicker(), pairData.getShortTicker());
+//
+//                            TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
+//                            TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
+//                            pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult); //todo может и не надо обновлять тк там все тоже самое что и при открытии трейда выше
+//                            // Снова обновляем данные после закрытия позиций
+//                            changesService.calculateReal(pairData);
+//
+//                            pairData.setExitReason(exitReason);
+//                            pairData.setStatus(TradeStatus.CLOSED);
+//                        } else {
+//                            log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}",
+//                                    pairData.getLongTicker(), pairData.getShortTicker());
+//
+//                            pairData.setExitReason("ERROR_CLOSING: " + exitReason);
+//                            pairData.setStatus(TradeStatus.ERROR_200);
+//                        }
+//
+//                    } else {
+//                        log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
+//                                pairData.getLongTicker(), pairData.getShortTicker());
+//
+//                        // Если позиции уже закрыты на бирже, просто сохраняем лог без попытки закрытия
+//                        tradeLogService.saveLog(pairData);
+//                    }
+//                }
 
-                            TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
-                            TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
-                            pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult); //todo может и не надо обновлять тк там все тоже самое что и при открытии трейда выше
-                            // Снова обновляем данные после закрытия позиций
-                            changesService.calculateReal(pairData);
-
-                            pairData.setExitReason(exitReason);
-                            pairData.setStatus(TradeStatus.CLOSED);
-                        } else {
-                            log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}",
-                                    pairData.getLongTicker(), pairData.getShortTicker());
-
-                            pairData.setExitReason("ERROR_CLOSING: " + exitReason);
-                            pairData.setStatus(TradeStatus.ERROR_200);
-                        }
-
-                    } else {
-                        log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
-                                pairData.getLongTicker(), pairData.getShortTicker());
-
-                        // Если позиции уже закрыты на бирже, просто сохраняем лог без попытки закрытия
-                        tradeLogService.saveLog(pairData);
-                    }
-                }
-                pairDataService.save(pairData);
-
+//                pairDataService.save(pairData);
                 tradeLogService.saveLog(pairData);
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
