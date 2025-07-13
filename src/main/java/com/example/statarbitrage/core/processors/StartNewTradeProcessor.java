@@ -109,6 +109,10 @@ public class StartNewTradeProcessor {
         return pairData;
     }
 
+    //todo может продумать механизм добавления доп статусов в PairData - например
+    //todo получили ZScoreData - добавили WITH_ZSCORE_DATA или колонка with_zscore_data = true, открыли сделки - WITH_OPEN_POSITIONS или колонка with_open_positions=true
+    //todo и тд! Что бы на каждом этапе сетать их для понимания! И можно будет шедуллером подчищать незавершенные PairData в бд.
+    //todo либо тупо удалять pairData чуть что!
     private PairData startNewRealTrade(StartNewTradeRequest request) {
         PairData pairData = request.getPairData();
         boolean checkAutoTrading = request.isCheckAutoTrading();
@@ -127,6 +131,7 @@ public class StartNewTradeProcessor {
         Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {
+            pairDataService.delete(pairData); //todo например здесь удалять PairData тк он уже не актуален
             log.warn("📊 Пропускаем создание нового трейда. ZScore данные пусты для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
             return null;
         }
@@ -136,6 +141,7 @@ public class StartNewTradeProcessor {
         ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
 
         if (!Objects.equals(pairData.getLongTicker(), zScoreData.getUndervaluedTicker()) || !Objects.equals(pairData.getShortTicker(), zScoreData.getOvervaluedTicker())) {
+            pairDataService.delete(pairData); //todo например здесь удалять PairData тк он уже не актуален
             String message = String.format("Ошибка начала нового терейда для пары лонг=%s шорт=%s. Тикеры поменялись местами!!! Торговать нельзя!!!", pairData.getLongTicker(), pairData.getShortTicker());
             log.error(message);
             throw new IllegalArgumentException(message);
@@ -147,6 +153,7 @@ public class StartNewTradeProcessor {
             Settings currentSettings = settingsService.getSettings();
             log.debug("📖 Процессор: Читаем настройки из БД: autoTrading={}", currentSettings.isAutoTradingEnabled());
             if (!currentSettings.isAutoTradingEnabled()) {
+                pairDataService.delete(pairData); //todo например здесь удалять PairData тк он уже не актуален
                 log.warn("🛑 Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
                 return null;
             }

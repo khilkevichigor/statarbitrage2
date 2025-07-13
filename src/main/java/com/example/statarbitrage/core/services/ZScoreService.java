@@ -234,6 +234,19 @@ public class ZScoreService {
             Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
+
+                //todo здесь как то отфильтровывать тикеры на уникальность для простоты открытия/закрытия позиций в будущем
+                List<String> actualBestTickers = new ArrayList<>();
+                bestPairs.forEach(b -> {
+                    actualBestTickers.add(b.getUndervaluedTicker());
+                    actualBestTickers.add(b.getOvervaluedTicker());
+                });
+                if (actualBestTickers.contains(best.getUndervaluedTicker()) || actualBestTickers.contains(best.getOvervaluedTicker())) {
+                    log.warn("Пропускаем пару {} - {} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
+                            best.getUndervaluedTicker(), best.getOvervaluedTicker());
+                    continue;
+                }
+
                 logLastZ(best);
 
                 //детальная инфа

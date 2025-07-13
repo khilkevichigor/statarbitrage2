@@ -5,6 +5,7 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.CandlesService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +33,18 @@ public class FetchPairsProcessor {
 
         Settings settings = settingsService.getSettings();
         long candlesStartTime = System.currentTimeMillis();
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings);
+        //todo тут брать все TRADING, маппить в лист тикеров с лонг/шорт и передавать для фильтрации в getApplicableCandlesMap() что бы их исключить
+        //todo нужно чтобы были только уникальные монеты чтобы не путать сделки между собой - проще управлять сделками открыл/закрыл и не думаешь что в монете
+        //todo часть денег с другого трейда
+        List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+
+        List<String> tradingTickers = new ArrayList<>();
+        tradingPairs.forEach(p -> {
+            tradingTickers.add(p.getLongTicker());
+            tradingTickers.add(p.getShortTicker());
+        });
+
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings, tradingTickers); //todo сюда передаем лист TRADING тикеров
         long candlesEndTime = System.currentTimeMillis();
         log.info("✅ Собрали карту свечей за {}с", String.format("%.2f", (candlesEndTime - candlesStartTime) / 1000.0));
         int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();
