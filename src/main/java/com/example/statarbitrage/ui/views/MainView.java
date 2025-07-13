@@ -106,6 +106,9 @@ public class MainView extends VerticalLayout implements UIUpdateable {
                 getCointPairsButton.setText("Получить пары");
                 getCointPairsButton.setIcon(new Icon(VaadinIcon.REFRESH));
             }
+
+            // Обновляем доступность режима торговли в PortfolioComponent
+            portfolioComponent.updateTradingModeAvailability();
         }));
     }
 

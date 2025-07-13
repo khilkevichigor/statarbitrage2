@@ -1,5 +1,6 @@
 package com.example.statarbitrage.ui.components;
 
+import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.model.TradingProviderSwitchResult;
@@ -32,6 +33,7 @@ import java.math.RoundingMode;
 public class PortfolioComponent extends VerticalLayout {
 
     private final TradingIntegrationService tradingIntegrationService;
+    private final SettingsService settingsService;
 
     // UI элементы
     private Span totalBalanceLabel;
@@ -45,11 +47,16 @@ public class PortfolioComponent extends VerticalLayout {
     private Span utilizationLabel;
     private ComboBox<TradingProviderType> tradingModeComboBox;
 
-    public PortfolioComponent(TradingIntegrationService tradingIntegrationService) {
+    // Флаг для предотвращения рекурсии
+    private boolean isUpdatingComboBox = false;
+
+    public PortfolioComponent(TradingIntegrationService tradingIntegrationService, SettingsService settingsService) {
         this.tradingIntegrationService = tradingIntegrationService;
+        this.settingsService = settingsService;
         initializeComponent();
         createPortfolioCards();
         updatePortfolioInfo();
+        updateTradingModeAvailability();
     }
 
     private void initializeComponent() {
@@ -339,10 +346,63 @@ public class PortfolioComponent extends VerticalLayout {
     }
 
     /**
+     * Обновление доступности режима торговли в зависимости от состояния автотрейдинга
+     */
+    public void updateTradingModeAvailability() {
+        try {
+            boolean isAutoTradingEnabled = settingsService.getSettings().isAutoTradingEnabled();
+
+            if (isAutoTradingEnabled) {
+                // Блокируем комбобокс и меняем стиль
+                tradingModeComboBox.setEnabled(false);
+                tradingModeComboBox.getStyle().set("opacity", "0.6");
+
+                // Добавляем подсказку
+                tradingModeComboBox.setTooltipText("🔒 Режим торговли заблокирован пока включен автотрейдинг");
+
+                log.debug("Режим торговли заблокирован - автотрейдинг включен");
+            } else {
+                // Разблокируем комбобокс
+                tradingModeComboBox.setEnabled(true);
+                tradingModeComboBox.getStyle().remove("opacity");
+
+                // Убираем подсказку
+                tradingModeComboBox.setTooltipText("Выберите режим торговли");
+
+                log.debug("Режим торговли разблокирован - автотрейдинг выключен");
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении доступности режима торговли", e);
+        }
+    }
+
+    /**
      * Обработка переключения режима торговли с детальными сообщениями об ошибках
      */
     private void handleTradingModeSwitch(TradingProviderType newMode, TradingProviderType oldMode) {
+        // Проверяем флаг предотвращения рекурсии
+        if (isUpdatingComboBox) {
+            return;
+        }
+
         try {
+            // Проверяем, что автотрейдинг выключен
+            if (settingsService.getSettings().isAutoTradingEnabled()) {
+                String message = "⚠️ Невозможно изменить режим торговли при включенном автотрейдинге.\n\nСначала отключите автотрейдинг в настройках.";
+                Notification notification = Notification.show(message);
+                notification.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_WARNING);
+                notification.setDuration(5000);
+
+                // Устанавливаем флаг перед изменением значения для предотвращения рекурсии
+                isUpdatingComboBox = true;
+                try {
+                    tradingModeComboBox.setValue(oldMode);
+                } finally {
+                    isUpdatingComboBox = false;
+                }
+                return;
+            }
+
             log.info("Переключение режима торговли с {} на {}", oldMode, newMode);
 
             // Используем метод с детальной информацией об ошибках
@@ -373,8 +433,13 @@ public class PortfolioComponent extends VerticalLayout {
             errorNotification.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_ERROR);
             errorNotification.setDuration(5000);
 
-            // Возвращаем старое значение
-            tradingModeComboBox.setValue(oldMode);
+            // Устанавливаем флаг перед изменением значения для предотвращения рекурсии
+            isUpdatingComboBox = true;
+            try {
+                tradingModeComboBox.setValue(oldMode);
+            } finally {
+                isUpdatingComboBox = false;
+            }
         }
     }
 
@@ -399,8 +464,13 @@ public class PortfolioComponent extends VerticalLayout {
         Notification errorNotification = createErrorNotification(result.getErrorType(), errorMessage);
         errorNotification.open();
 
-        // Возвращаем старое значение в комбобокс
-        tradingModeComboBox.setValue(oldMode);
+        // Устанавливаем флаг перед изменением значения для предотвращения рекурсии
+        isUpdatingComboBox = true;
+        try {
+            tradingModeComboBox.setValue(oldMode);
+        } finally {
+            isUpdatingComboBox = false;
+        }
     }
 
     /**
