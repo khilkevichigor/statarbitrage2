@@ -11,6 +11,7 @@ import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
+import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -36,16 +37,18 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
 
     @Transactional
-    public PairData updateTrade(PairData pairData, boolean isCloseManually) {
+    public PairData updateTrade(UpdateTradeRequest request) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-            return updateVirtualTrade(pairData, isCloseManually);
+            return updateVirtualTrade(request);
         } else {
-            return updateRealTrade(pairData, isCloseManually);
+            return updateRealTrade(request);
         }
     }
 
-    private PairData updateVirtualTrade(PairData pairData, boolean isCloseManually) {
+    private PairData updateVirtualTrade(UpdateTradeRequest request) {
+        PairData pairData = request.getPairData();
+        boolean isCloseManually = request.isCloseManually();
         // Проверяем статус пары - если уже закрыта, не обрабатываем
         if (pairData.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
@@ -82,7 +85,9 @@ public class UpdateTradeProcessor {
         return pairData;
     }
 
-    private PairData updateRealTrade(PairData pairData, boolean isCloseManually) {
+    private PairData updateRealTrade(UpdateTradeRequest request) {
+        PairData pairData = request.getPairData();
+        boolean isCloseManually = request.isCloseManually();
         // Перезагружаем пару из БД для получения актуального статуса
         PairData freshPairData = pairDataService.findById(pairData.getId());
         if (freshPairData == null || freshPairData.getStatus() == TradeStatus.CLOSED) {

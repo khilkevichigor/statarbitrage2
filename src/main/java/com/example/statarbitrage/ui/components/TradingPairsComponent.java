@@ -9,6 +9,7 @@ import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.TradeLogService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
+import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
@@ -220,7 +221,10 @@ public class TradingPairsComponent extends VerticalLayout {
     private Button createStopTradingButton(PairData pairData) {
         Button actionButton = new Button("Закрыть", event -> {
             try {
-                PairData updatedPairData = updateTradeProcessor.updateTrade(pairData, true);
+                PairData updatedPairData = updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+                        .pairData(pairData)
+                        .closeManually(true)
+                        .build());
                 Notification.show(String.format(
                         "Статус пары %s/%s изменен на %s",
                         updatedPairData.getLongTicker(), updatedPairData.getShortTicker(), updatedPairData.getStatus()

@@ -13,6 +13,7 @@ import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
+import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -67,7 +68,10 @@ public class TradeAndSimulationScheduler {
 
                 tradingPairs.forEach(p -> {
                     try {
-                        updateTradeProcessor.updateTrade(p, false);
+                        updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+                                .pairData(p)
+                                .closeManually(false)
+                                .build());
                     } catch (Exception e) {
                         log.warn("⚠️ Ошибка при обновлении пары {}/{}: {}",
                                 p.getLongTicker(), p.getShortTicker(), e.getMessage());
