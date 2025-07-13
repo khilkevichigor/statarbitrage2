@@ -220,11 +220,13 @@ public class ZScoreService {
     }
 
     private List<ZScoreData> obtainTopNBestPairs(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
-        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
-            throw new IllegalArgumentException("Отобрано 0 пар");
-        }
         if (topN <= 0) {
-            throw new IllegalArgumentException("Некорректное количество пар: topN={" + topN + "}");
+            log.warn("Некорректное количество пар: topN={}", topN);
+            return Collections.emptyList();
+        }
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            log.warn("Отобрано 0 пар!");
+            return Collections.emptyList();
         }
 
         List<ZScoreData> bestPairs = new ArrayList<>();
@@ -235,12 +237,13 @@ public class ZScoreService {
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 
-                //todo здесь как то отфильтровывать тикеры на уникальность для простоты открытия/закрытия позиций в будущем
+                //смотрим что мы отобрали по тикерам
                 List<String> actualBestTickers = new ArrayList<>();
                 bestPairs.forEach(b -> {
                     actualBestTickers.add(b.getUndervaluedTicker());
                     actualBestTickers.add(b.getOvervaluedTicker());
                 });
+                //берем только те новые тикеры которых еще нет в торговле
                 if (actualBestTickers.contains(best.getUndervaluedTicker()) || actualBestTickers.contains(best.getOvervaluedTicker())) {
                     log.warn("Пропускаем пару {} - {} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
                             best.getUndervaluedTicker(), best.getOvervaluedTicker());

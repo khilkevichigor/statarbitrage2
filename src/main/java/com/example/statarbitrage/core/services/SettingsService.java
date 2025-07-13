@@ -25,8 +25,8 @@ public class SettingsService {
 
     private Settings createTempDefaultSettings() {
         Settings settings = new Settings();
-        settings.setCapitalLong(10.0);
-        settings.setCapitalShort(10.0);
+        settings.setMaxPositionLong(10.0);
+        settings.setMaxPositionShort(10.0);
         settings.setLeverage(1.0);
         settings.setFeePctPerTrade(0.05);
         settings.setMaxPositionPercentPerPair(1.0);

@@ -46,8 +46,8 @@ public class DbInitializer {
                     .checkInterval(1)
 
                     .maxPositionPercentPerPair(1.0) //для реальных сделок
-                    .capitalLong(10.0)
-                    .capitalShort(10.0)
+                    .maxPositionLong(10.0)
+                    .maxPositionShort(10.0)
                     .leverage(1.0)
                     .feePctPerTrade(0.05)
 

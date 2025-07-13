@@ -145,6 +145,10 @@ public class TradeAndSimulationScheduler {
                     List<PairData> newPairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder()
                             .countOfPairs(missing)
                             .build());
+                    if (newPairs.isEmpty()) {
+                        log.warn("Отобрано 0 пар!");
+                        return;
+                    }
                     newPairs.forEach((v) -> {
                         try {
                             PairData startedNewTrade = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()

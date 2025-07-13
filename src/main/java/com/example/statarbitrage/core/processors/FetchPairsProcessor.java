@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,22 +35,26 @@ public class FetchPairsProcessor {
 
         Settings settings = settingsService.getSettings();
         long candlesStartTime = System.currentTimeMillis();
-        //todo тут брать все TRADING, маппить в лист тикеров с лонг/шорт и передавать для фильтрации в getApplicableCandlesMap() что бы их исключить
-        //todo нужно чтобы были только уникальные монеты чтобы не путать сделки между собой - проще управлять сделками открыл/закрыл и не думаешь что в монете
-        //todo часть денег с другого трейда
+
         List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
 
+        //собираем все трейдинг тикеры чтобы не было дублей монет для более прозрачного открытия/закрытия сделок
         List<String> tradingTickers = new ArrayList<>();
         tradingPairs.forEach(p -> {
             tradingTickers.add(p.getLongTicker());
             tradingTickers.add(p.getShortTicker());
         });
 
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings, tradingTickers); //todo сюда передаем лист TRADING тикеров
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings, tradingTickers);
         long candlesEndTime = System.currentTimeMillis();
         log.info("✅ Собрали карту свечей за {}с", String.format("%.2f", (candlesEndTime - candlesStartTime) / 1000.0));
         int count = request.getCountOfPairs() != null ? request.getCountOfPairs() : (int) settings.getUsePairs();
         List<ZScoreData> zScoreDataList = zScoreService.getTopNPairs(settings, candlesMap, count);
+
+        if (zScoreDataList.isEmpty()) {
+            log.warn("Пропуск хода");
+            return Collections.emptyList();
+        }
 
         for (int i = 0; i < zScoreDataList.size(); i++) {
             ZScoreData zScoreData = zScoreDataList.get(i);

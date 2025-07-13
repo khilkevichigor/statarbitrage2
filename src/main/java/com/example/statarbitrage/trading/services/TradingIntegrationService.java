@@ -271,7 +271,9 @@ public class TradingIntegrationService {
             return BigDecimal.ZERO;
         }
 
+
         // 10% от общего портфолио на одну пару (по умолчанию)
+        //todo 10% не корректно тк при уменьшении средств размер следующей позиции будет уменьшаться! Лучше делать фикс размер
         Settings settings = settingsService.getSettings();
         BigDecimal maxPositionPercent = BigDecimal.valueOf(settings.getMaxPositionPercentPerPair());
         BigDecimal maxPositionSize = portfolio.getTotalBalance()

@@ -38,6 +38,8 @@ public final class ZScoreChart {
         return BitmapEncoder.getBufferedImage(chart);
     }
 
+    //todo добавить еще один чарт StochRSI что бы входить на пересечении 90 или 80 линии
+
     /**
      * Создает XYChart с Z-Score данными
      *

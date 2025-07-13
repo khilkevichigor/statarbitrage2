@@ -23,8 +23,8 @@ public class ChangesService {
     public void calculateVirtual(PairData pairData) {
         Settings settings = settingsService.getSettings();
 
-        double capitalLong = settings.getCapitalLong();
-        double capitalShort = settings.getCapitalShort();
+        double capitalLong = settings.getMaxPositionLong();
+        double capitalShort = settings.getMaxPositionShort();
         double leverage = settings.getLeverage();
         double feePctPerTrade = settings.getFeePctPerTrade();
 
@@ -181,7 +181,7 @@ public class ChangesService {
 
             // Сначала обновляем цены позиций с биржи для актуальных данных
             tradingIntegrationService.updateAllPositions();
-            
+
             // Затем получаем реальный PnL для данной пары с актуальными ценами
             BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
 

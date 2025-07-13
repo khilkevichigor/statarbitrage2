@@ -469,8 +469,8 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
         settingsBinder.forField(maxPositionPercentPerPairField).bind(Settings::getMaxPositionPercentPerPair, Settings::setMaxPositionPercentPerPair);
-        settingsBinder.forField(capitalLongField).bind(Settings::getCapitalLong, Settings::setCapitalLong);
-        settingsBinder.forField(capitalShortField).bind(Settings::getCapitalShort, Settings::setCapitalShort);
+        settingsBinder.forField(capitalLongField).bind(Settings::getMaxPositionLong, Settings::setMaxPositionLong);
+        settingsBinder.forField(capitalShortField).bind(Settings::getMaxPositionShort, Settings::setMaxPositionShort);
 
         settingsBinder.forField(leverageField)
                 .withValidator(new DoubleRangeValidator("Плечо должно быть больше 0", 0.1, Double.MAX_VALUE))
