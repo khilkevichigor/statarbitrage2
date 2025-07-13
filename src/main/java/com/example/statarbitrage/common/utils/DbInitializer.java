@@ -32,7 +32,7 @@ public class DbInitializer {
                     .minPValue(0.01)
 
                     .useMinAdfValueFilter(true)
-                    .minAdfValue(0.1)
+                    .minAdfValue(0.5)
 
                     .useMinCorrelationFilter(true)
                     .minCorrelation(0.8)
