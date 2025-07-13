@@ -224,7 +224,7 @@ public class VirtualPortfolioManager implements PortfolioManager {
             } else {
                 // Инициализируем с настройками по умолчанию
                 Settings settings = settingsService.getSettings();
-                BigDecimal initialBalance = BigDecimal.valueOf(settings.getMaxPositionLong() + settings.getMaxPositionShort());
+                BigDecimal initialBalance = BigDecimal.valueOf(1000);
                 initializePortfolio(initialBalance);
             }
         }

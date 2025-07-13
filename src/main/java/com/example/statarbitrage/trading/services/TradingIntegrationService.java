@@ -271,16 +271,12 @@ public class TradingIntegrationService {
             return BigDecimal.ZERO;
         }
 
-        // 10% от общего портфолио на одну пару (по умолчанию)
-        //todo 10% не корректно тк при уменьшении средств размер следующей позиции будет уменьшаться! Лучше делать фикс размер по settings.maxPositionLong/settings.maxPositionShort
+        // Используем фиксированный размер позиции из настроек
         Settings settings = settingsService.getSettings();
-        BigDecimal maxPositionPercent = BigDecimal.valueOf(settings.getMaxPositionPercentPerPair());
-        BigDecimal maxPositionSize = portfolio.getTotalBalance()
-                .multiply(maxPositionPercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal fixedPositionSize = BigDecimal.valueOf(settings.getMaxPositionSize());
 
         // Не больше доступного баланса
-        return maxPositionSize.min(portfolio.getAvailableBalance());
+        return fixedPositionSize.min(portfolio.getAvailableBalance());
     }
 
     private void updatePairDataFromPositions(PairData pairData, TradeResult longResult, TradeResult shortResult) {

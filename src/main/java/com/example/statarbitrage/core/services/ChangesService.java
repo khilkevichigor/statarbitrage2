@@ -23,8 +23,7 @@ public class ChangesService {
     public void calculateVirtual(PairData pairData) {
         Settings settings = settingsService.getSettings();
 
-        double capitalLong = settings.getMaxPositionLong();
-        double capitalShort = settings.getMaxPositionShort();
+        double maxPositionSize = settings.getMaxPositionSize();
         double leverage = settings.getLeverage();
         double feePctPerTrade = settings.getFeePctPerTrade();
 
@@ -44,21 +43,22 @@ public class ChangesService {
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        BigDecimal totalCapital = BigDecimal.valueOf(capitalLong + capitalShort);
+        BigDecimal maxPositionLongPlusShort = BigDecimal.valueOf(maxPositionSize).multiply(BigDecimal.valueOf(2)); //лонг+шорт
         BigDecimal leverageBD = BigDecimal.valueOf(leverage);
         BigDecimal feePct = BigDecimal.valueOf(feePctPerTrade);
 
         BigDecimal longPL = longReturnPct
-                .multiply(BigDecimal.valueOf(capitalLong).multiply(leverageBD))
+                .multiply(BigDecimal.valueOf(maxPositionSize).multiply(leverageBD))
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal shortPL = shortReturnPct
-                .multiply(BigDecimal.valueOf(capitalShort).multiply(leverageBD))
+                .multiply(BigDecimal.valueOf(maxPositionSize).multiply(leverageBD))
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal totalPL = longPL.add(shortPL);
 
-        BigDecimal totalFees = BigDecimal.valueOf(capitalLong + capitalShort)
+        BigDecimal totalFees = BigDecimal.valueOf(maxPositionSize)
+                .multiply(BigDecimal.valueOf(2)) //лонг+шорт
                 .multiply(leverageBD)
                 .multiply(feePct)
                 .multiply(BigDecimal.valueOf(2)) // вход + выход
@@ -67,7 +67,7 @@ public class ChangesService {
         BigDecimal netPL = totalPL.subtract(totalFees);
 
         BigDecimal profitPercentFromTotal = netPL
-                .divide(totalCapital, 10, RoundingMode.HALF_UP)
+                .divide(maxPositionLongPlusShort, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
         // Текущее время
