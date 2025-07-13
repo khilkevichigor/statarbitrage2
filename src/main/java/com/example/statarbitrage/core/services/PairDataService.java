@@ -338,4 +338,210 @@ public class PairDataService {
                 .filter(p -> p != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    /**
+     * Создает PairDataUpdater для Unit of Work паттерна
+     */
+    public PairDataUpdater createUpdater(PairData pairData) {
+        return new PairDataUpdater(pairData);
+    }
+
+    /**
+     * Unit of Work паттерн для обновления PairData
+     * Накапливает все изменения и сохраняет одним вызовом
+     */
+    public class PairDataUpdater {
+        private final PairData pairData;
+        private boolean needsSave = false;
+
+        private PairDataUpdater(PairData pairData) {
+            this.pairData = pairData;
+        }
+
+        /**
+         * Обновляет данные для реальной торговли
+         */
+        public PairDataUpdater updateReal(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+            PairDataService.this.updateRealInternal(pairData, zScoreData, candlesMap);
+            this.needsSave = true;
+            return this;
+        }
+
+        /**
+         * Обновляет данные для реальной торговли с результатами трейдов
+         */
+        public PairDataUpdater updateReal(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, 
+                                        TradeResult longResult, TradeResult shortResult) {
+            PairDataService.this.updateRealInternal(pairData, zScoreData, candlesMap, longResult, shortResult);
+            this.needsSave = true;
+            return this;
+        }
+
+        /**
+         * Пересчитывает изменения для реальной торговли
+         */
+        public PairDataUpdater calculateRealChanges() {
+            changesService.calculateReal(pairData);
+            this.needsSave = true;
+            return this;
+        }
+
+        /**
+         * Устанавливает статус
+         */
+        public PairDataUpdater setStatus(TradeStatus status) {
+            pairData.setStatus(status);
+            this.needsSave = true;
+            return this;
+        }
+
+        /**
+         * Устанавливает причину выхода
+         */
+        public PairDataUpdater setExitReason(String exitReason) {
+            pairData.setExitReason(exitReason);
+            this.needsSave = true;
+            return this;
+        }
+
+        /**
+         * Устанавливает время обновления
+         */
+        public PairDataUpdater updateTimestamp() {
+            pairData.setUpdatedTime(System.currentTimeMillis());
+            this.needsSave = true;
+            return this;
+        }
+
+        /**
+         * Сохраняет PairData если были изменения
+         */
+        public PairData saveIfNeeded() {
+            if (needsSave) {
+                log.debug("💾 Сохраняем PairData для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+                PairDataService.this.save(pairData);
+                needsSave = false;
+                return pairData;
+            }
+            log.debug("ℹ️ PairData не изменялась, сохранение не требуется для пары {}/{}", 
+                    pairData.getLongTicker(), pairData.getShortTicker());
+            return pairData;
+        }
+
+        /**
+         * Принудительно сохраняет PairData
+         */
+        public PairData save() {
+            log.debug("💾 Принудительно сохраняем PairData для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            PairDataService.this.save(pairData);
+            needsSave = false;
+            return pairData;
+        }
+
+        /**
+         * Получить текущий PairData без сохранения
+         */
+        public PairData get() {
+            return pairData;
+        }
+    }
+
+    /**
+     * Внутренний метод обновления без сохранения (для PairDataUpdater)
+     */
+    private void updateRealInternal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+        //Обновляем текущие цены
+        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+
+        //Обновляем текущие данные коинтеграции
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
+
+        // Добавляем новые точки в историю Z-Score при каждом обновлении
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю новую историю из ZScoreData
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
+            }
+        } else {
+            // Если новой истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
+        }
+    }
+
+    /**
+     * Внутренний метод обновления с трейд результатами без сохранения (для PairDataUpdater)
+     */
+    private void updateRealInternal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, 
+                                  TradeResult longResult, TradeResult shortResult) {
+        //Обновляем текущие цены
+        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+
+        //Обновляем текущие данные коинтеграции
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
+
+        //Точки входа если первый раз
+        if (pairData.getStatus() == TradeStatus.SELECTED) {
+            pairData.setStatus(TradeStatus.TRADING);
+
+            pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
+            pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
+
+            pairData.setZScoreEntry(latestParam.getZscore());
+            pairData.setCorrelationEntry(latestParam.getCorrelation());
+            pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
+            pairData.setPValueEntry(latestParam.getPvalue());
+            pairData.setMeanEntry(latestParam.getMean());
+            pairData.setStdEntry(latestParam.getStd());
+            pairData.setSpreadEntry(latestParam.getSpread());
+            pairData.setAlphaEntry(latestParam.getAlpha());
+            pairData.setBetaEntry(latestParam.getBeta());
+
+            // Время входа
+            pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
+
+            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
+                    pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
+                    pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
+                    pairData.getZScoreEntry());
+        }
+
+        // Добавляем новые точки в историю Z-Score при каждом обновлении
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю новую историю из ZScoreData
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
+            }
+        } else {
+            // Если новой истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
+        }
+    }
 }
