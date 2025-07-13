@@ -123,6 +123,12 @@ public class StartNewTradeProcessor {
             throw new IllegalArgumentException(message);
         }
 
+        settings = settingsService.getSettings();
+        if (!settings.isAutoTradingEnabled()) {
+            log.warn("Автотрейдинг уже отключен! Пропускаю открытие нового трейда для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+            return null;
+        }
+
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
         // Проверяем, можем ли открыть новую пару на торговом депо
