@@ -6,6 +6,7 @@ import com.example.statarbitrage.core.processors.FetchPairsProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.ui.components.SettingsComponent;
 import com.example.statarbitrage.ui.components.TradingPairsComponent;
+import com.example.statarbitrage.ui.dto.FetchPairsRequest;
 import com.example.statarbitrage.ui.interfaces.UIUpdateable;
 import com.example.statarbitrage.ui.layout.MainLayout;
 import com.example.statarbitrage.ui.services.UIUpdateService;
@@ -105,7 +106,7 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
 
                 int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
                 log.info("Deleted all {} pairs from database", deleteAllByStatus);
-                List<PairData> pairs = fetchPairsProcessor.fetchPairs(null);
+                List<PairData> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 
                 getUI().ifPresent(ui -> ui.access(() -> {
                     tradingPairsComponent.setSelectedPairs(pairs);

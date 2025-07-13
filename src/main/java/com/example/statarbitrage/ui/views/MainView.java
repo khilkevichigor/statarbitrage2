@@ -8,6 +8,7 @@ import com.example.statarbitrage.ui.components.PortfolioComponent;
 import com.example.statarbitrage.ui.components.SettingsComponent;
 import com.example.statarbitrage.ui.components.StatisticsComponent;
 import com.example.statarbitrage.ui.components.TradingPairsComponent;
+import com.example.statarbitrage.ui.dto.FetchPairsRequest;
 import com.example.statarbitrage.ui.interfaces.UIUpdateable;
 import com.example.statarbitrage.ui.services.UIUpdateService;
 import com.vaadin.flow.component.AttachEvent;
@@ -132,7 +133,7 @@ public class MainView extends VerticalLayout implements UIUpdateable {
                 // Выполняем операции с базой данных в background потоке
                 int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
                 log.info("Deleted all {} pairs from database", deleteAllByStatus);
-                List<PairData> pairs = fetchPairsProcessor.fetchPairs(null);
+                List<PairData> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 
                 // Обновляем UI в UI потоке
                 getUI().ifPresent(ui -> ui.access(() -> {

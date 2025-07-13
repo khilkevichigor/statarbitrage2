@@ -12,6 +12,7 @@ import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
+import com.example.statarbitrage.ui.dto.FetchPairsRequest;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import lombok.RequiredArgsConstructor;
@@ -141,7 +142,9 @@ public class TradeAndSimulationScheduler {
                     pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
 
                     // Находим новые и сразу запускаем
-                    List<PairData> newPairs = fetchPairsProcessor.fetchPairs(missing);
+                    List<PairData> newPairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder()
+                            .countOfPairs(missing)
+                            .build());
                     newPairs.forEach((v) -> {
                         try {
                             PairData startedNewTrade = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()

@@ -10,6 +10,7 @@ import com.example.statarbitrage.core.services.CandlesService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.core.services.ZScoreService;
+import com.example.statarbitrage.ui.dto.FetchPairsRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class FetchPairsProcessor {
     private final CandlesService candlesService;
     private final SettingsService settingsService;
 
-    public List<PairData> fetchPairs(Integer countOfPairs) {
+    public List<PairData> fetchPairs(FetchPairsRequest request) {
         long startTime = System.currentTimeMillis();
         log.info("🚀 Начинаем поиск пар для торговли...");
 
@@ -47,7 +48,7 @@ public class FetchPairsProcessor {
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings, tradingTickers); //todo сюда передаем лист TRADING тикеров
         long candlesEndTime = System.currentTimeMillis();
         log.info("✅ Собрали карту свечей за {}с", String.format("%.2f", (candlesEndTime - candlesStartTime) / 1000.0));
-        int count = countOfPairs != null ? countOfPairs : (int) settings.getUsePairs();
+        int count = request.getCountOfPairs() != null ? request.getCountOfPairs() : (int) settings.getUsePairs();
         List<ZScoreData> zScoreDataList = zScoreService.getTopNPairs(settings, candlesMap, count);
 
         for (int i = 0; i < zScoreDataList.size(); i++) {
