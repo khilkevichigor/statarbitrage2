@@ -12,6 +12,7 @@ import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
+import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -139,7 +140,10 @@ public class TradeAndSimulationScheduler {
                     List<PairData> newPairs = fetchPairsProcessor.fetchPairs(missing);
                     newPairs.forEach((v) -> {
                         try {
-                            PairData startedNewTrade = startNewTradeProcessor.startNewTrade(v);
+                            PairData startedNewTrade = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
+                                    .pairData(v)
+                                    .checkAutoTrading(true)
+                                    .build());
                             if (startedNewTrade != null) {
                                 count.getAndIncrement();
                             }

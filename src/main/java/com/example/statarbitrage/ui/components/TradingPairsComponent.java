@@ -8,6 +8,7 @@ import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.TradeLogService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
+import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
@@ -185,25 +186,29 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.setWidthFull();
     }
 
-    private Button createStartTradingButton(PairData pair) {
+    private Button createStartTradingButton(PairData pairData) {
         Button actionButton = new Button("Торговать", event -> {
             try {
-                PairData newPairData = startNewTradeProcessor.startNewTrade(pair);
+                // Ручной запуск - НЕ проверяем автотрейдинг
+                PairData newPairData = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
+                        .pairData(pairData)
+                        .checkAutoTrading(false)
+                        .build());
                 if (newPairData != null) {
                     Notification.show(String.format(
                             "Статус пары %s/%s изменен на %s",
-                            pair.getLongTicker(), pair.getShortTicker(), TradeStatus.TRADING
+                            pairData.getLongTicker(), pairData.getShortTicker(), TradeStatus.TRADING
                     ));
                 } else {
                     Notification.show(String.format(
                             "Пропускаем новый трейд для пары %s/%s",
-                            pair.getLongTicker(), pair.getShortTicker()
+                            pairData.getLongTicker(), pairData.getShortTicker()
                     ));
                 }
 
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("Error starting trade for pair: {}/{}", pair.getLongTicker(), pair.getShortTicker(), e);
+                log.error("Error starting trade for pair: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
                 Notification.show("Ошибка при открытии торговли: " + e.getMessage());
             }
         });

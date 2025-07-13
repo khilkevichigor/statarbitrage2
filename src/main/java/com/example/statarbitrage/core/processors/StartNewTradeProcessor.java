@@ -12,6 +12,7 @@ import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
+import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -38,62 +39,18 @@ public class StartNewTradeProcessor {
     private final ExitStrategyService exitStrategyService;
 
     @Transactional
-    public PairData startNewTrade(PairData pairData) {
+    public PairData startNewTrade(StartNewTradeRequest startNewTradeRequest) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-            return startNewVirtualTrade(pairData);
+            return startNewVirtualTrade(startNewTradeRequest);
         } else {
-            return startNewRealTrade(pairData);
+            return startNewRealTrade(startNewTradeRequest);
         }
     }
 
-    private PairData startNewVirtualTrade(PairData pairData) {
-        log.info("🚀 Начинаем новый трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
-        Settings settings = settingsService.getSettings();
-
-        //Проверка на дурака
-        if (validateService.isLastZLessThenMinZ(pairData, settings)) {
-            //если впервые прогоняем и Z<ZMin
-            pairDataService.delete(pairData);
-            log.warn("Удалили пару {} - {} т.к. ZCurrent < ZMin", pairData.getLongTicker(), pairData.getShortTicker());
-            return null;
-        }
-
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
-
-        if (maybeZScoreData.isEmpty()) {
-            log.warn("ZScore data is empty");
-            return null;
-        }
-
-        ZScoreData zScoreData = maybeZScoreData.get();
-
-        ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
-
-        if (!Objects.equals(pairData.getLongTicker(), zScoreData.getUndervaluedTicker()) || !Objects.equals(pairData.getShortTicker(), zScoreData.getOvervaluedTicker())) {
-            String message = String.format("Ошибка начала нового терейда для пары лонг=%s шорт=%s. Тикеры поменялись местами!!! Торговать нельзя!!!", pairData.getLongTicker(), pairData.getShortTicker());
-            log.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
-
-        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
-        changesService.calculateVirtual(pairData);
-        String exitReason = exitStrategyService.getExitReason(pairData);
-        if (exitReason != null) {
-            pairData.setExitReason(exitReason);
-            pairData.setStatus(TradeStatus.CLOSED);
-        }
-        pairDataService.save(pairData);
-
-        tradeLogService.saveLog(pairData);
-
-        return pairData;
-    }
-
-    private PairData startNewRealTrade(PairData pairData) {
+    private PairData startNewVirtualTrade(StartNewTradeRequest request) {
+        PairData pairData = request.getPairData();
+        boolean checkAutoTrading = request.isCheckAutoTrading();
         log.info("🚀 Начинаем новый трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
@@ -123,10 +80,80 @@ public class StartNewTradeProcessor {
             throw new IllegalArgumentException(message);
         }
 
-        settings = settingsService.getSettings();
-        if (!settings.isAutoTradingEnabled()) {
-            log.warn("Автотрейдинг уже отключен! Пропускаю открытие нового трейда для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+        // Проверяем автотрейдинг только если это запрошено (автоматический запуск)
+        if (checkAutoTrading) {
+            // Получаем СВЕЖИЕ настройки для актуальной проверки автотрейдинга
+            Settings currentSettings = settingsService.getSettings();
+            log.debug("📖 Процессор: Читаем настройки из БД: autoTrading={}", currentSettings.isAutoTradingEnabled());
+            if (!currentSettings.isAutoTradingEnabled()) {
+                log.warn("🛑 Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+                return null;
+            }
+            log.debug("✅ Процессор: Автотрейдинг включен, продолжаем");
+        } else {
+            log.info("🔧 Ручной запуск трейда - проверка автотрейдинга пропущена для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+        }
+
+        log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+
+        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
+        changesService.calculateVirtual(pairData);
+        String exitReason = exitStrategyService.getExitReason(pairData);
+        if (exitReason != null) {
+            pairData.setExitReason(exitReason);
+            pairData.setStatus(TradeStatus.CLOSED);
+        }
+        pairDataService.save(pairData);
+
+        tradeLogService.saveLog(pairData);
+
+        return pairData;
+    }
+
+    private PairData startNewRealTrade(StartNewTradeRequest request) {
+        PairData pairData = request.getPairData();
+        boolean checkAutoTrading = request.isCheckAutoTrading();
+        log.info("🚀 Начинаем новый трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+        Settings settings = settingsService.getSettings();
+
+        //Проверка на дурака
+        if (validateService.isLastZLessThenMinZ(pairData, settings)) {
+            //если впервые прогоняем и Z<ZMin
+            pairDataService.delete(pairData);
+            log.warn("Удалили пару {} - {} т.к. ZCurrent < ZMin", pairData.getLongTicker(), pairData.getShortTicker());
             return null;
+        }
+
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
+
+        if (maybeZScoreData.isEmpty()) {
+            log.warn("📊 Пропускаем создание нового трейда. ZScore данные пусты для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            return null;
+        }
+
+        ZScoreData zScoreData = maybeZScoreData.get();
+
+        ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
+
+        if (!Objects.equals(pairData.getLongTicker(), zScoreData.getUndervaluedTicker()) || !Objects.equals(pairData.getShortTicker(), zScoreData.getOvervaluedTicker())) {
+            String message = String.format("Ошибка начала нового терейда для пары лонг=%s шорт=%s. Тикеры поменялись местами!!! Торговать нельзя!!!", pairData.getLongTicker(), pairData.getShortTicker());
+            log.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        // Проверяем автотрейдинг только если это запрошено (автоматический запуск)
+        if (checkAutoTrading) {
+            // Получаем СВЕЖИЕ настройки для актуальной проверки автотрейдинга
+            Settings currentSettings = settingsService.getSettings();
+            log.debug("📖 Процессор: Читаем настройки из БД: autoTrading={}", currentSettings.isAutoTradingEnabled());
+            if (!currentSettings.isAutoTradingEnabled()) {
+                log.warn("🛑 Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+                return null;
+            }
+            log.debug("✅ Процессор: Автотрейдинг включен, продолжаем");
+        } else {
+            log.info("🔧 Ручной запуск трейда - проверка автотрейдинга пропущена для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         }
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
