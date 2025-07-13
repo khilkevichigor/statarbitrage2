@@ -27,6 +27,7 @@ import com.vaadin.flow.data.validator.StringLengthValidator;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.CompletableFuture;
@@ -56,6 +57,14 @@ public class SettingsComponent extends VerticalLayout {
         loadCurrentSettings();
         createSettingsForm();
         setupValidation();
+    }
+
+    @PostConstruct
+    public void initSettings() {
+        // Перезагружаем настройки из БД при каждом создании компонента
+        refreshSettings();
+        log.debug("🔄 SettingsComponent: Настройки инициализированы из БД - autoTrading={}",
+                currentSettings.isAutoTradingEnabled());
     }
 
     private void initializeComponent() {
@@ -143,7 +152,10 @@ public class SettingsComponent extends VerticalLayout {
 
                 // Уведомляем об изменении состояния автотрейдинга
                 if (autoTradingChangeCallback != null) {
+                    log.info("🔄 SettingsComponent: Вызываем autoTradingChangeCallback для autoTrading={}", event.getValue());
                     autoTradingChangeCallback.run();
+                } else {
+                    log.warn("⚠️ SettingsComponent: autoTradingChangeCallback не установлен!");
                 }
             } catch (Exception e) {
                 log.error("Error updating autoTrading mode", e);

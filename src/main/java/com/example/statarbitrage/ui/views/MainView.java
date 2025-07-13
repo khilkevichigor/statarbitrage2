@@ -20,6 +20,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
@@ -61,6 +62,12 @@ public class MainView extends VerticalLayout implements UIUpdateable {
 
         initializeLayout();
         setupUIUpdateCallback();
+    }
+
+    @PostConstruct
+    public void setupCallbacks() {
+        // Устанавливаем callback'и после того, как все компоненты инициализированы
+        log.info("🔗 MainView: Устанавливаем callback'и после PostConstruct");
         setupAutoTradingCallback();
         setupVirtualTradingCallback();
     }
