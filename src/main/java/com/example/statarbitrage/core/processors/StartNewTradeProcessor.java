@@ -176,10 +176,8 @@ public class StartNewTradeProcessor {
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                pairDataService.createUpdater(pairData)
-                    .updateReal(zScoreData, candlesMap, openLongTradeResult, openShortTradeResult)
-                    .calculateRealChanges()
-                    .saveIfNeeded();
+                pairDataService.updateReal(pairData, zScoreData, candlesMap, openLongTradeResult, openShortTradeResult);
+                changesService.calculateReal(pairData);
 
                 //todo может getExitReason() лишнее тут и оставить для шедуллера обновления updateTrades()
 //                String exitReason = exitStrategyService.getExitReason(pairData);
@@ -225,17 +223,15 @@ public class StartNewTradeProcessor {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                pairDataService.createUpdater(pairData)
-                    .setStatus(TradeStatus.ERROR_100)
-                    .saveIfNeeded();
+                pairData.setStatus(TradeStatus.ERROR_100);
+                pairDataService.save(pairData);
             }
         } else {
             log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
 
-            pairDataService.createUpdater(pairData)
-                .setStatus(TradeStatus.ERROR_110)
-                .saveIfNeeded();
+            pairData.setStatus(TradeStatus.ERROR_110);
+            pairDataService.save(pairData);
         }
 
         return pairData;
