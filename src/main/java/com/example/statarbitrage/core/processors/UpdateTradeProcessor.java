@@ -123,10 +123,7 @@ public class UpdateTradeProcessor {
             return pairData;
         }
 
-        //todo получать инфу по сделкам для пары
-        //todo updateCurrentDataAndSave
-        pairDataService.updateChangesAndSave(pairData);
-        pairDataService.updateChangesAndSave(pairData);
+        //todo получать актуальную инфу по сделкам для обновления changes
 
         tradeLogService.updateTradeLog(pairData, settings);
 
