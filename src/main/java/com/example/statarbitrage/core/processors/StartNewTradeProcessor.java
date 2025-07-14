@@ -32,8 +32,6 @@ public class StartNewTradeProcessor {
     private final ZScoreService zScoreService;
     private final ValidateService validateService;
     private final TradingIntegrationService tradingIntegrationService;
-    private final TradeLogRepository tradeLogRepository;
-    private final ChangesService changesService;
     private final TradeLogService tradeLogService;
 
     @Transactional
