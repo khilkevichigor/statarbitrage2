@@ -52,7 +52,11 @@ public class UpdateTradeProcessor {
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
 
-        logData(zScoreData);
+        ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
+        log.info(String.format("Наша пара: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+                zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
+                latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
+        ));
 
         // Если нажали на "Закрыть позицию", закрываем позиции в торговой системе СИНХРОННО
         if (isCloseManually) {
@@ -133,18 +137,18 @@ public class UpdateTradeProcessor {
             return pairData;
         }
 
-        //todo получать актуальную инфу по открытым сделкам для обновления changes по принципу verifyPositionsClosed()
-
+        pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
+        // Получаем актуальную информацию по открытым позициям и обновляем changes
+        PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        if (!openPositionsInfo.isPositionsClosed()) {
+            // Позиции открыты - используем актуальный PnL
+            pairDataService.updateChangesWithSpecificPnLAndSave(pairData, openPositionsInfo.getTotalPnL());
+        } else {
+            // Позиции закрыты или не найдены - используем обычный метод
+            pairDataService.updateChangesAndSave(pairData);
+        }
         tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
-    }
-
-    private static void logData(ZScoreData zScoreData) {
-        ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
-        log.info(String.format("Наша пара: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
-        ));
     }
 }
