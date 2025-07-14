@@ -70,7 +70,8 @@ public class UpdateTradeProcessor {
                     log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
                             pairData.getLongTicker(), pairData.getShortTicker(), verificationResult.getTotalPnL());
                     pairData.setStatus(TradeStatus.ERROR_800);
-                    pairDataService.updateChangesWithSpecificPnLAndSave(pairData, verificationResult.getTotalPnL());
+                    pairDataService.save(pairData);
+                    pairDataService.updateChangesAndSave(pairData);
                     tradeLogService.updateTradeLog(pairData, settings);
                     return pairData;
                 } else {
@@ -78,6 +79,7 @@ public class UpdateTradeProcessor {
                             pairData.getLongTicker(), pairData.getShortTicker());
                     pairData.setStatus(TradeStatus.ERROR_810);
                     pairDataService.save(pairData);
+                    pairDataService.updateChangesAndSave(pairData);
                     tradeLogService.updateTradeLog(pairData, settings);
                     return pairData;
                 }
@@ -89,6 +91,7 @@ public class UpdateTradeProcessor {
                         pairData.getLongTicker(), pairData.getShortTicker());
 
                 pairData.setStatus(TradeStatus.ERROR_710);
+                pairDataService.save(pairData);
                 pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
                 pairDataService.updateChangesAndSave(pairData);
                 tradeLogService.updateTradeLog(pairData, settings);
@@ -99,7 +102,7 @@ public class UpdateTradeProcessor {
 
             TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
             TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, closeLongTradeResult, closeShortTradeResult);
             pairDataService.updateChangesAndSave(pairData);
             tradeLogService.updateTradeLog(pairData, settings);
             return pairData;
@@ -118,6 +121,7 @@ public class UpdateTradeProcessor {
 
                 pairData.setExitReason(exitReason);
                 pairData.setStatus(TradeStatus.ERROR_200);
+                pairDataService.save(pairData);
                 pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
                 pairDataService.updateChangesAndSave(pairData);
                 tradeLogService.updateTradeLog(pairData, settings);
@@ -128,9 +132,10 @@ public class UpdateTradeProcessor {
 
             TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
             TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, closeLongTradeResult, closeShortTradeResult);
             pairData.setStatus(TradeStatus.CLOSED);
             pairData.setExitReason(exitReason);
+            pairDataService.save(pairData);
             pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
             pairDataService.updateChangesAndSave(pairData);
             tradeLogService.updateTradeLog(pairData, settings);
@@ -138,15 +143,7 @@ public class UpdateTradeProcessor {
         }
 
         pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-        // Получаем актуальную информацию по открытым позициям и обновляем changes
-        PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
-        if (!openPositionsInfo.isPositionsClosed()) {
-            // Позиции открыты - используем актуальный PnL
-            pairDataService.updateChangesWithSpecificPnLAndSave(pairData, openPositionsInfo.getTotalPnL());
-        } else {
-            // Позиции закрыты или не найдены - используем обычный метод
-            pairDataService.updateChangesAndSave(pairData);
-        }
+        pairDataService.updateChangesAndSave(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
