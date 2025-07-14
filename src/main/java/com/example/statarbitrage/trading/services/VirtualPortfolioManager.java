@@ -7,6 +7,7 @@ import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.repositories.PortfolioRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
+@DependsOn("dbInitializer")
 public class VirtualPortfolioManager implements PortfolioManager {
 
     private final PortfolioRepository portfolioRepository;
@@ -224,8 +226,8 @@ public class VirtualPortfolioManager implements PortfolioManager {
             } else {
                 // Инициализируем с настройками по умолчанию
                 Settings settings = settingsService.getSettings();
-                BigDecimal initialBalance = BigDecimal.valueOf(1000);
-                initializePortfolio(initialBalance);
+                BigDecimal initialVirtualBalance = BigDecimal.valueOf(settings.getInitialVirtualBalance());
+                initializePortfolio(initialVirtualBalance);
             }
         }
     }
