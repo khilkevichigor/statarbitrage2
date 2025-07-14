@@ -396,7 +396,6 @@ public class PairDataService {
     }
 
     public void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, TradeResult longResult, TradeResult shortResult) {
-
         //Обновляем текущие цены
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
@@ -416,33 +415,6 @@ public class PairDataService {
         pairData.setSpreadCurrent(latestParam.getSpread());
         pairData.setAlphaCurrent(latestParam.getAlpha());
         pairData.setBetaCurrent(latestParam.getBeta());
-
-        //Точки входа если первый раз
-        if (pairData.getStatus() == TradeStatus.SELECTED) {
-
-            pairData.setStatus(TradeStatus.TRADING);
-
-            pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
-            pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
-
-            pairData.setZScoreEntry(latestParam.getZscore());
-            pairData.setCorrelationEntry(latestParam.getCorrelation());
-            pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
-            pairData.setPValueEntry(latestParam.getPvalue());
-            pairData.setMeanEntry(latestParam.getMean());
-            pairData.setStdEntry(latestParam.getStd());
-            pairData.setSpreadEntry(latestParam.getSpread());
-            pairData.setAlphaEntry(latestParam.getAlpha());
-            pairData.setBetaEntry(latestParam.getBeta());
-
-            // Время входа
-            pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
-
-            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                    pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-                    pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-                    pairData.getZScoreEntry());
-        }
 
         // Добавляем новые точки в историю Z-Score при каждом обновлении
         if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
