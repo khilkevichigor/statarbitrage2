@@ -125,8 +125,8 @@ public class UpdateTradeProcessor {
             TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
             TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
             pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
-            pairData.setExitReason(exitReason);
             pairData.setStatus(TradeStatus.CLOSED);
+            pairData.setExitReason(exitReason);
             pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
             pairDataService.updateChangesAndSave(pairData);
             tradeLogService.updateTradeLog(pairData, settings);
