@@ -40,7 +40,6 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
     private final TradingIntegrationService tradingIntegrationService;
-    private final TradingProviderFactory tradingProviderFactory;
 
     @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
     public void updateTrades() {
