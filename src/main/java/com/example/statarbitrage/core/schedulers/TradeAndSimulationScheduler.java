@@ -44,140 +44,260 @@ public class TradeAndSimulationScheduler {
 
     @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
     public void updateTrades() {
-        // Проверяем, не выполняется ли поддержание пар
-        if (maintainPairsRunning.get()) {
-            log.info("⏸️ Обновление трейдов пропущено - выполняется поддержание пар");
-            return;
-        }
-
-        // Устанавливаем флаг выполнения
-        if (!updateTradesRunning.compareAndSet(false, true)) {
-            log.warn("⚠️ Обновление трейдов уже выполняется");
+        if (!canStartUpdateTrades()) {
             return;
         }
 
         long schedulerStart = System.currentTimeMillis();
-        List<PairData> tradingPairs = List.of();
 
         try {
-            log.info("🔄 Шедуллера обновления трейдов запущен...");
-            // ВСЕГДА обновляем трейды
-            tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
-            if (!tradingPairs.isEmpty()) {
-                // Обновляем цены позиций в торговой системе
-                tradingIntegrationService.updateAllPositions();
-
-                tradingPairs.forEach(p -> {
-                    try {
-                        updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
-                                .pairData(p)
-                                .closeManually(false)
-                                .build());
-                    } catch (Exception e) {
-                        log.warn("⚠️ Ошибка при обновлении пары {}/{}: {}",
-                                p.getLongTicker(), p.getShortTicker(), e.getMessage());
-                        // Продолжаем обработку остальных пар
-                    }
-                });
-                // Обновляем UI
-                eventSendService.updateUI(UpdateUiEvent.builder().build());
-            }
-        } catch (Exception e) {
-            log.error("❌ Ошибка в updateTrades()", e);
+            List<PairData> tradingPairs = executeUpdateTrades();
+            logUpdateTradesCompletion(schedulerStart, tradingPairs.size());
         } finally {
-            // Сбрасываем флаг выполнения
             updateTradesRunning.set(false);
         }
+    }
 
-        long schedulerEnd = System.currentTimeMillis();
-        log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов", (schedulerEnd - schedulerStart) / 1000.0, tradingPairs.size());
+    private boolean canStartUpdateTrades() {
+        if (maintainPairsRunning.get()) {
+            log.info("⏸️ Обновление трейдов пропущено - выполняется поддержание пар");
+            return false;
+        }
+
+        if (!updateTradesRunning.compareAndSet(false, true)) {
+            log.warn("⚠️ Обновление трейдов уже выполняется");
+            return false;
+        }
+
+        return true;
+    }
+
+    private List<PairData> executeUpdateTrades() {
+        log.info("🔄 Шедуллер обновления трейдов запущен...");
+
+        List<PairData> tradingPairs = getTradingPairs();
+        if (tradingPairs.isEmpty()) {
+            return tradingPairs;
+        }
+
+        updatePositionsPrices();
+        processTradeUpdates(tradingPairs);
+        updateUI();
+
+        return tradingPairs;
+    }
+
+    private List<PairData> getTradingPairs() {
+        try {
+            return pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении торговых пар: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private void updatePositionsPrices() {
+        try {
+            tradingIntegrationService.updateAllPositions();
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
+        }
+    }
+
+    private void processTradeUpdates(List<PairData> tradingPairs) {
+        tradingPairs.forEach(this::updateSingleTrade);
+    }
+
+    private void updateSingleTrade(PairData pairData) {
+        try {
+            updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+                    .pairData(pairData)
+                    .closeManually(false)
+                    .build());
+        } catch (Exception e) {
+            log.warn("⚠️ Ошибка при обновлении пары {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        }
+    }
+
+    private void updateUI() {
+        try {
+            eventSendService.updateUI(UpdateUiEvent.builder().build());
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении UI: {}", e.getMessage());
+        }
+    }
+
+    private void logUpdateTradesCompletion(long startTime, int tradesCount) {
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов",
+                duration / 1000.0, tradesCount);
     }
 
     @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
     public void maintainPairs() {
-        // Ждем завершения обновления трейдов если оно выполняется
-        if (updateTradesRunning.get()) {
-            log.info("⏳ Поддержание пар ждет завершения обновления трейдов...");
-            // Ждем максимум 60 секунд
-            int waitTime = 0;
-            while (updateTradesRunning.get() && waitTime < 60_000) {
-                try {
-                    Thread.sleep(1000);
-                    waitTime += 1000;
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.warn("Прерывание ожидания завершения обновления трейдов");
-                    return;
-                }
-            }
-            if (updateTradesRunning.get()) {
-                log.warn("⚠️ Поддержание пар отменено - обновление трейдов выполняется слишком долго");
-                return;
-            }
-        }
-
-        // Устанавливаем флаг выполнения
-        if (!maintainPairsRunning.compareAndSet(false, true)) {
-            log.warn("⚠️ Поддержание пар уже выполняется");
+        if (!canStartMaintainPairs()) {
             return;
         }
 
-        log.info("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
         long schedulerStart = System.currentTimeMillis();
-        AtomicInteger count = new AtomicInteger();
 
         try {
-            // ЕСЛИ автотрейдинг включен — поддерживаем нужное количество трейдов
-            Settings settings = settingsService.getSettings();
-            if (settings.isAutoTradingEnabled()) {
-                List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
-                int maxActive = (int) settings.getUsePairs();
-                int currentActive = tradingPairs.size();
-                int missing = maxActive - currentActive;
-
-                if (missing > 0) {
-                    log.info("🆕 Не хватает {} пар (из {}) — начинаем подбор", missing, maxActive);
-
-                    // Удаляем старые SELECTED
-                    pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
-
-                    // Находим новые и сразу запускаем
-                    List<PairData> newPairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder()
-                            .countOfPairs(missing)
-                            .build());
-                    if (newPairs.isEmpty()) {
-                        log.warn("Отобрано 0 пар!");
-                        return;
-                    }
-                    newPairs.forEach((v) -> {
-                        try {
-                            PairData startedNewTrade = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
-                                    .pairData(v)
-                                    .checkAutoTrading(true)
-                                    .build());
-                            if (startedNewTrade != null) {
-                                count.getAndIncrement();
-                            }
-                        } catch (Exception e) {
-                            log.warn("⚠️ Не удалось запустить новый трейд для пары {}/{}: {}",
-                                    v.getLongTicker(), v.getShortTicker(), e.getMessage());
-                            // Продолжаем обработку остальных пар
-                        }
-                    });
-                }
-                if (count.get() > 0) {
-                    // Обновляем UI
-                    eventSendService.updateUI(UpdateUiEvent.builder().build());
-                }
-            }
-        } catch (Exception e) {
-            log.error("❌ Ошибка в maintainPairs()", e);
+            int newPairsCount = executeMaintainPairs();
+            logMaintainPairsCompletion(schedulerStart, newPairsCount);
         } finally {
-            // Сбрасываем флаг выполнения
             maintainPairsRunning.set(false);
         }
+    }
 
-        long schedulerEnd = System.currentTimeMillis();
-        log.info("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар", (schedulerEnd - schedulerStart) / 1000.0, count);
+    private boolean canStartMaintainPairs() {
+        if (!waitForUpdateTradesCompletion()) {
+            return false;
+        }
+
+        if (!maintainPairsRunning.compareAndSet(false, true)) {
+            log.warn("⚠️ Поддержание пар уже выполняется");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean waitForUpdateTradesCompletion() {
+        if (!updateTradesRunning.get()) {
+            return true;
+        }
+
+        log.info("⏳ Поддержание пар ждет завершения обновления трейдов...");
+
+        int waitTime = 0;
+        final int maxWaitTime = 60_000; // 60 секунд
+        final int sleepInterval = 1000; // 1 секунда
+
+        while (updateTradesRunning.get() && waitTime < maxWaitTime) {
+            try {
+                Thread.sleep(sleepInterval);
+                waitTime += sleepInterval;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Прерывание ожидания завершения обновления трейдов");
+                return false;
+            }
+        }
+
+        if (updateTradesRunning.get()) {
+            log.warn("⚠️ Поддержание пар отменено - обновление трейдов выполняется слишком долго");
+            return false;
+        }
+
+        return true;
+    }
+
+    private int executeMaintainPairs() {
+        log.info("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
+
+        Settings settings = loadSettings();
+        if (settings == null || !settings.isAutoTradingEnabled()) {
+            return 0;
+        }
+
+        int missingPairs = calculateMissingPairs(settings);
+        if (missingPairs <= 0) {
+            return 0;
+        }
+
+        return createAndStartNewPairs(missingPairs);
+    }
+
+    private Settings loadSettings() {
+        try {
+            return settingsService.getSettings();
+        } catch (Exception e) {
+            log.error("❌ Ошибка при загрузке настроек: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private int calculateMissingPairs(Settings settings) {
+        try {
+            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            int maxActive = (int) settings.getUsePairs();
+            int currentActive = tradingPairs.size();
+            return maxActive - currentActive;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при расчете недостающих пар: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private int createAndStartNewPairs(int missingPairs) {
+        log.info("🆕 Не хватает {} пар — начинаем подбор", missingPairs);
+
+        cleanupOldSelectedPairs();
+
+        List<PairData> newPairs = fetchNewPairs(missingPairs);
+        if (newPairs.isEmpty()) {
+            log.warn("Отобрано 0 пар!");
+            return 0;
+        }
+
+        int startedCount = startNewTrades(newPairs);
+
+        if (startedCount > 0) {
+            updateUI();
+        }
+
+        return startedCount;
+    }
+
+    private void cleanupOldSelectedPairs() {
+        try {
+            pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при очистке старых пар SELECTED: {}", e.getMessage());
+        }
+    }
+
+    private List<PairData> fetchNewPairs(int count) {
+        try {
+            return fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder()
+                    .countOfPairs(count)
+                    .build());
+        } catch (Exception e) {
+            log.error("❌ Ошибка при поиске новых пар: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private int startNewTrades(List<PairData> newPairs) {
+        AtomicInteger count = new AtomicInteger(0);
+
+        newPairs.forEach(pairData -> {
+            if (startSingleNewTrade(pairData)) {
+                count.incrementAndGet();
+            }
+        });
+
+        return count.get();
+    }
+
+    private boolean startSingleNewTrade(PairData pairData) {
+        try {
+            PairData result = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
+                    .pairData(pairData)
+                    .checkAutoTrading(true)
+                    .build());
+            return result != null;
+        } catch (Exception e) {
+            log.warn("⚠️ Не удалось запустить новый трейд для пары {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+            return false;
+        }
+    }
+
+    private void logMaintainPairsCompletion(long startTime, int newPairsCount) {
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар",
+                duration / 1000.0, newPairsCount);
     }
 }
