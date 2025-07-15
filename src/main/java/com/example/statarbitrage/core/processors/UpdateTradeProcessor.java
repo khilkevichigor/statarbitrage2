@@ -55,6 +55,7 @@ public class UpdateTradeProcessor {
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
         updateCurrentProfitBeforeExitCheck(pairData, zScoreData, settings);
 
+        //todo после закрытия вижу что профит составил аж целых 78,32% хотя пара закрывалась по настройке в 1,5%
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
