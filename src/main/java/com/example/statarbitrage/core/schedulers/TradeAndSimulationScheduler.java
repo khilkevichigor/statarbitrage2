@@ -57,6 +57,22 @@ public class TradeAndSimulationScheduler {
         }
     }
 
+    @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
+    public void maintainPairs() {
+        if (!canStartMaintainPairs()) {
+            return;
+        }
+
+        long schedulerStart = System.currentTimeMillis();
+
+        try {
+            int newPairsCount = executeMaintainPairs();
+            logMaintainPairsCompletion(schedulerStart, newPairsCount);
+        } finally {
+            maintainPairsRunning.set(false);
+        }
+    }
+
     private boolean canStartUpdateTrades() {
         if (maintainPairsRunning.get()) {
             log.info("⏸️ Обновление трейдов пропущено - выполняется поддержание пар");
@@ -131,22 +147,6 @@ public class TradeAndSimulationScheduler {
         long duration = System.currentTimeMillis() - startTime;
         log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов",
                 duration / 1000.0, tradesCount);
-    }
-
-    @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
-    public void maintainPairs() {
-        if (!canStartMaintainPairs()) {
-            return;
-        }
-
-        long schedulerStart = System.currentTimeMillis();
-
-        try {
-            int newPairsCount = executeMaintainPairs();
-            logMaintainPairsCompletion(schedulerStart, newPairsCount);
-        } finally {
-            maintainPairsRunning.set(false);
-        }
     }
 
     private boolean canStartMaintainPairs() {
