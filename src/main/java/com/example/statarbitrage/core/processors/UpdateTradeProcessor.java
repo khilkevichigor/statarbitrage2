@@ -17,8 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 
@@ -97,15 +95,10 @@ public class UpdateTradeProcessor {
             return handleNoOpenPositions(pairData, settings);
         }
 
-        // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().name().contains("VIRTUAL");
-
-        if (isVirtualTrading) {
-            // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
-            Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-            pairDataService.updateChangesAndSave(pairData);
-        }
+        // 📊 ВАЖНО: Сначала рассчитываем профит ДО закрытия позиций, чтобы не потерять данные
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
+        pairDataService.updateChangesAndSave(pairData);
 
         CloseArbitragePairResult closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
@@ -117,15 +110,9 @@ public class UpdateTradeProcessor {
 
         updatePairDataAfterClose(pairData, zScoreData, closeResult);
 
-        if (isVirtualTrading) {
-            // 💾 Для виртуальной торговли: сохраняем без повторного расчета профита
-            pairDataService.save(pairData);
-            tradeLogService.updateTradeLog(pairData, settings);
-        } else {
-            // 🏦 Для реальной торговли: используем фактические данные из closeResult
-            updateProfitFromCloseResult(pairData, closeResult);
-            savePairDataWithUpdates(pairData, settings);
-        }
+        // 💾 Сохраняем без повторного расчета профита, так как он уже рассчитан
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
@@ -150,15 +137,10 @@ public class UpdateTradeProcessor {
         log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
-        // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().name().contains("VIRTUAL");
-
-        if (isVirtualTrading) {
-            // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
-            Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-            pairDataService.updateChangesAndSave(pairData);
-        }
+        // 📊 ВАЖНО: Сначала рассчитываем профит ДО закрытия позиций, чтобы не потерять данные
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
+        pairDataService.updateChangesAndSave(pairData);
 
         CloseArbitragePairResult closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
@@ -173,15 +155,9 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
 
-        if (isVirtualTrading) {
-            // 💾 Для виртуальной торговли: сохраняем без повторного расчета профита
-            pairDataService.save(pairData);
-            tradeLogService.updateTradeLog(pairData, settings);
-        } else {
-            // 🏦 Для реальной торговли: используем фактические данные из closeResult
-            updateProfitFromCloseResult(pairData, closeResult);
-            savePairDataWithUpdates(pairData, settings);
-        }
+        // 💾 Сохраняем без повторного расчета профита, так как он уже рассчитан
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
@@ -212,50 +188,5 @@ public class UpdateTradeProcessor {
         pairDataService.save(pairData);
         pairDataService.updateChangesAndSave(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
-    }
-
-    /**
-     * Обновляет профит на основе фактических результатов закрытия позиций
-     * Используется для реальной торговли
-     */
-    private void updateProfitFromCloseResult(PairData pairData, CloseArbitragePairResult closeResult) {
-        try {
-            TradeResult longResult = closeResult.getLongTradeResult();
-            TradeResult shortResult = closeResult.getShortTradeResult();
-
-            if (longResult == null || shortResult == null) {
-                log.warn("⚠️ Не удалось получить результаты закрытия для пары {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-                return;
-            }
-
-            // 💰 Используем фактические цены закрытия
-            pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
-            pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
-
-            // 📊 Рассчитываем профит на основе фактических PnL
-            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-            BigDecimal netPnL = totalPnL.subtract(totalFees);
-
-            // 📈 Конвертируем в процент от позиции
-            BigDecimal longEntryPrice = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-            BigDecimal shortEntryPrice = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-            BigDecimal avgEntryPrice = longEntryPrice.add(shortEntryPrice).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
-
-            if (avgEntryPrice.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal profitPercent = netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100));
-                pairData.setProfitChanges(profitPercent);
-            }
-
-            log.info("🏦 Обновлен профит для реальной торговли {}/{}: {}% (PnL: {}, комиссии: {})",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
-                    pairData.getProfitChanges(), totalPnL, totalFees);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении профита из результатов закрытия для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
     }
 }
