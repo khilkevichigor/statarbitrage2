@@ -240,65 +240,6 @@ public class TradingIntegrationService {
     }
 
     /**
-     * Проверка что позиции действительно закрыты на бирже с получением PnL
-     */
-    public PositionVerificationResult verifyPositionsClosed(PairData pairData) {
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
-
-        if (longPositionId == null || shortPositionId == null) {
-            log.debug("📋 Позиции для пары {}/{} не найдены в локальном реестре",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-            return PositionVerificationResult.builder()
-                    .positionsClosed(true)
-                    .totalPnL(BigDecimal.ZERO)
-                    .build();
-        }
-
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-
-        // Обновляем актуальную информацию с биржи
-        provider.updatePositionPrices();
-
-        Position longPosition = provider.getPosition(longPositionId);
-        Position shortPosition = provider.getPosition(shortPositionId);
-
-        boolean longClosed = (longPosition == null || longPosition.getStatus() == PositionStatus.CLOSED);
-        boolean shortClosed = (shortPosition == null || shortPosition.getStatus() == PositionStatus.CLOSED);
-
-        if (longClosed && shortClosed) {
-            // Рассчитываем финальный PnL если позиции закрыты
-            BigDecimal totalPnL = BigDecimal.ZERO;
-            if (longPosition != null) {
-                longPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(longPosition.getUnrealizedPnL());
-            }
-            if (shortPosition != null) {
-                shortPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnL());
-            }
-
-            // Удаляем из локального реестра если обе позиции закрыты
-            pairToLongPositionMap.remove(pairData.getId());
-            pairToShortPositionMap.remove(pairData.getId());
-            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
-
-            return PositionVerificationResult.builder()
-                    .positionsClosed(true)
-                    .totalPnL(totalPnL)
-                    .build();
-        }
-
-        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}",
-                longClosed, shortClosed);
-        return PositionVerificationResult.builder()
-                .positionsClosed(false)
-                .totalPnL(BigDecimal.ZERO)
-                .build();
-    }
-
-    /**
      * Получение реальной прибыли позиции
      */
     public BigDecimal getPositionPnL(PairData pairData) {
