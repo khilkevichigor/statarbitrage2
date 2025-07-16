@@ -134,4 +134,21 @@ public class StartNewTradeProcessor {
 
         return pairData;
     }
+
+    private void addEntryPoints(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
+        //Обновляем текущие данные коинтеграции
+        pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
+        pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
+        pairData.setZScoreEntry(latestParam.getZscore());
+        pairData.setCorrelationEntry(latestParam.getCorrelation());
+        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
+        pairData.setPValueEntry(latestParam.getPvalue());
+        pairData.setMeanEntry(latestParam.getMean());
+        pairData.setStdEntry(latestParam.getStd());
+        pairData.setSpreadEntry(latestParam.getSpread());
+        pairData.setAlphaEntry(latestParam.getAlpha());
+        pairData.setBetaEntry(latestParam.getBeta());
+        // Время входа
+        pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
+    }
 }
