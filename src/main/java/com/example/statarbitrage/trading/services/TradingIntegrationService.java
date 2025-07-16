@@ -1,5 +1,7 @@
 package com.example.statarbitrage.trading.services;
 
+import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -39,7 +43,7 @@ public class TradingIntegrationService {
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
      */
-    public OpenArbitragePairResult openArbitragePair(PairData pairData) {
+    public OpenArbitragePairResult openArbitragePair(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         // Синхронизируем всю операцию открытия пары
         synchronized (openPositionLock) {
             try {
