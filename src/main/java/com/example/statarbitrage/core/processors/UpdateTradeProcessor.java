@@ -52,9 +52,6 @@ public class UpdateTradeProcessor {
             return handleManualClose(pairData, zScoreData, settings);
         }
 
-        // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        updateCurrentProfitBeforeExitCheck(pairData, zScoreData, settings);
-
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
@@ -190,9 +187,9 @@ public class UpdateTradeProcessor {
     }
 
     private PairData updateRegularTrade(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        // 📊 Профит уже рассчитан в updateCurrentProfitBeforeExitCheck(), просто сохраняем
-        pairDataService.save(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
+        savePairDataWithUpdates(pairData, settings);
         return pairData;
     }
 
@@ -215,28 +212,6 @@ public class UpdateTradeProcessor {
         pairDataService.save(pairData);
         pairDataService.updateChangesAndSave(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
-    }
-
-    /**
-     * Обновляет актуальный профит перед проверкой exit strategy
-     * Критично для правильного срабатывания тейк-профита и стоп-лосса
-     */
-    private void updateCurrentProfitBeforeExitCheck(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        try {
-            // 📊 Обновляем текущие цены и данные
-            Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-
-            // 💰 Рассчитываем актуальный профит для exit strategy
-            pairDataService.updateChangesAndSave(pairData);
-
-            log.debug("📈 Обновлен актуальный профит для exit strategy {}/{}: {}%",
-                    pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении профита перед проверкой exit strategy для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
     }
 
     /**
