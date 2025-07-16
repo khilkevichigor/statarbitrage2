@@ -13,7 +13,6 @@ import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -34,17 +33,17 @@ public class OkxClient {
             .connectionPool(new okhttp3.ConnectionPool(20, 5, TimeUnit.MINUTES))
             .build();
     private static final String BASE_URL = "https://www.okx.com";
-
+    
     // Rate limiting для предотвращения блокировки OKX API
     private static final AtomicLong lastRequestTime = new AtomicLong(0);
     private static final long MIN_REQUEST_INTERVAL_MS = 120; // 120мс между запросами = 8.3 RPS (безопасно)
     private static final int BATCH_SIZE = 50; // Обрабатываем по 50 символов за раз
-
+    
     // Умная задержка для rate limiting
     private void applyRateLimit() {
         long now = System.currentTimeMillis();
         long timeSinceLastRequest = now - lastRequestTime.get();
-
+        
         if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
             long sleepTime = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
             try {
@@ -53,7 +52,7 @@ public class OkxClient {
                 Thread.currentThread().interrupt();
             }
         }
-
+        
         lastRequestTime.set(System.currentTimeMillis());
     }
 
@@ -97,7 +96,7 @@ public class OkxClient {
 
     public JsonArray getCandles(String symbol, String timeFrame, double limit) {
         applyRateLimit(); // Применяем rate limiting
-
+        
         int candlesLimit = (int) limit;
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/market/candles?instId=" + symbol + "&bar=" + timeFrame + "&limit=" + candlesLimit)
@@ -106,14 +105,14 @@ public class OkxClient {
             Response response = client.newCall(request).execute();
             String json = response.body().string();
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-
+            
             // Проверяем успешность ответа
             JsonArray data = obj.getAsJsonArray("data");
             if (data == null || data.size() == 0) {
                 log.warn("⚠️ Пустой ответ от OKX для {}", symbol);
                 return new JsonArray(); // Возвращаем пустой массив вместо null
             }
-
+            
             return data;
         } catch (Exception e) {
             log.error("❌ Ошибка при получении свечей для {}: {}", symbol, e.getMessage());
@@ -174,15 +173,15 @@ public class OkxClient {
             List<List<String>> batches = IntStream.range(0, (tickersFinal.size() + BATCH_SIZE - 1) / BATCH_SIZE)
                     .mapToObj(i -> tickersFinal.subList(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, tickersFinal.size())))
                     .toList();
-
+            
             log.info("🔄 Обрабатываем {} батчей по {} символов", batches.size(), BATCH_SIZE);
-
+            
             for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
                 List<String> batch = batches.get(batchIndex);
                 final String timeframeFinal = timeframe;
                 final int candleLimitFinal = candleLimit;
                 log.info("🔄 Обрабатываем батч {}/{} ({} символов)", batchIndex + 1, batches.size(), batch.size());
-
+                
                 List<CompletableFuture<Void>> batchFutures = batch.stream()
                         .map(symbol -> CompletableFuture.runAsync(() -> {
                             try {
@@ -197,10 +196,10 @@ public class OkxClient {
                             }
                         }, executor))
                         .toList();
-
+                
                 // Ожидаем завершения текущего батча
                 CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture[0])).join();
-
+                
                 // Небольшая пауза между батчами
                 if (batchIndex < batches.size() - 1) {
                     try {
@@ -234,13 +233,13 @@ public class OkxClient {
             List<List<String>> batches = IntStream.range(0, (validationTickersFinal.size() + BATCH_SIZE - 1) / BATCH_SIZE)
                     .mapToObj(i -> validationTickersFinal.subList(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, validationTickersFinal.size())))
                     .toList();
-
+            
             log.info("🔄 Обрабатываем {} батчей по {} символов для валидации", batches.size(), BATCH_SIZE);
-
+            
             for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
                 List<String> batch = batches.get(batchIndex);
                 log.info("🔄 Валидируем батч {}/{} ({} символов)", batchIndex + 1, batches.size(), batch.size());
-
+                
                 List<CompletableFuture<Void>> batchFutures = batch.stream()
                         .map(symbol -> CompletableFuture.runAsync(() -> {
                             try {
@@ -270,9 +269,9 @@ public class OkxClient {
                             }
                         }, executor))
                         .toList();
-
+                
                 CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture[0])).join();
-
+                
                 // Небольшая пауза между батчами
                 if (batchIndex < batches.size() - 1) {
                     try {
@@ -291,34 +290,6 @@ public class OkxClient {
         log.info("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
 
         return isSorted ? result.stream().sorted().toList() : result;
-    }
-
-    /**
-     * Получает текущую цену (last price) для указанного символа
-     *
-     * @param symbol Торговый символ (например, BTC-USDT)
-     * @return Текущая цена или null если не удалось получить
-     */
-    public BigDecimal getCurrentPrice(String symbol) {
-        try {
-            applyRateLimit(); // Применяем rate limiting
-
-            JsonArray tickerData = getTicker(symbol);
-            if (tickerData != null && tickerData.size() > 0) {
-                JsonObject ticker = tickerData.get(0).getAsJsonObject();
-
-                // Согласно OKX API документации, last price находится в поле "last"
-                String lastPrice = ticker.get("last").getAsString();
-                return new BigDecimal(lastPrice);
-            }
-
-            log.warn("⚠️ Не удалось получить цену для {}: пустой ответ от API", symbol);
-            return null;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении цены для {}: {}", symbol, e.getMessage());
-            return null;
-        }
     }
 
 }

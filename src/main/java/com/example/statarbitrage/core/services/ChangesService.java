@@ -189,10 +189,15 @@ public class ChangesService {
             BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
             BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
 
+            //todo Ошибка! сразу после открытия сделки считает longReturnPct=-37.39, longCurrent=0.609, longEntry=0.972
+
+
             // Процентное изменение LONG позиции
             BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                     .divide(longEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
+
+            //todo Ошибка! сразу после открытия сделки считает shortReturnPct=-855.31, shortCurrent=9.643, shortEntry=1.009
 
             // Процентное изменение SHORT позиции (инвертировано)
             BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)

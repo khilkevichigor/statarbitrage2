@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.statarbitrage.common.constant.Constants.EXIT_REASON_MANUALLY;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -36,53 +38,52 @@ public class UpdateTradeProcessor {
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
-//        boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
-//        if (isVirtual) {
-//            return updateVirtualTrade(request);
-//        } else {
-//            return updateRealTrade(request);
-//        }
-        return updateRealTrade(request);
+        boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
+        if (isVirtual) {
+            return updateVirtualTrade(request);
+        } else {
+            return updateRealTrade(request);
+        }
     }
 
-//    private PairData updateVirtualTrade(UpdateTradeRequest request) {
-//        PairData pairData = request.getPairData();
-//        boolean isCloseManually = request.isCloseManually();
-//        // Проверяем статус пары - если уже закрыта, не обрабатываем
-//        if (pairData.getStatus() == TradeStatus.CLOSED) {
-//            log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
-//            return pairData;
-//        }
-//
-//        log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
-//        Settings settings = settingsService.getSettings();
-//
-//        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-//        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
-//
-//        logData(zScoreData);
-//
-//        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
-//
-//        changesService.calculateVirtual(pairData);
-//
-//        String exitReason = exitStrategyService.getExitReason(pairData);
-//        if (exitReason != null) {
-//            pairData.setExitReason(exitReason);
-//            pairData.setStatus(TradeStatus.CLOSED);
-//        }
-//
-//        //после всех обновлений профита закрываем если нужно
-//        if (isCloseManually) {
-//            pairData.setStatus(TradeStatus.CLOSED);
-//            pairData.setExitReason(EXIT_REASON_MANUALLY);
-//        }
-//
-//        pairDataService.save(pairData);
-//
-//        tradeLogService.saveLog(pairData);
-//        return pairData;
-//    }
+    private PairData updateVirtualTrade(UpdateTradeRequest request) {
+        PairData pairData = request.getPairData();
+        boolean isCloseManually = request.isCloseManually();
+        // Проверяем статус пары - если уже закрыта, не обрабатываем
+        if (pairData.getStatus() == TradeStatus.CLOSED) {
+            log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            return pairData;
+        }
+
+        log.info("🚀 Начинаем обновление трейда для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+        Settings settings = settingsService.getSettings();
+
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+
+        logData(zScoreData);
+
+        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
+
+        changesService.calculateVirtual(pairData);
+
+        String exitReason = exitStrategyService.getExitReason(pairData);
+        if (exitReason != null) {
+            pairData.setExitReason(exitReason);
+            pairData.setStatus(TradeStatus.CLOSED);
+        }
+
+        //после всех обновлений профита закрываем если нужно
+        if (isCloseManually) {
+            pairData.setStatus(TradeStatus.CLOSED);
+            pairData.setExitReason(EXIT_REASON_MANUALLY);
+        }
+
+        pairDataService.save(pairData);
+
+        tradeLogService.saveLog(pairData);
+        return pairData;
+    }
 
     private PairData updateRealTrade(UpdateTradeRequest request) {
         PairData pairData = request.getPairData();
@@ -105,7 +106,6 @@ public class UpdateTradeProcessor {
 
         logData(zScoreData);
 
-        //обновляем до определения закрывать/не закрывать
         pairDataService.updateReal(pairData, zScoreData, candlesMap);
         changesService.calculateReal(pairData);
 
@@ -158,7 +158,6 @@ public class UpdateTradeProcessor {
                 }
             }
         }
-
         changesService.calculateReal(pairData);
         tradeLogService.saveLog(pairData);
 

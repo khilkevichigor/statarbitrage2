@@ -1,6 +1,5 @@
 package com.example.statarbitrage.trading.providers;
 
-import com.example.statarbitrage.client_okx.OkxClient;
 import com.example.statarbitrage.trading.interfaces.PortfolioManager;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
@@ -26,15 +25,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VirtualTradingProvider implements TradingProvider {
 
     private final PortfolioManager portfolioManager;
-    private final OkxClient okxClient;
 
     // Хранилище виртуальных позиций
     private final ConcurrentHashMap<String, Position> positions = new ConcurrentHashMap<>();
     private final List<TradeResult> tradeHistory = new ArrayList<>();
 
-    public VirtualTradingProvider(PortfolioManager portfolioManager, OkxClient okxClient) {
+    public VirtualTradingProvider(PortfolioManager portfolioManager) {
         this.portfolioManager = portfolioManager;
-        this.okxClient = okxClient;
     }
 
     @Override
@@ -295,18 +292,11 @@ public class VirtualTradingProvider implements TradingProvider {
     public BigDecimal getCurrentPrice(String symbol) {
         try {
             // Получаем реальную цену через OKX клиент
-            BigDecimal realPrice = okxClient.getCurrentPrice(symbol);
-            if (realPrice != null) {
-                log.debug("📊 Получена реальная цена для {}: {}", symbol, realPrice);
-                return realPrice;
-            }
-
-            // Fallback - используем симуляцию если не удалось получить реальную цену
-            log.warn("⚠️ Не удалось получить реальную цену для {}, используем симуляцию", symbol);
-            return BigDecimal.valueOf(1.0 + (Math.random() * 0.1 - 0.05));
-
+            // Пока используем заглушку - для полной интеграции нужно адаптировать OkxClient
+            // TODO: Интегрировать с реальными ценами из OKX
+            return BigDecimal.valueOf(1.0 + (Math.random() * 0.1 - 0.05)); // Симуляция небольших изменений цены
         } catch (Exception e) {
-            log.warn("❌ Ошибка при получении цены для {}: {}, используем fallback", symbol, e.getMessage());
+            log.warn("Не удалось получить цену для {}: {}", symbol, e.getMessage());
             return BigDecimal.valueOf(1.0);
         }
     }
