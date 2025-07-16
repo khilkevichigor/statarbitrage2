@@ -185,9 +185,9 @@ public class StartNewTradeProcessor {
                         pairData.getLongTicker(), pairData.getShortTicker());
 
                 pairData.setStatus(TradeStatus.TRADING);
-                updateCurrentData(pairData, zScoreData, candlesMap);
+                updatePairCurrentData(pairData, zScoreData, candlesMap);
 
-                addEntryPoints(pairData, zScoreData.getLastZScoreParam(), openLongTradeResult, openShortTradeResult);
+                setupPairDataEntryPoints(pairData, zScoreData.getLastZScoreParam(), openLongTradeResult, openShortTradeResult);
                 log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
                         pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
                         pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
@@ -217,7 +217,7 @@ public class StartNewTradeProcessor {
         return pairData;
     }
 
-    private void updateCurrentData(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    private void updatePairCurrentData(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
 
         //Обновляем текущие цены
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
@@ -251,7 +251,7 @@ public class StartNewTradeProcessor {
         }
     }
 
-    private void addEntryPoints(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
+    private void setupPairDataEntryPoints(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
         //Обновляем текущие данные коинтеграции
         pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
         pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
