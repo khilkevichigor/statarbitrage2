@@ -53,7 +53,7 @@ public class UpdateTradeProcessor {
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
 
         ZScoreParam latest = zScoreData.getLastZScoreParam(); // последние params
-        log.info(String.format("Наша пара: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+        log.info(String.format("Наша пара: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
         ));
