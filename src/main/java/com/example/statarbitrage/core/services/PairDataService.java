@@ -200,24 +200,15 @@ public class PairDataService {
                     .divide(shortEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
 
-            // Получаем информацию о портфолио для логирования
+            // Получаем информацию о портфолио для расчета процентной прибыли
             Portfolio portfolio = tradingIntegrationService.getPortfolioInfo();
             BigDecimal totalBalance = portfolio != null ? portfolio.getTotalBalance() : BigDecimal.ZERO;
 
-            // 🎯 ИСПРАВЛЕНИЕ: Расчет размера позиции для правильного расчета профита
-            BigDecimal positionSize = tradingIntegrationService.getPositionSize(pairData);
-            if (positionSize == null || positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                // Fallback: примерный расчет размера позиции на основе цен входа
-                BigDecimal longPositionValue = longEntry.multiply(BigDecimal.valueOf(50)); // Примерно 50 USDT на позицию
-                BigDecimal shortPositionValue = shortEntry.multiply(BigDecimal.valueOf(50)); // Примерно 50 USDT на позицию
-                positionSize = longPositionValue.add(shortPositionValue);
-            }
-
-            // 🎯 ИСПРАВЛЕНИЕ: Расчет профита в процентах от размера позиции, а не от общего баланса
-            BigDecimal profitPercentFromPosition = BigDecimal.ZERO;
-            if (positionSize.compareTo(BigDecimal.ZERO) > 0) {
-                profitPercentFromPosition = realPnL
-                        .divide(positionSize, 10, RoundingMode.HALF_UP)
+            // Расчет профита в процентах от общего портфолио
+            BigDecimal profitPercentFromTotal = BigDecimal.ZERO;
+            if (totalBalance.compareTo(BigDecimal.ZERO) > 0) {
+                profitPercentFromTotal = realPnL
+                        .divide(totalBalance, 10, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100));
             }
 
@@ -229,7 +220,7 @@ public class PairDataService {
             // Округления
             BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
             BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal profitRounded = profitPercentFromPosition.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
             BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
             // 🔄 Отслеживание максимумов и минимумов с учетом истории
@@ -315,9 +306,8 @@ public class PairDataService {
                     pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
             log.info("📊 Z Entry: {}, Current: {}, ΔZ: {}",
                     zScoreEntry, zScoreCurrent, zScoreRounded);
-            log.info("💰 Реальный PnL: {} USDT ({}% от позиции)",
+            log.info("💰 Реальный PnL: {} USDT ({}% от портфолио)",
                     realPnL.setScale(2, RoundingMode.HALF_UP), profitRounded);
-            log.info("📏 Размер позиции: {} USDT", positionSize.setScale(2, RoundingMode.HALF_UP));
             
             // Логируем профит с учетом возможности фиксации
             if (pairData.getExitProfitSnapshot() != null) {

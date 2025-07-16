@@ -34,7 +34,7 @@ public class DbInitializer {
                     .minPValue(0.01)
 
                     .useMinAdfValueFilter(true)
-                    .minAdfValue(1.0)
+                    .minAdfValue(0.5)
 
                     .useMinCorrelationFilter(true)
                     .minCorrelation(0.8)
@@ -47,10 +47,10 @@ public class DbInitializer {
 
                     .checkInterval(1)
 
-                    .initialVirtualBalance(10_000.0)
+                    .initialVirtualBalance(10_000.0) //виртуальный баланс
                     .maxPositionPercentPerPair(1.0) //для реальных сделок
-                    .maxMarginPerPair(200)
-                    .leverage(10.0)
+                    .maxMarginPerPair(10.0)
+                    .leverage(1.0)
                     .feePctPerTrade(0.05)
 
                     .useExitTake(true)
@@ -71,7 +71,7 @@ public class DbInitializer {
                     .useExitTimeHours(false)
                     .exitTimeHours(3)
 
-                    .usePairs(10.0)
+                    .usePairs(1.0)
 
                     .build()
             );
