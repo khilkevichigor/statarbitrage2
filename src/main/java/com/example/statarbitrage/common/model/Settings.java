@@ -29,7 +29,6 @@ public class Settings {
 
     private double checkInterval;
 
-    private double initialVirtualBalance;
     private double maxPositionPercentPerPair;
     private double maxPositionSize;
     private double leverage;
