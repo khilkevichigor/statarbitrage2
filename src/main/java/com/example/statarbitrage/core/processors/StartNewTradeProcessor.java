@@ -168,9 +168,6 @@ public class StartNewTradeProcessor {
     }
 
     private PairData openTradePosition(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        //todo подумать над тем что бы сделать UUID для пары и передавать его на биржу при открытии сделок!
-        // Что бы потом при закрытии или получении инфы об открытых сделках было проще идентифицировать их тк монеты могут повторяться и могут быть баги
-        // в том ту ли сделку мы нашли или это сделка на бирже совсем старая. За день может быть несколько сделок по одной и той же монете.
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         OpenArbitragePairResult openResult = tradingIntegrationService.openArbitragePair(pairData);
 
