@@ -31,7 +31,7 @@ public class Settings {
 
     private double initialVirtualBalance;
     private double maxPositionPercentPerPair;
-    private double maxMarginPerPair; //риск на пару, реальные деньги
+    private double maxPositionSize;
     private double leverage;
     private double feePctPerTrade;
 

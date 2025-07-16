@@ -49,7 +49,7 @@ public class DbInitializer {
 
                     .initialVirtualBalance(10_000.0) //виртуальный баланс
                     .maxPositionPercentPerPair(1.0) //для реальных сделок
-                    .maxMarginPerPair(10.0)
+                    .maxPositionSize(10.0)
                     .leverage(1.0)
                     .feePctPerTrade(0.05)
 
