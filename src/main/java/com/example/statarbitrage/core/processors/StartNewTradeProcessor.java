@@ -41,8 +41,7 @@ public class StartNewTradeProcessor {
     public PairData startNewTrade(StartNewTradeRequest startNewTradeRequest) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-//            return startNewVirtualTrade(startNewTradeRequest);
-            return startNewRealTrade(startNewTradeRequest);
+            return startNewVirtualTrade(startNewTradeRequest);
         } else {
             return startNewRealTrade(startNewTradeRequest);
         }
