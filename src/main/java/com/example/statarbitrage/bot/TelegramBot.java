@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
@@ -18,8 +19,11 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.example.statarbitrage.common.constant.Constants.*;
 
 @Slf4j
 @Service
@@ -32,8 +36,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand(BotMenu.GET_CSV.name(), "Получить csv"));
-        listOfCommands.add(new BotCommand(BotMenu.GET_STATISTIC.name(), "Получить стату"));
+        listOfCommands.add(new BotCommand(BotMenu.GET_CSV.getName(), "Получить csv"));
+        listOfCommands.add(new BotCommand(BotMenu.GET_STATISTIC.getName(), "Получить стату"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -60,8 +64,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             String text = message.getText();
 
             switch (text) {
-//                case GET_CSV_COMMAND -> getCsvCommand(chatIdStr);
-//                case GET_STATISTIC_COMMAND -> getStatisticCommand(chatIdStr);
+                case GET_CSV_COMMAND -> getCsvCommand(chatIdStr);
+                case GET_STATISTIC_COMMAND -> getStatisticCommand(chatIdStr);
                 default -> {
                     //ignore
                 }
@@ -69,14 +73,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-//    private void getStatisticCommand(String chatIdStr) {
-//        statisticsService.printTradeStatistics(chatIdStr);
-//    }
+    private void getStatisticCommand(String chatIdStr) {
+        statisticsService.printTradeStatistics(chatIdStr);
+    }
 
-//    private void getCsvCommand(String chatIdStr) {
-//        log.info("-> {}", BotMenu.GET_CSV.name());
-//        sendDocumentToTelegram(chatIdStr, new File(TEST_TRADES_CSV_FILE));
-//    }
+    private void getCsvCommand(String chatIdStr) {
+        log.info("-> {}", BotMenu.GET_CSV.name());
+        sendDocumentToTelegram(chatIdStr, new File(TEST_TRADES_CSV_FILE));
+    }
 
     @EventListener
     public void onSendAsTextEvent(SendAsTextEvent event) {
@@ -122,15 +126,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-//    public void sendDocumentToTelegram(String chatId, File file) {
-//        SendDocument document = new SendDocument();
-//        document.setChatId(chatId);
-//        document.setDocument(new InputFile(file));
-//
-//        try {
-//            execute(document);
-//        } catch (TelegramApiException e) {
-//            log.error("Ошибка при отправке документа: {}", e.getMessage(), e);
-//        }
-//    }
+    public void sendDocumentToTelegram(String chatId, File file) {
+        SendDocument document = new SendDocument();
+        document.setChatId(chatId);
+        document.setDocument(new InputFile(file));
+
+        try {
+            execute(document);
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при отправке документа: {}", e.getMessage(), e);
+        }
+    }
 }

@@ -20,6 +20,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class TradeLogService {
+    private final SettingsService settingsService;
+
     private final TradeLogRepository tradeLogRepository;
 
     public void updateTradeLog(PairData pairData, Settings settings) {

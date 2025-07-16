@@ -29,6 +29,7 @@ public class StartNewTradeProcessor {
     private final CandlesService candlesService;
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
+    private final ValidateService validateService;
     private final TradingIntegrationService tradingIntegrationService;
     private final TradeLogService tradeLogService;
 
@@ -81,36 +82,11 @@ public class StartNewTradeProcessor {
     }
 
     private PairData performPreValidation(PairData pairData, Settings settings) {
-        if (isLastZLessThenMinZ(pairData, settings)) {
+        if (validateService.isLastZLessThenMinZ(pairData, settings)) {
             log.warn("ZCurrent < ZMin для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
             return handleTradeError(pairData, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM);
         }
         return null;
-    }
-
-    private boolean isLastZLessThenMinZ(PairData pairData, Settings settings) {
-        if (pairData == null) {
-            throw new IllegalArgumentException("pairData is null");
-        }
-
-        double zScore = pairData.getZScoreCurrent();
-        if (zScore < settings.getMinZ()) {
-            if (zScore < 0) {
-                log.warn("Skip this pair {} - {}. Z-score {} < 0",
-                        pairData.getLongTicker(),
-                        pairData.getShortTicker(),
-                        zScore);
-            } else {
-                log.warn("Skip this pair {} - {}. Z-score {} < minZ {}",
-                        pairData.getLongTicker(),
-                        pairData.getShortTicker(),
-                        zScore,
-                        settings.getMinZ());
-            }
-            return true;
-        }
-
-        return false;
     }
 
     private ZScoreData calculateAndValidateZScoreData(PairData pairData, Settings settings) {

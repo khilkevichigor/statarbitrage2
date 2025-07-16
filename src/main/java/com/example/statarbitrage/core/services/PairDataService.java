@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PairDataService {
+    private final ChangesService changesService;
+    private final ExitStrategyService exitStrategyService;
     private final PairDataRepository pairDataRepository;
     private final TradingIntegrationService tradingIntegrationService;
 
@@ -112,6 +114,75 @@ public class PairDataService {
 
         return pairData;
     }
+
+//    public void updateVirtual(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+//        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+//        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+//        // Проверяем наличие данных
+//        if (longTickerCandles == null || longTickerCandles.isEmpty() || shortTickerCandles == null || shortTickerCandles.isEmpty()) {
+//            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
+//            throw new IllegalArgumentException("Отсутствуют данные свечей");
+//        }
+//
+//        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+//        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+//
+//        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+//        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+//
+//        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+//
+//        //Точки входа
+//        if (pairData.getStatus() == TradeStatus.SELECTED) {
+//
+//            pairData.setStatus(TradeStatus.TRADING);
+//
+//            pairData.setLongTickerEntryPrice(longTickerCurrentPrice);
+//            pairData.setShortTickerEntryPrice(shortTickerCurrentPrice);
+//
+//            pairData.setZScoreEntry(latestParam.getZscore());
+//            pairData.setCorrelationEntry(latestParam.getCorrelation());
+//            pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
+//            pairData.setPValueEntry(latestParam.getPvalue());
+//            pairData.setMeanEntry(latestParam.getMean());
+//            pairData.setStdEntry(latestParam.getStd());
+//            pairData.setSpreadEntry(latestParam.getSpread());
+//            pairData.setAlphaEntry(latestParam.getAlpha());
+//            pairData.setBetaEntry(latestParam.getBeta());
+//
+//            // Ставим время открытия по long-свечке
+//            pairData.setEntryTime(latestParam.getTimestamp());
+//
+//            log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
+//                    pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
+//                    pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
+//                    pairData.getZScoreEntry());
+//        }
+//
+//        //updateCurrentCointParams
+//        pairData.setZScoreCurrent(latestParam.getZscore());
+//        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+//        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+//        pairData.setPValueCurrent(latestParam.getPvalue());
+//        pairData.setMeanCurrent(latestParam.getMean());
+//        pairData.setStdCurrent(latestParam.getStd());
+//        pairData.setSpreadCurrent(latestParam.getSpread());
+//        pairData.setAlphaCurrent(latestParam.getAlpha());
+//        pairData.setBetaCurrent(latestParam.getBeta());
+//
+//        // Добавляем новые точки в историю Z-Score при каждом обновлении
+//        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+//            // Добавляем всю новую историю из ZScoreData
+//            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+//                pairData.addZScorePoint(param);
+//            }
+//        } else {
+//            // Если новой истории нет, добавляем хотя бы текущую точку
+//            pairData.addZScorePoint(latestParam);
+//        }
+//
+//        save(pairData);
+//    }
 
     public void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
 
@@ -405,6 +476,140 @@ public class PairDataService {
         List<String> sorted = Arrays.asList(ticker1, ticker2);
         Collections.sort(sorted);
         return sorted.get(0) + "-" + sorted.get(1);
+    }
+
+    /**
+     * Обновление изменений на основе конкретного PnL (для случаев когда позиции закрыты вручную)
+     */
+    public void updateChangesWithSpecificPnLAndSave(PairData pairData, BigDecimal specificPnL) {
+        try {
+            // Получаем текущие цены
+            BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
+            BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
+            BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
+            BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+            BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
+
+            // Расчет процентных изменений позиций на основе текущих и входных цен
+            BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
+            BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
+
+            // Процентное изменение LONG позиции
+            BigDecimal longReturnPct = longCurrent.subtract(longEntry)
+                    .divide(longEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            // Процентное изменение SHORT позиции (инвертировано)
+            BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
+                    .divide(shortEntry, 10, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            // Получаем информацию о портфолио для расчета процентной прибыли
+            Portfolio portfolio = tradingIntegrationService.getPortfolioInfo();
+            BigDecimal totalBalance = portfolio != null ? portfolio.getTotalBalance() : BigDecimal.ZERO;
+
+            // Расчет профита в процентах от общего портфолио на основе переданного PnL
+            BigDecimal profitPercentFromTotal = BigDecimal.ZERO;
+            if (totalBalance.compareTo(BigDecimal.ZERO) > 0) {
+                profitPercentFromTotal = specificPnL
+                        .divide(totalBalance, 10, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+            }
+
+            // Текущее время
+            long entryTime = pairData.getEntryTime();
+            long now = System.currentTimeMillis();
+            long currentTimeInMinutes = (now - entryTime) / (1000 * 60);
+
+            // Округления
+            BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
+
+            // 🔄 Отслеживание максимумов и минимумов с учетом истории
+            BigDecimal currentMinProfit = pairData.getMinProfitRounded();
+            BigDecimal currentMaxProfit = pairData.getMaxProfitRounded();
+            long currentTimeToMax = pairData.getTimeInMinutesSinceEntryToMax();
+            long currentTimeToMin = pairData.getTimeInMinutesSinceEntryToMin();
+
+            // Обновляем максимум прибыли
+            BigDecimal maxProfitRounded;
+            long timeInMinutesSinceEntryToMax;
+            if (currentMaxProfit == null || profitRounded.compareTo(currentMaxProfit) > 0) {
+                maxProfitRounded = profitRounded;
+                timeInMinutesSinceEntryToMax = currentTimeInMinutes;
+                log.debug("🚀 Новый максимум прибыли (конкретный PnL): {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
+            } else {
+                maxProfitRounded = currentMaxProfit;
+                timeInMinutesSinceEntryToMax = currentTimeToMax;
+            }
+
+            // Обновляем минимум прибыли
+            BigDecimal minProfitRounded;
+            long timeInMinutesSinceEntryToMin;
+            if (currentMinProfit == null || profitRounded.compareTo(currentMinProfit) < 0) {
+                minProfitRounded = profitRounded;
+                timeInMinutesSinceEntryToMin = currentTimeInMinutes;
+                log.debug("📉 Новый минимум прибыли (конкретный PnL): {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
+            } else {
+                minProfitRounded = currentMinProfit;
+                timeInMinutesSinceEntryToMin = currentTimeToMin;
+            }
+
+            // Отслеживание экстремумов других показателей
+            BigDecimal minZ = updateMin(pairData.getMinZ(), zScoreCurrent);
+            BigDecimal maxZ = updateMax(pairData.getMaxZ(), zScoreCurrent);
+
+            BigDecimal minLong = updateMin(pairData.getMinLong(), longReturnPct);
+            BigDecimal maxLong = updateMax(pairData.getMaxLong(), longReturnPct);
+
+            BigDecimal minShort = updateMin(pairData.getMinShort(), shortReturnPct);
+            BigDecimal maxShort = updateMax(pairData.getMaxShort(), shortReturnPct);
+
+            BigDecimal minCorr = updateMin(pairData.getMinCorr(), corrCurrent);
+            BigDecimal maxCorr = updateMax(pairData.getMaxCorr(), corrCurrent);
+
+            // ✅ Записываем в PairData
+            pairData.setLongChanges(longReturnRounded);
+            pairData.setShortChanges(shortReturnRounded);
+            pairData.setProfitChanges(profitRounded);
+            pairData.setZScoreChanges(zScoreRounded);
+
+            pairData.setMinProfitRounded(minProfitRounded);
+            pairData.setMaxProfitRounded(maxProfitRounded);
+            pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
+            pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
+
+            pairData.setMinZ(minZ);
+            pairData.setMaxZ(maxZ);
+            pairData.setMinLong(minLong);
+            pairData.setMaxLong(maxLong);
+            pairData.setMinShort(minShort);
+            pairData.setMaxShort(maxShort);
+            pairData.setMinCorr(minCorr);
+            pairData.setMaxCorr(maxCorr);
+
+            pairDataRepository.save(pairData);
+
+            // 📝 Логирование
+            log.info("🔴 ОБНОВЛЕНИЕ ПО КОНКРЕТНОМУ PnL - {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
+                    pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
+            log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
+                    pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
+            log.info("📊 Z Entry: {}, Current: {}, ΔZ: {}",
+                    zScoreEntry, zScoreCurrent, zScoreRounded);
+            log.info("💰 Конкретный PnL: {} USDT ({}% от портфолио)",
+                    specificPnL.setScale(2, RoundingMode.HALF_UP), profitRounded);
+            log.info("💼 Общий баланс портфолио: {} USDT", totalBalance.setScale(2, RoundingMode.HALF_UP));
+            log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
+            log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при расчете изменений по конкретному PnL для пары {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        }
     }
 
     public BigDecimal getUnrealizedProfitTotal() {

@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import static com.example.statarbitrage.common.constant.Constants.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -23,25 +25,25 @@ public class ExitStrategyService {
         // Проверка прибыли
         if (settings.isUseExitStop() && profit <= settings.getExitStop()) {
             log.info("Выход по стопу: profit = {}%", profit);
-            return ExitReasonType.EXIT_REASON_BY_STOP.name();
+            return EXIT_REASON_BY_STOP;
         }
         if (settings.isUseExitTake() && profit >= settings.getExitTake()) { //todo не сетится - в бд null
             log.info("Выход по тейку: profit = {}%", profit);
-            return ExitReasonType.EXIT_REASON_BY_TAKE.name();
+            return EXIT_REASON_BY_TAKE;
         }
 
         // Проверка Z-Score
         if (settings.isUseExitZMin() && zScoreCurrent <= settings.getExitZMin()) {
             log.info("Выход по zMin: zMin = {}", zScoreCurrent);
-            return ExitReasonType.EXIT_REASON_BY_Z_MIN.name();
+            return EXIT_REASON_BY_Z_MIN;
         }
         if (settings.isUseExitZMax() && zScoreCurrent >= zScoreEntry + settings.getExitZMax()) { //z превысит на х%
             log.info("Выход по zMax: currentZ {} >= entryZ {} + exitZMax {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-            return ExitReasonType.EXIT_REASON_BY_Z_MAX.name();
+            return EXIT_REASON_BY_Z_MAX;
         }
         if (settings.isUseExitZMaxPercent() && zScoreCurrent >= zScoreEntry * (1 + settings.getExitZMaxPercent() / 100.0)) { //z превысит на х%
             log.info("Выход по zMax: currentZ = {}, entryZ = {}, threshold = {}%", zScoreCurrent, zScoreEntry, settings.getExitZMaxPercent());
-            return ExitReasonType.EXIT_REASON_BY_Z_MAX.name();
+            return EXIT_REASON_BY_Z_MAX;
         }
 
         // Проверка по времени
@@ -49,7 +51,7 @@ public class ExitStrategyService {
             long holdingHours = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
             if (holdingHours >= settings.getExitTimeHours()) {
                 log.info("Выход по времени: ожидали {} часов", holdingHours);
-                return ExitReasonType.EXIT_REASON_BY_TIME.name();
+                return EXIT_REASON_BY_TIME;
             }
         }
 

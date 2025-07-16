@@ -404,7 +404,7 @@ public class TradingIntegrationService {
         if (positionSize.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal profitPercent = totalPnL.divide(positionSize, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
-            pairData.setProfitChanges(profitPercent); //todo profitPercent=0 when CLOSED
+            pairData.setProfitChanges(profitPercent);
         }
 
         // Устанавливаем статус закрытой
