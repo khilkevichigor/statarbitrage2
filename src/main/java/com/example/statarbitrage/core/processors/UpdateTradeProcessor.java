@@ -198,9 +198,7 @@ public class UpdateTradeProcessor {
         } else {
             // 🏦 Для реальной торговли: используем фактические данные из closeResult
             updateProfitFromCloseResult(pairData, closeResult);
-            // 🎯 НЕ вызываем savePairDataWithUpdates, чтобы избежать перезаписи профита в updateChangesAndSave
-            pairDataService.save(pairData);
-            tradeLogService.updateTradeLog(pairData, settings);
+            savePairDataWithUpdates(pairData, settings);
         }
 
         return pairData;
