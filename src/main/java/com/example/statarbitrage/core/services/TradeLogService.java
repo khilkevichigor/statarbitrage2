@@ -24,7 +24,7 @@ public class TradeLogService {
 
     private final TradeLogRepository tradeLogRepository;
 
-    public void updateTradeLog(PairData pairData, Settings settings) {
+    public void saveLog(PairData pairData) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
@@ -58,6 +58,7 @@ public class TradeLogService {
         tradeLog.setMinCorr(pairData.getMinCorr());
         tradeLog.setMaxCorr(pairData.getMaxCorr());
 
+        Settings settings = settingsService.getSettings();
         tradeLog.setExitTake(settings.getExitTake());
         tradeLog.setExitStop(settings.getExitStop());
         tradeLog.setExitZMin(settings.getExitZMin());
