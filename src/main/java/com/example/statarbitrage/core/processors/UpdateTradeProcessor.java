@@ -162,7 +162,7 @@ public class UpdateTradeProcessor {
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
         // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().name().contains("VIRTUAL");
+        boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().isVirtual();
 
         if (isVirtualTrading) {
             // 📊 Для виртуальной торговли: используем сохраненный профит на момент exit
@@ -187,7 +187,7 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        updatePairDataAfterClose(pairData, zScoreData, closeResult);
+        updatePairDataAfterClose(pairData, zScoreData, closeResult); //todo лишнее для виртуал???
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
 
