@@ -15,6 +15,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class CandlesService {
+    private final ValidateService validateService;
     private final OkxClient okxClient;
 
     public Map<String, List<Candle>> getApplicableCandlesMap(PairData pairData, Settings settings) {
@@ -36,7 +37,7 @@ public class CandlesService {
 
     private List<String> getApplicableTickers(Settings settings, List<String> tradingTickers, String timeFrame, boolean isSorted) {
         List<String> swapTickers = okxClient.getAllSwapTickers(isSorted);
-        List<String> filteredTickers = swapTickers.stream()
+        List<String> filteredTickers = swapTickers.stream() //todo проверить как работает
                 .filter(ticker -> !tradingTickers.contains(ticker))
                 .toList();
         double minVolume = settings.isUseMinVolumeFilter() ? settings.getMinVolume() * 1_000_000 : 0.0;
