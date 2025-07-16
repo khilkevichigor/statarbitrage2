@@ -55,13 +55,9 @@ public class UpdateTradeProcessor {
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
         updateCurrentProfitBeforeExitCheck(pairData, zScoreData, settings);
 
-        // ✅ ИСПРАВЛЕНО: Профит теперь сохраняется на момент принятия решения об exit и не перезаписывается
+        //todo после закрытия вижу что профит составил аж целых 78,32% хотя пара закрывалась по настройке exitTake в 1,5%
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
-            // 💾 Сохраняем профит на момент принятия решения об exit (предотвращаем перезапись)
-            pairData.setExitProfitSnapshot(pairData.getProfitChanges());
-            log.info("💰 Сохранен профит на момент exit: {}% для пары {}/{}",
-                    pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
         }
 
@@ -165,17 +161,10 @@ public class UpdateTradeProcessor {
         boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().name().contains("VIRTUAL");
 
         if (isVirtualTrading) {
-            // 📊 Для виртуальной торговли: используем сохраненный профит на момент exit
-            if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🎯 Используем сохраненный профит на момент exit: {}% для пары {}/{}",
-                        pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
-                pairData.setProfitChanges(pairData.getExitProfitSnapshot());
-            } else {
-                // Fallback: рассчитываем профит если не был сохранен
-                Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-                pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-                pairDataService.updateChangesAndSave(pairData);
-            }
+            // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
+            Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
+            pairDataService.updateChangesAndSave(pairData);
         }
 
         CloseArbitragePairResult closeResult = tradingIntegrationService.closeArbitragePair(pairData);
@@ -273,32 +262,25 @@ public class UpdateTradeProcessor {
             pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
             pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
 
-            // 🎯 Приоритет: используем сохраненный профит на момент exit если он есть
-            if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🎯 Используем сохраненный профит на момент exit для реальной торговли: {}% для пары {}/{}",
-                        pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
-                pairData.setProfitChanges(pairData.getExitProfitSnapshot());
-            } else {
-                // Fallback: рассчитываем профит на основе фактических PnL
-                BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-                BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-                BigDecimal netPnL = totalPnL.subtract(totalFees);
+            // 📊 Рассчитываем профит на основе фактических PnL
+            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
+            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
+            BigDecimal netPnL = totalPnL.subtract(totalFees);
 
-                // 📈 Конвертируем в процент от позиции
-                BigDecimal longEntryPrice = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-                BigDecimal shortEntryPrice = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-                BigDecimal avgEntryPrice = longEntryPrice.add(shortEntryPrice).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
+            // 📈 Конвертируем в процент от позиции
+            BigDecimal longEntryPrice = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
+            BigDecimal shortEntryPrice = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
+            BigDecimal avgEntryPrice = longEntryPrice.add(shortEntryPrice).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
 
-                if (avgEntryPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal profitPercent = netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100));
-                    pairData.setProfitChanges(profitPercent);
-                }
-
-                log.info("🏦 Рассчитан профит для реальной торговли {}/{}: {}% (PnL: {}, комиссии: {})",
-                        pairData.getLongTicker(), pairData.getShortTicker(),
-                        pairData.getProfitChanges(), totalPnL, totalFees);
+            if (avgEntryPrice.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal profitPercent = netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+                pairData.setProfitChanges(profitPercent);
             }
+
+            log.info("🏦 Обновлен профит для реальной торговли {}/{}: {}% (PnL: {}, комиссии: {})",
+                    pairData.getLongTicker(), pairData.getShortTicker(),
+                    pairData.getProfitChanges(), totalPnL, totalFees);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении профита из результатов закрытия для пары {}/{}: {}",
