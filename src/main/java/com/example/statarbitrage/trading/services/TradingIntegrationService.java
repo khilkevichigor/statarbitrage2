@@ -500,4 +500,45 @@ public class TradingIntegrationService {
     public TradingProviderType getCurrentTradingMode() {
         return tradingProviderFactory.getCurrentProviderType();
     }
+
+    /**
+     * Получение размера позиции для данной пары
+     * Используется для правильного расчета процентного профита
+     */
+    public BigDecimal getPositionSize(PairData pairData) {
+        try {
+            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+            
+            // Получаем ID позиций для данной пары из внутренних карт
+            String longPositionId = pairToLongPositionMap.get(pairData.getId());
+            String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+            
+            if (longPositionId == null || shortPositionId == null) {
+                return null; // Позиции не найдены
+            }
+            
+            // Получаем позиции
+            Position longPosition = provider.getPosition(longPositionId);
+            Position shortPosition = provider.getPosition(shortPositionId);
+            
+            if (longPosition != null && shortPosition != null && 
+                longPosition.getAllocatedAmount() != null && shortPosition.getAllocatedAmount() != null) {
+                
+                // Возвращаем сумму выделенных сумм для обеих позиций
+                BigDecimal totalAllocated = longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount());
+                
+                log.debug("📏 Размер позиции для {}/{}: {} USDT (LONG: {}, SHORT: {})",
+                        pairData.getLongTicker(), pairData.getShortTicker(), totalAllocated,
+                        longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
+                
+                return totalAllocated;
+            }
+            
+        } catch (Exception e) {
+            log.debug("⚠️ Не удалось получить размер позиции для {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        }
+        
+        return null; // Fallback в PairDataService будет использовать примерный расчет
+    }
 }
