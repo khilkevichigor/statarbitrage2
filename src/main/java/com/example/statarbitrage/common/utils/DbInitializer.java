@@ -69,7 +69,7 @@ public class DbInitializer {
                     .useExitTimeHours(false)
                     .exitTimeHours(3)
 
-                    .usePairs(10.0)
+                    .usePairs(1.0)
 
                     .build()
             );

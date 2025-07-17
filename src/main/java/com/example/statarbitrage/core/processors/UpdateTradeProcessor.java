@@ -143,7 +143,7 @@ public class UpdateTradeProcessor {
                     log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
 
-                    pairData.setStatus(TradeStatus.ERROR);
+                    pairData.setStatus(TradeStatus.ERROR_200);
                     pairData.setErrorDescription(TradeError.ERROR_200.getDescription());
                 }
             } else {
