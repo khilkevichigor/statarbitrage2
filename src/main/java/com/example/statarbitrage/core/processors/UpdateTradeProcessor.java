@@ -183,7 +183,7 @@ public class UpdateTradeProcessor {
                             pairData.getLongTicker(), pairData.getShortTicker());
 
                     pairData.setExitReason(exitReason);
-                    pairData.setStatus(TradeStatus.ERROR); //todo может ошибку сетить в отдельное поле error??? иначе на UI потеряем! или сделать на UI новую таблицу для error пар для сбора их и показа детальной инфы
+                    pairData.setStatus(TradeStatus.ERROR);
                     pairData.setErrorDescription(TradeError.ERROR_200.getDescription());
                 }
             }
