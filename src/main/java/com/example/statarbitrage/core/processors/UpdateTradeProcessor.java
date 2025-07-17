@@ -6,6 +6,7 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.model.TradeError;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
@@ -143,6 +144,7 @@ public class UpdateTradeProcessor {
                             pairData.getLongTicker(), pairData.getShortTicker());
 
                     pairData.setStatus(TradeStatus.ERROR_200);
+                    pairData.setErrorDescription(TradeError.ERROR_200.getDescription());
                 }
             } else {
                 log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
@@ -181,7 +183,8 @@ public class UpdateTradeProcessor {
                             pairData.getLongTicker(), pairData.getShortTicker());
 
                     pairData.setExitReason(exitReason);
-                    pairData.setStatus(TradeStatus.ERROR_200); //todo может ошибку сетить в отдельное поле error??? иначе на UI потеряем! или сделать на UI новую таблицу для error пар для сбора их и показа детальной инфы
+                    pairData.setStatus(TradeStatus.ERROR); //todo может ошибку сетить в отдельное поле error??? иначе на UI потеряем! или сделать на UI новую таблицу для error пар для сбора их и показа детальной инфы
+                    pairData.setErrorDescription(TradeError.ERROR_200.getDescription());
                 }
             }
         }
