@@ -46,8 +46,6 @@ public class Settings {
 
     @Builder.Default
     private boolean autoTradingEnabled = false;
-    @Builder.Default
-    private boolean virtualTradingEnabled = true;
 
     // Флаги включения/выключения фильтров
     @Builder.Default

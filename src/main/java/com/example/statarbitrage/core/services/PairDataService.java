@@ -148,7 +148,7 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-        save(pairData);
+        pairDataRepository.save(pairData);
     }
 
     public void addEntryPointsAndSave(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
@@ -369,25 +369,26 @@ public class PairDataService {
                     .divide(shortEntry, 10, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
 
-            // Размер позиции для виртуальной торговли (LONG + SHORT)
-            BigDecimal positionSize = BigDecimal.valueOf(maxMarginPerPair).multiply(BigDecimal.valueOf(2));
+            // Размер позиции для виртуальной торговли (общий риск на пару)
+            BigDecimal positionSize = BigDecimal.valueOf(maxMarginPerPair);
             BigDecimal leverageBD = BigDecimal.valueOf(leverage);
             BigDecimal feePct = BigDecimal.valueOf(feePctPerTrade);
 
-            // Расчет P&L для каждой позиции
+            // Расчет P&L для каждой позиции (половина от общего риска на пару)
+            BigDecimal marginPerPosition = BigDecimal.valueOf(maxMarginPerPair).divide(BigDecimal.valueOf(2), 10, RoundingMode.HALF_UP);
+            
             BigDecimal longPL = longReturnPct
-                    .multiply(BigDecimal.valueOf(maxMarginPerPair).multiply(leverageBD))
+                    .multiply(marginPerPosition.multiply(leverageBD))
                     .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
             BigDecimal shortPL = shortReturnPct
-                    .multiply(BigDecimal.valueOf(maxMarginPerPair).multiply(leverageBD))
+                    .multiply(marginPerPosition.multiply(leverageBD))
                     .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
             BigDecimal totalPL = longPL.add(shortPL);
 
-            // Расчет комиссий
+            // Расчет комиссий (на основе общего объема позиций)
             BigDecimal totalFees = BigDecimal.valueOf(maxMarginPerPair)
-                    .multiply(BigDecimal.valueOf(2)) // LONG + SHORT
                     .multiply(leverageBD)
                     .multiply(feePct)
                     .multiply(BigDecimal.valueOf(2)) // вход + выход
