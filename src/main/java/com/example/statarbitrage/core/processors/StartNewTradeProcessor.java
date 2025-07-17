@@ -6,7 +6,6 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
-import com.example.statarbitrage.common.model.TradeError;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
@@ -188,16 +187,14 @@ public class StartNewTradeProcessor {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                pairData.setStatus(TradeStatus.ERROR);
-                pairData.setErrorDescription(TradeError.ERROR_100.getDescription());
+                pairData.setStatus(TradeStatus.ERROR_100);
                 pairDataService.save(pairData);
             }
         } else {
             log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
 
-            pairData.setStatus(TradeStatus.ERROR);
-            pairData.setErrorDescription(TradeError.ERROR_110.getDescription());
+            pairData.setStatus(TradeStatus.ERROR_110);
             pairDataService.save(pairData);
         }
 

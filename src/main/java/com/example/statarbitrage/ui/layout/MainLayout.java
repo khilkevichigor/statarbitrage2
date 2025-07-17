@@ -45,7 +45,6 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Отобранные пары", SelectedPairsView.class, VaadinIcon.FILTER.create()));
         nav.addItem(new SideNavItem("Торгуемые пары", TradingPairsView.class, VaadinIcon.PLAY.create()));
         nav.addItem(new SideNavItem("Закрытые пары", ClosedPairsView.class, VaadinIcon.STOP.create()));
-        nav.addItem(new SideNavItem("Пары с ошибками", ErrorPairsView.class, VaadinIcon.ERASER.create()));
         nav.addItem(new SideNavItem("Статистика", StatisticsView.class, VaadinIcon.CHART.create()));
 
         // Стилизуем меню
@@ -71,7 +70,6 @@ public class MainLayout extends AppLayout {
             case "SelectedPairsView" -> "Отобранные пары";
             case "TradingPairsView" -> "Торгуемые пары";
             case "ClosedPairsView" -> "Закрытые пары";
-            case "ErrorPairsView" -> "Пары с ошибками";
             case "StatisticsView" -> "Статистика";
             default -> "StatArbitrage";
         };

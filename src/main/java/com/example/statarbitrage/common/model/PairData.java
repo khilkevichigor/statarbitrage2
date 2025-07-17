@@ -34,7 +34,6 @@ public class PairData {
 
     @Enumerated(EnumType.STRING)
     private TradeStatus status = TradeStatus.SELECTED;
-    private String errorDescription;
 
     // Временные данные свечей (не сохраняются в БД)
     @Transient

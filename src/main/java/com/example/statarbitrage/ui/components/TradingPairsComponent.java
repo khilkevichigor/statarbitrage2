@@ -41,7 +41,6 @@ public class TradingPairsComponent extends VerticalLayout {
     private final Grid<PairData> selectedPairsGrid;
     private final Grid<PairData> tradingPairsGrid;
     private final Grid<PairData> closedPairsGrid;
-    private final Grid<PairData> errorPairsGrid;
     private final VerticalLayout unrealizedProfitLayout;
 
     private Consumer<Void> uiUpdateCallback;
@@ -62,7 +61,6 @@ public class TradingPairsComponent extends VerticalLayout {
         this.selectedPairsGrid = new Grid<>(PairData.class, false);
         this.tradingPairsGrid = new Grid<>(PairData.class, false);
         this.closedPairsGrid = new Grid<>(PairData.class, false);
-        this.errorPairsGrid = new Grid<>(PairData.class, false);
         this.unrealizedProfitLayout = new VerticalLayout();
 
         initializeComponent();
@@ -77,8 +75,7 @@ public class TradingPairsComponent extends VerticalLayout {
                 selectedPairsGrid,
                 tradingPairsGrid,
                 unrealizedProfitLayout,
-                closedPairsGrid,
-                errorPairsGrid
+                closedPairsGrid
         );
     }
 
@@ -86,7 +83,6 @@ public class TradingPairsComponent extends VerticalLayout {
         setupSelectedPairsGrid();
         setupTradingPairsGrid();
         setupClosedPairsGrid();
-        setupErrorPairsGrid();
         setupCommonGridProperties();
     }
 
@@ -182,46 +178,6 @@ public class TradingPairsComponent extends VerticalLayout {
                 .setHeader("Чарт");
     }
 
-    private void setupErrorPairsGrid() {
-        errorPairsGrid.addColumn(PairData::getLongTicker)
-                .setHeader("Лонг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(PairData::getShortTicker)
-                .setHeader("Шорт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(PairData::getProfitChanges)
-                .setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, RoundingMode.HALF_UP))
-                .setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, RoundingMode.HALF_UP))
-                .setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin()))
-                .setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax()))
-                .setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreEntry()))
-                .setHeader("Z-скор (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreCurrent()))
-                .setHeader("Z-скор (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueEntry()))
-                .setHeader("Pvalue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent()))
-                .setHeader("Pvalue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueEntry()))
-                .setHeader("AdfValue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent()))
-                .setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry()))
-                .setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent()))
-                .setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(PairData::getExitReason)
-                .setHeader("Причина выхода").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(PairData::getErrorDescription)
-                .setHeader("Ошибка").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
-        errorPairsGrid.addColumn(new ComponentRenderer<>(this::createErrorPairsActionButtons))
-                .setHeader("Чарт");
-    }
-
     private void setupCommonGridProperties() {
         selectedPairsGrid.setHeight("300px");
         selectedPairsGrid.setWidthFull();
@@ -229,8 +185,6 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.setWidthFull();
         closedPairsGrid.setHeight("300px");
         closedPairsGrid.setWidthFull();
-        errorPairsGrid.setHeight("300px");
-        errorPairsGrid.setWidthFull();
     }
 
     private Button createStartTradingButton(PairData pairData) {
@@ -326,21 +280,11 @@ public class TradingPairsComponent extends VerticalLayout {
         }
     }
 
-    public void updateErrorPairs() {
-        try {
-            List<PairData> pairs = pairDataService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.ERROR);
-            errorPairsGrid.setItems(pairs);
-        } catch (Exception e) {
-            log.error("Error updating error pairs", e);
-        }
-    }
-
     public void updateAllData() {
         updateSelectedPairs();
         updateTradingPairs();
         updateClosedPairs();
         updateUnrealizedProfit();
-        updateErrorPairs();
     }
 
     public void setSelectedPairs(List<PairData> pairs) {
@@ -400,10 +344,6 @@ public class TradingPairsComponent extends VerticalLayout {
         return createChartButton(pair);
     }
 
-    private Button createErrorPairsActionButtons(PairData pair) {
-        return createChartButton(pair);
-    }
-
     /**
      * Создает кнопку Chart для отображения Z-Score графика
      */
@@ -433,7 +373,6 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.setVisible(true);
         tradingPairsGrid.setVisible(false);
         closedPairsGrid.setVisible(false);
-        errorPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(false);
     }
 
@@ -441,7 +380,6 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.setVisible(false);
         tradingPairsGrid.setVisible(true);
         closedPairsGrid.setVisible(false);
-        errorPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(true);
     }
 
@@ -449,15 +387,6 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.setVisible(false);
         tradingPairsGrid.setVisible(false);
         closedPairsGrid.setVisible(true);
-        errorPairsGrid.setVisible(false);
-        unrealizedProfitLayout.setVisible(false);
-    }
-
-    public void showOnlyErrorPairs() {
-        selectedPairsGrid.setVisible(false);
-        tradingPairsGrid.setVisible(false);
-        closedPairsGrid.setVisible(false);
-        errorPairsGrid.setVisible(true);
         unrealizedProfitLayout.setVisible(false);
     }
 
@@ -465,7 +394,6 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.setVisible(true);
         tradingPairsGrid.setVisible(true);
         closedPairsGrid.setVisible(true);
-        errorPairsGrid.setVisible(true);
         unrealizedProfitLayout.setVisible(true);
     }
 }
