@@ -30,7 +30,8 @@ public class Settings {
     private double checkInterval;
 
     private double maxPositionPercentPerPair;
-    private double maxPositionSize;
+    private double maxShortMarginSize;
+    private double maxLongMarginSize;
     private double leverage;
     private double feePctPerTrade;
 
