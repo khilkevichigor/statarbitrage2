@@ -92,7 +92,6 @@ public class UpdateTradeProcessor {
 
                 pairData.setStatus(TradeStatus.ERROR_710);
                 pairDataService.save(pairData);
-                pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
                 pairDataService.updateChangesAndSave(pairData);
                 tradeLogService.updateTradeLog(pairData, settings);
                 return pairData;
@@ -122,7 +121,6 @@ public class UpdateTradeProcessor {
                 pairData.setExitReason(exitReason);
                 pairData.setStatus(TradeStatus.ERROR_200);
                 pairDataService.save(pairData);
-                pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
                 pairDataService.updateChangesAndSave(pairData);
                 tradeLogService.updateTradeLog(pairData, settings);
                 return pairData;
@@ -133,10 +131,10 @@ public class UpdateTradeProcessor {
             TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
             TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
             pairDataService.updateCurrentDataAndSave(pairData, zScoreData, closeLongTradeResult, closeShortTradeResult);
+
             pairData.setStatus(TradeStatus.CLOSED);
             pairData.setExitReason(exitReason);
             pairDataService.save(pairData);
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
             pairDataService.updateChangesAndSave(pairData);
             tradeLogService.updateTradeLog(pairData, settings);
             return pairData;
