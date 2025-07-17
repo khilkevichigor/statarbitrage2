@@ -299,6 +299,58 @@ public class TradingIntegrationService {
     }
 
     /**
+     * Получение актуальной информации по открытым позициям для обновления changes
+     */
+    public PositionVerificationResult getOpenPositionsInfo(PairData pairData) {
+        String longPositionId = pairToLongPositionMap.get(pairData.getId());
+        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+
+        if (longPositionId == null || shortPositionId == null) {
+            log.debug("📋 Позиции для пары {}/{} не найдены в локальном реестре",
+                    pairData.getLongTicker(), pairData.getShortTicker());
+            return PositionVerificationResult.builder()
+                    .positionsClosed(true)
+                    .totalPnL(BigDecimal.ZERO)
+                    .build();
+        }
+
+        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+
+        // Обновляем актуальную информацию с биржи
+        provider.updatePositionPrices();
+
+        Position longPosition = provider.getPosition(longPositionId);
+        Position shortPosition = provider.getPosition(shortPositionId);
+
+        boolean longOpen = (longPosition != null && longPosition.getStatus() == PositionStatus.OPEN);
+        boolean shortOpen = (shortPosition != null && shortPosition.getStatus() == PositionStatus.OPEN);
+
+        if (longOpen && shortOpen) {
+            // Рассчитываем актуальный PnL для открытых позиций
+            BigDecimal totalPnL = BigDecimal.ZERO;
+            longPosition.calculateUnrealizedPnL();
+            shortPosition.calculateUnrealizedPnL();
+            totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+
+            log.debug("📊 Актуальный PnL для открытых позиций {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
+
+            return PositionVerificationResult.builder()
+                    .positionsClosed(false)
+                    .totalPnL(totalPnL)
+                    .build();
+        }
+
+        // Если одна из позиций закрыта или не найдена - это проблема
+        log.warn("⚠️ Не все позиции открыты на бирже: LONG открыта={}, SHORT открыта={}",
+                longOpen, shortOpen);
+        return PositionVerificationResult.builder()
+                .positionsClosed(true)
+                .totalPnL(BigDecimal.ZERO)
+                .build();
+    }
+
+    /**
      * Получение реальной прибыли позиции
      */
     public BigDecimal getPositionPnL(PairData pairData) {
