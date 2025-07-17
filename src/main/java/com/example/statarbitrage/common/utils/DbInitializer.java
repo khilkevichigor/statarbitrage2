@@ -48,8 +48,8 @@ public class DbInitializer {
                     .checkInterval(1)
 
                     .initialVirtualBalance(10_000.0)
-                    .maxPositionPercentPerPair(1.0) //для реальных сделок
-                    .maxMarginPerPair(200)
+                    .maxLongMarginSize(1.0)
+                    .maxShortMarginSize(1.0)
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
 
