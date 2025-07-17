@@ -41,13 +41,13 @@ public class UpdateTradeProcessor {
     public PairData updateTrade(UpdateTradeRequest request) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-            return updateVirtual(request);
+            return updateVirtualTrade(request);
         } else {
-            return updateReal(request);
+            return updateRealTrade(request);
         }
     }
 
-    private PairData updateVirtual(UpdateTradeRequest request) {
+    private PairData updateVirtualTrade(UpdateTradeRequest request) {
         PairData pairData = request.getPairData();
         boolean isCloseManually = request.isCloseManually();
         // Проверяем статус пары - если уже закрыта, не обрабатываем
@@ -70,8 +70,9 @@ public class UpdateTradeProcessor {
                 .zScoreData(zScoreData)
                 .candlesMap(candlesMap)
                 .build();
+
         pairDataService.update(updatePairDataRequest);
-        // Критично! Нужно считать профит до exitStrategy что бы сразу закрыть позиции и не ждать след захода шедуллера
+
         changesService.calculate(pairData);
 
         String exitReason = exitStrategyService.getExitReason(pairData);
@@ -92,7 +93,7 @@ public class UpdateTradeProcessor {
         return pairData;
     }
 
-    private PairData updateReal(UpdateTradeRequest request) {
+    private PairData updateRealTrade(UpdateTradeRequest request) {
         PairData pairData = request.getPairData();
         boolean isCloseManually = request.isCloseManually();
         // Перезагружаем пару из БД для получения актуального статуса
@@ -181,7 +182,7 @@ public class UpdateTradeProcessor {
                             pairData.getLongTicker(), pairData.getShortTicker());
 
                     pairData.setExitReason(exitReason);
-                    pairData.setStatus(TradeStatus.ERROR_200); //todo может ошибку сетить в отдельное поле error??? иначе на UI потеряем! или сделать на UI новую таблицу для error пар для сбора их и показа детальной инфы
+                    pairData.setStatus(TradeStatus.ERROR_200);
                 }
             }
         }
