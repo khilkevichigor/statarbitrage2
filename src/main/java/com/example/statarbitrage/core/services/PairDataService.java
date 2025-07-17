@@ -1,7 +1,6 @@
 package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.Candle;
-import com.example.statarbitrage.common.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -46,7 +45,7 @@ public class PairDataService {
         List<PairData> savedPairs = new ArrayList<>();
         for (PairData pair : result) {
             try {
-                pairDataRepository.save(pair);
+                save(pair);
                 savedPairs.add(pair);
             } catch (RuntimeException e) {
                 log.warn("⚠️ Не удалось сохранить пару {}/{}: {} - пропускаем",
@@ -112,12 +111,7 @@ public class PairDataService {
         return pairData;
     }
 
-    private void updateVirtual(UpdatePairDataRequest request) {
-
-        PairData pairData = request.getPairData();
-        ZScoreData zScoreData = request.getZScoreData();
-        Map<String, List<Candle>> candlesMap = request.getCandlesMap();
-
+    public void updateVirtual(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
         // Проверяем наличие данных
@@ -183,7 +177,7 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-        pairDataRepository.save(pairData);
+        save(pairData);
     }
 
     public void updateReal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
@@ -219,24 +213,10 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-        pairDataRepository.save(pairData);
+        save(pairData);
     }
 
-    public void update(UpdatePairDataRequest request) {
-        if (request.isVirtual()) {
-            updateVirtual(request);
-        } else {
-            updateReal(request);
-        }
-    }
-
-    private void updateReal(UpdatePairDataRequest request) {
-
-        PairData pairData = request.getPairData();
-        ZScoreData zScoreData = request.getZScoreData();
-        Map<String, List<Candle>> candlesMap = request.getCandlesMap();
-        TradeResult tradeResultLong = request.getTradeResultLong();
-        TradeResult tradeResultShort = request.getTradeResultShort();
+    public void updateReal(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, TradeResult longResult, TradeResult shortResult) {
 
         //Обновляем текущие цены
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
@@ -263,8 +243,8 @@ public class PairDataService {
 
             pairData.setStatus(TradeStatus.TRADING);
 
-            pairData.setLongTickerEntryPrice(tradeResultLong.getExecutionPrice().doubleValue());
-            pairData.setShortTickerEntryPrice(tradeResultShort.getExecutionPrice().doubleValue());
+            pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
+            pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
 
             pairData.setZScoreEntry(latestParam.getZscore());
             pairData.setCorrelationEntry(latestParam.getCorrelation());
@@ -277,7 +257,7 @@ public class PairDataService {
             pairData.setBetaEntry(latestParam.getBeta());
 
             // Время входа
-            pairData.setEntryTime(tradeResultLong.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
+            pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
 
             log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
                     pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
@@ -296,7 +276,7 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
-        pairDataRepository.save(pairData);
+        save(pairData);
     }
 
     public void save(PairData pairData) {
