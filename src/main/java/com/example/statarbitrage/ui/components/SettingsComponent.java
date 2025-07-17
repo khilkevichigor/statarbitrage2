@@ -182,7 +182,8 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
 
-        NumberField maxPositionSize = new NumberField("Максимальный маржин на пару ($)");
+        NumberField maxShortMarginSize = new NumberField("Размер риска шорт ($)");
+        NumberField maxLongMarginSize = new NumberField("Размер риска лонг ($)");
         NumberField capitalShortField = new NumberField("Позиция шорт ($)");
         NumberField leverageField = new NumberField("Плечо");
 
@@ -213,7 +214,8 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(minCorrelationField, 0.01, -1.0);
         setNumberFieldProperties(minVolumeField, 1, 0.0);
         setNumberFieldProperties(checkIntervalField, 1, 1);
-        setNumberFieldProperties(maxPositionSize, 1.0, 0.0);
+        setNumberFieldProperties(maxShortMarginSize, 1.0, 0.0);
+        setNumberFieldProperties(maxLongMarginSize, 1.0, 0.0);
         setNumberFieldProperties(capitalShortField, 1.0, 0.0);
         setNumberFieldProperties(leverageField, 1, 1);
         setNumberFieldProperties(exitTakeField, 0.1, 0.0);
@@ -232,7 +234,8 @@ public class SettingsComponent extends VerticalLayout {
                 useMinVolumeFilterCheckbox));
 
         add(createCapitalSection(
-                maxPositionSize,
+                maxShortMarginSize,
+                maxLongMarginSize,
                 leverageField
         ));
 
@@ -244,7 +247,8 @@ public class SettingsComponent extends VerticalLayout {
         bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, checkIntervalField, minCorrelationField,
                 minVolumeField, usePairsField,
-                maxPositionSize,
+                maxShortMarginSize,
+                maxLongMarginSize,
                 leverageField,
                 exitTakeField, exitStopField,
                 exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField,
@@ -288,13 +292,13 @@ public class SettingsComponent extends VerticalLayout {
         return analysisSection;
     }
 
-    private Details createCapitalSection(NumberField maxPositionSize, NumberField leverageField
+    private Details createCapitalSection(NumberField maxShortMarginSize, NumberField maxLongMarginSize, NumberField leverageField
     ) {
         FormLayout capitalForm = createFormLayout();
         capitalForm.add(
-                maxPositionSize,
-                leverageField
-        );
+                maxShortMarginSize,
+                maxLongMarginSize,
+                leverageField);
 
         return createDetailsCard("💰 Управление капиталом",
                 "Настройки депозита и управления рисками", capitalForm);
@@ -385,7 +389,8 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField minPValueField, NumberField minAdfValueField,
                             NumberField checkIntervalField, NumberField minCorrelationField,
                             NumberField minVolumeField, NumberField usePairsField,
-                            NumberField maxPositionSizeField,
+                            NumberField maxShortMarginSizeField,
+                            NumberField maxLongMarginSizeField,
                             NumberField leverageField,
                             NumberField exitTakeField, NumberField exitStopField,
                             NumberField exitZMinField, NumberField exitZMaxField,
@@ -411,7 +416,8 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
         settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
-        settingsBinder.forField(maxPositionSizeField).bind(Settings::getMaxMarginPerPair, Settings::setMaxMarginPerPair);
+        settingsBinder.forField(maxShortMarginSizeField).bind(Settings::getMaxShortMarginSize, Settings::setMaxShortMarginSize);
+        settingsBinder.forField(maxLongMarginSizeField).bind(Settings::getMaxLongMarginSize, Settings::setMaxLongMarginSize);
 
         settingsBinder.forField(leverageField)
                 .withValidator(new DoubleRangeValidator("Плечо должно быть больше 0", 0.1, Double.MAX_VALUE))
