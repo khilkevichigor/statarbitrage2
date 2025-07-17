@@ -53,7 +53,7 @@ public class UpdateTradeProcessor {
         PairData pairData = request.getPairData();
         // Проверяем статус пары - если уже закрыта, не обрабатываем
         if (pairData.getStatus() == TradeStatus.CLOSED) {
-            log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.debug("⏭️ Пропускаем обновление закрытой виртуальной пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
             return pairData;
         }
 
