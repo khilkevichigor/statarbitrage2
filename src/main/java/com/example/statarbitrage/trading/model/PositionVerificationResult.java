@@ -16,6 +16,9 @@ public class PositionVerificationResult {
      */
     private boolean positionsClosed;
 
+    private Position longPosition;
+    private Position shortPosition;
+
     /**
      * Общий PnL по закрытым позициям
      */

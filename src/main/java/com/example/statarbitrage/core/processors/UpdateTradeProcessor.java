@@ -6,9 +6,9 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.core.services.*;
-import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
+import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
+import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.model.PositionVerificationResult;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
@@ -45,6 +45,10 @@ public class UpdateTradeProcessor {
         }
 
         Settings settings = settingsService.getSettings();
+        if (!tradingIntegrationService.hasOpenPositions(pairData)) {
+            return handleNoOpenPositions(pairData, settings);
+        }
+
         ZScoreData zScoreData = calculateZScoreData(pairData, settings);
 
         logPairInfo(zScoreData);
@@ -54,15 +58,10 @@ public class UpdateTradeProcessor {
         }
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        updateCurrentProfitBeforeExitCheck(pairData, zScoreData, settings);
+        updateCurrentProfitBeforeExitCheck(pairData);
 
-        // ✅ ИСПРАВЛЕНО: Профит теперь сохраняется на момент принятия решения об exit и не перезаписывается
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
-            // 💾 Сохраняем профит на момент принятия решения об exit (предотвращаем перезапись)
-            pairData.setExitProfitSnapshot(pairData.getProfitChanges());
-            log.info("💰 Сохранен профит на момент exit: {}% для пары {}/{}",
-                    pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
         }
 
@@ -103,58 +102,19 @@ public class UpdateTradeProcessor {
 
     //todo HERE
     private PairData handleManualClose(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        if (!tradingIntegrationService.hasOpenPositions(pairData)) {
-            return handleNoOpenPositions(pairData, settings);
-        }
-
-        // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtual = tradingIntegrationService.getCurrentTradingMode().isVirtual();
-
-//        if (isVirtual) {
-        // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-
-        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
-                .isAddEntryPoints(false)
-                .pairData(pairData)
-                .zScoreData(zScoreData)
-                .candlesMap(candlesMap)
-                .isUpdateChanges(true)
-                .isVirtual(isVirtual)
-                .build());
-//            pairDataService.updateChangesAndSaveForVirtual(pairData);
-//        }
-
-        CloseArbitragePairResult closeResult = tradingIntegrationService.closeArbitragePair(pairData);
-        if (closeResult == null || !closeResult.isSuccess()) {
+        ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
+        if (closeInfo == null || !closeInfo.isSuccess()) {
             return handleTradeError(pairData, settings, TradeErrorType.MANUAL_CLOSE_FAILED);
         }
 
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        TradeResult closeLongTradeResult = closeResult.getLongTradeResult();
-        TradeResult closeShortTradeResult = closeResult.getShortTradeResult();
-        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
-                .isAddEntryPoints(true)
-                .pairData(pairData)
-                .zScoreData(zScoreData)
-                .tradeResultLong(closeLongTradeResult)
-                .tradeResultShort(closeShortTradeResult)
-                .isUpdateChanges(true)
-                .isUpdateTradeLog(true)
-                .settings(settings)
-                .build());
-
-        if (isVirtual) {
-            // 💾 Для виртуальной торговли: сохраняем без повторного расчета профита
-            pairDataService.save(pairData);
-            tradeLogService.updateTradeLog(pairData, settings);
-        } else {
-            // 🏦 Для реальной торговли: используем фактические данные из closeResult
-            updateProfitFromCloseResult(pairData, closeResult);
-            savePairDataWithUpdates(pairData, settings);
-        }
+        // 🏦 Для реальной торговли: используем фактические данные из closeInfo
+        updateProfitFromTradesResult(pairData, closeInfo);
+        // 🎯 НЕ вызываем savePairDataWithUpdates, чтобы избежать перезаписи профита в updateChangesAndSave
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
@@ -182,31 +142,7 @@ public class UpdateTradeProcessor {
         log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
-        // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtual = tradingIntegrationService.getCurrentTradingMode().isVirtual();
-
-        if (isVirtual) {
-            // 📊 Для виртуальной торговли: используем сохраненный профит на момент exit
-            if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🎯 Используем сохраненный профит на момент exit: {}% для пары {}/{}",
-                        pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
-                pairData.setProfitChanges(pairData.getExitProfitSnapshot());
-            } else {
-                // Fallback: рассчитываем профит если не был сохранен
-                Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-
-                pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
-                        .isAddEntryPoints(false)
-                        .pairData(pairData)
-                        .zScoreData(zScoreData)
-                        .candlesMap(candlesMap)
-                        .isUpdateChanges(true)
-                        .isVirtual(true)
-                        .build());
-            }
-        }
-
-        CloseArbitragePairResult closeResult = tradingIntegrationService.closeArbitragePair(pairData);
+        ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
             pairData.setExitReason(exitReason);
             return handleTradeError(pairData, settings, TradeErrorType.AUTO_CLOSE_FAILED);
@@ -215,40 +151,28 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-//        updatePairDataAfterClose(pairData, zScoreData, closeResult);
-        TradeResult closeLongTradeResult = closeResult.getLongTradeResult();
-        TradeResult closeShortTradeResult = closeResult.getShortTradeResult();
-        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder() //todo лишнее для виртуал???
-                .isAddEntryPoints(true)
-                .pairData(pairData)
-                .zScoreData(zScoreData)
-                .tradeResultLong(closeLongTradeResult)
-                .tradeResultShort(closeShortTradeResult)
-                .isUpdateChanges(true)
-                .isUpdateTradeLog(true)
-                .settings(settings)
-                .build());
-
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
-
-        if (isVirtual) {
-            // 💾 Для виртуальной торговли: сохраняем без повторного расчета профита
-            pairDataService.save(pairData);
-            tradeLogService.updateTradeLog(pairData, settings);
-        } else {
-            // 🏦 Для реальной торговли: используем фактические данные из closeResult
-            updateProfitFromCloseResult(pairData, closeResult);
-            // 🎯 НЕ вызываем savePairDataWithUpdates, чтобы избежать перезаписи профита в updateChangesAndSave
-            pairDataService.save(pairData);
-            tradeLogService.updateTradeLog(pairData, settings);
-        }
+        // 🏦 Для реальной торговли: используем фактические данные из closeResult
+        updateProfitFromTradesResult(pairData, closeResult);
+        // 🎯 НЕ вызываем savePairDataWithUpdates, чтобы избежать перезаписи профита в updateChangesAndSave
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
 
     private PairData updateRegularTrade(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        // 📊 Профит уже рассчитан в updateCurrentProfitBeforeExitCheck(), просто сохраняем
+
+        PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        if (openPositionsInfo.isPositionsClosed()) {
+            log.error("❌ Позиции уже закрыты для пары {}/{}.",
+                    pairData.getLongTicker(), pairData.getShortTicker());
+            return handleNoOpenPositions(pairData, settings);
+        }
+
+        updateProfitFromOpenPositions(pairData, openPositionsInfo);
+        // 🎯 НЕ вызываем savePairDataWithUpdates, чтобы избежать перезаписи профита в updateChangesAndSave
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
@@ -263,22 +187,6 @@ public class UpdateTradeProcessor {
         return pairData;
     }
 
-    private void updatePairDataAfterClose(PairData pairData, ZScoreData zScoreData, CloseArbitragePairResult closeResult) {
-        TradeResult closeLongTradeResult = closeResult.getLongTradeResult();
-        TradeResult closeShortTradeResult = closeResult.getShortTradeResult();
-        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
-                .isAddEntryPoints(true)
-                .pairData(pairData)
-                .zScoreData(zScoreData)
-//                .candlesMap(candlesMap)
-                .tradeResultLong(closeLongTradeResult)
-                .tradeResultShort(closeShortTradeResult)
-                .isUpdateChanges(true)
-                .isUpdateTradeLog(true)
-//                .settings(settings)
-                .build());
-    }
-
     private void savePairDataWithUpdates(PairData pairData, Settings settings) {
         pairDataService.save(pairData);
         pairDataService.updateChangesAndSave(pairData);
@@ -289,34 +197,18 @@ public class UpdateTradeProcessor {
      * Обновляет актуальный профит перед проверкой exit strategy
      * Критично для правильного срабатывания тейк-профита и стоп-лосса
      */
-    private void updateCurrentProfitBeforeExitCheck(PairData pairData, ZScoreData zScoreData, Settings settings) {
+    private void updateCurrentProfitBeforeExitCheck(PairData pairData) {
         try {
-            // 📊 Обновляем текущие цены и данные
-            Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+            // Сначала обновляем цены позиций с биржи для актуальных данных
+            tradingIntegrationService.updatePositions(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
-            // 🎯 Дифференцированный подход: проверяем режим торговли
-            boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().isVirtual();
+            // Затем получаем реальный PnL для данной пары с актуальными ценами
+            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
 
-            pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
-                    .isAddEntryPoints(false)
-                    .pairData(pairData)
-                    .zScoreData(zScoreData)
-                    .candlesMap(candlesMap)
-                    .isUpdateChanges(true)
-                    .isVirtual(isVirtualTrading)
-                    .build());
-
-//            if (isVirtualTrading) {
-//                // 💡 Для виртуальной торговли: используем расчет на основе настроек
-//                pairDataService.updateChangesAndSaveForVirtual(pairData);
-//                log.debug("📈 Обновлен актуальный профит для exit strategy (виртуальная торговля) {}/{}: {}%",
-//                        pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
-//            } else {
-//                // 🏦 Для реальной торговли: используем данные реальных позиций
-//                pairDataService.updateChangesAndSave(pairData);
-//                log.debug("📈 Обновлен актуальный профит для exit strategy (реальная торговля) {}/{}: {}%",
-//                        pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
-//            }
+            pairData.setExitProfitSnapshot(realPnL);
+            pairDataService.save(pairData);
+            log.info("💰 Сохранен пре профит для расчета exit: {}% для пары {}/{}",
+                    pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении профита перед проверкой exit strategy для пары {}/{}: {}",
@@ -328,10 +220,10 @@ public class UpdateTradeProcessor {
      * Обновляет профит на основе фактических результатов закрытия позиций
      * Используется для реальной торговли
      */
-    private void updateProfitFromCloseResult(PairData pairData, CloseArbitragePairResult closeResult) {
+    private void updateProfitFromTradesResult(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
         try {
-            TradeResult longResult = closeResult.getLongTradeResult();
-            TradeResult shortResult = closeResult.getShortTradeResult();
+            TradeResult longResult = tradeInfo.getLongTradeResult();
+            TradeResult shortResult = tradeInfo.getShortTradeResult();
 
             if (longResult == null || shortResult == null) {
                 log.warn("⚠️ Не удалось получить результаты закрытия для пары {}/{}",
@@ -343,32 +235,66 @@ public class UpdateTradeProcessor {
             pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
             pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
 
-            // 🎯 Приоритет: используем сохраненный профит на момент exit если он есть
-            if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🎯 Используем сохраненный профит на момент exit для реальной торговли: {}% для пары {}/{}",
-                        pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
-                pairData.setProfitChanges(pairData.getExitProfitSnapshot());
-            } else {
-                // Fallback: рассчитываем профит на основе фактических PnL
-                BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-                BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-                BigDecimal netPnL = totalPnL.subtract(totalFees);
+            // Fallback: рассчитываем профит на основе фактических PnL
+            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
+            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
+            BigDecimal netPnL = totalPnL.subtract(totalFees);
 
-                // 📈 Конвертируем в процент от позиции
-                BigDecimal longEntryPrice = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-                BigDecimal shortEntryPrice = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-                BigDecimal avgEntryPrice = longEntryPrice.add(shortEntryPrice).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
+            // 📈 Конвертируем в процент от позиции
+            BigDecimal longEntryPrice = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
+            BigDecimal shortEntryPrice = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
+            BigDecimal avgEntryPrice = longEntryPrice.add(shortEntryPrice).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
 
-                if (avgEntryPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal profitPercent = netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100));
-                    pairData.setProfitChanges(profitPercent);
-                }
-
-                log.info("🏦 Рассчитан профит для реальной торговли {}/{}: {}% (PnL: {}, комиссии: {})",
-                        pairData.getLongTicker(), pairData.getShortTicker(),
-                        pairData.getProfitChanges(), totalPnL, totalFees);
+            if (avgEntryPrice.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal profitPercent = netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+                pairData.setProfitChanges(profitPercent);
             }
+
+            log.info("🏦 Рассчитан профит по закрытым позициям {}/{}: {}% (PnL: {}, комиссии: {})",
+                    pairData.getLongTicker(), pairData.getShortTicker(),
+                    pairData.getProfitChanges(), totalPnL, totalFees);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении профита из результатов закрытия для пары {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        }
+    }
+
+    private void updateProfitFromOpenPositions(PairData pairData, PositionVerificationResult positionVerificationResult) {
+        try {
+            Position longPosition = positionVerificationResult.getLongPosition();
+            Position shortPosition = positionVerificationResult.getShortPosition();
+
+            if (longPosition == null || shortPosition == null) {
+                log.warn("⚠️ Не удалось получить результаты позиций для пары {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+                return;
+            }
+
+            // 💰 Используем фактические цены закрытия
+            pairData.setLongTickerCurrentPrice(longPosition.getCurrentPrice().doubleValue());
+            pairData.setShortTickerCurrentPrice(shortPosition.getCurrentPrice().doubleValue());
+
+            // Fallback: рассчитываем профит на основе фактических PnL
+            BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+            BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
+            BigDecimal netPnL = totalPnL.subtract(totalFees);
+
+            // 📈 Конвертируем в процент от позиции
+            BigDecimal longEntryPrice = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
+            BigDecimal shortEntryPrice = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
+            BigDecimal avgEntryPrice = longEntryPrice.add(shortEntryPrice).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
+
+            if (avgEntryPrice.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal profitPercent = netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+                pairData.setProfitChanges(profitPercent);
+            }
+
+            log.info("🏦 Рассчитан профит по закрытым позициям {}/{}: {}% (PnL: {}, комиссии: {})",
+                    pairData.getLongTicker(), pairData.getShortTicker(),
+                    pairData.getProfitChanges(), totalPnL, totalFees);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении профита из результатов закрытия для пары {}/{}: {}",

@@ -70,6 +70,11 @@ public class Real3CommasTradingProvider implements TradingProvider {
     }
 
     @Override
+    public void updatePositionPrices(List<String> tickers) {
+        //
+    }
+
+    @Override
     public BigDecimal getCurrentPrice(String symbol) {
         return null;
     }

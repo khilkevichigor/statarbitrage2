@@ -312,6 +312,11 @@ public class VirtualTradingProvider implements TradingProvider {
     }
 
     @Override
+    public void updatePositionPrices(List<String> tickers) {
+        //
+    }
+
+    @Override
     public BigDecimal calculateFees(BigDecimal amount, BigDecimal leverage) {
         // Комиссия = 0.1% от объема сделки (amount * leverage)
         BigDecimal feeRate = BigDecimal.valueOf(0.001); // 0.1%

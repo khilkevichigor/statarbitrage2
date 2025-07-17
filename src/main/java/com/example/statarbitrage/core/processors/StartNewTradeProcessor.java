@@ -8,7 +8,7 @@ import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.core.services.*;
-import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
+import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
@@ -172,8 +172,7 @@ public class StartNewTradeProcessor {
         //todo подумать над тем что бы сделать UUID для пары и передавать его на биржу при открытии сделок!
         // Что бы потом при закрытии или получении инфы об открытых/закрытых сделках было проще идентифицировать их тк монеты могут повторяться и могут быть баги
         // в том ту ли сделку мы нашли или это сделка на бирже совсем старая. За день может быть несколько сделок по одной и той же монете.
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        OpenArbitragePairResult openResult = tradingIntegrationService.openArbitragePair(pairData);
+        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData);
 
         if (openResult == null || !openResult.isSuccess()) {
             log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
@@ -181,11 +180,12 @@ public class StartNewTradeProcessor {
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         return finalizeSuccessfulTrade(pairData, zScoreData, openResult, settings, candlesMap);
     }
 
     private PairData finalizeSuccessfulTrade(PairData pairData, ZScoreData zScoreData,
-                                             OpenArbitragePairResult openResult, Settings settings,
+                                             ArbitragePairTradeInfo openResult, Settings settings,
                                              Map<String, List<Candle>> candlesMap) {
         TradeResult openLongTradeResult = openResult.getLongTradeResult();
         TradeResult openShortTradeResult = openResult.getShortTradeResult();

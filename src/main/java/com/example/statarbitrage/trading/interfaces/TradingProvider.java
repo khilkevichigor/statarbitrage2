@@ -55,6 +55,11 @@ public interface TradingProvider {
     void updatePositionPrices();
 
     /**
+     * Обновление цен всех позиций - СИНХРОННО
+     */
+    void updatePositionPrices(List<String> tickers);
+
+    /**
      * Получение текущей рыночной цены
      */
     BigDecimal getCurrentPrice(String symbol);

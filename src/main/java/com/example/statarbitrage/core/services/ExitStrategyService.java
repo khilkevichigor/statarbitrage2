@@ -25,7 +25,7 @@ public class ExitStrategyService {
             log.info("Выход по стопу: profit = {}%", profit);
             return ExitReasonType.EXIT_REASON_BY_STOP.name();
         }
-        if (settings.isUseExitTake() && profit >= settings.getExitTake()) { //todo не сетится - в бд null
+        if (settings.isUseExitTake() && profit >= settings.getExitTake()) {
             log.info("Выход по тейку: profit = {}%", profit);
             return ExitReasonType.EXIT_REASON_BY_TAKE.name();
         }

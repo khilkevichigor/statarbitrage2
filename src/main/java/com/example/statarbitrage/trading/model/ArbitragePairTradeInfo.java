@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class OpenArbitragePairResult {
+public class ArbitragePairTradeInfo {
 
     /**
      * Успешность операции

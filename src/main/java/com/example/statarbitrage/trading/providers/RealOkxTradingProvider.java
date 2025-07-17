@@ -142,8 +142,8 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Пересчитываем итоговую долларовую сумму после корректировки lot size
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц", 
-                     symbol, amount, adjustedAmount, positionSize);
+            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+                    symbol, amount, adjustedAmount, positionSize);
 
             // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
@@ -250,8 +250,8 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Пересчитываем итоговую долларовую сумму после корректировки lot size
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц", 
-                     symbol, amount, adjustedAmount, positionSize);
+            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+                    symbol, amount, adjustedAmount, positionSize);
 
             // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
@@ -422,6 +422,33 @@ public class RealOkxTradingProvider implements TradingProvider {
                         position.setCurrentPrice(currentPrice);
                         position.calculateUnrealizedPnL();
                         position.setLastUpdated(LocalDateTime.now());
+                    }
+                } catch (Exception e) {
+                    log.warn("Не удалось обновить цену для позиции {}: {}",
+                            position.getPositionId(), e.getMessage());
+                }
+            }
+
+            // Обновляем портфолио
+            okxPortfolioManager.updatePortfolioValue();
+
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении цен позиций: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void updatePositionPrices(List<String> tickers) {
+        try {
+            for (Position position : positions.values()) {
+                try {
+                    if (tickers.contains(position.getSymbol())) {
+                        BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
+                        if (currentPrice != null) {
+                            position.setCurrentPrice(currentPrice);
+                            position.calculateUnrealizedPnL();
+                            position.setLastUpdated(LocalDateTime.now());
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("Не удалось обновить цену для позиции {}: {}",
