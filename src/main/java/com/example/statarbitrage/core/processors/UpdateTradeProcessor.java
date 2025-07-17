@@ -1,6 +1,7 @@
 package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -63,9 +64,16 @@ public class UpdateTradeProcessor {
 
         logData(zScoreData);
 
-        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
+        UpdatePairDataRequest updatePairDataRequest = UpdatePairDataRequest.builder()
+                .isVirtual(true)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+                .candlesMap(candlesMap)
+                .build();
 
-        changesService.calculateVirtual(pairData);
+        pairDataService.update(updatePairDataRequest);
+
+        changesService.calculate(pairData);
 
         String exitReason = exitStrategyService.getExitReason(pairData);
         if (exitReason != null) {
@@ -107,7 +115,7 @@ public class UpdateTradeProcessor {
         logData(zScoreData);
 
         pairDataService.updateReal(pairData, zScoreData, candlesMap);
-        changesService.calculateReal(pairData);
+        changesService.calculate(pairData);
 
         // Если нажали на "Закрыть позицию", закрываем позиции в торговой системе СИНХРОННО
         if (isCloseManually) {
@@ -120,7 +128,17 @@ public class UpdateTradeProcessor {
 
                     TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                     TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
-                    pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+
+                    UpdatePairDataRequest updatePairDataRequest = UpdatePairDataRequest.builder()
+                            .isVirtual(false)
+                            .pairData(pairData)
+                            .zScoreData(zScoreData)
+                            .candlesMap(candlesMap)
+                            .tradeResultLong(closeLongTradeResult)
+                            .tradeResultShort(closeShortTradeResult)
+                            .build();
+
+                    pairDataService.update(updatePairDataRequest);
                 } else {
                     log.warn("⚠️ Не удалось закрыть арбитражную пару через торговую систему: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
@@ -146,7 +164,17 @@ public class UpdateTradeProcessor {
 
                     TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                     TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
-                    pairDataService.updateReal(pairData, zScoreData, candlesMap, closeLongTradeResult, closeShortTradeResult);
+
+                    UpdatePairDataRequest updatePairDataRequest = UpdatePairDataRequest.builder()
+                            .isVirtual(false)
+                            .pairData(pairData)
+                            .zScoreData(zScoreData)
+                            .candlesMap(candlesMap)
+                            .tradeResultLong(closeLongTradeResult)
+                            .tradeResultShort(closeShortTradeResult)
+                            .build();
+
+                    pairDataService.update(updatePairDataRequest);
                     pairData.setExitReason(exitReason);
                     pairData.setStatus(TradeStatus.CLOSED);
                 } else {
@@ -158,7 +186,7 @@ public class UpdateTradeProcessor {
                 }
             }
         }
-        changesService.calculateReal(pairData);
+        changesService.calculate(pairData);
         tradeLogService.saveLog(pairData);
 
         return pairData;

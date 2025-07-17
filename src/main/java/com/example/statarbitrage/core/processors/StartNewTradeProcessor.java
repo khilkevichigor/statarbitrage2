@@ -1,6 +1,7 @@
 package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -35,7 +36,6 @@ public class StartNewTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final TradingProviderFactory tradingProviderFactory;
     private final ChangesService changesService;
-    private final ExitStrategyService exitStrategyService;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest startNewTradeRequest) {
@@ -50,7 +50,7 @@ public class StartNewTradeProcessor {
     private PairData startNewVirtualTrade(StartNewTradeRequest request) {
         PairData pairData = request.getPairData();
         boolean checkAutoTrading = request.isCheckAutoTrading();
-        log.info("🚀 Начинаем новый трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("🚀 Начинаем новый виртуальный трейд для {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
         Settings settings = settingsService.getSettings();
 
         //Проверка на дурака
@@ -95,15 +95,15 @@ public class StartNewTradeProcessor {
 
         log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(), latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
 
-        pairDataService.updateVirtual(pairData, zScoreData, candlesMap);
-        changesService.calculateVirtual(pairData);
-        String exitReason = exitStrategyService.getExitReason(pairData);
-        if (exitReason != null) {
-            pairData.setExitReason(exitReason);
-            pairData.setStatus(TradeStatus.CLOSED);
-        }
-        pairDataService.save(pairData);
+        UpdatePairDataRequest updatePairDataRequest = UpdatePairDataRequest.builder()
+                .isVirtual(true)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+                .candlesMap(candlesMap)
+                .build();
 
+        pairDataService.update(updatePairDataRequest);
+        changesService.calculate(pairData);
         tradeLogService.saveLog(pairData);
 
         return pairData;
@@ -172,9 +172,16 @@ public class StartNewTradeProcessor {
                 log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                pairDataService.updateReal(pairData, zScoreData, candlesMap, openLongTradeResult, openShortTradeResult);
-                changesService.calculateReal(pairData);
-
+                UpdatePairDataRequest updatePairDataRequest = UpdatePairDataRequest.builder()
+                        .isVirtual(false)
+                        .pairData(pairData)
+                        .zScoreData(zScoreData)
+                        .candlesMap(candlesMap)
+                        .tradeResultLong(openLongTradeResult)
+                        .tradeResultShort(openShortTradeResult)
+                        .build();
+                pairDataService.update(updatePairDataRequest);
+                changesService.calculate(pairData);
                 tradeLogService.saveLog(pairData);
             } else {
                 log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
