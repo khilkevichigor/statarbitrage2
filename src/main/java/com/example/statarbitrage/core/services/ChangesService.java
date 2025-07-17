@@ -5,7 +5,6 @@ import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
-import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,23 +19,11 @@ public class ChangesService {
     private final SettingsService settingsService;
     private final PairDataRepository pairDataRepository;
     private final TradingIntegrationService tradingIntegrationService;
-    private final TradingProviderFactory tradingProviderFactory;
 
-    //todo считать не к общему балансу а к паре
-    public void calculate(PairData pairData) {
-        boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
-        if (isVirtual) {
-            calculateVirtual(pairData);
-        } else {
-            calculateReal(pairData);
-        }
-    }
-
-    private void calculateVirtual(PairData pairData) {
+    public void calculateVirtual(PairData pairData) {
         Settings settings = settingsService.getSettings();
 
-        double maxLongMarginSize = settings.getMaxLongMarginSize();
-        double maxShortMarginSize = settings.getMaxShortMarginSize();
+        double maxPositionSize = settings.getMaxPositionSize();
         double leverage = settings.getLeverage();
         double feePctPerTrade = settings.getFeePctPerTrade();
 
@@ -56,21 +43,21 @@ public class ChangesService {
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        BigDecimal maxPositionLongPlusShort = BigDecimal.valueOf(maxLongMarginSize).add(BigDecimal.valueOf(maxShortMarginSize)); //лонг+шорт
+        BigDecimal maxPositionLongPlusShort = BigDecimal.valueOf(maxPositionSize).multiply(BigDecimal.valueOf(2)); //лонг+шорт
         BigDecimal leverageBD = BigDecimal.valueOf(leverage);
         BigDecimal feePct = BigDecimal.valueOf(feePctPerTrade);
 
         BigDecimal longPL = longReturnPct
-                .multiply(BigDecimal.valueOf(maxLongMarginSize).multiply(leverageBD))
+                .multiply(BigDecimal.valueOf(maxPositionSize).multiply(leverageBD))
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal shortPL = shortReturnPct
-                .multiply(BigDecimal.valueOf(maxShortMarginSize).multiply(leverageBD))
+                .multiply(BigDecimal.valueOf(maxPositionSize).multiply(leverageBD))
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
 
         BigDecimal totalPL = longPL.add(shortPL);
 
-        BigDecimal totalFees = BigDecimal.valueOf(maxLongMarginSize)
+        BigDecimal totalFees = BigDecimal.valueOf(maxPositionSize)
                 .multiply(BigDecimal.valueOf(2)) //лонг+шорт
                 .multiply(leverageBD)
                 .multiply(feePct)
@@ -183,7 +170,7 @@ public class ChangesService {
     /**
      * Расчет профита для реальной торговли на основе открытых позиций
      */
-    private void calculateReal(PairData pairData) {
+    public void calculateReal(PairData pairData) {
         try {
             // Получаем текущие цены
             BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());

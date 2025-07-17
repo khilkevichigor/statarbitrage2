@@ -273,7 +273,7 @@ public class TradingIntegrationService {
 
         // Используем фиксированный размер позиции из настроек
         Settings settings = settingsService.getSettings();
-        BigDecimal fixedPositionSize = BigDecimal.valueOf(settings.getMaxShortMarginSize()).add(BigDecimal.valueOf(settings.getMaxLongMarginSize()));
+        BigDecimal fixedPositionSize = BigDecimal.valueOf(settings.getMaxPositionSize());
 
         // Не больше доступного баланса
         return fixedPositionSize.min(portfolio.getAvailableBalance());

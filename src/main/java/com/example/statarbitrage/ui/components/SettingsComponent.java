@@ -182,10 +182,10 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
 
-        NumberField maxShortMarginSize = new NumberField("Размер риска шорт ($)");
-        NumberField maxLongMarginSize = new NumberField("Размер риска лонг ($)");
+        NumberField maxPositionSize = new NumberField("Размер позиции ($)");
         NumberField capitalShortField = new NumberField("Позиция шорт ($)");
         NumberField leverageField = new NumberField("Плечо");
+//        NumberField feePctPerTradeField = new NumberField("Комиссия (%)");
 
         NumberField exitTakeField = new NumberField("Exit Тейк (%)");
         NumberField exitStopField = new NumberField("Exit Стоп (%)");
@@ -214,10 +214,10 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(minCorrelationField, 0.01, -1.0);
         setNumberFieldProperties(minVolumeField, 1, 0.0);
         setNumberFieldProperties(checkIntervalField, 1, 1);
-        setNumberFieldProperties(maxShortMarginSize, 1.0, 0.0);
-        setNumberFieldProperties(maxLongMarginSize, 1.0, 0.0);
+        setNumberFieldProperties(maxPositionSize, 1.0, 0.0);
         setNumberFieldProperties(capitalShortField, 1.0, 0.0);
         setNumberFieldProperties(leverageField, 1, 1);
+//        setNumberFieldProperties(feePctPerTradeField, 0.01, 0.0);
         setNumberFieldProperties(exitTakeField, 0.1, 0.0);
         setNumberFieldProperties(exitStopField, 0.1, -10.0);
         setNumberFieldProperties(exitZMinField, 0.01, -10.0);
@@ -234,9 +234,9 @@ public class SettingsComponent extends VerticalLayout {
                 useMinVolumeFilterCheckbox));
 
         add(createCapitalSection(
-                maxShortMarginSize,
-                maxLongMarginSize,
+                maxPositionSize,
                 leverageField
+//                , feePctPerTradeField
         ));
 
         add(createExitStrategySection(exitTakeField, exitStopField, exitZMinField, exitZMaxField,
@@ -247,9 +247,9 @@ public class SettingsComponent extends VerticalLayout {
         bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, minAdfValueField, checkIntervalField, minCorrelationField,
                 minVolumeField, usePairsField,
-                maxShortMarginSize,
-                maxLongMarginSize,
+                maxPositionSize,
                 leverageField,
+//                feePctPerTradeField,
                 exitTakeField, exitStopField,
                 exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField,
                 useMinZFilterCheckbox, useMinRSquaredFilterCheckbox, useMinPValueFilterCheckbox,
@@ -292,13 +292,15 @@ public class SettingsComponent extends VerticalLayout {
         return analysisSection;
     }
 
-    private Details createCapitalSection(NumberField maxShortMarginSize, NumberField maxLongMarginSize, NumberField leverageField
+    private Details createCapitalSection(NumberField maxPositionSize, NumberField leverageField
+//            , NumberField feePctPerTradeField
     ) {
         FormLayout capitalForm = createFormLayout();
         capitalForm.add(
-                maxShortMarginSize,
-                maxLongMarginSize,
-                leverageField);
+                maxPositionSize,
+                leverageField
+//                , feePctPerTradeField
+        );
 
         return createDetailsCard("💰 Управление капиталом",
                 "Настройки депозита и управления рисками", capitalForm);
@@ -389,9 +391,9 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField minPValueField, NumberField minAdfValueField,
                             NumberField checkIntervalField, NumberField minCorrelationField,
                             NumberField minVolumeField, NumberField usePairsField,
-                            NumberField maxShortMarginSizeField,
-                            NumberField maxLongMarginSizeField,
+                            NumberField maxPositionSizeField,
                             NumberField leverageField,
+//                            NumberField feePctPerTradeField,
                             NumberField exitTakeField, NumberField exitStopField,
                             NumberField exitZMinField, NumberField exitZMaxField,
                             NumberField exitZMaxPercentField, NumberField exitTimeHoursField,
@@ -416,13 +418,13 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
         settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
-        settingsBinder.forField(maxShortMarginSizeField).bind(Settings::getMaxShortMarginSize, Settings::setMaxShortMarginSize);
-        settingsBinder.forField(maxLongMarginSizeField).bind(Settings::getMaxLongMarginSize, Settings::setMaxLongMarginSize);
+        settingsBinder.forField(maxPositionSizeField).bind(Settings::getMaxPositionSize, Settings::setMaxPositionSize);
 
         settingsBinder.forField(leverageField)
                 .withValidator(new DoubleRangeValidator("Плечо должно быть больше 0", 0.1, Double.MAX_VALUE))
                 .bind(Settings::getLeverage, Settings::setLeverage);
 
+//        settingsBinder.forField(feePctPerTradeField).bind(Settings::getFeePctPerTrade, Settings::setFeePctPerTrade);
         settingsBinder.forField(exitTakeField).bind(Settings::getExitTake, Settings::setExitTake);
         settingsBinder.forField(exitStopField).bind(Settings::getExitStop, Settings::setExitStop);
         settingsBinder.forField(exitZMinField).bind(Settings::getExitZMin, Settings::setExitZMin);
