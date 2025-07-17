@@ -101,15 +101,16 @@ public class UpdateTradeProcessor {
         ));
     }
 
+    //todo HERE
     private PairData handleManualClose(PairData pairData, ZScoreData zScoreData, Settings settings) {
         if (!tradingIntegrationService.hasOpenPositions(pairData)) {
             return handleNoOpenPositions(pairData, settings);
         }
 
         // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().name().contains("VIRTUAL");
+        boolean isVirtual = tradingIntegrationService.getCurrentTradingMode().isVirtual();
 
-//        if (isVirtualTrading) {
+//        if (isVirtual) {
         // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
 
@@ -119,7 +120,7 @@ public class UpdateTradeProcessor {
                 .zScoreData(zScoreData)
                 .candlesMap(candlesMap)
                 .isUpdateChanges(true)
-                .isVirtual(isVirtualTrading)
+                .isVirtual(isVirtual)
                 .build());
 //            pairDataService.updateChangesAndSaveForVirtual(pairData);
 //        }
@@ -132,9 +133,20 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        updatePairDataAfterClose(pairData, zScoreData, closeResult);
+        TradeResult closeLongTradeResult = closeResult.getLongTradeResult();
+        TradeResult closeShortTradeResult = closeResult.getShortTradeResult();
+        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+                .isAddEntryPoints(true)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+                .tradeResultLong(closeLongTradeResult)
+                .tradeResultShort(closeShortTradeResult)
+                .isUpdateChanges(true)
+                .isUpdateTradeLog(true)
+                .settings(settings)
+                .build());
 
-        if (isVirtualTrading) {
+        if (isVirtual) {
             // 💾 Для виртуальной торговли: сохраняем без повторного расчета профита
             pairDataService.save(pairData);
             tradeLogService.updateTradeLog(pairData, settings);
@@ -171,9 +183,9 @@ public class UpdateTradeProcessor {
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
         // 🎯 Дифференцированный подход в зависимости от типа торговли
-        boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().isVirtual();
+        boolean isVirtual = tradingIntegrationService.getCurrentTradingMode().isVirtual();
 
-        if (isVirtualTrading) {
+        if (isVirtual) {
             // 📊 Для виртуальной торговли: используем сохраненный профит на момент exit
             if (pairData.getExitProfitSnapshot() != null) {
                 log.info("🎯 Используем сохраненный профит на момент exit: {}% для пары {}/{}",
@@ -191,7 +203,6 @@ public class UpdateTradeProcessor {
                         .isUpdateChanges(true)
                         .isVirtual(true)
                         .build());
-//                pairDataService.updateChangesAndSaveForVirtual(pairData);
             }
         }
 
@@ -204,11 +215,24 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        updatePairDataAfterClose(pairData, zScoreData, closeResult); //todo лишнее для виртуал???
+//        updatePairDataAfterClose(pairData, zScoreData, closeResult);
+        TradeResult closeLongTradeResult = closeResult.getLongTradeResult();
+        TradeResult closeShortTradeResult = closeResult.getShortTradeResult();
+        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder() //todo лишнее для виртуал???
+                .isAddEntryPoints(true)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+                .tradeResultLong(closeLongTradeResult)
+                .tradeResultShort(closeShortTradeResult)
+                .isUpdateChanges(true)
+                .isUpdateTradeLog(true)
+                .settings(settings)
+                .build());
+
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
 
-        if (isVirtualTrading) {
+        if (isVirtual) {
             // 💾 Для виртуальной торговли: сохраняем без повторного расчета профита
             pairDataService.save(pairData);
             tradeLogService.updateTradeLog(pairData, settings);
@@ -242,7 +266,17 @@ public class UpdateTradeProcessor {
     private void updatePairDataAfterClose(PairData pairData, ZScoreData zScoreData, CloseArbitragePairResult closeResult) {
         TradeResult closeLongTradeResult = closeResult.getLongTradeResult();
         TradeResult closeShortTradeResult = closeResult.getShortTradeResult();
-        pairDataService.updateCurrentDataAndSave(pairData, zScoreData, closeLongTradeResult, closeShortTradeResult);
+        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+                .isAddEntryPoints(true)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+//                .candlesMap(candlesMap)
+                .tradeResultLong(closeLongTradeResult)
+                .tradeResultShort(closeShortTradeResult)
+                .isUpdateChanges(true)
+                .isUpdateTradeLog(true)
+//                .settings(settings)
+                .build());
     }
 
     private void savePairDataWithUpdates(PairData pairData, Settings settings) {

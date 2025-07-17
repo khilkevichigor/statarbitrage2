@@ -129,7 +129,6 @@ public class PairDataService {
         boolean updateTradeLog = request.isUpdateTradeLog();
         Settings settings = request.getSettings();
 
-
         //Обновляем текущие цены
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
@@ -167,7 +166,7 @@ public class PairDataService {
 
         if (updateChanges) {
             if (virtual) {
-                updateChangesAndSaveForVirtual(pairData);
+                updateChangesAndSaveForVirtual(pairData); //todo перейти на 1 метод updateChangesAndSave()
             } else {
                 updateChangesAndSave(pairData);
             }
@@ -712,7 +711,7 @@ public class PairDataService {
         return newValue.compareTo(currentMax) > 0 ? newValue : currentMax;
     }
 
-    public void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, TradeResult longResult, TradeResult shortResult) {
+    private void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, TradeResult longResult, TradeResult shortResult) {
         //Обновляем текущие цены
         pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
         pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
