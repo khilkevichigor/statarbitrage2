@@ -39,12 +39,12 @@ public class StartNewTradeProcessor {
     private final ChangesService changesService;
 
     @Transactional
-    public PairData startNewTrade(StartNewTradeRequest request) {
+    public PairData startNewTrade(StartNewTradeRequest startNewTradeRequest) {
         boolean isVirtual = tradingProviderFactory.getCurrentProvider().getProviderType().isVirtual();
         if (isVirtual) {
-            return startNewVirtualTrade(request);
+            return startNewVirtualTrade(startNewTradeRequest);
         } else {
-            return startNewRealTrade(request);
+            return startNewRealTrade(startNewTradeRequest);
         }
     }
 
@@ -98,7 +98,6 @@ public class StartNewTradeProcessor {
 
         UpdatePairDataRequest updatePairDataRequest = UpdatePairDataRequest.builder()
                 .isVirtual(true)
-                .setupEntryPoints(request.isSetupEntryPoints()) //нужно ли сетапить точки входа
                 .pairData(pairData)
                 .zScoreData(zScoreData)
                 .candlesMap(candlesMap)

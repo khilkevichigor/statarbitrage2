@@ -11,6 +11,7 @@ import com.example.statarbitrage.core.services.EventSendService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.example.statarbitrage.ui.dto.FetchPairsRequest;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
@@ -39,6 +40,7 @@ public class TradeAndSimulationScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
     private final TradingIntegrationService tradingIntegrationService;
+    private final TradingProviderFactory tradingProviderFactory;
 
     @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
     public void updateTrades() {
@@ -152,7 +154,6 @@ public class TradeAndSimulationScheduler {
                             PairData startedNewTrade = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
                                     .pairData(v)
                                     .checkAutoTrading(true)
-                                    .setupEntryPoints(true)
                                     .build());
                             if (startedNewTrade != null) {
                                 count.getAndIncrement();

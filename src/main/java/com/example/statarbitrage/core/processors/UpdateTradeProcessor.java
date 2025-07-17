@@ -49,8 +49,8 @@ public class UpdateTradeProcessor {
     }
 
     private PairData updateVirtual(UpdateTradeRequest request) {
-        boolean isCloseManually = request.isCloseManually();
         PairData pairData = request.getPairData();
+        boolean isCloseManually = request.isCloseManually();
         // Проверяем статус пары - если уже закрыта, не обрабатываем
         if (pairData.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
@@ -75,16 +75,18 @@ public class UpdateTradeProcessor {
         // Критично! Нужно считать профит до exitStrategy что бы сразу закрыть позиции и не ждать след захода шедуллера
         changesService.calculate(pairData);
 
-        if (isCloseManually) {
-            pairData.setExitReason(EXIT_REASON_MANUALLY);
-        } else {
-            String exitReason = exitStrategyService.getExitReason(pairData);
-            if (exitReason != null) {
-                pairData.setExitReason(exitReason);
-            }
+        String exitReason = exitStrategyService.getExitReason(pairData);
+        if (exitReason != null) {
+            pairData.setExitReason(exitReason);
+            pairData.setStatus(TradeStatus.CLOSED);
         }
 
-        pairData.setStatus(TradeStatus.CLOSED);
+        //после всех обновлений профита закрываем если нужно
+        if (isCloseManually) {
+            pairData.setStatus(TradeStatus.CLOSED);
+            pairData.setExitReason(EXIT_REASON_MANUALLY);
+        }
+
         pairDataService.save(pairData);
 
         tradeLogService.saveLog(pairData);
@@ -124,9 +126,6 @@ public class UpdateTradeProcessor {
                     log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
 
-                    pairData.setStatus(TradeStatus.CLOSED);
-                    pairData.setExitReason(EXIT_REASON_MANUALLY);
-
                     TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                     TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
 
@@ -150,9 +149,8 @@ public class UpdateTradeProcessor {
             } else {
                 log.info("ℹ️ Позиции для пары {}/{} уже были закрыты вручную на бирже. Только обновляем статус.",
                         pairData.getLongTicker(), pairData.getShortTicker());
-                pairData.setStatus(TradeStatus.ERROR);
-                pairData.setErrorDescription(TradeError.ERROR_300.getDescription());
             }
+
         } else {
             String exitReason = exitStrategyService.getExitReason(pairData);
             if (exitReason != null) {
@@ -164,9 +162,6 @@ public class UpdateTradeProcessor {
                 if (closeArbitragePairResult != null && closeArbitragePairResult.isSuccess()) {
                     log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
-
-                    pairData.setExitReason(exitReason);
-                    pairData.setStatus(TradeStatus.CLOSED);
 
                     TradeResult closeLongTradeResult = closeArbitragePairResult.getLongTradeResult();
                     TradeResult closeShortTradeResult = closeArbitragePairResult.getShortTradeResult();
@@ -181,6 +176,8 @@ public class UpdateTradeProcessor {
                             .build();
 
                     pairDataService.update(updatePairDataRequest);
+                    pairData.setExitReason(exitReason);
+                    pairData.setStatus(TradeStatus.CLOSED);
                 } else {
                     log.error("❌ Ошибка при закрытии арбитражной пары: {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());

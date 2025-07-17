@@ -16,7 +16,6 @@ import java.util.Map;
 @NoArgsConstructor
 public class UpdatePairDataRequest {
     private boolean isVirtual;
-    private boolean setupEntryPoints;
     private PairData pairData;
     private ZScoreData zScoreData;
     private Map<String, List<Candle>> candlesMap;
