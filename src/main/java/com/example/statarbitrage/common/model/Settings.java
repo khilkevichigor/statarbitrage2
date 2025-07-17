@@ -30,8 +30,8 @@ public class Settings {
     private double checkInterval;
 
     private double initialVirtualBalance;
-    private double maxPositionPercentPerPair;
-    private double maxMarginPerPair; //риск на пару, реальные деньги
+    private double maxPositionPercentPerPair; //todo remove???
+    private double maxMarginPerPair; //риск
     private double leverage;
     private double feePctPerTrade;
 
