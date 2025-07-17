@@ -7,6 +7,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
+import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.model.TradeResult;
@@ -27,6 +28,7 @@ public class PairDataService {
     private final PairDataRepository pairDataRepository;
     private final TradingIntegrationService tradingIntegrationService;
     private final SettingsService settingsService;
+    private final TradeLogService tradeLogService;
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();
@@ -115,7 +117,18 @@ public class PairDataService {
         return pairData;
     }
 
-    public void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    public void updateCurrentDataAndSave(UpdatePairDataRequest request) {
+        boolean addEntryPoints = request.isAddEntryPoints();
+        PairData pairData = request.getPairData();
+        ZScoreData zScoreData = request.getZScoreData();
+        Map<String, List<Candle>> candlesMap = request.getCandlesMap();
+        TradeResult tradeResultLong = request.getTradeResultLong();
+        TradeResult tradeResultShort = request.getTradeResultShort();
+        boolean updateChanges = request.isUpdateChanges();
+        boolean virtual = request.isVirtual();
+        boolean updateTradeLog = request.isUpdateTradeLog();
+        Settings settings = request.getSettings();
+
 
         //Обновляем текущие цены
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
@@ -148,10 +161,26 @@ public class PairDataService {
             pairData.addZScorePoint(latestParam);
         }
 
+        if (addEntryPoints) {
+            addEntryPoints(pairData, zScoreData.getLastZScoreParam(), tradeResultLong, tradeResultShort);
+        }
+
+        if (updateChanges) {
+            if (virtual) {
+                updateChangesAndSaveForVirtual(pairData);
+            } else {
+                updateChangesAndSave(pairData);
+            }
+        }
+
+        if (updateTradeLog) {
+            tradeLogService.updateTradeLog(pairData, settings);
+        }
+
         pairDataRepository.save(pairData);
     }
 
-    public void addEntryPointsAndSave(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
+    private void addEntryPoints(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
         //Обновляем текущие данные коинтеграции
         pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
         pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
@@ -167,7 +196,10 @@ public class PairDataService {
         // Время входа
         pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
 
-        save(pairData);
+        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
+                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
+                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
+                pairData.getZScoreEntry());
     }
 
     /**
@@ -280,7 +312,7 @@ public class PairDataService {
             // ✅ Записываем в PairData
             pairData.setLongChanges(longReturnRounded);
             pairData.setShortChanges(shortReturnRounded);
-            
+
             // ⚠️ Проверяем, не зафиксирован ли уже профит при выходе из позиции
             if (pairData.getExitProfitSnapshot() == null) {
                 // Если профит не зафиксирован, обновляем его
@@ -290,7 +322,7 @@ public class PairDataService {
                 // Если профит уже зафиксирован, не перезаписываем его
                 log.debug("🔒 Профит уже зафиксирован: {}%, не обновляем", pairData.getExitProfitSnapshot());
             }
-            
+
             pairData.setZScoreChanges(zScoreRounded);
 
             pairData.setMinProfitRounded(minProfitRounded);
@@ -320,15 +352,15 @@ public class PairDataService {
             log.info("💰 Реальный PnL: {} USDT ({}% от позиции)",
                     realPnL.setScale(2, RoundingMode.HALF_UP), profitRounded);
             log.info("📏 Размер позиции: {} USDT", positionSize.setScale(2, RoundingMode.HALF_UP));
-            
+
             // Логируем профит с учетом возможности фиксации
             if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🔒 Профит ЗАФИКСИРОВАН: {}% (текущий расчетный: {}%)", 
+                log.info("🔒 Профит ЗАФИКСИРОВАН: {}% (текущий расчетный: {}%)",
                         pairData.getExitProfitSnapshot(), profitRounded);
             } else {
                 log.info("💰 Текущий профит: {}%", pairData.getProfitChanges());
             }
-            
+
             log.info("💼 Общий баланс портфолио: {} USDT", totalBalance.setScale(2, RoundingMode.HALF_UP));
             log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
             log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
@@ -376,7 +408,7 @@ public class PairDataService {
 
             // Расчет P&L для каждой позиции (половина от общего риска на пару)
             BigDecimal marginPerPosition = BigDecimal.valueOf(maxMarginPerPair).divide(BigDecimal.valueOf(2), 10, RoundingMode.HALF_UP);
-            
+
             BigDecimal longPL = longReturnPct
                     .multiply(marginPerPosition.multiply(leverageBD))
                     .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
@@ -458,7 +490,7 @@ public class PairDataService {
             // ✅ Записываем в PairData
             pairData.setLongChanges(longReturnRounded);
             pairData.setShortChanges(shortReturnRounded);
-            
+
             // ⚠️ Проверяем, не зафиксирован ли уже профит при выходе из позиции
             if (pairData.getExitProfitSnapshot() == null) {
                 // Если профит не зафиксирован, обновляем его
@@ -468,7 +500,7 @@ public class PairDataService {
                 // Если профит уже зафиксирован, не перезаписываем его
                 log.debug("🔒 Профит уже зафиксирован (виртуальная торговля): {}%, не обновляем", pairData.getExitProfitSnapshot());
             }
-            
+
             pairData.setZScoreChanges(zScoreRounded);
 
             pairData.setMinProfitRounded(minProfitRounded);
@@ -498,15 +530,15 @@ public class PairDataService {
             log.info("💰 Виртуальный PnL: {} USDT ({}% от позиции)",
                     netPL.setScale(2, RoundingMode.HALF_UP), profitRounded);
             log.info("📏 Размер позиции (виртуальная): {} USDT", positionSize.setScale(2, RoundingMode.HALF_UP));
-            
+
             // Логируем профит с учетом возможности фиксации
             if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🔒 Профит ЗАФИКСИРОВАН (виртуальная торговля): {}% (текущий расчетный: {}%)", 
+                log.info("🔒 Профит ЗАФИКСИРОВАН (виртуальная торговля): {}% (текущий расчетный: {}%)",
                         pairData.getExitProfitSnapshot(), profitRounded);
             } else {
                 log.info("💰 Текущий профит (виртуальная торговля): {}%", pairData.getProfitChanges());
             }
-            
+
             log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
             log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
 

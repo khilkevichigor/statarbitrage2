@@ -6,6 +6,7 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
+import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.CloseArbitragePairResult;
 import com.example.statarbitrage.trading.model.PositionVerificationResult;
@@ -108,12 +109,20 @@ public class UpdateTradeProcessor {
         // 🎯 Дифференцированный подход в зависимости от типа торговли
         boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().name().contains("VIRTUAL");
 
-        if (isVirtualTrading) {
-            // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
-            Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-            pairDataService.updateChangesAndSaveForVirtual(pairData);
-        }
+//        if (isVirtualTrading) {
+        // 📊 Для виртуальной торговли: рассчитываем профит ДО закрытия позиций
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+
+        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+                .isAddEntryPoints(false)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+                .candlesMap(candlesMap)
+                .isUpdateChanges(true)
+                .isVirtual(isVirtualTrading)
+                .build());
+//            pairDataService.updateChangesAndSaveForVirtual(pairData);
+//        }
 
         CloseArbitragePairResult closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
@@ -173,8 +182,16 @@ public class UpdateTradeProcessor {
             } else {
                 // Fallback: рассчитываем профит если не был сохранен
                 Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-                pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
-                pairDataService.updateChangesAndSaveForVirtual(pairData);
+
+                pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+                        .isAddEntryPoints(false)
+                        .pairData(pairData)
+                        .zScoreData(zScoreData)
+                        .candlesMap(candlesMap)
+                        .isUpdateChanges(true)
+                        .isVirtual(true)
+                        .build());
+//                pairDataService.updateChangesAndSaveForVirtual(pairData);
             }
         }
 
@@ -242,22 +259,30 @@ public class UpdateTradeProcessor {
         try {
             // 📊 Обновляем текущие цены и данные
             Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-            pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
 
             // 🎯 Дифференцированный подход: проверяем режим торговли
             boolean isVirtualTrading = tradingIntegrationService.getCurrentTradingMode().isVirtual();
-            
-            if (isVirtualTrading) {
-                // 💡 Для виртуальной торговли: используем расчет на основе настроек
-                pairDataService.updateChangesAndSaveForVirtual(pairData);
-                log.debug("📈 Обновлен актуальный профит для exit strategy (виртуальная торговля) {}/{}: {}%",
-                        pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
-            } else {
-                // 🏦 Для реальной торговли: используем данные реальных позиций
-                pairDataService.updateChangesAndSave(pairData);
-                log.debug("📈 Обновлен актуальный профит для exit strategy (реальная торговля) {}/{}: {}%",
-                        pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
-            }
+
+            pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+                    .isAddEntryPoints(false)
+                    .pairData(pairData)
+                    .zScoreData(zScoreData)
+                    .candlesMap(candlesMap)
+                    .isUpdateChanges(true)
+                    .isVirtual(isVirtualTrading)
+                    .build());
+
+//            if (isVirtualTrading) {
+//                // 💡 Для виртуальной торговли: используем расчет на основе настроек
+//                pairDataService.updateChangesAndSaveForVirtual(pairData);
+//                log.debug("📈 Обновлен актуальный профит для exit strategy (виртуальная торговля) {}/{}: {}%",
+//                        pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
+//            } else {
+//                // 🏦 Для реальной торговли: используем данные реальных позиций
+//                pairDataService.updateChangesAndSave(pairData);
+//                log.debug("📈 Обновлен актуальный профит для exit strategy (реальная торговля) {}/{}: {}%",
+//                        pairData.getLongTicker(), pairData.getShortTicker(), pairData.getProfitChanges());
+//            }
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении профита перед проверкой exit strategy для пары {}/{}: {}",

@@ -6,6 +6,7 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
+import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.OpenArbitragePairResult;
 import com.example.statarbitrage.trading.model.TradeResult;
@@ -193,18 +194,21 @@ public class StartNewTradeProcessor {
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.TRADING);
-        pairDataService.updateCurrentDataAndSave(pairData, zScoreData, candlesMap);
 
-        pairDataService.addEntryPointsAndSave(pairData, zScoreData.getLastZScoreParam(),
-                openLongTradeResult, openShortTradeResult);
+        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+                .isAddEntryPoints(true)
+                .pairData(pairData)
+                .zScoreData(zScoreData)
+                .candlesMap(candlesMap)
+                .tradeResultLong(openLongTradeResult)
+                .tradeResultShort(openShortTradeResult)
+                .isUpdateChanges(true)
+                .isUpdateTradeLog(true)
+                .settings(settings)
+                .build());
 
-        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-                pairData.getZScoreEntry());
-
-        pairDataService.updateChangesAndSave(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
+//        pairDataService.updateChangesAndSave(pairData);
+//        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
