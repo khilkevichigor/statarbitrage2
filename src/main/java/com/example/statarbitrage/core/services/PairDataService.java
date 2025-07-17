@@ -395,14 +395,10 @@ public class PairDataService {
         return newValue.compareTo(currentMax) > 0 ? newValue : currentMax;
     }
 
-    public void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap, TradeResult longResult, TradeResult shortResult) {
+    public void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, TradeResult longResult, TradeResult shortResult) {
         //Обновляем текущие цены
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
-        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
-        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
-        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+        pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
+        pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
 
         //Обновляем текущие данные коинтеграции
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
