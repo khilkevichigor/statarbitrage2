@@ -15,6 +15,7 @@ import java.awt.image.BufferedImage;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "pair_data")
@@ -28,6 +29,9 @@ public class PairData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(columnDefinition = "uuid")
+    private String uuid = UUID.randomUUID().toString();
 
     @Version
     private Long version;
