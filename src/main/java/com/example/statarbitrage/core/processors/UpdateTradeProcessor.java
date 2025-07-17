@@ -51,6 +51,8 @@ public class UpdateTradeProcessor {
 
         ZScoreData zScoreData = calculateZScoreData(pairData, settings);
 
+        updateZScoreDataCurrent(pairData, zScoreData);
+
         logPairInfo(zScoreData);
 
         if (request.isCloseManually()) {
@@ -90,6 +92,30 @@ public class UpdateTradeProcessor {
     private ZScoreData calculateZScoreData(PairData pairData, Settings settings) {
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         return zScoreService.calculateZScoreData(settings, candlesMap);
+    }
+
+    private void updateZScoreDataCurrent(PairData pairData, ZScoreData zScoreData) {
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
+
+        // Добавляем новые точки в историю Z-Score при каждом обновлении
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю новую историю из ZScoreData
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
+            }
+        } else {
+            // Если новой истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
+        }
     }
 
     private void logPairInfo(ZScoreData zScoreData) {
