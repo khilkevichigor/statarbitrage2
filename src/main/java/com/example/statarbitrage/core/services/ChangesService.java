@@ -50,11 +50,13 @@ public class ChangesService {
 
         BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                 .divide(longEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
                 .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal maxPositionLongPlusShort = BigDecimal.valueOf(maxLongMarginSize).add(BigDecimal.valueOf(maxShortMarginSize)); //лонг+шорт
         BigDecimal leverageBD = BigDecimal.valueOf(leverage);
@@ -81,17 +83,15 @@ public class ChangesService {
 
         BigDecimal profitPercentFromTotal = netPL
                 .divide(maxPositionLongPlusShort, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        //не в процентах, а в абсолютных единицах
+        BigDecimal zScoreReturn = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
         // Текущее время
         long entryTime = pairData.getEntryTime();
         long now = System.currentTimeMillis();
-
-        // Округления
-        BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
         // 🔄 Отслеживание максимумов и минимумов с учетом истории
         BigDecimal currentMinProfit = pairData.getMinProfitRounded();
@@ -104,10 +104,10 @@ public class ChangesService {
         // Обновляем максимум прибыли
         BigDecimal maxProfitRounded;
         long timeInMinutesSinceEntryToMax;
-        if (currentMaxProfit == null || profitRounded.compareTo(currentMaxProfit) > 0) {
-            maxProfitRounded = profitRounded;
+        if (currentMaxProfit == null || profitPercentFromTotal.compareTo(currentMaxProfit) > 0) {
+            maxProfitRounded = profitPercentFromTotal;
             timeInMinutesSinceEntryToMax = currentTimeInMinutes;
-            log.debug("🚀 Новый максимум прибыли: {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
+            log.debug("🚀 Новый максимум виртуальной прибыли: {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
         } else {
             maxProfitRounded = currentMaxProfit;
             timeInMinutesSinceEntryToMax = currentTimeToMax;
@@ -116,10 +116,10 @@ public class ChangesService {
         // Обновляем минимум прибыли
         BigDecimal minProfitRounded;
         long timeInMinutesSinceEntryToMin;
-        if (currentMinProfit == null || profitRounded.compareTo(currentMinProfit) < 0) {
-            minProfitRounded = profitRounded;
+        if (currentMinProfit == null || profitPercentFromTotal.compareTo(currentMinProfit) < 0) {
+            minProfitRounded = profitPercentFromTotal;
             timeInMinutesSinceEntryToMin = currentTimeInMinutes;
-            log.debug("📉 Новый минимум прибыли: {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
+            log.debug("📉 Новый минимум виртуальной прибыли: {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
         } else {
             minProfitRounded = currentMinProfit;
             timeInMinutesSinceEntryToMin = currentTimeToMin;
@@ -139,10 +139,10 @@ public class ChangesService {
         BigDecimal maxCorr = updateMax(pairData.getMaxCorr(), corrCurrent);
 
         // ✅ Записываем в PairData
-        pairData.setLongChanges(longReturnRounded);
-        pairData.setShortChanges(shortReturnRounded);
-        pairData.setProfitChanges(profitRounded);
-        pairData.setZScoreChanges(zScoreRounded);
+        pairData.setLongChanges(longReturnPct);
+        pairData.setShortChanges(shortReturnPct);
+        pairData.setProfitChanges(profitPercentFromTotal);
+        pairData.setZScoreChanges(zScoreReturn);
 
         pairData.setMinProfitRounded(minProfitRounded);
         pairData.setMaxProfitRounded(maxProfitRounded);
@@ -162,15 +162,15 @@ public class ChangesService {
 
         // 📝 Логирование
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
+                pairData.getLongTicker(), longEntry, longCurrent, longReturnPct);
 
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
+                pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnPct);
 
         log.info("📊 Z Entry: {}, Current: {}, ΔZ: {}",
-                zScoreEntry, zScoreCurrent, zScoreRounded);
+                zScoreEntry, zScoreCurrent, zScoreReturn);
 
-        log.info("💰 Профит (плечо {}x, комиссия {}%): {}%", leverage, feePctPerTrade, profitRounded);
+        log.info("💰 Профит (плечо {}x, комиссия {}%): {}%", leverage, feePctPerTrade, profitPercentFromTotal);
 
         log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
         log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
@@ -205,12 +205,14 @@ public class ChangesService {
             // Процентное изменение LONG позиции
             BigDecimal longReturnPct = longCurrent.subtract(longEntry)
                     .divide(longEntry, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
 
             // Процентное изменение SHORT позиции (инвертировано)
             BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
                     .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
 
             // Получаем информацию о портфолио для расчета процентной прибыли
             Portfolio portfolio = tradingIntegrationService.getPortfolioInfo();
@@ -221,19 +223,16 @@ public class ChangesService {
             if (totalBalance.compareTo(BigDecimal.ZERO) > 0) {
                 profitPercentFromTotal = realPnL
                         .divide(totalBalance, 10, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100));
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP);
             }
+
+            BigDecimal zScoreReturn = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
             // Текущее время
             long entryTime = pairData.getEntryTime();
             long now = System.currentTimeMillis();
             long currentTimeInMinutes = (now - entryTime) / (1000 * 60);
-
-            // Округления
-            BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal profitRounded = profitPercentFromTotal.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
 
             // 🔄 Отслеживание максимумов и минимумов с учетом истории
             BigDecimal currentMinProfit = pairData.getMinProfitRounded();
@@ -244,8 +243,8 @@ public class ChangesService {
             // Обновляем максимум прибыли
             BigDecimal maxProfitRounded;
             long timeInMinutesSinceEntryToMax;
-            if (currentMaxProfit == null || profitRounded.compareTo(currentMaxProfit) > 0) {
-                maxProfitRounded = profitRounded;
+            if (currentMaxProfit == null || profitPercentFromTotal.compareTo(currentMaxProfit) > 0) {
+                maxProfitRounded = profitPercentFromTotal;
                 timeInMinutesSinceEntryToMax = currentTimeInMinutes;
                 log.debug("🚀 Новый максимум прибыли (реальная торговля): {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
             } else {
@@ -256,8 +255,8 @@ public class ChangesService {
             // Обновляем минимум прибыли
             BigDecimal minProfitRounded;
             long timeInMinutesSinceEntryToMin;
-            if (currentMinProfit == null || profitRounded.compareTo(currentMinProfit) < 0) {
-                minProfitRounded = profitRounded;
+            if (currentMinProfit == null || profitPercentFromTotal.compareTo(currentMinProfit) < 0) {
+                minProfitRounded = profitPercentFromTotal;
                 timeInMinutesSinceEntryToMin = currentTimeInMinutes;
                 log.debug("📉 Новый минимум прибыли (реальная торговля): {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
             } else {
@@ -279,10 +278,10 @@ public class ChangesService {
             BigDecimal maxCorr = updateMax(pairData.getMaxCorr(), corrCurrent);
 
             // ✅ Записываем в PairData
-            pairData.setLongChanges(longReturnRounded);
-            pairData.setShortChanges(shortReturnRounded);
-            pairData.setProfitChanges(profitRounded);
-            pairData.setZScoreChanges(zScoreRounded);
+            pairData.setLongChanges(longReturnPct);
+            pairData.setShortChanges(shortReturnPct);
+            pairData.setProfitChanges(profitPercentFromTotal);
+            pairData.setZScoreChanges(zScoreReturn);
 
             pairData.setMinProfitRounded(minProfitRounded);
             pairData.setMaxProfitRounded(maxProfitRounded);
@@ -303,13 +302,13 @@ public class ChangesService {
             // 📝 Логирование
             log.info("🔴 РЕАЛЬНАЯ ТОРГОВЛЯ - {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
             log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
-                    pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
+                    pairData.getLongTicker(), longEntry, longCurrent, longReturnPct);
             log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
-                    pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
+                    pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnPct);
             log.info("📊 Z Entry: {}, Current: {}, ΔZ: {}",
-                    zScoreEntry, zScoreCurrent, zScoreRounded);
+                    zScoreEntry, zScoreCurrent, zScoreReturn);
             log.info("💰 Реальный PnL: {} USDT ({}% от портфолио)",
-                    realPnL.setScale(2, RoundingMode.HALF_UP), profitRounded);
+                    realPnL.setScale(2, RoundingMode.HALF_UP), profitPercentFromTotal);
             log.info("💼 Общий баланс портфолио: {} USDT", totalBalance.setScale(2, RoundingMode.HALF_UP));
             log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
             log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
