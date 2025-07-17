@@ -28,7 +28,6 @@ public class UpdatePairDataRequest {
     private TradeResult tradeResultLong;
     private TradeResult tradeResultShort;
     private boolean isUpdateChanges;
-    private boolean isVirtual;
     private boolean isUpdateTradeLog;
     private Settings settings;
 }

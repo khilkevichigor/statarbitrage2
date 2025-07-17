@@ -125,7 +125,6 @@ public class PairDataService {
         TradeResult tradeResultLong = request.getTradeResultLong();
         TradeResult tradeResultShort = request.getTradeResultShort();
         boolean updateChanges = request.isUpdateChanges();
-        boolean virtual = request.isVirtual();
         boolean updateTradeLog = request.isUpdateTradeLog();
         Settings settings = request.getSettings();
 
@@ -165,11 +164,7 @@ public class PairDataService {
         }
 
         if (updateChanges) {
-            if (virtual) {
-                updateChangesAndSaveForVirtual(pairData); //todo перейти на 1 метод updateChangesAndSave()
-            } else {
-                updateChangesAndSave(pairData);
-            }
+            updateChangesAndSave(pairData);
         }
 
         if (updateTradeLog) {
