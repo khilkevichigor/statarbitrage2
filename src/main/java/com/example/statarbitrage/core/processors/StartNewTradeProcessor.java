@@ -253,8 +253,8 @@ public class StartNewTradeProcessor {
 
         pairDataService.save(pairData);
 
-        pairDataService.updateChangesAndSave(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
+//        pairDataService.updateChangesAndSave(pairData); //todo может и не надо тк тока открылись хули считать!!!
+//        tradeLogService.updateTradeLog(pairData, settings); //todo может и не надо тк тока открылись хули считать!!!
         return pairData;
     }
 
