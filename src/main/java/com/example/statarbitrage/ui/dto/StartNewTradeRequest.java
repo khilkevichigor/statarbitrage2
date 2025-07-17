@@ -16,4 +16,5 @@ import lombok.NoArgsConstructor;
 public class StartNewTradeRequest {
     private PairData pairData;
     private boolean checkAutoTrading;
+    private boolean setupEntryPoints;
 }

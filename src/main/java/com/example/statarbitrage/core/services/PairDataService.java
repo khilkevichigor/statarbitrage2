@@ -116,6 +116,7 @@ public class PairDataService {
 
     private void updateVirtual(UpdatePairDataRequest request) {
 
+        boolean isSetupEntryPoints = request.isSetupEntryPoints();
         PairData pairData = request.getPairData();
         ZScoreData zScoreData = request.getZScoreData();
         Map<String, List<Candle>> candlesMap = request.getCandlesMap();
@@ -137,8 +138,9 @@ public class PairDataService {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
 
         //Точки входа
-        if (pairData.getStatus() == TradeStatus.SELECTED) {
+        if (isSetupEntryPoints) { //идет с шедуллеоа поддержвния кол-ва пар
 
+            //кейс с шедуллера на поддержание кол-ва пар
             pairData.setStatus(TradeStatus.TRADING);
 
             pairData.setLongTickerEntryPrice(longTickerCurrentPrice);
@@ -234,6 +236,7 @@ public class PairDataService {
 
     private void updateReal(UpdatePairDataRequest request) {
 
+        boolean isSetupEntryPoints = request.isSetupEntryPoints();
         PairData pairData = request.getPairData();
         ZScoreData zScoreData = request.getZScoreData();
         Map<String, List<Candle>> candlesMap = request.getCandlesMap();
@@ -261,7 +264,7 @@ public class PairDataService {
         pairData.setBetaCurrent(latestParam.getBeta());
 
         //Точки входа если первый раз
-        if (pairData.getStatus() == TradeStatus.SELECTED) {
+        if (isSetupEntryPoints) { //идет с шедуллеоа поддержвния кол-ва пар
 
             pairData.setStatus(TradeStatus.TRADING);
 
