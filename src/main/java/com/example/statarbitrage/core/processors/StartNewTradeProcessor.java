@@ -7,7 +7,10 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
-import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.core.services.CandlesService;
+import com.example.statarbitrage.core.services.PairDataService;
+import com.example.statarbitrage.core.services.SettingsService;
+import com.example.statarbitrage.core.services.ZScoreService;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
@@ -31,7 +34,6 @@ public class StartNewTradeProcessor {
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
-    private final TradeLogService tradeLogService;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest request) {
@@ -180,13 +182,12 @@ public class StartNewTradeProcessor {
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        return finalizeSuccessfulTrade(pairData, zScoreData, openResult, settings, candlesMap);
+        return finalizeSuccessfulTrade(pairData, zScoreData, openResult, settings);
     }
 
     private PairData finalizeSuccessfulTrade(PairData pairData, ZScoreData zScoreData,
-                                             ArbitragePairTradeInfo openResult, Settings settings,
-                                             Map<String, List<Candle>> candlesMap) {
+                                             ArbitragePairTradeInfo openResult, Settings settings) {
+
         TradeResult openLongTradeResult = openResult.getLongTradeResult();
         TradeResult openShortTradeResult = openResult.getShortTradeResult();
 
@@ -195,7 +196,8 @@ public class StartNewTradeProcessor {
 
         pairData.setStatus(TradeStatus.TRADING);
 
-        pairDataService.updateCurrentDataAndSave(UpdatePairDataRequest.builder()
+        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        pairDataService.updateByRequest(UpdatePairDataRequest.builder()
                 .isAddEntryPoints(true)
                 .pairData(pairData)
                 .zScoreData(zScoreData)
@@ -206,9 +208,6 @@ public class StartNewTradeProcessor {
                 .isUpdateTradeLog(true)
                 .settings(settings)
                 .build());
-
-//        pairDataService.updateChangesAndSave(pairData);
-//        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }

@@ -117,7 +117,7 @@ public class PairDataService {
         return pairData;
     }
 
-    public void updateCurrentDataAndSave(UpdatePairDataRequest request) {
+    public void updateByRequest(UpdatePairDataRequest request) {
         boolean addEntryPoints = request.isAddEntryPoints();
         PairData pairData = request.getPairData();
         ZScoreData zScoreData = request.getZScoreData();
@@ -381,7 +381,7 @@ public class PairDataService {
         return newValue.compareTo(currentMax) > 0 ? newValue : currentMax;
     }
 
-    private void updateCurrentDataAndSave(PairData pairData, ZScoreData zScoreData, TradeResult longResult, TradeResult shortResult) {
+    private void updateByRequest(PairData pairData, ZScoreData zScoreData, TradeResult longResult, TradeResult shortResult) {
         //Обновляем текущие цены
         pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
         pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
