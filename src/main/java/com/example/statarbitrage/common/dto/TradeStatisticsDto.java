@@ -12,6 +12,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TradeStatisticsDto {
+
+    private long errorPairsToday;
+    private long errorPairsTotal;
+
     private long tradesToday;
     private long tradesTotal;
 

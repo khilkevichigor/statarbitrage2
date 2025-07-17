@@ -95,6 +95,9 @@ public class StatisticsService {
     }
 
     public TradeStatisticsDto collectStatistics() {
+        long errorTradesToday = pairDataService.findByStatusOrderByEntryTimeDescForToday(TradeStatus.ERROR).size();
+        long errorTradesTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.ERROR).size();
+
         BigDecimal unrealized = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(PairData::getProfitChanges)
                 .filter(Objects::nonNull)
@@ -105,6 +108,9 @@ public class StatisticsService {
         BigDecimal combined = unrealized.add(realized);
 
         return TradeStatisticsDto.builder()
+
+                .errorPairsToday(errorTradesToday)
+                .errorPairsTotal(errorTradesTotal)
 
                 .tradesToday(tradeLogRepository.getTradesToday())
                 .tradesTotal(tradeLogRepository.getTradesTotal())

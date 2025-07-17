@@ -17,6 +17,11 @@ public interface PairDataRepository extends JpaRepository<PairData, Long> {
     @Query("SELECT p FROM PairData p WHERE p.status = :status ORDER BY p.entryTime DESC")
     List<PairData> findAllByStatusOrderByEntryTimeDesc(@Param("status") TradeStatus status);
 
+    @Query("SELECT p FROM PairData p WHERE p.status = :status AND p.entryTime >= :startOfToday ORDER BY p.entryTime DESC")
+    List<PairData> findAllByStatusAndEntryTimeAfterOrderByEntryTimeDesc(@Param("status") TradeStatus status,
+                                                                        @Param("startOfToday") long startOfToday);
+
+
     @Query("SELECT p FROM PairData p WHERE p.status = :status ORDER BY p.updatedTime DESC")
     List<PairData> findAllByStatusOrderByUpdatedTimeDesc(@Param("status") TradeStatus status);
 

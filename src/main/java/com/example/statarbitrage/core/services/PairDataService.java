@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -309,6 +311,15 @@ public class PairDataService {
 
     public List<PairData> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
         return pairDataRepository.findAllByStatusOrderByEntryTimeDesc(status);
+    }
+
+    public List<PairData> findByStatusOrderByEntryTimeDescForToday(TradeStatus status) {
+        long startOfToday = LocalDate.now()
+                .atStartOfDay(ZoneId.systemDefault()) // или ZoneOffset.UTC, если данные в UTC
+                .toInstant()
+                .toEpochMilli();
+
+        return pairDataRepository.findAllByStatusAndEntryTimeAfterOrderByEntryTimeDesc(status, startOfToday);
     }
 
     public List<PairData> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
