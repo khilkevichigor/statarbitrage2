@@ -116,7 +116,12 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
 
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        updateChangesService.updateChangesFromTradeResults(pairData, closeInfo);
+//        updateChangesService.updateChangesFromTradeResults(pairData, closeInfo);
+        updateChangesService.updateChanges(UpdateChangesRequest.builder()
+                .pairData(pairData)
+                .closeResult(closeInfo)
+                .updateChangesType(UpdateChangesType.FROM_CLOSED_POSITIONS)
+                .build());
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
