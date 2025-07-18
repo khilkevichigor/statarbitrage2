@@ -209,7 +209,6 @@ public class PairDataService {
             BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
 
             // Сначала обновляем цены позиций с биржи для актуальных данных
-//            tradingIntegrationService.updateAllPositions();
             tradingIntegrationService.updatePositions(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
             // Затем получаем реальный PnL для данной пары с актуальными ценами
