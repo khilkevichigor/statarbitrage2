@@ -6,7 +6,6 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.core.dto.UpdateChangesRequest;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.PositionVerificationResult;
@@ -53,11 +52,7 @@ public class UpdateTradeProcessor {
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-
-        updateChangesService.updateChanges(UpdateChangesRequest.builder()
-                .pairData(pairData)
-                .updateChangesType(UpdateChangesType.DEFAULT)
-                .build());
+        updateChangesService.updateChanges(pairData);
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);
@@ -155,12 +150,7 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-//        updateChangesService.updateChangesFromTradeResults(pairData, closeResult);
-        updateChangesService.updateChanges(UpdateChangesRequest.builder()
-                .pairData(pairData)
-                .closeResult(closeResult)
-                .updateChangesType(UpdateChangesType.FROM_CLOSED_POSITIONS)
-                .build());
+        updateChangesService.updateChangesFromTradeResults(pairData, closeResult);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
@@ -176,11 +166,7 @@ public class UpdateTradeProcessor {
         }
 
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-//        updateChangesService.updateChangesFromOpenPositions(pairData);
-        updateChangesService.updateChanges(UpdateChangesRequest.builder()
-                .pairData(pairData)
-                .updateChangesType(UpdateChangesType.FROM_OPEN_POSITIONS)
-                .build());
+        updateChangesService.updateChangesFromOpenPositions(pairData);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;

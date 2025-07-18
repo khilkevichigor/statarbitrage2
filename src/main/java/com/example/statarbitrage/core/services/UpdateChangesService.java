@@ -1,8 +1,6 @@
 package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.model.PairData;
-import com.example.statarbitrage.core.dto.UpdateChangesRequest;
-import com.example.statarbitrage.core.processors.UpdateChangesType;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.model.PositionVerificationResult;
@@ -25,10 +23,7 @@ public class UpdateChangesService {
     /**
      * Расчет профита для реальной торговли на основе открытых позиций (дефолтный метод)
      */
-    public void updateChanges(UpdateChangesRequest request) {
-        PairData pairData = request.getPairData();
-        ArbitragePairTradeInfo closeResult = request.getCloseResult();
-        UpdateChangesType updateChangesType = request.getUpdateChangesType();
+    public void updateChanges(PairData pairData) {
         try {
             BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
             BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
