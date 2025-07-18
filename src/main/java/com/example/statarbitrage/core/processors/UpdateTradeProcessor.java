@@ -225,7 +225,7 @@ public class UpdateTradeProcessor {
             pairData.setProfitChanges(realPnL);
             pairDataService.save(pairData);
             log.info("💰 Сохранен пре профит для расчета exit: {}% для пары {}/{}",
-                    pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
+                    pairData.getProfitChanges(), pairData.getLongTicker(), pairData.getShortTicker());
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении профита перед проверкой exit strategy для пары {}/{}: {}",

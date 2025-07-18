@@ -123,9 +123,6 @@ public class PairData {
     private String exitReason;
     private long timestamp;
 
-    // Сохранение профита на момент принятия решения об exit (для предотвращения перезаписи)
-    private BigDecimal exitProfitSnapshot;
-
     // Упрощенные геттеры для совместимости
     public double getCorrelation() {
         return correlationCurrent;
