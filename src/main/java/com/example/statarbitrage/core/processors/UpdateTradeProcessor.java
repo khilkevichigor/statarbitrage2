@@ -132,10 +132,8 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        // 🏦 Для реальной торговли: используем фактические данные из closeInfo
-        profitUpdateService.updateProfitFromTradeResults(pairData, closeInfo);
-        // 🎯 Используем полное сохранение для обновления всех связанных данных
-        pairDataService.updateChanges(pairData);
+        // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
+        pairDataService.updateChangesFromTradeResults(pairData, closeInfo);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
@@ -173,10 +171,8 @@ public class UpdateTradeProcessor {
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
-        // 🏦 Для реальной торговли: используем фактические данные из closeResult
-        profitUpdateService.updateProfitFromTradeResults(pairData, closeResult);
-        // 🎯 Используем полное сохранение для обновления всех связанных данных
-        pairDataService.updateChanges(pairData);
+        // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
+        pairDataService.updateChangesFromTradeResults(pairData, closeResult);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
@@ -191,9 +187,8 @@ public class UpdateTradeProcessor {
             return handleNoOpenPositions(pairData, settings);
         }
 
-        profitUpdateService.updateProfitFromOpenPositions(pairData, openPositionsInfo);
-        // 🎯 Используем полное сохранение для обновления всех связанных данных
-        pairDataService.updateChanges(pairData);
+        // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
+        pairDataService.updateChangesFromOpenPositions(pairData);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
@@ -205,6 +200,7 @@ public class UpdateTradeProcessor {
 
         pairData.setStatus(errorType.getStatus());
         pairDataService.save(pairData);
+        //не обновляем другие данные тк нужны реальные данные по сделкам!
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
     }
