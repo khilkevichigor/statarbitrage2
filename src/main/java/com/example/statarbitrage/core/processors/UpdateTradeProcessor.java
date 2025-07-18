@@ -30,6 +30,7 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
+    private final UpdateChangesService updateChangesService;
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
@@ -48,14 +49,14 @@ public class UpdateTradeProcessor {
         ZScoreData zScoreData = calculateZScoreData(pairData, settings);
         logPairInfo(zScoreData);
 
-        updateZScoreDataCurrent(pairData, zScoreData);
+        pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
+
+        // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
+        updateChangesService.updateChanges(pairData);
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);
         }
-
-        // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        pairDataService.preUpdateChanges(pairData);
 
         String exitReason = exitStrategyService.getExitReason(pairData, settings);
         if (exitReason != null) {
@@ -89,30 +90,6 @@ public class UpdateTradeProcessor {
         return zScoreService.calculateZScoreData(settings, candlesMap);
     }
 
-    private void updateZScoreDataCurrent(PairData pairData, ZScoreData zScoreData) {
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
-
-        // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-            // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-                pairData.addZScorePoint(param);
-            }
-        } else {
-            // Если новой истории нет, добавляем хотя бы текущую точку
-            pairData.addZScorePoint(latestParam);
-        }
-    }
-
     private void logPairInfo(ZScoreData zScoreData) {
         ZScoreParam latest = zScoreData.getLastZScoreParam();
         log.info(String.format("Наша пара: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
@@ -130,8 +107,11 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
+        pairData.setStatus(TradeStatus.CLOSED);
+        pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
+
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        pairDataService.updateChangesFromTradeResults(pairData, closeInfo);
+        updateChangesService.updateChangesFromTradeResults(pairData, closeInfo);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
@@ -170,7 +150,7 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        pairDataService.updateChangesFromTradeResults(pairData, closeResult);
+        updateChangesService.updateChangesFromTradeResults(pairData, closeResult);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
@@ -186,7 +166,7 @@ public class UpdateTradeProcessor {
         }
 
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        pairDataService.updateChangesFromOpenPositions(pairData);
+        updateChangesService.updateChangesFromOpenPositions(pairData);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
@@ -199,7 +179,6 @@ public class UpdateTradeProcessor {
         pairData.setStatus(errorType.getStatus());
         pairDataService.save(pairData);
         //не обновляем другие данные тк нужны реальные данные по сделкам!
-        tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
     }
 

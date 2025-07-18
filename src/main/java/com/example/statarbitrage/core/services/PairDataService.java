@@ -7,9 +7,6 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
-import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
-import com.example.statarbitrage.trading.model.Position;
-import com.example.statarbitrage.trading.model.PositionVerificationResult;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import lombok.RequiredArgsConstructor;
@@ -196,117 +193,27 @@ public class PairDataService {
                 pairData.getZScoreEntry());
     }
 
-    /**
-     * Расчет профита для реальной торговли на основе открытых позиций (дефолтный метод)
-     */
-    public void preUpdateChanges(PairData pairData) {
-        try {
-            BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
-            BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
-            BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
-            BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-            BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
+    public void updateZScoreDataCurrent(PairData pairData, ZScoreData zScoreData) {
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+        pairData.setZScoreCurrent(latestParam.getZscore());
+        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+        pairData.setPValueCurrent(latestParam.getPvalue());
+        pairData.setMeanCurrent(latestParam.getMean());
+        pairData.setStdCurrent(latestParam.getStd());
+        pairData.setSpreadCurrent(latestParam.getSpread());
+        pairData.setAlphaCurrent(latestParam.getAlpha());
+        pairData.setBetaCurrent(latestParam.getBeta());
 
-            // Сначала обновляем цены позиций с биржи для актуальных данных
-            tradingIntegrationService.updatePositions(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-
-            // Затем получаем реальный PnL для данной пары с актуальными ценами
-            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-
-            // Расчет процентных изменений позиций на основе текущих и входных цен
-            BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-            BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-
-            // Процентное изменение LONG позиции
-            BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-                    .divide(longEntry, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-            // Процентное изменение SHORT позиции (инвертировано)
-            BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-                    .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-            // 🎯 ИСПРАВЛЕНИЕ: Расчет размера позиции для правильного расчета профита
-            BigDecimal positionSize = tradingIntegrationService.getPositionSize(pairData);
-            if (positionSize == null || positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                // Fallback: примерный расчет размера позиции на основе цен входа
-                BigDecimal longPositionValue = longEntry.multiply(BigDecimal.valueOf(50)); // Примерно 50 USDT на позицию
-                BigDecimal shortPositionValue = shortEntry.multiply(BigDecimal.valueOf(50)); // Примерно 50 USDT на позицию
-                positionSize = longPositionValue.add(shortPositionValue);
+        // Добавляем новые точки в историю Z-Score при каждом обновлении
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+            // Добавляем всю новую историю из ZScoreData
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+                pairData.addZScorePoint(param);
             }
-
-            // 🎯 ИСПРАВЛЕНИЕ: Расчет профита в процентах от размера позиции, а не от общего баланса
-            BigDecimal profitPercentFromPosition = BigDecimal.ZERO;
-            if (positionSize.compareTo(BigDecimal.ZERO) > 0) {
-                profitPercentFromPosition = realPnL
-                        .divide(positionSize, 10, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100));
-            }
-
-            // Текущее время
-            long entryTime = pairData.getEntryTime();
-            long now = System.currentTimeMillis();
-            long currentTimeInMinutes = (now - entryTime) / (1000 * 60);
-
-            // Округления
-            BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal profitRounded = profitPercentFromPosition.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
-
-            // 🔄 Отслеживание максимумов и минимумов с учетом истории
-            BigDecimal currentMinProfit = pairData.getMinProfitRounded();
-            BigDecimal currentMaxProfit = pairData.getMaxProfitRounded();
-            long currentTimeToMax = pairData.getTimeInMinutesSinceEntryToMax();
-            long currentTimeToMin = pairData.getTimeInMinutesSinceEntryToMin();
-
-            // Обновляем максимум прибыли
-            BigDecimal maxProfitRounded;
-            long timeInMinutesSinceEntryToMax;
-            if (currentMaxProfit == null || profitRounded.compareTo(currentMaxProfit) > 0) {
-                maxProfitRounded = profitRounded;
-                timeInMinutesSinceEntryToMax = currentTimeInMinutes;
-                log.debug("🚀 Новый максимум прибыли (реальная торговля): {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
-            } else {
-                maxProfitRounded = currentMaxProfit;
-                timeInMinutesSinceEntryToMax = currentTimeToMax;
-            }
-
-            // Обновляем минимум прибыли
-            BigDecimal minProfitRounded;
-            long timeInMinutesSinceEntryToMin;
-            if (currentMinProfit == null || profitRounded.compareTo(currentMinProfit) < 0) {
-                minProfitRounded = profitRounded;
-                timeInMinutesSinceEntryToMin = currentTimeInMinutes;
-                log.debug("📉 Новый минимум прибыли (реальная торговля): {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
-            } else {
-                minProfitRounded = currentMinProfit;
-                timeInMinutesSinceEntryToMin = currentTimeToMin;
-            }
-
-            // Обновляем экстремумы всех метрик
-            updateExtremumValues(pairData, longReturnPct, shortReturnPct, zScoreCurrent, corrCurrent);
-
-            // ✅ Записываем в PairData
-            pairData.setLongChanges(longReturnRounded);
-            pairData.setShortChanges(shortReturnRounded);
-            pairData.setProfitChanges(profitRounded);
-            pairData.setZScoreChanges(zScoreRounded);
-            pairData.setMinProfitRounded(minProfitRounded);
-            pairData.setMaxProfitRounded(maxProfitRounded);
-            pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
-            pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
-
-            log.info("Пре обновление изменений для определения выхода для пары {}/{}:", pairData.getLongTicker(), pairData.getShortTicker());
-            log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
-            log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
-            log.info("💰 Текущий профит: {}%", profitRounded);
-            log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при расчете реального профита для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        } else {
+            // Если новой истории нет, добавляем хотя бы текущую точку
+            pairData.addZScorePoint(latestParam);
         }
     }
 
@@ -415,105 +322,6 @@ public class PairDataService {
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
         log.info("💰 Текущий профит: {}%", currentProfitForStats);
         log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
-    }
-
-    /**
-     * Обновляет все данные используя ProfitUpdateService для открытых позиций
-     */
-    public void updateChangesFromOpenPositions(PairData pairData) {
-        try {
-            // Получаем данные об открытых позициях
-            PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
-
-            Position longPosition = openPositionsInfo.getLongPosition();
-            Position shortPosition = openPositionsInfo.getShortPosition();
-
-            if (longPosition == null || shortPosition == null) {
-                log.warn("⚠️ Не удалось получить информацию о позициях для пары {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-                return;
-            }
-
-            // Обновляем текущие цены
-            pairData.setLongTickerCurrentPrice(longPosition.getCurrentPrice().doubleValue());
-            pairData.setShortTickerCurrentPrice(shortPosition.getCurrentPrice().doubleValue());
-
-            // Рассчитываем текущий нереализованный профит
-            BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
-            BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
-            BigDecimal netPnL = totalPnL.subtract(totalFees);
-
-            // Конвертируем в процент от позиции
-            BigDecimal profitPercent = calculateProfitPercent(
-                    netPnL,
-                    pairData.getLongTickerEntryPrice(),
-                    pairData.getShortTickerEntryPrice()
-            );
-
-            pairData.setProfitChanges(profitPercent);
-
-            log.info("📊 Обновлен профит из открытых позиций {}/{}: {}% (PnL: {}, комиссии: {})",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
-                    profitPercent, totalPnL, totalFees);
-
-            // Обновляем статистику и экстремумы
-            updatePairDataStatistics(pairData);
-
-            log.info("✅ Обновлены данные из открытых позиций для пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из открытых позиций для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
-    }
-
-    /**
-     * Обновляет все данные используя ProfitUpdateService для закрытых позиций
-     */
-    public void updateChangesFromTradeResults(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
-        try {
-            TradeResult longResult = tradeInfo.getLongTradeResult();
-            TradeResult shortResult = tradeInfo.getShortTradeResult();
-
-            if (longResult == null || shortResult == null) {
-                log.warn("⚠️ Не удалось получить результаты закрытия для пары {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-                return;
-            }
-
-            // Обновляем текущие цены на основе фактических цен исполнения
-            pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
-            pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
-
-            // Рассчитываем чистый профит
-            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-            BigDecimal netPnL = totalPnL.subtract(totalFees);
-
-            // Конвертируем в процент от позиции
-            BigDecimal profitPercent = calculateProfitPercent(
-                    netPnL,
-                    pairData.getLongTickerEntryPrice(),
-                    pairData.getShortTickerEntryPrice()
-            );
-
-            pairData.setProfitChanges(profitPercent);
-
-            log.info("🏦 Обновлен профит из результатов закрытия {}/{}: {}% (PnL: {}, комиссии: {})",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
-                    profitPercent, totalPnL, totalFees);
-
-            // Обновляем статистику и экстремумы
-            updatePairDataStatistics(pairData);
-
-            log.info("✅ Обновлены данные из результатов закрытия для пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из результатов закрытия для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
     }
 
     /**
