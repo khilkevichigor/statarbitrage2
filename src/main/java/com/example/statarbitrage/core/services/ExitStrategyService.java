@@ -10,10 +10,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ExitStrategyService {
-    private final SettingsService settingsService;
 
-    public String getExitReason(PairData pairData) {
-        Settings settings = settingsService.getSettings();
+    public String getExitReason(PairData pairData, Settings settings) {
         double profit = pairData.getProfitChanges().doubleValue();
         double zScoreCurrent = pairData.getZScoreCurrent();
         double zScoreEntry = pairData.getZScoreEntry();

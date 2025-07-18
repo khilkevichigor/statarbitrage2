@@ -4,10 +4,8 @@ import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
-import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
-import com.example.statarbitrage.core.dto.UpdatePairDataRequest;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.example.statarbitrage.trading.model.Portfolio;
 import com.example.statarbitrage.trading.model.TradeResult;
@@ -117,62 +115,62 @@ public class PairDataService {
         return pairData;
     }
 
-    public void updateByRequest(UpdatePairDataRequest request) {
-        boolean addEntryPoints = request.isAddEntryPoints();
-        PairData pairData = request.getPairData();
-        ZScoreData zScoreData = request.getZScoreData();
-        Map<String, List<Candle>> candlesMap = request.getCandlesMap();
-        TradeResult tradeResultLong = request.getTradeResultLong();
-        TradeResult tradeResultShort = request.getTradeResultShort();
-        boolean updateChanges = request.isUpdateChanges();
-        boolean updateTradeLog = request.isUpdateTradeLog();
-        Settings settings = request.getSettings();
-
-        //Обновляем текущие цены
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
-        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
-        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
-        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
-
-        //Обновляем текущие данные коинтеграции
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
-
-        // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-            // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-                pairData.addZScorePoint(param);
-            }
-        } else {
-            // Если новой истории нет, добавляем хотя бы текущую точку
-            pairData.addZScorePoint(latestParam);
-        }
-
-        if (addEntryPoints) {
-            addEntryPoints(pairData, zScoreData.getLastZScoreParam(), tradeResultLong, tradeResultShort);
-        }
-
-        if (updateChanges) {
-            updateChangesAndSave(pairData);
-        }
-
-        if (updateTradeLog) {
-            tradeLogService.updateTradeLog(pairData, settings);
-        }
-
-        pairDataRepository.save(pairData);
-    }
+//    public void updateByRequest(UpdatePairDataRequest request) {
+//        boolean addEntryPoints = request.isAddEntryPoints();
+//        PairData pairData = request.getPairData();
+//        ZScoreData zScoreData = request.getZScoreData();
+//        Map<String, List<Candle>> candlesMap = request.getCandlesMap();
+//        TradeResult tradeResultLong = request.getTradeResultLong();
+//        TradeResult tradeResultShort = request.getTradeResultShort();
+//        boolean updateChanges = request.isUpdateChanges();
+//        boolean updateTradeLog = request.isUpdateTradeLog();
+//        Settings settings = request.getSettings();
+//
+//        //Обновляем текущие цены
+//        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+//        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+//        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+//        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+//        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+//        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+//
+//        //Обновляем текущие данные коинтеграции
+//        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+//        pairData.setZScoreCurrent(latestParam.getZscore());
+//        pairData.setCorrelationCurrent(latestParam.getCorrelation());
+//        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
+//        pairData.setPValueCurrent(latestParam.getPvalue());
+//        pairData.setMeanCurrent(latestParam.getMean());
+//        pairData.setStdCurrent(latestParam.getStd());
+//        pairData.setSpreadCurrent(latestParam.getSpread());
+//        pairData.setAlphaCurrent(latestParam.getAlpha());
+//        pairData.setBetaCurrent(latestParam.getBeta());
+//
+//        // Добавляем новые точки в историю Z-Score при каждом обновлении
+//        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
+//            // Добавляем всю новую историю из ZScoreData
+//            for (ZScoreParam param : zScoreData.getZscoreParams()) {
+//                pairData.addZScorePoint(param);
+//            }
+//        } else {
+//            // Если новой истории нет, добавляем хотя бы текущую точку
+//            pairData.addZScorePoint(latestParam);
+//        }
+//
+//        if (addEntryPoints) {
+//            addEntryPoints(pairData, zScoreData.getLastZScoreParam(), tradeResultLong, tradeResultShort);
+//        }
+//
+//        if (updateChanges) {
+//            updateChangesAndSave(pairData);
+//        }
+//
+//        if (updateTradeLog) {
+//            tradeLogService.updateTradeLog(pairData, settings);
+//        }
+//
+//        pairDataRepository.save(pairData);
+//    }
 
     private void addEntryPoints(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
         //Обновляем текущие данные коинтеграции
@@ -199,7 +197,7 @@ public class PairDataService {
     /**
      * Расчет профита для реальной торговли на основе открытых позиций
      */
-    public void updateChangesAndSave(PairData pairData) {
+    public void updateChanges(PairData pairData) {
         try {
             // Получаем текущие цены
             BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
@@ -332,8 +330,6 @@ public class PairDataService {
             pairData.setMaxShort(maxShort);
             pairData.setMinCorr(minCorr);
             pairData.setMaxCorr(maxCorr);
-
-            pairDataRepository.save(pairData);
 
             // 📝 Логирование
             log.info("🔴 РЕАЛЬНАЯ ТОРГОВЛЯ - {}/{}", pairData.getLongTicker(), pairData.getShortTicker());

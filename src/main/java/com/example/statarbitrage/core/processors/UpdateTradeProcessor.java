@@ -59,7 +59,7 @@ public class UpdateTradeProcessor {
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
         updateCurrentProfitBeforeExitCheck(pairData);
 
-        String exitReason = exitStrategyService.getExitReason(pairData);
+        String exitReason = exitStrategyService.getExitReason(pairData, settings);
         if (exitReason != null) {
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
         }
@@ -135,7 +135,9 @@ public class UpdateTradeProcessor {
         // 🏦 Для реальной торговли: используем фактические данные из closeInfo
         profitUpdateService.updateProfitFromTradeResults(pairData, closeInfo);
         // 🎯 Используем полное сохранение для обновления всех связанных данных
-        saveWithCompleteUpdate(pairData, settings);
+        pairDataService.updateChanges(pairData);
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
@@ -174,8 +176,9 @@ public class UpdateTradeProcessor {
         // 🏦 Для реальной торговли: используем фактические данные из closeResult
         profitUpdateService.updateProfitFromTradeResults(pairData, closeResult);
         // 🎯 Используем полное сохранение для обновления всех связанных данных
-        saveWithCompleteUpdate(pairData, settings);
-
+        pairDataService.updateChanges(pairData);
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
     }
 
@@ -190,7 +193,9 @@ public class UpdateTradeProcessor {
 
         profitUpdateService.updateProfitFromOpenPositions(pairData, openPositionsInfo);
         // 🎯 Используем полное сохранение для обновления всех связанных данных
-        saveWithCompleteUpdate(pairData, settings);
+        pairDataService.updateChanges(pairData);
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
     }
 
@@ -199,18 +204,10 @@ public class UpdateTradeProcessor {
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(errorType.getStatus());
-        saveWithCompleteUpdate(pairData, settings);
-        return pairData;
-    }
-
-    /**
-     * Единый метод для полного сохранения данных пары с обновлением всех связанных данных
-     * Используется во всех случаях завершения операций для обеспечения консистентности
-     */
-    private void saveWithCompleteUpdate(PairData pairData, Settings settings) {
+        pairDataService.updateChanges(pairData);
         pairDataService.save(pairData);
-        pairDataService.updateChangesAndSave(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
+        return pairData;
     }
 
     /**
@@ -225,7 +222,7 @@ public class UpdateTradeProcessor {
             // Затем получаем реальный PnL для данной пары с актуальными ценами
             BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
 
-            pairData.setExitProfitSnapshot(realPnL);
+            pairData.setProfitChanges(realPnL);
             pairDataService.save(pairData);
             log.info("💰 Сохранен пре профит для расчета exit: {}% для пары {}/{}",
                     pairData.getExitProfitSnapshot(), pairData.getLongTicker(), pairData.getShortTicker());
