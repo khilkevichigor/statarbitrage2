@@ -31,7 +31,6 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
-    private final ProfitUpdateService profitUpdateService;
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
