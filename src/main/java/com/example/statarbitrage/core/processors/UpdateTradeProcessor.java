@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +55,7 @@ public class UpdateTradeProcessor {
         }
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        updateCurrentProfitBeforeExitCheck(pairData);
+        pairDataService.preUpdateChanges(pairData);
 
         String exitReason = exitStrategyService.getExitReason(pairData, settings);
         if (exitReason != null) {
@@ -202,29 +201,6 @@ public class UpdateTradeProcessor {
         //не обновляем другие данные тк нужны реальные данные по сделкам!
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
-    }
-
-    /**
-     * Обновляет актуальный профит перед проверкой exit strategy
-     * Критично для правильного срабатывания тейк-профита и стоп-лосса
-     */
-    private void updateCurrentProfitBeforeExitCheck(PairData pairData) {
-        try {
-            // Сначала обновляем цены позиций с биржи для актуальных данных
-            tradingIntegrationService.updatePositions(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-
-            // Затем получаем реальный PnL для данной пары с актуальными ценами
-            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-
-            pairData.setProfitChanges(realPnL);
-            pairDataService.save(pairData);
-            log.info("💰 Сохранен пре профит для расчета exit: {}% для пары {}/{}",
-                    pairData.getProfitChanges(), pairData.getLongTicker(), pairData.getShortTicker());
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении профита перед проверкой exit strategy для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
     }
 
 
