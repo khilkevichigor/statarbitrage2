@@ -22,10 +22,8 @@ import java.util.List;
 public class UpdateChangesService {
     private final TradingIntegrationService tradingIntegrationService;
 
-    //todo это общий метод для расчета всех изменений! Он должен работать для разных UpdateChangesType.
-    // Мне нужно что бы все изменения кроме профита считались одинаково.
     /**
-     * Расчет профита для реальной торговли
+     * Расчет профита для реальной торговли на основе открытых позиций (дефолтный метод)
      */
     public void updateChanges(UpdateChangesRequest request) {
         PairData pairData = request.getPairData();
@@ -141,11 +139,10 @@ public class UpdateChangesService {
         }
     }
 
-    //todo этот работает по закрытым позиция
     /**
      * Обновляет все данные используя ProfitUpdateService для закрытых позиций
      */
-    private void updateChangesFromTradeResults(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
+    public void updateChangesFromTradeResults(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
         try {
             TradeResult longResult = tradeInfo.getLongTradeResult();
             TradeResult shortResult = tradeInfo.getShortTradeResult();
@@ -190,11 +187,10 @@ public class UpdateChangesService {
         }
     }
 
-    //todo этот работает по открытым позициям
     /**
      * Обновляет все данные используя ProfitUpdateService для открытых позиций
      */
-    private void updateChangesFromOpenPositions(PairData pairData) {
+    public void updateChangesFromOpenPositions(PairData pairData) {
         try {
             // Получаем данные об открытых позициях
             PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
