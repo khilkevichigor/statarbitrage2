@@ -204,7 +204,6 @@ public class UpdateTradeProcessor {
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(errorType.getStatus());
-        pairDataService.updateChanges(pairData);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;

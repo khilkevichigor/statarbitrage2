@@ -199,7 +199,6 @@ public class PairDataService {
      */
     public void updateChanges(PairData pairData) {
         try {
-            // Получаем текущие цены
             BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
             BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
             BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
@@ -305,15 +304,7 @@ public class PairDataService {
             pairData.setLongChanges(longReturnRounded);
             pairData.setShortChanges(shortReturnRounded);
 
-            // ⚠️ Проверяем, не зафиксирован ли уже профит при выходе из позиции
-            if (pairData.getExitProfitSnapshot() == null) {
-                // Если профит не зафиксирован, обновляем его
-                pairData.setProfitChanges(profitRounded);
-                log.debug("💰 Обновляем профит: {}%", profitRounded);
-            } else {
-                // Если профит уже зафиксирован, не перезаписываем его
-                log.debug("🔒 Профит уже зафиксирован: {}%, не обновляем", pairData.getExitProfitSnapshot());
-            }
+            pairData.setProfitChanges(profitRounded);
 
             pairData.setZScoreChanges(zScoreRounded);
 
@@ -342,15 +333,6 @@ public class PairDataService {
             log.info("💰 Реальный PnL: {} USDT ({}% от позиции)",
                     realPnL.setScale(2, RoundingMode.HALF_UP), profitRounded);
             log.info("📏 Размер позиции: {} USDT", positionSize.setScale(2, RoundingMode.HALF_UP));
-
-            // Логируем профит с учетом возможности фиксации
-            if (pairData.getExitProfitSnapshot() != null) {
-                log.info("🔒 Профит ЗАФИКСИРОВАН: {}% (текущий расчетный: {}%)",
-                        pairData.getExitProfitSnapshot(), profitRounded);
-            } else {
-                log.info("💰 Текущий профит: {}%", pairData.getProfitChanges());
-            }
-
             log.info("💼 Общий баланс портфолио: {} USDT", totalBalance.setScale(2, RoundingMode.HALF_UP));
             log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
             log.info("⏱ Время до max: {} мин, до min: {} мин", timeInMinutesSinceEntryToMax, timeInMinutesSinceEntryToMin);
