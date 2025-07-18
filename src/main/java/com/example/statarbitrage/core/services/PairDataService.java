@@ -382,6 +382,7 @@ public class PairDataService {
                     pairData.getLongTicker(), pairData.getShortTicker(),
                     profitPercent, totalPnL, totalFees);
 
+            //todo брать реальные данные со сделок
             BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
             BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
             BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
@@ -521,6 +522,7 @@ public class PairDataService {
                     pairData.getLongTicker(), pairData.getShortTicker(),
                     profitPercent, totalPnL, totalFees);
 
+            //todo брать реальные данные со сделок
             BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
             BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
             BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
