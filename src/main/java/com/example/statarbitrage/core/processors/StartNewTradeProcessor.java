@@ -195,10 +195,7 @@ public class StartNewTradeProcessor {
     }
 
     private PairData openTradePosition(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        //todo подумать над тем что бы сделать UUID для пары и передавать его на биржу при открытии сделок!
-        // Что бы потом при закрытии или получении инфы об открытых/закрытых сделках было проще идентифицировать их тк монеты могут повторяться и могут быть баги
-        // в том ту ли сделку мы нашли или это сделка на бирже совсем старая. За день может быть несколько сделок по одной и той же монете.
-        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData);
+        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData); //todo передавать UUID?
 
         if (openResult == null || !openResult.isSuccess()) {
             log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",

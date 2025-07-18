@@ -50,13 +50,12 @@ public class UpdateTradeProcessor {
         }
 
         ZScoreData zScoreData = calculateZScoreData(pairData, settings);
+        logPairInfo(zScoreData);
 
         updateZScoreDataCurrent(pairData, zScoreData);
 
-        logPairInfo(zScoreData);
-
         if (request.isCloseManually()) {
-            return handleManualClose(pairData, zScoreData, settings);
+            return handleManualClose(pairData, settings);
         }
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
@@ -67,7 +66,7 @@ public class UpdateTradeProcessor {
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
         }
 
-        return updateRegularTrade(pairData, zScoreData, settings);
+        return updateRegularTrade(pairData, settings);
     }
 
     private void validateRequest(UpdateTradeRequest request) {
@@ -127,7 +126,7 @@ public class UpdateTradeProcessor {
     }
 
     //todo HERE
-    private PairData handleManualClose(PairData pairData, ZScoreData zScoreData, Settings settings) {
+    private PairData handleManualClose(PairData pairData, Settings settings) {
         ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeInfo == null || !closeInfo.isSuccess()) {
             return handleTradeError(pairData, settings, TradeErrorType.MANUAL_CLOSE_FAILED);
@@ -149,9 +148,6 @@ public class UpdateTradeProcessor {
         log.info("ℹ️ Нет открытых позиций для пары {}/{}! Возможно они были закрыты вручную на бирже.",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        //todo подумать над тем что бы сделать UUID для пары и передавать его на биржу при открытии сделок!
-        // Что бы потом при закрытии или получении инфы об открытых/закрытых сделках было проще идентифицировать их тк монеты могут повторяться и могут быть баги
-        // в том ту ли сделку мы нашли или это сделка на бирже совсем старая. За день может быть несколько сделок по одной и той же монете. И тогда навеное можно будет входить в одни и те же монеты (но не факт)
         PositionVerificationResult verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
         if (verificationResult.isPositionsClosed()) {
             log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
@@ -188,7 +184,7 @@ public class UpdateTradeProcessor {
         return pairData;
     }
 
-    private PairData updateRegularTrade(PairData pairData, ZScoreData zScoreData, Settings settings) {
+    private PairData updateRegularTrade(PairData pairData, Settings settings) {
 
         PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
         if (openPositionsInfo.isPositionsClosed()) {
