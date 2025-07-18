@@ -42,7 +42,11 @@ public class UpdateTradeProcessor {
         }
 
         Settings settings = settingsService.getSettings();
-        if (!tradingIntegrationService.hasOpenPositions(pairData)) {
+
+        PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        if (openPositionsInfo.isPositionsClosed()) {
+            log.error("❌ Позиции уже закрыты для пары {}/{}.",
+                    pairData.getLongTicker(), pairData.getShortTicker());
             return handleNoOpenPositions(pairData, settings);
         }
 
@@ -52,7 +56,7 @@ public class UpdateTradeProcessor {
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        updateChangesService.updateChanges(pairData);
+        updateChangesService.updateChangesFromOpenPositions(pairData);
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);
@@ -63,7 +67,9 @@ public class UpdateTradeProcessor {
             return handleAutoClose(pairData, zScoreData, settings, exitReason);
         }
 
-        return updateRegularTrade(pairData, settings);
+        pairDataService.save(pairData);
+        tradeLogService.updateTradeLog(pairData, settings);
+        return pairData;
     }
 
     private void validateRequest(UpdateTradeRequest request) {
