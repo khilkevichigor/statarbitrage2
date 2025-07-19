@@ -32,6 +32,7 @@ public class StartNewTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final TradeLogService tradeLogService;
+    private final UpdateChangesService updateChangesService;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest request) {
@@ -251,7 +252,8 @@ public class StartNewTradeProcessor {
         pairDataService.save(pairData);
 
 //        pairDataService.updateChangesAndSave(pairData); //todo может и не надо тк тока открылись хули считать!!!
-//        tradeLogService.updateTradeLog(pairData, settings); //todo может и не надо тк тока открылись хули считать!!!
+        updateChangesService.updateChangesFromOpenPositions(pairData);
+        tradeLogService.updateTradeLog(pairData, settings); //todo может и не надо тк тока открылись хули считать!!!
         return pairData;
     }
 

@@ -48,8 +48,8 @@ public class DbInitializer {
                     .checkInterval(1)
 
                     .initialVirtualBalance(10_000.0)
-                    .maxLongMarginSize(1.0)
-                    .maxShortMarginSize(1.0)
+                    .maxLongMarginSize(100.0)
+                    .maxShortMarginSize(100.0)
                     .leverage(10.0)
                     .feePctPerTrade(0.05)
 
@@ -71,7 +71,7 @@ public class DbInitializer {
                     .useExitTimeHours(false)
                     .exitTimeHours(3)
 
-                    .usePairs(10.0)
+                    .usePairs(1.0)
 
                     .build()
             );

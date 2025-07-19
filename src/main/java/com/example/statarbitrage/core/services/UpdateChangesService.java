@@ -20,54 +20,6 @@ public class UpdateChangesService {
     private final TradingIntegrationService tradingIntegrationService;
 
     /**
-     * Обновляет все данные используя ProfitUpdateService для закрытых позиций
-     */
-    public void updateChangesFromTradeResults(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
-        try {
-            TradeResult longResult = tradeInfo.getLongTradeResult();
-            TradeResult shortResult = tradeInfo.getShortTradeResult();
-
-            if (longResult == null || shortResult == null) {
-                log.warn("⚠️ Не удалось получить результаты закрытия для пары {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-                return;
-            }
-
-            // Обновляем текущие цены на основе фактических цен исполнения
-            pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
-            pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
-
-            // Рассчитываем чистый профит
-            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-            BigDecimal netPnL = totalPnL.subtract(totalFees);
-
-            // Конвертируем в процент от позиции
-            BigDecimal profitPercent = calculateProfitPercent(
-                    netPnL,
-                    pairData.getLongTickerEntryPrice(),
-                    pairData.getShortTickerEntryPrice()
-            );
-
-            pairData.setProfitChanges(profitPercent);
-
-            log.info("🏦 Обновлен профит из результатов закрытия {}/{}: {}% (PnL: {}, комиссии: {})",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
-                    profitPercent, totalPnL, totalFees);
-
-            // Обновляем статистику и экстремумы
-            updatePairDataStatistics(pairData);
-
-            log.info("✅ Обновлены данные из результатов закрытия для пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из результатов закрытия для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
-    }
-
-    /**
      * Обновляет все данные используя ProfitUpdateService для открытых позиций
      */
     public void updateChangesFromOpenPositions(PairData pairData) {
@@ -114,6 +66,54 @@ public class UpdateChangesService {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении данных из открытых позиций для пары {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        }
+    }
+
+    /**
+     * Обновляет все данные используя ProfitUpdateService для закрытых позиций
+     */
+    public void updateChangesFromTradeResults(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
+        try {
+            TradeResult longResult = tradeInfo.getLongTradeResult();
+            TradeResult shortResult = tradeInfo.getShortTradeResult();
+
+            if (longResult == null || shortResult == null) {
+                log.warn("⚠️ Не удалось получить результаты закрытия для пары {}/{}",
+                        pairData.getLongTicker(), pairData.getShortTicker());
+                return;
+            }
+
+            // Обновляем текущие цены на основе фактических цен исполнения
+            pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
+            pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
+
+            // Рассчитываем чистый профит
+            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
+            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
+            BigDecimal netPnL = totalPnL.subtract(totalFees);
+
+            // Конвертируем в процент от позиции
+            BigDecimal profitPercent = calculateProfitPercent(
+                    netPnL,
+                    pairData.getLongTickerEntryPrice(),
+                    pairData.getShortTickerEntryPrice()
+            );
+
+            pairData.setProfitChanges(profitPercent);
+
+            log.info("🏦 Обновлен профит из результатов закрытия {}/{}: {}% (PnL: {}, комиссии: {})",
+                    pairData.getLongTicker(), pairData.getShortTicker(),
+                    profitPercent, totalPnL, totalFees);
+
+            // Обновляем статистику и экстремумы
+            updatePairDataStatistics(pairData);
+
+            log.info("✅ Обновлены данные из результатов закрытия для пары {}/{}",
+                    pairData.getLongTicker(), pairData.getShortTicker());
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении данных из результатов закрытия для пары {}/{}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
         }
     }
