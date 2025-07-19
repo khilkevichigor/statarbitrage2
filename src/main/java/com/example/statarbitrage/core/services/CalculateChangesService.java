@@ -224,36 +224,28 @@ public class CalculateChangesService {
      */
     private ProfitExtremums updateProfitExtremums(PairData pairData, long currentTimeInMinutes) {
         BigDecimal currentProfitForStats = pairData.getProfitChanges() != null ? pairData.getProfitChanges() : BigDecimal.ZERO;
-        
-        BigDecimal currentMinProfit = pairData.getMinProfitRounded();
-        BigDecimal currentMaxProfit = pairData.getMaxProfitRounded();
-        long currentTimeToMax = pairData.getTimeInMinutesSinceEntryToMax();
-        long currentTimeToMin = pairData.getTimeInMinutesSinceEntryToMin();
 
-        BigDecimal maxProfitRounded;
-        long timeInMinutesSinceEntryToMax;
-        if (currentMaxProfit == null || currentProfitForStats.compareTo(currentMaxProfit) > 0) {
-            maxProfitRounded = currentProfitForStats;
-            timeInMinutesSinceEntryToMax = currentTimeInMinutes;
-            log.debug("🚀 Новый максимум прибыли: {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
-        } else {
-            maxProfitRounded = currentMaxProfit;
-            timeInMinutesSinceEntryToMax = currentTimeToMax;
+        MaxProfitResult maxResult = updateMaxProfit(currentProfitForStats, pairData.getMaxProfitRounded(), pairData.getTimeInMinutesSinceEntryToMax(), currentTimeInMinutes);
+        MinProfitResult minResult = updateMinProfit(currentProfitForStats, pairData.getMinProfitRounded(), pairData.getTimeInMinutesSinceEntryToMin(), currentTimeInMinutes);
+
+        return new ProfitExtremums(maxResult.maxProfit(), minResult.minProfit(), maxResult.timeToMax(),
+                minResult.timeToMin(), currentProfitForStats);
+    }
+
+    private MaxProfitResult updateMaxProfit(BigDecimal currentProfit, BigDecimal currentMaxProfit, long currentTimeToMax, long currentTimeInMinutes) {
+        if (currentMaxProfit == null || currentProfit.compareTo(currentMaxProfit) > 0) {
+            log.debug("🚀 Новый максимум прибыли: {}% за {} мин", currentProfit, currentTimeInMinutes);
+            return new MaxProfitResult(currentProfit, currentTimeInMinutes);
         }
+        return new MaxProfitResult(currentMaxProfit, currentTimeToMax);
+    }
 
-        BigDecimal minProfitRounded;
-        long timeInMinutesSinceEntryToMin;
-        if (currentMinProfit == null || currentProfitForStats.compareTo(currentMinProfit) < 0) {
-            minProfitRounded = currentProfitForStats;
-            timeInMinutesSinceEntryToMin = currentTimeInMinutes;
-            log.debug("📉 Новый минимум прибыли: {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
-        } else {
-            minProfitRounded = currentMinProfit;
-            timeInMinutesSinceEntryToMin = currentTimeToMin;
+    private MinProfitResult updateMinProfit(BigDecimal currentProfit, BigDecimal currentMinProfit, long currentTimeToMin, long currentTimeInMinutes) {
+        if (currentMinProfit == null || currentProfit.compareTo(currentMinProfit) < 0) {
+            log.debug("📉 Новый минимум прибыли: {}% за {} мин", currentProfit, currentTimeInMinutes);
+            return new MinProfitResult(currentProfit, currentTimeInMinutes);
         }
-
-        return new ProfitExtremums(maxProfitRounded, minProfitRounded, timeInMinutesSinceEntryToMax, 
-                                 timeInMinutesSinceEntryToMin, currentProfitForStats);
+        return new MinProfitResult(currentMinProfit, currentTimeToMin);
     }
 
     /**
@@ -274,9 +266,9 @@ public class CalculateChangesService {
      */
     private void logFinalResults(PairData pairData, PercentageChanges changes) {
         log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", 
+        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
                 pairData.getLongTicker(), changes.longEntry(), changes.longCurrent(), changes.longReturnRounded());
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", 
+        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
                 pairData.getShortTicker(), changes.shortEntry(), changes.shortCurrent(), changes.shortReturnRounded());
         log.info("💰 Текущий профит: {}%", pairData.getProfitChanges());
         log.info("📈 Max profit: {}%, Min profit: {}%", pairData.getMaxProfitRounded(), pairData.getMinProfitRounded());
@@ -305,28 +297,24 @@ public class CalculateChangesService {
             BigDecimal currentProfit
     ) {}
 
+    // Helper records for the results
+    private record MaxProfitResult(BigDecimal maxProfit, long timeToMax) {}
+    private record MinProfitResult(BigDecimal minProfit, long timeToMin) {}
+
+
     /**
      * Обновляет экстремумы всех метрик
      */
     private void updateExtremumValues(PairData pairData, BigDecimal longReturnPct, BigDecimal shortReturnPct,
                                       BigDecimal zScoreCurrent, BigDecimal corrCurrent) {
-        BigDecimal minZ = updateMin(pairData.getMinZ(), zScoreCurrent);
-        BigDecimal maxZ = updateMax(pairData.getMaxZ(), zScoreCurrent);
-        BigDecimal minLong = updateMin(pairData.getMinLong(), longReturnPct);
-        BigDecimal maxLong = updateMax(pairData.getMaxLong(), longReturnPct);
-        BigDecimal minShort = updateMin(pairData.getMinShort(), shortReturnPct);
-        BigDecimal maxShort = updateMax(pairData.getMaxShort(), shortReturnPct);
-        BigDecimal minCorr = updateMin(pairData.getMinCorr(), corrCurrent);
-        BigDecimal maxCorr = updateMax(pairData.getMaxCorr(), corrCurrent);
-
-        pairData.setMinZ(minZ);
-        pairData.setMaxZ(maxZ);
-        pairData.setMinLong(minLong);
-        pairData.setMaxLong(maxLong);
-        pairData.setMinShort(minShort);
-        pairData.setMaxShort(maxShort);
-        pairData.setMinCorr(minCorr);
-        pairData.setMaxCorr(maxCorr);
+        pairData.setMinZ(updateMin(pairData.getMinZ(), zScoreCurrent));
+        pairData.setMaxZ(updateMax(pairData.getMaxZ(), zScoreCurrent));
+        pairData.setMinLong(updateMin(pairData.getMinLong(), longReturnPct));
+        pairData.setMaxLong(updateMax(pairData.getMaxLong(), longReturnPct));
+        pairData.setMinShort(updateMin(pairData.getMinShort(), shortReturnPct));
+        pairData.setMaxShort(updateMax(pairData.getMaxShort(), shortReturnPct));
+        pairData.setMinCorr(updateMin(pairData.getMinCorr(), corrCurrent));
+        pairData.setMaxCorr(updateMax(pairData.getMaxCorr(), corrCurrent));
     }
 
     /**
