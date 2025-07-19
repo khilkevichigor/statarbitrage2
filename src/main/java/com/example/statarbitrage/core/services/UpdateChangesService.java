@@ -17,6 +17,14 @@ import java.math.RoundingMode;
 @Service
 @RequiredArgsConstructor
 public class UpdateChangesService {
+    
+    private static final BigDecimal PERCENTAGE_MULTIPLIER = BigDecimal.valueOf(100);
+    private static final BigDecimal DIVISION_FOR_AVERAGE = BigDecimal.valueOf(2);
+    private static final int PROFIT_CALCULATION_SCALE = 4;
+    private static final int PERCENTAGE_CALCULATION_SCALE = 10;
+    private static final int DISPLAY_SCALE = 2;
+    private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
+    
     private final TradingIntegrationService tradingIntegrationService;
 
     /**
@@ -36,33 +44,8 @@ public class UpdateChangesService {
                 return;
             }
 
-            // Обновляем текущие цены
-            pairData.setLongTickerCurrentPrice(longPosition.getCurrentPrice().doubleValue());
-            pairData.setShortTickerCurrentPrice(shortPosition.getCurrentPrice().doubleValue());
-
-            // Рассчитываем текущий нереализованный профит
-            BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
-            BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
-            BigDecimal netPnL = totalPnL.subtract(totalFees);
-
-            // Конвертируем в процент от позиции
-            BigDecimal profitPercent = calculateProfitPercent(
-                    netPnL,
-                    pairData.getLongTickerEntryPrice(),
-                    pairData.getShortTickerEntryPrice()
-            );
-
-            pairData.setProfitChanges(profitPercent);
-
-            log.info("📊 Обновлен профит из открытых позиций {}/{}: {}% (PnL: {}, комиссии: {})",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
-                    profitPercent, totalPnL, totalFees);
-
-            // Обновляем статистику и экстремумы
-            updatePairDataStatistics(pairData);
-
-            log.info("✅ Обновлены данные из открытых позиций для пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
+            // Обновляем данные из позиций
+            updateFromPositions(pairData, longPosition, shortPosition, "📊", "открытых позиций");
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении данных из открытых позиций для пары {}/{}: {}",
@@ -84,38 +67,72 @@ public class UpdateChangesService {
                 return;
             }
 
-            // Обновляем текущие цены на основе фактических цен исполнения
-            pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
-            pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
-
-            // Рассчитываем чистый профит
-            BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-            BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-            BigDecimal netPnL = totalPnL.subtract(totalFees);
-
-            // Конвертируем в процент от позиции
-            BigDecimal profitPercent = calculateProfitPercent(
-                    netPnL,
-                    pairData.getLongTickerEntryPrice(),
-                    pairData.getShortTickerEntryPrice()
-            );
-
-            pairData.setProfitChanges(profitPercent);
-
-            log.info("🏦 Обновлен профит из результатов закрытия {}/{}: {}% (PnL: {}, комиссии: {})",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
-                    profitPercent, totalPnL, totalFees);
-
-            // Обновляем статистику и экстремумы
-            updatePairDataStatistics(pairData);
-
-            log.info("✅ Обновлены данные из результатов закрытия для пары {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
+            // Обновляем данные из результатов торговли
+            updateFromTradeResults(pairData, longResult, shortResult, "🏦", "результатов закрытия");
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении данных из результатов закрытия для пары {}/{}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
         }
+    }
+
+    /**
+     * Общий метод обновления данных из открытых позиций
+     */
+    private void updateFromPositions(PairData pairData, Position longPosition, Position shortPosition, 
+                                   String logEmoji, String operationType) {
+        // Обновляем текущие цены
+        pairData.setLongTickerCurrentPrice(longPosition.getCurrentPrice().doubleValue());
+        pairData.setShortTickerCurrentPrice(shortPosition.getCurrentPrice().doubleValue());
+
+        // Рассчитываем текущий нереализованный профит
+        BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+        BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
+        
+        updateProfitAndStatistics(pairData, totalPnL, totalFees, logEmoji, operationType);
+    }
+
+    /**
+     * Общий метод обновления данных из результатов торговли
+     */
+    private void updateFromTradeResults(PairData pairData, TradeResult longResult, TradeResult shortResult,
+                                      String logEmoji, String operationType) {
+        // Обновляем текущие цены на основе фактических цен исполнения
+        pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
+        pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
+
+        // Рассчитываем чистый профит
+        BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
+        BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
+        
+        updateProfitAndStatistics(pairData, totalPnL, totalFees, logEmoji, operationType);
+    }
+
+    /**
+     * Общий метод обновления профита и статистики
+     */
+    private void updateProfitAndStatistics(PairData pairData, BigDecimal totalPnL, BigDecimal totalFees,
+                                         String logEmoji, String operationType) {
+        BigDecimal netPnL = totalPnL.subtract(totalFees);
+
+        // Конвертируем в процент от позиции
+        BigDecimal profitPercent = calculateProfitPercent(
+                netPnL,
+                pairData.getLongTickerEntryPrice(),
+                pairData.getShortTickerEntryPrice()
+        );
+
+        pairData.setProfitChanges(profitPercent);
+
+        log.info("{} Обновлен профит из {}: {}/{}: {}% (PnL: {}, комиссии: {})",
+                logEmoji, operationType, pairData.getLongTicker(), pairData.getShortTicker(),
+                profitPercent, totalPnL, totalFees);
+
+        // Обновляем статистику и экстремумы
+        updatePairDataStatistics(pairData);
+
+        log.info("✅ Обновлены данные из {} для пары {}/{}",
+                operationType, pairData.getLongTicker(), pairData.getShortTicker());
     }
 
     /**
@@ -126,15 +143,15 @@ public class UpdateChangesService {
         try {
             BigDecimal longEntry = BigDecimal.valueOf(longEntryPrice);
             BigDecimal shortEntry = BigDecimal.valueOf(shortEntryPrice);
-            BigDecimal avgEntryPrice = longEntry.add(shortEntry).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
+            BigDecimal avgEntryPrice = longEntry.add(shortEntry).divide(DIVISION_FOR_AVERAGE, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP);
 
             if (avgEntryPrice.compareTo(BigDecimal.ZERO) <= 0) {
                 log.warn("⚠️ Средняя входная цена меньше или равна нулю: {}", avgEntryPrice);
                 return BigDecimal.ZERO;
             }
 
-            return netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
+            return netPnL.divide(avgEntryPrice, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP)
+                    .multiply(PERCENTAGE_MULTIPLIER);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при расчете процента профита: {}", e.getMessage());
@@ -146,39 +163,68 @@ public class UpdateChangesService {
      * Обновляет статистику и экстремумы для пары
      */
     private void updatePairDataStatistics(PairData pairData) {
+        PercentageChanges percentageChanges = calculatePercentageChanges(pairData);
+        long currentTimeInMinutes = calculateTimeInMinutes(pairData.getEntryTime());
+        ProfitExtremums profitExtremums = updateProfitExtremums(pairData, currentTimeInMinutes);
+        
+        // Обновляем экстремумы всех метрик
+        updateExtremumValues(pairData, percentageChanges.longReturnPct(), percentageChanges.shortReturnPct(), 
+                           BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
+
+        // Записываем в PairData
+        setPairDataChanges(pairData, percentageChanges, profitExtremums);
+        
+        // Логируем результаты
+        logFinalResults(pairData, percentageChanges);
+    }
+
+    /**
+     * Рассчитывает процентные изменения позиций
+     */
+    private PercentageChanges calculatePercentageChanges(PairData pairData) {
         BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
         BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
-
-        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
-
-        // Расчет процентных изменений позиций
         BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
         BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
 
         BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-                .divide(longEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+                .divide(longEntry, PERCENTAGE_CALCULATION_SCALE, RoundingMode.HALF_UP)
+                .multiply(PERCENTAGE_MULTIPLIER);
 
         BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-                .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+                .divide(shortEntry, PERCENTAGE_CALCULATION_SCALE, RoundingMode.HALF_UP)
+                .multiply(PERCENTAGE_MULTIPLIER);
 
-        // Текущее время
-        long entryTime = pairData.getEntryTime();
+        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
+        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+
+        return new PercentageChanges(
+                longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
+                shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
+                zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
+                longReturnPct,
+                shortReturnPct,
+                longEntry,
+                shortEntry,
+                longCurrent,
+                shortCurrent
+        );
+    }
+
+    /**
+     * Рассчитывает время в минутах с момента входа
+     */
+    private long calculateTimeInMinutes(long entryTime) {
         long now = System.currentTimeMillis();
-        long currentTimeInMinutes = (now - entryTime) / (1000 * 60);
+        return (now - entryTime) / MILLISECONDS_IN_MINUTE;
+    }
 
-        // Округления
-        BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
-
-        // Используем уже рассчитанный профит для статистики
+    /**
+     * Обновляет экстремумы профита
+     */
+    private ProfitExtremums updateProfitExtremums(PairData pairData, long currentTimeInMinutes) {
         BigDecimal currentProfitForStats = pairData.getProfitChanges() != null ? pairData.getProfitChanges() : BigDecimal.ZERO;
-
-        // Обновляем min/max профита
+        
         BigDecimal currentMinProfit = pairData.getMinProfitRounded();
         BigDecimal currentMaxProfit = pairData.getMaxProfitRounded();
         long currentTimeToMax = pairData.getTimeInMinutesSinceEntryToMax();
@@ -206,24 +252,58 @@ public class UpdateChangesService {
             timeInMinutesSinceEntryToMin = currentTimeToMin;
         }
 
-        // Обновляем экстремумы всех метрик
-        updateExtremumValues(pairData, longReturnPct, shortReturnPct, zScoreCurrent, corrCurrent);
-
-        // Записываем в PairData (профит НЕ трогаем - он уже обновлен через ProfitUpdateService)
-        pairData.setLongChanges(longReturnRounded);
-        pairData.setShortChanges(shortReturnRounded);
-        pairData.setZScoreChanges(zScoreRounded);
-        pairData.setMinProfitRounded(minProfitRounded);
-        pairData.setMaxProfitRounded(maxProfitRounded);
-        pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
-        pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
-
-        log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
-        log.info("💰 Текущий профит: {}%", currentProfitForStats);
-        log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
+        return new ProfitExtremums(maxProfitRounded, minProfitRounded, timeInMinutesSinceEntryToMax, 
+                                 timeInMinutesSinceEntryToMin, currentProfitForStats);
     }
+
+    /**
+     * Записывает данные в PairData
+     */
+    private void setPairDataChanges(PairData pairData, PercentageChanges changes, ProfitExtremums extremums) {
+        pairData.setLongChanges(changes.longReturnRounded());
+        pairData.setShortChanges(changes.shortReturnRounded());
+        pairData.setZScoreChanges(changes.zScoreRounded());
+        pairData.setMinProfitRounded(extremums.minProfit());
+        pairData.setMaxProfitRounded(extremums.maxProfit());
+        pairData.setTimeInMinutesSinceEntryToMax(extremums.timeToMax());
+        pairData.setTimeInMinutesSinceEntryToMin(extremums.timeToMin());
+    }
+
+    /**
+     * Логирует финальные результаты
+     */
+    private void logFinalResults(PairData pairData, PercentageChanges changes) {
+        log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", 
+                pairData.getLongTicker(), changes.longEntry(), changes.longCurrent(), changes.longReturnRounded());
+        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", 
+                pairData.getShortTicker(), changes.shortEntry(), changes.shortCurrent(), changes.shortReturnRounded());
+        log.info("💰 Текущий профит: {}%", pairData.getProfitChanges());
+        log.info("📈 Max profit: {}%, Min profit: {}%", pairData.getMaxProfitRounded(), pairData.getMinProfitRounded());
+    }
+
+    /**
+     * Записи для хранения промежуточных данных расчетов
+     */
+    private record PercentageChanges(
+            BigDecimal longReturnRounded,
+            BigDecimal shortReturnRounded,
+            BigDecimal zScoreRounded,
+            BigDecimal longReturnPct,
+            BigDecimal shortReturnPct,
+            BigDecimal longEntry,
+            BigDecimal shortEntry,
+            BigDecimal longCurrent,
+            BigDecimal shortCurrent
+    ) {}
+
+    private record ProfitExtremums(
+            BigDecimal maxProfit,
+            BigDecimal minProfit,
+            long timeToMax,
+            long timeToMin,
+            BigDecimal currentProfit
+    ) {}
 
     /**
      * Обновляет экстремумы всех метрик
