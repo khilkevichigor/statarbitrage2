@@ -47,7 +47,7 @@ public class UpdateTradeProcessor {
         if (openPositionsInfo.isPositionsClosed()) {
             log.error("❌ Позиции уже закрыты для пары {}/{}.",
                     pairData.getLongTicker(), pairData.getShortTicker());
-            return handleNoOpenPositions(pairData, settings);
+            return handleNoOpenPositions(pairData);
         }
 
         ZScoreData zScoreData = calculateZScoreData(pairData, settings);
@@ -64,7 +64,7 @@ public class UpdateTradeProcessor {
 
         String exitReason = exitStrategyService.getExitReason(pairData, settings);
         if (exitReason != null) {
-            return handleAutoClose(pairData, zScoreData, settings, exitReason);
+            return handleAutoClose(pairData, settings, exitReason);
         }
 
         pairDataService.save(pairData);
@@ -107,7 +107,7 @@ public class UpdateTradeProcessor {
     private PairData handleManualClose(PairData pairData, Settings settings) {
         ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeInfo == null || !closeInfo.isSuccess()) {
-            return handleTradeError(pairData, settings, TradeErrorType.MANUAL_CLOSE_FAILED);
+            return handleTradeError(pairData, TradeErrorType.MANUAL_CLOSE_FAILED);
         }
 
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
@@ -117,14 +117,14 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
 
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        updateChangesService.updateChangesFromTradeResults(pairData, closeInfo); //todo может не делать?
+        updateChangesService.updateChangesFromTradeResults(pairData, closeInfo); //todo может закомментить?
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
 
-    private PairData handleNoOpenPositions(PairData pairData, Settings settings) {
+    private PairData handleNoOpenPositions(PairData pairData) {
         log.info("ℹ️ Нет открытых позиций для пары {}/{}! Возможно они были закрыты вручную на бирже.",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
@@ -132,22 +132,22 @@ public class UpdateTradeProcessor {
         if (verificationResult.isPositionsClosed()) {
             log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), verificationResult.getTotalPnL());
-            return handleTradeError(pairData, settings, TradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
+            return handleTradeError(pairData, TradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
         } else {
             log.warn("⚠️ Позиции не найдены на бирже для пары {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
-            return handleTradeError(pairData, settings, TradeErrorType.POSITIONS_NOT_FOUND);
+            return handleTradeError(pairData, TradeErrorType.POSITIONS_NOT_FOUND);
         }
     }
 
-    private PairData handleAutoClose(PairData pairData, ZScoreData zScoreData, Settings settings, String exitReason) {
+    private PairData handleAutoClose(PairData pairData, Settings settings, String exitReason) {
         log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
         ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
             pairData.setExitReason(exitReason);
-            return handleTradeError(pairData, settings, TradeErrorType.AUTO_CLOSE_FAILED);
+            return handleTradeError(pairData, TradeErrorType.AUTO_CLOSE_FAILED);
         }
 
         log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
@@ -156,29 +156,13 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        updateChangesService.updateChangesFromTradeResults(pairData, closeResult); //todo может не делать?
+        updateChangesService.updateChangesFromTradeResults(pairData, closeResult); //todo может закомментить?
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
     }
 
-    private PairData updateRegularTrade(PairData pairData, Settings settings) {
-
-        PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
-        if (openPositionsInfo.isPositionsClosed()) {
-            log.error("❌ Позиции уже закрыты для пары {}/{}.",
-                    pairData.getLongTicker(), pairData.getShortTicker());
-            return handleNoOpenPositions(pairData, settings);
-        }
-
-        // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        updateChangesService.updateChangesFromOpenPositions(pairData);
-        pairDataService.save(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
-        return pairData;
-    }
-
-    private PairData handleTradeError(PairData pairData, Settings settings, TradeErrorType errorType) {
+    private PairData handleTradeError(PairData pairData, TradeErrorType errorType) {
         log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
                 pairData.getLongTicker(), pairData.getShortTicker());
 
@@ -187,6 +171,4 @@ public class UpdateTradeProcessor {
         //не обновляем другие данные тк нужны реальные данные по сделкам!
         return pairData;
     }
-
-
 }
