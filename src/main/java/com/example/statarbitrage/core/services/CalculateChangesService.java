@@ -16,7 +16,7 @@ import java.math.RoundingMode;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UpdateChangesService {
+public class CalculateChangesService {
     
     private static final BigDecimal PERCENTAGE_MULTIPLIER = BigDecimal.valueOf(100);
     private static final BigDecimal DIVISION_FOR_AVERAGE = BigDecimal.valueOf(2);

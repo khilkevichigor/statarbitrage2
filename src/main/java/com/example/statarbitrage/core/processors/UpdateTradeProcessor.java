@@ -30,7 +30,7 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
-    private final UpdateChangesService updateChangesService;
+    private final CalculateChangesService calculateChangesService;
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
@@ -56,7 +56,7 @@ public class UpdateTradeProcessor {
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        updateChangesService.updateChangesFromOpenPositions(pairData);
+        calculateChangesService.updateChangesFromOpenPositions(pairData);
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);
@@ -117,7 +117,7 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
 
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        updateChangesService.updateChangesFromTradeResults(pairData, closeInfo); //todo может закомментить?
+        calculateChangesService.updateChangesFromTradeResults(pairData, closeInfo); //todo может закомментить?
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
@@ -156,7 +156,7 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
         // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        updateChangesService.updateChangesFromTradeResults(pairData, closeResult); //todo может закомментить?
+        calculateChangesService.updateChangesFromTradeResults(pairData, closeResult); //todo может закомментить?
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
