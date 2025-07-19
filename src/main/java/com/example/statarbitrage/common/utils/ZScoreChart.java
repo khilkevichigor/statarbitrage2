@@ -38,7 +38,24 @@ public final class ZScoreChart {
         return BitmapEncoder.getBufferedImage(chart);
     }
 
-    //todo добавить еще один чарт StochRSI что бы входить на пересечении 90 или 80 линии
+    /**
+     * Создает расширенный BufferedImage с Z-Score графиком и дополнительными индикаторами
+     *
+     * @param pairData     данные торговой пары
+     * @param showEma      показывать EMA
+     * @param emaPeriod    период для EMA
+     * @param showStochRsi показывать StochRSI
+     * @return BufferedImage с расширенным графиком
+     */
+    public static BufferedImage createEnhancedBufferedImage(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi) {
+        log.info("Создание расширенного Z-Score графика для пары: {} / {} (EMA: {}, период: {}, StochRSI: {})",
+                pairData.getLongTicker(), pairData.getShortTicker(), showEma, emaPeriod, showStochRsi);
+
+        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi);
+
+        // Возвращаем BufferedImage для UI
+        return BitmapEncoder.getBufferedImage(chart);
+    }
 
     /**
      * Создает XYChart с Z-Score данными
@@ -211,5 +228,225 @@ public final class ZScoreChart {
             }
         }
         return OptionalInt.empty();
+    }
+
+    /**
+     * Создает расширенный XYChart с Z-Score данными и дополнительными индикаторами
+     */
+    private static XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi) {
+        // Сначала создаем базовый чарт
+        XYChart chart = buildZScoreChart(pairData);
+
+        // Получаем историю Z-Score для расчета индикаторов
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+
+        if (history.isEmpty()) {
+            log.warn("История Z-Score пуста - невозможно рассчитать индикаторы");
+            return chart;
+        }
+
+        List<Long> timestamps = history.stream()
+                .map(ZScoreParam::getTimestamp)
+                .collect(Collectors.toList());
+        List<Double> zScores = history.stream()
+                .map(ZScoreParam::getZscore)
+                .collect(Collectors.toList());
+        List<Date> timeAxis = timestamps.stream().map(Date::new).collect(Collectors.toList());
+
+        // Добавляем EMA если требуется
+        if (showEma && zScores.size() >= emaPeriod) {
+            addEmaToChart(chart, timeAxis, zScores, emaPeriod);
+        }
+
+        // Добавляем StochRSI если требуется
+        if (showStochRsi && zScores.size() >= 14) {
+            addStochRsiToChart(chart, timeAxis, zScores);
+        }
+
+        return chart;
+    }
+
+    /**
+     * Добавляет EMA линию на чарт
+     */
+    private static void addEmaToChart(XYChart chart, List<Date> timeAxis, List<Double> zScores, int period) {
+        List<Double> emaValues = calculateEMA(zScores, period);
+
+        // Создаем временную ось для EMA (начинается с позиции period-1)
+        List<Date> emaTimeAxis = timeAxis.subList(period - 1, timeAxis.size());
+
+        log.info("Добавляем EMA({}) линию: {} точек", period, emaValues.size());
+
+        XYSeries emaSeries = chart.addSeries("EMA(" + period + ")", emaTimeAxis, emaValues);
+        emaSeries.setLineColor(Color.CYAN);
+        emaSeries.setMarker(new None());
+        emaSeries.setLineStyle(new BasicStroke(2.0f));
+    }
+
+    /**
+     * Рассчитывает Exponential Moving Average (EMA)
+     */
+    private static List<Double> calculateEMA(List<Double> values, int period) {
+        if (values.size() < period) {
+            return new ArrayList<>();
+        }
+
+        List<Double> emaValues = new ArrayList<>();
+        double multiplier = 2.0 / (period + 1);
+
+        // Первое значение EMA - это простое среднее за период
+        double sum = 0;
+        for (int i = 0; i < period; i++) {
+            sum += values.get(i);
+        }
+        double firstEma = sum / period;
+        emaValues.add(firstEma);
+
+        // Рассчитываем остальные значения EMA
+        for (int i = period; i < values.size(); i++) {
+            double currentValue = values.get(i);
+            double previousEma = emaValues.get(emaValues.size() - 1);
+            double ema = (currentValue * multiplier) + (previousEma * (1 - multiplier));
+            emaValues.add(ema);
+        }
+
+        return emaValues;
+    }
+
+    /**
+     * Добавляет StochRSI на чарт (отображается в диапазоне 0-100, масштабированном к текущим значениям Z-Score)
+     */
+    private static void addStochRsiToChart(XYChart chart, List<Date> timeAxis, List<Double> zScores) {
+        List<Double> stochRsiValues = calculateStochRSI(zScores, 14, 3, 3);
+
+        if (stochRsiValues.isEmpty()) {
+            log.warn("Не удалось рассчитать StochRSI - недостаточно данных");
+            return;
+        }
+
+        // Создаем временную ось для StochRSI (начинается с позиции 13)
+        List<Date> stochRsiTimeAxis = timeAxis.subList(timeAxis.size() - stochRsiValues.size(), timeAxis.size());
+
+        // Масштабируем значения StochRSI к диапазону Z-Score для отображения
+        double minZScore = zScores.stream().min(Double::compareTo).orElse(-3.0);
+        double maxZScore = zScores.stream().max(Double::compareTo).orElse(3.0);
+        double range = maxZScore - minZScore;
+
+        List<Double> scaledStochRsi = stochRsiValues.stream()
+                .map(value -> minZScore + (value / 100.0) * range)
+                .collect(Collectors.toList());
+
+        log.info("Добавляем StochRSI линию: {} точек (масштабированы в диапазон {}-{})",
+                stochRsiValues.size(), minZScore, maxZScore);
+
+        // Основная линия StochRSI
+        XYSeries stochRsiSeries = chart.addSeries("StochRSI", stochRsiTimeAxis, scaledStochRsi);
+        stochRsiSeries.setLineColor(Color.ORANGE);
+        stochRsiSeries.setMarker(new None());
+        stochRsiSeries.setLineStyle(new BasicStroke(1.5f));
+
+        // Добавляем уровни перекупленности и перепроданности (80 и 20)
+        double overboughtLevel = minZScore + (80.0 / 100.0) * range; // 80%
+        double oversoldLevel = minZScore + (20.0 / 100.0) * range;   // 20%
+
+        addHorizontalLine(chart, timeAxis, overboughtLevel, Color.RED);
+        addHorizontalLine(chart, timeAxis, oversoldLevel, Color.GREEN);
+    }
+
+    /**
+     * Рассчитывает Stochastic RSI
+     *
+     * @param values      исходные значения
+     * @param rsiPeriod   период для RSI (обычно 14)
+     * @param stochPeriod период для Stochastic (обычно 14)
+     * @param smoothK     период сглаживания %K (обычно 3)
+     * @return список значений StochRSI (0-100)
+     */
+    private static List<Double> calculateStochRSI(List<Double> values, int rsiPeriod, int stochPeriod, int smoothK) {
+        if (values.size() < rsiPeriod + stochPeriod + smoothK) {
+            return new ArrayList<>();
+        }
+
+        // Шаг 1: Рассчитываем RSI
+        List<Double> rsiValues = calculateRSI(values, rsiPeriod);
+
+        if (rsiValues.size() < stochPeriod) {
+            return new ArrayList<>();
+        }
+
+        // Шаг 2: Рассчитываем Stochastic для RSI
+        List<Double> stochRsiRaw = new ArrayList<>();
+
+        for (int i = stochPeriod - 1; i < rsiValues.size(); i++) {
+            List<Double> rsiPeriodValues = rsiValues.subList(i - stochPeriod + 1, i + 1);
+            double minRsi = rsiPeriodValues.stream().min(Double::compareTo).orElse(0.0);
+            double maxRsi = rsiPeriodValues.stream().max(Double::compareTo).orElse(100.0);
+            double currentRsi = rsiValues.get(i);
+
+            double stochRsi;
+            if (maxRsi - minRsi == 0) {
+                stochRsi = 50.0; // Нейтральное значение
+            } else {
+                stochRsi = ((currentRsi - minRsi) / (maxRsi - minRsi)) * 100.0;
+            }
+
+            stochRsiRaw.add(stochRsi);
+        }
+
+        // Шаг 3: Сглаживаем %K (простое скользящее среднее)
+        if (stochRsiRaw.size() < smoothK) {
+            return stochRsiRaw;
+        }
+
+        List<Double> smoothedStochRsi = new ArrayList<>();
+        for (int i = smoothK - 1; i < stochRsiRaw.size(); i++) {
+            double sum = 0;
+            for (int j = i - smoothK + 1; j <= i; j++) {
+                sum += stochRsiRaw.get(j);
+            }
+            smoothedStochRsi.add(sum / smoothK);
+        }
+
+        return smoothedStochRsi;
+    }
+
+    /**
+     * Рассчитывает RSI (Relative Strength Index)
+     */
+    private static List<Double> calculateRSI(List<Double> values, int period) {
+        if (values.size() < period + 1) {
+            return new ArrayList<>();
+        }
+
+        List<Double> rsiValues = new ArrayList<>();
+        List<Double> gains = new ArrayList<>();
+        List<Double> losses = new ArrayList<>();
+
+        // Рассчитываем прибыли и убытки
+        for (int i = 1; i < values.size(); i++) {
+            double change = values.get(i) - values.get(i - 1);
+            gains.add(Math.max(change, 0));
+            losses.add(Math.max(-change, 0));
+        }
+
+        // Первое значение RSI с простым средним
+        double avgGain = gains.subList(0, period).stream().mapToDouble(Double::doubleValue).average().orElse(0);
+        double avgLoss = losses.subList(0, period).stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+        double rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
+        double rsi = 100 - (100 / (1 + rs));
+        rsiValues.add(rsi);
+
+        // Последующие значения RSI с экспоненциальным сглаживанием
+        for (int i = period; i < gains.size(); i++) {
+            avgGain = (avgGain * (period - 1) + gains.get(i)) / period;
+            avgLoss = (avgLoss * (period - 1) + losses.get(i)) / period;
+
+            rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
+            rsi = 100 - (100 / (1 + rs));
+            rsiValues.add(rsi);
+        }
+
+        return rsiValues;
     }
 }
