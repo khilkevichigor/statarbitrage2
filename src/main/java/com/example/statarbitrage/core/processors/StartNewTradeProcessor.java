@@ -179,19 +179,13 @@ public class StartNewTradeProcessor {
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        return finalizeSuccessfulTrade(pairData, zScoreData, openResult, settings);
-    }
-
-    private PairData finalizeSuccessfulTrade(PairData pairData, ZScoreData zScoreData,
-                                             ArbitragePairTradeInfo openResult, Settings settings) {
-
-        TradeResult openLongTradeResult = openResult.getLongTradeResult();
-        TradeResult openShortTradeResult = openResult.getShortTradeResult();
-
         log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.TRADING);
+
+        TradeResult openLongTradeResult = openResult.getLongTradeResult();
+        TradeResult openShortTradeResult = openResult.getShortTradeResult();
 
         pairDataService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
 

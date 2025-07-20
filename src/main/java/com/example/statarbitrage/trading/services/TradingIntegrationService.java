@@ -361,6 +361,33 @@ public class TradingIntegrationService {
     }
 
     /**
+     * Получение актуальной информации по позициям для пары
+     */
+    public PositionVerificationResult getPositionInfo(PairData pairData) {
+        String longPositionId = pairToLongPositionMap.get(pairData.getId());
+        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+
+        if (longPositionId == null || shortPositionId == null) {
+            log.debug("📋 Позиции для пары {}/{} не найдены в локальном реестре",
+                    pairData.getLongTicker(), pairData.getShortTicker());
+            return PositionVerificationResult.builder().build();
+        }
+
+        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+
+        // Обновляем актуальную информацию с биржи
+        provider.updatePositionPrices();
+
+        Position longPosition = provider.getPosition(longPositionId);
+        Position shortPosition = provider.getPosition(shortPositionId);
+
+        return PositionVerificationResult.builder()
+                .longPosition(longPosition)
+                .shortPosition(shortPosition)
+                .build();
+    }
+
+    /**
      * Получение реальной прибыли позиции
      */
     public BigDecimal getPositionPnL(PairData pairData) {

@@ -2,10 +2,8 @@ package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ChangesData;
 import com.example.statarbitrage.common.model.PairData;
-import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.model.PositionVerificationResult;
-import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,52 +26,26 @@ public class CalculateChangesService {
 
     private final TradingIntegrationService tradingIntegrationService;
 
-    /**
-     * Обновляет все данные используя ProfitUpdateService для открытых позиций
-     */
-    public ChangesData getChangesDataFromOpenPositions(PairData pairData) {
+    public ChangesData getChanges(PairData pairData) {
         try {
             // Получаем данные об открытых позициях
-            PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+            PositionVerificationResult positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
 
-            Position longPosition = openPositionsInfo.getLongPosition();
-            Position shortPosition = openPositionsInfo.getShortPosition();
-
-            if (longPosition == null || shortPosition == null) {
+            if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
                 log.warn("⚠️ Не удалось получить информацию о позициях для пары {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
                 return new ChangesData();
             }
 
-            // Обновляем данные из позиций
-            return getFromPositions(pairData, longPosition, shortPosition, "📊", "открытых позиций");
+            Position longPosition = positionsInfo.getLongPosition();
+            Position shortPosition = positionsInfo.getShortPosition();
+
+            boolean isOpenPositions = longPosition.isOpen() && shortPosition.isOpen();
+
+            return getFromPositions(pairData, longPosition, shortPosition, isOpenPositions);
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из открытых позиций для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
-        return new ChangesData();
-    }
-
-    /**
-     * Обновляет все данные используя ProfitUpdateService для закрытых позиций
-     */
-    public ChangesData getChangesDataFromTradeResults(PairData pairData, ArbitragePairTradeInfo tradeInfo) {
-        try {
-            TradeResult longResult = tradeInfo.getLongTradeResult();
-            TradeResult shortResult = tradeInfo.getShortTradeResult();
-
-            if (longResult == null || shortResult == null) {
-                log.warn("⚠️ Не удалось получить результаты закрытия для пары {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-                return new ChangesData();
-            }
-
-            // Обновляем данные из результатов торговли
-            return getFromTradeResults(pairData, longResult, shortResult, "🏦", "результатов закрытия");
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из результатов закрытия для пары {}/{}: {}",
+            log.error("❌ Ошибка при обновлении данных из позиций для пары {}/{}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
         }
         return new ChangesData();
@@ -83,7 +55,7 @@ public class CalculateChangesService {
      * Общий метод обновления данных из открытых позиций
      */
     private ChangesData getFromPositions(PairData pairData, Position longPosition, Position shortPosition,
-                                         String logEmoji, String operationType) {
+                                         boolean isOpenPositions) {
 
         ChangesData changesData = new ChangesData();
 
@@ -94,32 +66,14 @@ public class CalculateChangesService {
         BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
         BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
 
-        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, logEmoji, operationType);
-    }
-
-    /**
-     * Общий метод обновления данных из результатов торговли
-     */
-    private ChangesData getFromTradeResults(PairData pairData, TradeResult longResult, TradeResult shortResult,
-                                            String logEmoji, String operationType) {
-
-        ChangesData changesData = new ChangesData();
-        // Обновляем текущие цены на основе фактических цен исполнения
-        changesData.setLongCurrentPrice(longResult.getExecutionPrice());
-        changesData.setShortCurrentPrice(shortResult.getExecutionPrice());
-
-        // Рассчитываем чистый профит
-        BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
-        BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-
-        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, logEmoji, operationType);
+        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, isOpenPositions);
     }
 
     /**
      * Общий метод обновления профита и статистики
      */
     private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal totalPnL, BigDecimal totalFees,
-                                               String logEmoji, String operationType) {
+                                               boolean isOpenPositions) {
 
         BigDecimal netPnL = totalPnL.subtract(totalFees);
 
@@ -132,8 +86,8 @@ public class CalculateChangesService {
 
         changesData.setProfitChanges(profitPercent);
 
-        log.info("{} Получен профит из {}: {}/{}: {}% (PnL: {}, комиссии: {})",
-                logEmoji, operationType, pairData.getLongTicker(), pairData.getShortTicker(),
+        log.info("Получен профит из {}: {}/{}: {}% (PnL: {}, комиссии: {})",
+                isOpenPositions ? "открытых позиций" : "закрытых позиций", pairData.getLongTicker(), pairData.getShortTicker(),
                 profitPercent, totalPnL, totalFees);
 
         // Обновляем статистику и экстремумы

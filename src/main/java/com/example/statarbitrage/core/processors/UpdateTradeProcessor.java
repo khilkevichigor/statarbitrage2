@@ -1,7 +1,6 @@
 package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
-import com.example.statarbitrage.common.dto.ChangesData;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -31,7 +30,6 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
-    private final CalculateChangesService calculateChangesService;
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
@@ -116,9 +114,7 @@ public class UpdateTradeProcessor {
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
-
-        // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        ChangesData changesDataFromTradeResults = calculateChangesService.getChangesDataFromTradeResults(pairData, closeInfo);//todo может закомментить?
+        pairDataService.addChanges(pairData);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
 
@@ -156,8 +152,7 @@ public class UpdateTradeProcessor {
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
-        // 🎯 Используем специализированный метод который обновляет профит и все связанные данные
-        calculateChangesService.getChangesDataFromTradeResults(pairData, closeResult); //todo может закомментить?
+        pairDataService.addChanges(pairData);
         pairDataService.save(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
         return pairData;

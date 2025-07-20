@@ -224,7 +224,7 @@ public class PairDataService {
     }
 
     public void addChanges(PairData pairData) {
-        ChangesData changes = calculateChangesService.getChangesDataFromOpenPositions(pairData);
+        ChangesData changes = calculateChangesService.getChanges(pairData);
 
         pairData.setMinLong(changes.getMinLong());
         pairData.setMaxLong(changes.getMaxLong());
