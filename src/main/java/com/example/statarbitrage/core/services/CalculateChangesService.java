@@ -88,7 +88,7 @@ public class CalculateChangesService {
 
         // 2. Учитываем все комиссии (открытие + закрытие)
         // Убедимся, что closingFees не null
-        BigDecimal longClosingFees = longPosition.getClosingFees() != null ? longPosition.getClosingFees() : BigDecimal.ZERO;
+        BigDecimal longClosingFees = longPosition.getClosingFees() != null ? longPosition.getClosingFees() : BigDecimal.ZERO; //todo ты берешь getClosingFees() но мы его нигде не сетим!
         BigDecimal shortClosingFees = shortPosition.getClosingFees() != null ? shortPosition.getClosingFees() : BigDecimal.ZERO;
 
         BigDecimal totalFees = longPosition.getOpeningFees().add(longClosingFees)
