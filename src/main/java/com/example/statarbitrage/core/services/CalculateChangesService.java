@@ -47,26 +47,55 @@ public class CalculateChangesService {
     }
 
     /**
-     * Общий метод обновления данных из открытых позиций
+     * Общий метод обновления данных из позиций
      */
     private ChangesData getFromPositions(PairData pairData, PositionVerificationResult positionsInfo) {
-
         Position longPosition = positionsInfo.getLongPosition();
         Position shortPosition = positionsInfo.getShortPosition();
         boolean isPositionsClosed = positionsInfo.isPositionsClosed();
 
         ChangesData changesData = new ChangesData();
-
-        //todo возможно тут нужно разделять расчет для OPEN/CLOSE позиций
-
-        changesData.setLongCurrentPrice(longPosition.getCurrentPrice()); //todo проверить что есть такое
+        changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
 
-        // Рассчитываем текущий нереализованный профит
-        BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL()); //todo см как в Position
+        if (isPositionsClosed) {
+            return getFromClosedPositions(pairData, changesData, longPosition, shortPosition);
+        } else {
+            return getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
+        }
+    }
+
+    /**
+     * Расчет данных для открытых позиций (нереализованный PnL)
+     */
+    private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+        // 1. Рассчитываем нереализованный PnL
+        BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+
+        // 2. Учитываем только комиссии за открытие
         BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
 
-        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, isPositionsClosed);
+        // 3. Обновляем статистику
+        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, false);
+    }
+
+    /**
+     * Расчет данных для закрытых позиций (реализованный PnL)
+     */
+    private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+        // 1. Для закрытых позиций unrealizedPnL будет содержать итоговый реализованный PnL
+        BigDecimal realizedPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+
+        // 2. Учитываем все комиссии (открытие + закрытие)
+        // Убедимся, что closingFees не null
+        BigDecimal longClosingFees = longPosition.getClosingFees() != null ? longPosition.getClosingFees() : BigDecimal.ZERO;
+        BigDecimal shortClosingFees = shortPosition.getClosingFees() != null ? shortPosition.getClosingFees() : BigDecimal.ZERO;
+
+        BigDecimal totalFees = longPosition.getOpeningFees().add(longClosingFees)
+                .add(shortPosition.getOpeningFees()).add(shortClosingFees);
+
+        // 3. Обновляем статистику
+        return getProfitAndStatistics(pairData, changesData, realizedPnL, totalFees, true);
     }
 
     /**
@@ -77,11 +106,15 @@ public class CalculateChangesService {
 
         BigDecimal netPnL = totalPnL.subtract(totalFees);
 
+        // Рассчитываем общую сумму инвестиций из позиций
+        PositionVerificationResult positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
+        BigDecimal totalInvestment = positionsInfo.getLongPosition().getAllocatedAmount()
+                .add(positionsInfo.getShortPosition().getAllocatedAmount());
+
         // Конвертируем в процент от позиции
         BigDecimal profitPercent = calculateProfitPercent(
                 netPnL,
-                pairData.getLongTickerEntryPrice(),
-                pairData.getShortTickerEntryPrice()
+                totalInvestment
         );
 
         changesData.setProfitChanges(profitPercent);
@@ -95,23 +128,18 @@ public class CalculateChangesService {
     }
 
     /**
-     * Рассчитывает процент профита от средней входной цены
+     * Рассчитывает процент профита от общей суммы инвестиций (ROI)
      * Единая логика расчета для всех типов операций
      */
-    private BigDecimal calculateProfitPercent(BigDecimal netPnL, double longEntryPrice, double shortEntryPrice) {
+    private BigDecimal calculateProfitPercent(BigDecimal netPnL, BigDecimal totalInvestment) {
+        if (totalInvestment == null || totalInvestment.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("⚠️ Сумма инвестиций равна нулю или не задана, невозможно рассчитать процент профита.");
+            return BigDecimal.ZERO;
+        }
+
         try {
-            BigDecimal longEntry = BigDecimal.valueOf(longEntryPrice);
-            BigDecimal shortEntry = BigDecimal.valueOf(shortEntryPrice);
-            BigDecimal avgEntryPrice = longEntry.add(shortEntry).divide(DIVISION_FOR_AVERAGE, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP); //todo почему делаем это для разных монет и цен???
-
-            if (avgEntryPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                log.warn("⚠️ Средняя входная цена меньше или равна нулю: {}", avgEntryPrice);
-                return BigDecimal.ZERO;
-            }
-
-            return netPnL.divide(avgEntryPrice, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP)
+            return netPnL.divide(totalInvestment, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP)
                     .multiply(PERCENTAGE_MULTIPLIER);
-
         } catch (Exception e) {
             log.error("❌ Ошибка при расчете процента профита: {}", e.getMessage());
             return BigDecimal.ZERO;

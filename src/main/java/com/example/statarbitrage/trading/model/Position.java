@@ -79,6 +79,11 @@ public class Position {
     private BigDecimal openingFees;
 
     /**
+     * Комиссии за закрытие
+     */
+    private BigDecimal closingFees;
+
+    /**
      * Статус позиции
      */
     private PositionStatus status;
