@@ -1,6 +1,7 @@
 package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.ChangesData;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -267,6 +268,35 @@ public class PairDataService {
     }
 
     public void updateChangesFromOpenPositions(PairData pairData) {
-        calculateChangesService.updateChangesFromOpenPositions(pairData); //todo сделать по красоте - возвращать дто и сетить в пару
+        calculateChangesService.getChangesDataFromOpenPositions(pairData); //todo сделать по красоте - возвращать дто и сетить в пару
+    }
+
+    public void addChanges(PairData pairData) {
+        ChangesData changes = calculateChangesService.getChangesDataFromOpenPositions(pairData);
+
+        pairData.setMinLong(changes.getMinLong());
+        pairData.setMaxLong(changes.getMaxLong());
+        pairData.setLongChanges(changes.getLongChanges());
+        pairData.setLongTickerCurrentPrice(changes.getLongCurrentPrice().doubleValue());
+
+        pairData.setMinShort(changes.getMinShort());
+        pairData.setMaxShort(changes.getMaxShort());
+        pairData.setShortChanges(changes.getShortChanges());
+        pairData.setShortTickerCurrentPrice(changes.getShortCurrentPrice().doubleValue());
+
+        changes.setMinZ(changes.getMinZ());
+        pairData.setMaxZ(changes.getMaxZ());
+
+        pairData.setMinCorr(changes.getMinCorr());
+        pairData.setMaxCorr(changes.getMaxCorr());
+
+        pairData.setMinProfitChanges(changes.getMinProfitChanges());
+        pairData.setMaxProfitChanges(changes.getMaxProfitChanges());
+        pairData.setProfitChanges(changes.getProfitChanges());
+
+        pairData.setTimeInMinutesSinceEntryToMin(changes.getTimeInMinutesSinceEntryToMin());
+        pairData.setTimeInMinutesSinceEntryToMax(changes.getTimeInMinutesSinceEntryToMax());
+
+        pairData.setZScoreChanges(changes.getZScoreChanges());
     }
 }

@@ -78,7 +78,6 @@ public class StartNewTradeProcessor {
     }
 
 
-
     private void validateRequest(StartNewTradeRequest request) {
         if (request == null || request.getPairData() == null) {
             throw new IllegalArgumentException("Неверный запрос на начало нового трейда");
@@ -195,14 +194,14 @@ public class StartNewTradeProcessor {
 
         pairData.setStatus(TradeStatus.TRADING);
 
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        pairDataService.addCurrentPricesFromCandles(pairData, candlesMap);
         pairDataService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
+
+        pairDataService.addChanges(pairData);
 
         pairDataService.save(pairData);
 
-        calculateChangesService.updateChangesFromOpenPositions(pairData);
         tradeLogService.updateTradeLog(pairData, settings);
+
         return pairData;
     }
 

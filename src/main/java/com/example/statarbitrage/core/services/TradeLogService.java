@@ -35,9 +35,9 @@ public class TradeLogService {
 
         // мапим поля
         tradeLog.setCurrentProfitPercent(pairData.getProfitChanges());
-        tradeLog.setMinProfitPercent(pairData.getMinProfitRounded());
+        tradeLog.setMinProfitPercent(pairData.getMinProfitChanges());
         tradeLog.setMinProfitMinutes(pairData.getTimeInMinutesSinceEntryToMin() + "min");
-        tradeLog.setMaxProfitPercent(pairData.getMaxProfitRounded());
+        tradeLog.setMaxProfitPercent(pairData.getMaxProfitChanges());
         tradeLog.setMaxProfitMinutes(pairData.getTimeInMinutesSinceEntryToMax() + "min");
 
         tradeLog.setCurrentLongPercent(pairData.getLongChanges());
