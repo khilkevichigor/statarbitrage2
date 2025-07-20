@@ -56,7 +56,7 @@ public class UpdateTradeProcessor {
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
 
         // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        calculateChangesService.updateChangesFromOpenPositions(pairData);
+        pairDataService.updateChangesFromOpenPositions(pairData);
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);

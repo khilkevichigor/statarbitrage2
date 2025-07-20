@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,8 +23,7 @@ import java.util.stream.Collectors;
 public class PairDataService {
     private final PairDataRepository pairDataRepository;
     private final TradingIntegrationService tradingIntegrationService;
-    private final SettingsService settingsService;
-    private final TradeLogService tradeLogService;
+    private final CalculateChangesService calculateChangesService;
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();
@@ -114,85 +112,6 @@ public class PairDataService {
         return pairData;
     }
 
-//    public void updateByRequest(UpdatePairDataRequest request) {
-//        boolean addEntryPoints = request.isAddEntryPoints();
-//        PairData pairData = request.getPairData();
-//        ZScoreData zScoreData = request.getZScoreData();
-//        Map<String, List<Candle>> candlesMap = request.getCandlesMap();
-//        TradeResult tradeResultLong = request.getTradeResultLong();
-//        TradeResult tradeResultShort = request.getTradeResultShort();
-//        boolean updateChanges = request.isUpdateChanges();
-//        boolean updateTradeLog = request.isUpdateTradeLog();
-//        Settings settings = request.getSettings();
-//
-//        //Обновляем текущие цены
-//        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-//        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-//        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
-//        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
-//        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
-//        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
-//
-//        //Обновляем текущие данные коинтеграции
-//        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-//        pairData.setZScoreCurrent(latestParam.getZscore());
-//        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-//        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-//        pairData.setPValueCurrent(latestParam.getPvalue());
-//        pairData.setMeanCurrent(latestParam.getMean());
-//        pairData.setStdCurrent(latestParam.getStd());
-//        pairData.setSpreadCurrent(latestParam.getSpread());
-//        pairData.setAlphaCurrent(latestParam.getAlpha());
-//        pairData.setBetaCurrent(latestParam.getBeta());
-//
-//        // Добавляем новые точки в историю Z-Score при каждом обновлении
-//        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-//            // Добавляем всю новую историю из ZScoreData
-//            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-//                pairData.addZScorePoint(param);
-//            }
-//        } else {
-//            // Если новой истории нет, добавляем хотя бы текущую точку
-//            pairData.addZScorePoint(latestParam);
-//        }
-//
-//        if (addEntryPoints) {
-//            addEntryPoints(pairData, zScoreData.getLastZScoreParam(), tradeResultLong, tradeResultShort);
-//        }
-//
-//        if (updateChanges) {
-//            updateChangesAndSave(pairData);
-//        }
-//
-//        if (updateTradeLog) {
-//            tradeLogService.updateTradeLog(pairData, settings);
-//        }
-//
-//        pairDataRepository.save(pairData);
-//    }
-
-    private void addEntryPoints(PairData pairData, ZScoreParam latestParam, TradeResult longResult, TradeResult shortResult) {
-        //Обновляем текущие данные коинтеграции
-        pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
-        pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
-        pairData.setZScoreEntry(latestParam.getZscore());
-        pairData.setCorrelationEntry(latestParam.getCorrelation());
-        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
-        pairData.setPValueEntry(latestParam.getPvalue());
-        pairData.setMeanEntry(latestParam.getMean());
-        pairData.setStdEntry(latestParam.getStd());
-        pairData.setSpreadEntry(latestParam.getSpread());
-        pairData.setAlphaEntry(latestParam.getAlpha());
-        pairData.setBetaEntry(latestParam.getBeta());
-        // Время входа
-        pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
-
-        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-                pairData.getZScoreEntry());
-    }
-
     public void updateZScoreDataCurrent(PairData pairData, ZScoreData zScoreData) {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
         pairData.setZScoreCurrent(latestParam.getZscore());
@@ -218,236 +137,6 @@ public class PairDataService {
     }
 
     /**
-     * Обновляет экстремумы всех метрик
-     */
-    private void updateExtremumValues(PairData pairData, BigDecimal longReturnPct, BigDecimal shortReturnPct,
-                                      BigDecimal zScoreCurrent, BigDecimal corrCurrent) {
-        BigDecimal minZ = updateMin(pairData.getMinZ(), zScoreCurrent);
-        BigDecimal maxZ = updateMax(pairData.getMaxZ(), zScoreCurrent);
-        BigDecimal minLong = updateMin(pairData.getMinLong(), longReturnPct);
-        BigDecimal maxLong = updateMax(pairData.getMaxLong(), longReturnPct);
-        BigDecimal minShort = updateMin(pairData.getMinShort(), shortReturnPct);
-        BigDecimal maxShort = updateMax(pairData.getMaxShort(), shortReturnPct);
-        BigDecimal minCorr = updateMin(pairData.getMinCorr(), corrCurrent);
-        BigDecimal maxCorr = updateMax(pairData.getMaxCorr(), corrCurrent);
-
-        pairData.setMinZ(minZ);
-        pairData.setMaxZ(maxZ);
-        pairData.setMinLong(minLong);
-        pairData.setMaxLong(maxLong);
-        pairData.setMinShort(minShort);
-        pairData.setMaxShort(maxShort);
-        pairData.setMinCorr(minCorr);
-        pairData.setMaxCorr(maxCorr);
-    }
-
-    /**
-     * Обновляет статистику и экстремумы для пары
-     */
-    private void updatePairDataStatistics(PairData pairData) {
-        BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
-        BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
-
-        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
-
-        // Расчет процентных изменений позиций
-        BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-        BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-
-        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-                .divide(longEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-
-        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-                .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-
-        // Текущее время
-        long entryTime = pairData.getEntryTime();
-        long now = System.currentTimeMillis();
-        long currentTimeInMinutes = (now - entryTime) / (1000 * 60);
-
-        // Округления
-        BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
-
-        // Используем уже рассчитанный профит для статистики
-        BigDecimal currentProfitForStats = pairData.getProfitChanges() != null ? pairData.getProfitChanges() : BigDecimal.ZERO;
-
-        // Обновляем min/max профита
-        BigDecimal currentMinProfit = pairData.getMinProfitRounded();
-        BigDecimal currentMaxProfit = pairData.getMaxProfitRounded();
-        long currentTimeToMax = pairData.getTimeInMinutesSinceEntryToMax();
-        long currentTimeToMin = pairData.getTimeInMinutesSinceEntryToMin();
-
-        BigDecimal maxProfitRounded;
-        long timeInMinutesSinceEntryToMax;
-        if (currentMaxProfit == null || currentProfitForStats.compareTo(currentMaxProfit) > 0) {
-            maxProfitRounded = currentProfitForStats;
-            timeInMinutesSinceEntryToMax = currentTimeInMinutes;
-            log.debug("🚀 Новый максимум прибыли: {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
-        } else {
-            maxProfitRounded = currentMaxProfit;
-            timeInMinutesSinceEntryToMax = currentTimeToMax;
-        }
-
-        BigDecimal minProfitRounded;
-        long timeInMinutesSinceEntryToMin;
-        if (currentMinProfit == null || currentProfitForStats.compareTo(currentMinProfit) < 0) {
-            minProfitRounded = currentProfitForStats;
-            timeInMinutesSinceEntryToMin = currentTimeInMinutes;
-            log.debug("📉 Новый минимум прибыли: {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
-        } else {
-            minProfitRounded = currentMinProfit;
-            timeInMinutesSinceEntryToMin = currentTimeToMin;
-        }
-
-        // Обновляем экстремумы всех метрик
-        updateExtremumValues(pairData, longReturnPct, shortReturnPct, zScoreCurrent, corrCurrent);
-
-        // Записываем в PairData (профит НЕ трогаем - он уже обновлен через ProfitUpdateService)
-        pairData.setLongChanges(longReturnRounded);
-        pairData.setShortChanges(shortReturnRounded);
-        pairData.setZScoreChanges(zScoreRounded);
-        pairData.setMinProfitRounded(minProfitRounded);
-        pairData.setMaxProfitRounded(maxProfitRounded);
-        pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
-        pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
-
-        log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
-        log.info("💰 Текущий профит: {}%", currentProfitForStats);
-        log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
-    }
-
-    /**
-     * Рассчитывает процент профита от средней входной цены
-     * Единая логика расчета для всех типов операций
-     */
-    private BigDecimal calculateProfitPercent(BigDecimal netPnL, double longEntryPrice, double shortEntryPrice) {
-        try {
-            BigDecimal longEntry = BigDecimal.valueOf(longEntryPrice);
-            BigDecimal shortEntry = BigDecimal.valueOf(shortEntryPrice);
-            BigDecimal avgEntryPrice = longEntry.add(shortEntry).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
-
-            if (avgEntryPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                log.warn("⚠️ Средняя входная цена меньше или равна нулю: {}", avgEntryPrice);
-                return BigDecimal.ZERO;
-            }
-
-            return netPnL.divide(avgEntryPrice, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при расчете процента профита: {}", e.getMessage());
-            return BigDecimal.ZERO;
-        }
-    }
-
-    /**
-     * Обновляет все данные кроме профита (общий метод для избежания дублирования)
-     */
-    private void updateAllOtherData(PairData pairData) {
-        BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
-        BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
-        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        BigDecimal corrCurrent = BigDecimal.valueOf(pairData.getCorrelationCurrent());
-
-        // Расчет процентных изменений позиций
-        BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-        BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-
-        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-                .divide(longEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-
-        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-                .divide(shortEntry, 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-
-        // Текущее время
-        long entryTime = pairData.getEntryTime();
-        long now = System.currentTimeMillis();
-        long currentTimeInMinutes = (now - entryTime) / (1000 * 60);
-
-        // Округления
-        BigDecimal longReturnRounded = longReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal shortReturnRounded = shortReturnPct.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal zScoreRounded = zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP);
-
-        // Используем уже рассчитанный профит для статистики
-        BigDecimal currentProfitForStats = pairData.getProfitChanges() != null ? pairData.getProfitChanges() : BigDecimal.ZERO;
-
-        // Обновляем min/max профита
-        BigDecimal currentMinProfit = pairData.getMinProfitRounded();
-        BigDecimal currentMaxProfit = pairData.getMaxProfitRounded();
-        long currentTimeToMax = pairData.getTimeInMinutesSinceEntryToMax();
-        long currentTimeToMin = pairData.getTimeInMinutesSinceEntryToMin();
-
-        BigDecimal maxProfitRounded;
-        long timeInMinutesSinceEntryToMax;
-        if (currentMaxProfit == null || currentProfitForStats.compareTo(currentMaxProfit) > 0) {
-            maxProfitRounded = currentProfitForStats;
-            timeInMinutesSinceEntryToMax = currentTimeInMinutes;
-            log.debug("🚀 Новый максимум прибыли: {}% за {} мин", maxProfitRounded, timeInMinutesSinceEntryToMax);
-        } else {
-            maxProfitRounded = currentMaxProfit;
-            timeInMinutesSinceEntryToMax = currentTimeToMax;
-        }
-
-        BigDecimal minProfitRounded;
-        long timeInMinutesSinceEntryToMin;
-        if (currentMinProfit == null || currentProfitForStats.compareTo(currentMinProfit) < 0) {
-            minProfitRounded = currentProfitForStats;
-            timeInMinutesSinceEntryToMin = currentTimeInMinutes;
-            log.debug("📉 Новый минимум прибыли: {}% за {} мин", minProfitRounded, timeInMinutesSinceEntryToMin);
-        } else {
-            minProfitRounded = currentMinProfit;
-            timeInMinutesSinceEntryToMin = currentTimeToMin;
-        }
-
-        // Обновляем экстремумы других показателей
-        BigDecimal minZ = updateMin(pairData.getMinZ(), zScoreCurrent);
-        BigDecimal maxZ = updateMax(pairData.getMaxZ(), zScoreCurrent);
-        BigDecimal minLong = updateMin(pairData.getMinLong(), longReturnPct);
-        BigDecimal maxLong = updateMax(pairData.getMaxLong(), longReturnPct);
-        BigDecimal minShort = updateMin(pairData.getMinShort(), shortReturnPct);
-        BigDecimal maxShort = updateMax(pairData.getMaxShort(), shortReturnPct);
-        BigDecimal minCorr = updateMin(pairData.getMinCorr(), corrCurrent);
-        BigDecimal maxCorr = updateMax(pairData.getMaxCorr(), corrCurrent);
-
-        // Записываем в PairData (профит НЕ трогаем - он уже обновлен через ProfitUpdateService)
-        pairData.setLongChanges(longReturnRounded);
-        pairData.setShortChanges(shortReturnRounded);
-        pairData.setZScoreChanges(zScoreRounded);
-        pairData.setMinProfitRounded(minProfitRounded);
-        pairData.setMaxProfitRounded(maxProfitRounded);
-        pairData.setTimeInMinutesSinceEntryToMax(timeInMinutesSinceEntryToMax);
-        pairData.setTimeInMinutesSinceEntryToMin(timeInMinutesSinceEntryToMin);
-        pairData.setMinZ(minZ);
-        pairData.setMaxZ(maxZ);
-        pairData.setMinLong(minLong);
-        pairData.setMaxLong(maxLong);
-        pairData.setMinShort(minShort);
-        pairData.setMaxShort(maxShort);
-        pairData.setMinCorr(minCorr);
-        pairData.setMaxCorr(maxCorr);
-
-        // Логирование
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getLongTicker(), longEntry, longCurrent, longReturnRounded);
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getShortTicker(), shortEntry, shortCurrent, shortReturnRounded);
-        log.info("💰 Текущий профит: {}%", currentProfitForStats);
-        log.info("📈 Max profit: {}%, Min profit: {}%", maxProfitRounded, minProfitRounded);
-    }
-
-    /**
      * Обновляет минимальное значение
      */
     private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newValue) {
@@ -463,41 +152,11 @@ public class PairDataService {
         return newValue.compareTo(currentMax) > 0 ? newValue : currentMax;
     }
 
-    private void updateByRequest(PairData pairData, ZScoreData zScoreData, TradeResult longResult, TradeResult shortResult) {
-        //Обновляем текущие цены
-        pairData.setLongTickerCurrentPrice(longResult.getExecutionPrice().doubleValue());
-        pairData.setShortTickerCurrentPrice(shortResult.getExecutionPrice().doubleValue());
-
-        //Обновляем текущие данные коинтеграции
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
-
-        // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-            // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-                pairData.addZScorePoint(param);
-            }
-        } else {
-            // Если новой истории нет, добавляем хотя бы текущую точку
-            pairData.addZScorePoint(latestParam);
-        }
-
-        save(pairData);
-    }
-
     /**
      * Обновляет актуальный профит перед проверкой exit strategy
      * Критично для правильного срабатывания тейк-профита и стоп-лосса
      */
+    @Deprecated
     public void updateCurrentProfitBeforeExitCheck(PairData pairData) {
         try {
             // Сначала обновляем цены позиций с биржи для актуальных данных
@@ -572,7 +231,7 @@ public class PairDataService {
         List<PairData> tradingPairs = findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         return tradingPairs.stream()
                 .map(PairData::getProfitChanges)
-                .filter(p -> p != null)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -605,5 +264,9 @@ public class PairDataService {
                 pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
                 pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
                 pairData.getZScoreEntry());
+    }
+
+    public void updateChangesFromOpenPositions(PairData pairData) {
+        calculateChangesService.updateChangesFromOpenPositions(pairData); //todo сделать по красоте - возвращать дто и сетить в пару
     }
 }
