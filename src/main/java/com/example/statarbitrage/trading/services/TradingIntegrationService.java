@@ -40,7 +40,7 @@ public class TradingIntegrationService {
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
      */
-    public ArbitragePairTradeInfo openArbitragePair(PairData pairData) {
+    public ArbitragePairTradeInfo openArbitragePair(PairData pairData, Settings settings) {
         // Синхронизируем всю операцию открытия пары
         synchronized (openPositionLock) {
             try {
@@ -61,7 +61,6 @@ public class TradingIntegrationService {
                 BigDecimal longAmount = adaptiveAmounts[0];
                 BigDecimal shortAmount = adaptiveAmounts[1];
 
-                Settings settings = settingsService.getSettings();
                 BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
 
                 log.info("🔄 Начинаем открытие арбитражной пары: {}/{}",

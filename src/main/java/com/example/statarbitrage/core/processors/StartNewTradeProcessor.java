@@ -171,7 +171,7 @@ public class StartNewTradeProcessor {
     }
 
     private PairData openTradePosition(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData); //todo передавать UUID?
+        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData, settings); //todo передавать UUID?
 
         if (openResult == null || !openResult.isSuccess()) {
             log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",

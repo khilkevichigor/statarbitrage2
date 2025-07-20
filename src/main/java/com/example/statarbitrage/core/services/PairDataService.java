@@ -203,8 +203,10 @@ public class PairDataService {
 
     public void addEntryPoints(PairData pairData, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
         ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+
         pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
         pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
+
         pairData.setZScoreEntry(latestParam.getZscore());
         pairData.setCorrelationEntry(latestParam.getCorrelation());
         pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());

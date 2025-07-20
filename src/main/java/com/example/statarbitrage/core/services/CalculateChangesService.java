@@ -192,18 +192,6 @@ public class CalculateChangesService {
         changesData.setLongChanges(longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
         changesData.setShortChanges(shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
         changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
-
-//        return new PercentageChanges(
-//                longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
-//                shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
-//                zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
-//                longReturnPct,
-//                shortReturnPct,
-//                longEntry,
-//                shortEntry,
-//                longCurrent,
-//                shortCurrent
-//        );
     }
 
     /**
