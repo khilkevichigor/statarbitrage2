@@ -248,14 +248,14 @@ public class TradingIntegrationService {
     /**
      * Проверка что позиции действительно закрыты на бирже с получением PnL
      */
-    public PositionVerificationResult verifyPositionsClosed(PairData pairData) {
+    public Positioninfo verifyPositionsClosed(PairData pairData) {
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
         if (longPositionId == null || shortPositionId == null) {
             log.debug("📋 Позиции для пары {}/{} не найдены в локальном реестре",
                     pairData.getLongTicker(), pairData.getShortTicker());
-            return PositionVerificationResult.builder()
+            return Positioninfo.builder()
                     .positionsClosed(true)
                     .totalPnL(BigDecimal.ZERO)
                     .build();
@@ -290,7 +290,7 @@ public class TradingIntegrationService {
             log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
 
-            return PositionVerificationResult.builder()
+            return Positioninfo.builder()
                     .positionsClosed(true)
                     .totalPnL(totalPnL)
                     .build();
@@ -298,7 +298,7 @@ public class TradingIntegrationService {
 
         log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}",
                 longClosed, shortClosed);
-        return PositionVerificationResult.builder()
+        return Positioninfo.builder()
                 .positionsClosed(false)
                 .totalPnL(BigDecimal.ZERO)
                 .build();
@@ -307,14 +307,14 @@ public class TradingIntegrationService {
     /**
      * Получение актуальной информации по открытым позициям для обновления changes
      */
-    public PositionVerificationResult getOpenPositionsInfo(PairData pairData) {
+    public Positioninfo getOpenPositionsInfo(PairData pairData) {
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
         if (longPositionId == null || shortPositionId == null) {
             log.debug("📋 Позиции для пары {}/{} не найдены в локальном реестре",
                     pairData.getLongTicker(), pairData.getShortTicker());
-            return PositionVerificationResult.builder()
+            return Positioninfo.builder()
                     .positionsClosed(true)
                     .totalPnL(BigDecimal.ZERO)
                     .build();
@@ -341,7 +341,7 @@ public class TradingIntegrationService {
             log.debug("📊 Актуальный PnL для открытых позиций {}/{}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
 
-            return PositionVerificationResult.builder()
+            return Positioninfo.builder()
                     .positionsClosed(false)
                     .longPosition(longPosition)
                     .shortPosition(shortPosition)
@@ -352,7 +352,7 @@ public class TradingIntegrationService {
         // Если одна из позиций закрыта или не найдена - это проблема
         log.warn("⚠️ Не все позиции открыты на бирже: LONG открыта={}, SHORT открыта={}",
                 longOpen, shortOpen);
-        return PositionVerificationResult.builder()
+        return Positioninfo.builder()
                 .positionsClosed(true)
                 .longPosition(longPosition)
                 .shortPosition(shortPosition)
@@ -363,14 +363,14 @@ public class TradingIntegrationService {
     /**
      * Получение актуальной информации по позициям для пары
      */
-    public PositionVerificationResult getPositionInfo(PairData pairData) {
+    public Positioninfo getPositionInfo(PairData pairData) {
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
         if (longPositionId == null || shortPositionId == null) {
             log.debug("📋 Позиции для пары {}/{} не найдены в локальном реестре",
                     pairData.getLongTicker(), pairData.getShortTicker());
-            return PositionVerificationResult.builder().build();
+            return Positioninfo.builder().build();
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
@@ -405,7 +405,7 @@ public class TradingIntegrationService {
             log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
 
-            return PositionVerificationResult.builder()
+            return Positioninfo.builder()
                     .positionsClosed(true)
                     .longPosition(longPosition)
                     .shortPosition(shortPosition)
@@ -415,7 +415,7 @@ public class TradingIntegrationService {
 
         log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}",
                 longClosed, shortClosed);
-        return PositionVerificationResult.builder()
+        return Positioninfo.builder()
                 .positionsClosed(false)
                 .longPosition(longPosition)
                 .shortPosition(shortPosition)

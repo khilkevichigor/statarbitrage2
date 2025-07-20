@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  */
 @Data
 @Builder
-public class PositionVerificationResult {
+public class Positioninfo {
     /**
      * Все ли позиции закрыты
      */

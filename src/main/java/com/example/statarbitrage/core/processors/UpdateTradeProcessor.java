@@ -8,7 +8,7 @@ import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
-import com.example.statarbitrage.trading.model.PositionVerificationResult;
+import com.example.statarbitrage.trading.model.Positioninfo;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class UpdateTradeProcessor {
 
         Settings settings = settingsService.getSettings();
 
-        PositionVerificationResult openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        Positioninfo openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
         if (openPositionsInfo.isPositionsClosed()) {
             log.error("❌ Позиции уже закрыты для пары {}/{}.",
                     pairData.getLongTicker(), pairData.getShortTicker());
@@ -125,7 +125,7 @@ public class UpdateTradeProcessor {
         log.info("ℹ️ Нет открытых позиций для пары {}/{}! Возможно они были закрыты вручную на бирже.",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        PositionVerificationResult verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
+        Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
         if (verificationResult.isPositionsClosed()) {
             log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), verificationResult.getTotalPnL());
