@@ -237,9 +237,9 @@ public class CalculateChangesService {
     private void logFinalResults(PairData pairData, ChangesData changesData) {
         log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), pairData.getLongTickerCurrentPrice(), changesData.getLongChanges());
+                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), pairData.getShortTickerCurrentPrice(), changesData.getShortChanges());
+                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
         log.info("💰 Текущий профит: {}%", changesData.getProfitChanges());
         log.info("📈 Max profit: {}%, Min profit: {}%", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
     }
@@ -256,8 +256,7 @@ public class CalculateChangesService {
             BigDecimal longEntry,
             BigDecimal shortEntry,
             BigDecimal longCurrent,
-            BigDecimal shortCurrent
-    ) {
+            BigDecimal shortCurrent) {
     }
 
     private record ProfitExtremums(
