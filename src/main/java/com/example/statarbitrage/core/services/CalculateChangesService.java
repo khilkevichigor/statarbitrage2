@@ -122,26 +122,33 @@ public class CalculateChangesService {
      * Обновляет статистику и экстремумы для пары
      */
     private ChangesData getStatistics(PairData pairData, ChangesData changesData) {
-        PercentageChanges percentageChanges = calculatePercentageChanges(pairData);
+        calculatePercentageChanges(pairData, changesData);
+
         long currentTimeInMinutes = calculateTimeInMinutes(pairData.getEntryTime());
-        ProfitExtremums profitExtremums = updateProfitExtremums(pairData, currentTimeInMinutes);
+        ProfitExtremums profitExtremums = updateProfitExtremums(changesData, currentTimeInMinutes);
 
         // Обновляем экстремумы всех метрик
-        updateExtremumValues(pairData, changesData, percentageChanges.longReturnPct(), percentageChanges.shortReturnPct(),
+        updateExtremumValues(pairData, changesData, changesData.getLongChanges(), changesData.getShortChanges(),
                 BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
 
-        logFinalResults(pairData, percentageChanges);
-
         // Записываем в ChangesData
-        return setPairDataChanges(changesData, percentageChanges, profitExtremums);
+        changesData.setMinProfitChanges(profitExtremums.minProfit());
+        changesData.setMaxProfitChanges(profitExtremums.maxProfit());
+
+        changesData.setTimeInMinutesSinceEntryToMax(profitExtremums.timeToMax());
+        changesData.setTimeInMinutesSinceEntryToMin(profitExtremums.timeToMin());
+
+        logFinalResults(pairData, changesData);
+
+        return changesData;
     }
 
     /**
      * Рассчитывает процентные изменения позиций
      */
-    private PercentageChanges calculatePercentageChanges(PairData pairData) {
-        BigDecimal longCurrent = BigDecimal.valueOf(pairData.getLongTickerCurrentPrice());
-        BigDecimal shortCurrent = BigDecimal.valueOf(pairData.getShortTickerCurrentPrice());
+    private void calculatePercentageChanges(PairData pairData, ChangesData changesData) {
+        BigDecimal longCurrent = changesData.getLongCurrentPrice();
+        BigDecimal shortCurrent = changesData.getShortCurrentPrice();
         BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
         BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
 
@@ -156,17 +163,21 @@ public class CalculateChangesService {
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
 
-        return new PercentageChanges(
-                longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
-                shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
-                zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
-                longReturnPct,
-                shortReturnPct,
-                longEntry,
-                shortEntry,
-                longCurrent,
-                shortCurrent
-        );
+        changesData.setLongChanges(longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+        changesData.setShortChanges(shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+
+//        return new PercentageChanges(
+//                longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
+//                shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
+//                zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP),
+//                longReturnPct,
+//                shortReturnPct,
+//                longEntry,
+//                shortEntry,
+//                longCurrent,
+//                shortCurrent
+//        );
     }
 
     /**
@@ -180,11 +191,11 @@ public class CalculateChangesService {
     /**
      * Обновляет экстремумы профита
      */
-    private ProfitExtremums updateProfitExtremums(PairData pairData, long currentTimeInMinutes) {
-        BigDecimal currentProfitForStats = pairData.getProfitChanges() != null ? pairData.getProfitChanges() : BigDecimal.ZERO;
+    private ProfitExtremums updateProfitExtremums(ChangesData changesData, long currentTimeInMinutes) {
+        BigDecimal currentProfitForStats = changesData.getProfitChanges() != null ? changesData.getProfitChanges() : BigDecimal.ZERO;
 
-        MaxProfitResult maxResult = updateMaxProfit(currentProfitForStats, pairData.getMaxProfitChanges(), pairData.getTimeInMinutesSinceEntryToMax(), currentTimeInMinutes);
-        MinProfitResult minResult = updateMinProfit(currentProfitForStats, pairData.getMinProfitChanges(), pairData.getTimeInMinutesSinceEntryToMin(), currentTimeInMinutes);
+        MaxProfitResult maxResult = updateMaxProfit(currentProfitForStats, changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMax(), currentTimeInMinutes);
+        MinProfitResult minResult = updateMinProfit(currentProfitForStats, changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMin(), currentTimeInMinutes);
 
         return new ProfitExtremums(maxResult.maxProfit(), minResult.minProfit(), maxResult.timeToMax(),
                 minResult.timeToMin(), currentProfitForStats);
@@ -207,31 +218,16 @@ public class CalculateChangesService {
     }
 
     /**
-     * Записывает данные в PairData
-     */
-    private ChangesData setPairDataChanges(ChangesData changesData, PercentageChanges changes, ProfitExtremums extremums) {
-        changesData.setLongChanges(changes.longReturnRounded());
-        changesData.setShortChanges(changes.shortReturnRounded());
-        changesData.setZScoreChanges(changes.zScoreRounded());
-        changesData.setMinProfitChanges(extremums.minProfit());
-        changesData.setMaxProfitChanges(extremums.maxProfit());
-        changesData.setTimeInMinutesSinceEntryToMax(extremums.timeToMax());
-        changesData.setTimeInMinutesSinceEntryToMin(extremums.timeToMin());
-
-        return changesData;
-    }
-
-    /**
      * Логирует финальные результаты
      */
-    private void logFinalResults(PairData pairData, PercentageChanges changes) {
+    private void logFinalResults(PairData pairData, ChangesData changesData) {
         log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getLongTicker(), changes.longEntry(), changes.longCurrent(), changes.longReturnRounded());
+                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), pairData.getLongTickerCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getShortTicker(), changes.shortEntry(), changes.shortCurrent(), changes.shortReturnRounded());
-        log.info("💰 Текущий профит: {}%", pairData.getProfitChanges());
-        log.info("📈 Max profit: {}%, Min profit: {}%", pairData.getMaxProfitChanges(), pairData.getMinProfitChanges());
+                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), pairData.getShortTickerCurrentPrice(), changesData.getShortChanges());
+        log.info("💰 Текущий профит: {}%", changesData.getProfitChanges());
+        log.info("📈 Max profit: {}%, Min profit: {}%", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
     }
 
     /**
@@ -266,7 +262,6 @@ public class CalculateChangesService {
     private record MinProfitResult(BigDecimal minProfit, long timeToMin) {
     }
 
-
     /**
      * Обновляет экстремумы всех метрик
      */
@@ -286,7 +281,9 @@ public class CalculateChangesService {
      * Обновляет минимальное значение
      */
     private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newValue) {
-        if (currentMin == null) return newValue;
+        if (currentMin == null) {
+            return newValue;
+        }
         return newValue.compareTo(currentMin) < 0 ? newValue : currentMin;
     }
 
