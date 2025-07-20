@@ -1,5 +1,6 @@
 package com.example.statarbitrage.common.model;
 
+import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.utils.ZScoreChart;
 import com.fasterxml.jackson.core.type.TypeReference;
