@@ -6,7 +6,6 @@ import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.common.utils.CandlesUtil;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.TradeResult;
@@ -33,6 +32,7 @@ public class StartNewTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final TradeLogService tradeLogService;
     private final CalculateChangesService calculateChangesService;
+    private final EntryPointService entryPointService;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest request) {
@@ -220,40 +220,39 @@ public class StartNewTradeProcessor {
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
 
-        //текущие цены
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
-        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
-        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
-        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+        candlesService.addCurrentPricesFromCandles(pairData, candlesMap);
+//        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+//        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+//        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+//        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+//        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+//        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
 
-        //Обновляем текущие данные коинтеграции
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-        pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
-        pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
-        pairData.setZScoreEntry(latestParam.getZscore());
-        pairData.setCorrelationEntry(latestParam.getCorrelation());
-        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
-        pairData.setPValueEntry(latestParam.getPvalue());
-        pairData.setMeanEntry(latestParam.getMean());
-        pairData.setStdEntry(latestParam.getStd());
-        pairData.setSpreadEntry(latestParam.getSpread());
-        pairData.setAlphaEntry(latestParam.getAlpha());
-        pairData.setBetaEntry(latestParam.getBeta());
-        // Время входа
-        pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
-
-        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-                pairData.getZScoreEntry());
+        entryPointService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
+//        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+//        pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
+//        pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
+//        pairData.setZScoreEntry(latestParam.getZscore());
+//        pairData.setCorrelationEntry(latestParam.getCorrelation());
+//        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
+//        pairData.setPValueEntry(latestParam.getPvalue());
+//        pairData.setMeanEntry(latestParam.getMean());
+//        pairData.setStdEntry(latestParam.getStd());
+//        pairData.setSpreadEntry(latestParam.getSpread());
+//        pairData.setAlphaEntry(latestParam.getAlpha());
+//        pairData.setBetaEntry(latestParam.getBeta());
+//        // Время входа
+//        pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
+//
+//        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
+//                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
+//                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
+//                pairData.getZScoreEntry());
 
         pairDataService.save(pairData);
 
-//        pairDataService.updateChangesAndSave(pairData); //todo может и не надо тк тока открылись хули считать!!!
         calculateChangesService.updateChangesFromOpenPositions(pairData);
-        tradeLogService.updateTradeLog(pairData, settings); //todo может и не надо тк тока открылись хули считать!!!
+        tradeLogService.updateTradeLog(pairData, settings);
         return pairData;
     }
 
@@ -261,7 +260,8 @@ public class StartNewTradeProcessor {
         log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        pairData.setStatus(errorType.getStatus());
+        pairData.setStatus(TradeStatus.ERROR);
+        pairData.setErrorDescription(errorType.getDescription());
         pairDataService.save(pairData);
         return pairData;
     }
