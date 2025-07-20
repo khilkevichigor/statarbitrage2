@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public enum TradeErrorType {
+public enum UpdateTradeErrorType {
     MANUALLY_CLOSED_NO_POSITIONS("Позиции были закрыты на бирже вручную"),
     POSITIONS_NOT_FOUND("При обновлении не найдены позиции на бирже"),
     MANUAL_CLOSE_FAILED("Не удалось закрыть позиции вручную"),

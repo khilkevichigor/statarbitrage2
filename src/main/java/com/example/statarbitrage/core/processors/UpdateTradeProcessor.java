@@ -107,7 +107,7 @@ public class UpdateTradeProcessor {
     private PairData handleManualClose(PairData pairData, Settings settings) {
         ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeInfo == null || !closeInfo.isSuccess()) {
-            return handleTradeError(pairData, TradeErrorType.MANUAL_CLOSE_FAILED);
+            return handleTradeError(pairData, UpdateTradeErrorType.MANUAL_CLOSE_FAILED);
         }
 
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
@@ -132,11 +132,11 @@ public class UpdateTradeProcessor {
         if (verificationResult.isPositionsClosed()) {
             log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), verificationResult.getTotalPnL());
-            return handleTradeError(pairData, TradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
+            return handleTradeError(pairData, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
         } else {
             log.warn("⚠️ Позиции не найдены на бирже для пары {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
-            return handleTradeError(pairData, TradeErrorType.POSITIONS_NOT_FOUND);
+            return handleTradeError(pairData, UpdateTradeErrorType.POSITIONS_NOT_FOUND);
         }
     }
 
@@ -147,7 +147,7 @@ public class UpdateTradeProcessor {
         ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
             pairData.setExitReason(exitReason);
-            return handleTradeError(pairData, TradeErrorType.AUTO_CLOSE_FAILED);
+            return handleTradeError(pairData, UpdateTradeErrorType.AUTO_CLOSE_FAILED);
         }
 
         log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
@@ -162,7 +162,7 @@ public class UpdateTradeProcessor {
         return pairData;
     }
 
-    private PairData handleTradeError(PairData pairData, TradeErrorType errorType) {
+    private PairData handleTradeError(PairData pairData, UpdateTradeErrorType errorType) {
         log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
                 pairData.getLongTicker(), pairData.getShortTicker());
 
