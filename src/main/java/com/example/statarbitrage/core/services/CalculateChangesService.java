@@ -59,16 +59,16 @@ public class CalculateChangesService {
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
 
         if (isPositionsClosed) {
-            return getFromClosedPositions(pairData, changesData, longPosition, shortPosition, positionsInfo);
+            return getFromClosedPositions(pairData, changesData, longPosition, shortPosition);
         } else {
-            return getFromOpenPositions(pairData, changesData, longPosition, shortPosition, positionsInfo);
+            return getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
         }
     }
 
     /**
      * Расчет данных для открытых позиций (нереализованный PnL)
      */
-    private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition, Positioninfo positionsInfo) {
+    private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         // 1. Рассчитываем нереализованный PnL
         BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
 
@@ -82,7 +82,7 @@ public class CalculateChangesService {
     /**
      * Расчет данных для закрытых позиций (реализованный PnL)
      */
-    private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition, Positioninfo positionsInfo) {
+    private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         // 1. Для закрытых позиций unrealizedPnL будет содержать итоговый реализованный PnL
         BigDecimal realizedPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
 
