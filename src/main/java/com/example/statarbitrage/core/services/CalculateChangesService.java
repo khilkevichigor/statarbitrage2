@@ -102,7 +102,7 @@ public class CalculateChangesService {
         try {
             BigDecimal longEntry = BigDecimal.valueOf(longEntryPrice);
             BigDecimal shortEntry = BigDecimal.valueOf(shortEntryPrice);
-            BigDecimal avgEntryPrice = longEntry.add(shortEntry).divide(DIVISION_FOR_AVERAGE, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP);
+            BigDecimal avgEntryPrice = longEntry.add(shortEntry).divide(DIVISION_FOR_AVERAGE, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP); //todo почему делаем это для разных монет и цен???
 
             if (avgEntryPrice.compareTo(BigDecimal.ZERO) <= 0) {
                 log.warn("⚠️ Средняя входная цена меньше или равна нулю: {}", avgEntryPrice);
