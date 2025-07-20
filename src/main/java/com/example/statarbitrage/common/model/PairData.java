@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pair_data")
+@Table(name = "pair_data", indexes = {
+        @Index(name = "idx_pairdata_uuid", columnList = "uuid", unique = true)
+})
 @Data
 @Builder
 @AllArgsConstructor
@@ -31,7 +33,7 @@ public class PairData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(columnDefinition = "uuid")
+    @Column(columnDefinition = "uuid", nullable = false, updatable = false)
     private String uuid = UUID.randomUUID().toString();
 
     @Version
