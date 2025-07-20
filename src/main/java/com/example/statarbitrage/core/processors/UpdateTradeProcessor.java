@@ -166,7 +166,8 @@ public class UpdateTradeProcessor {
         log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
                 pairData.getLongTicker(), pairData.getShortTicker());
 
-        pairData.setStatus(errorType.getStatus());
+        pairData.setStatus(TradeStatus.ERROR);
+        pairData.setErrorDescription(errorType.getDescription());
         pairDataService.save(pairData);
         //не обновляем другие данные тк нужны реальные данные по сделкам!
         return pairData;

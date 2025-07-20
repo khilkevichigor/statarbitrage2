@@ -70,13 +70,4 @@ public class CandlesService {
             }
         });
     }
-
-    public void addCurrentPricesFromCandles(PairData pairData, Map<String, List<Candle>> candlesMap) {
-        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
-        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
-        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
-        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
-    }
 }

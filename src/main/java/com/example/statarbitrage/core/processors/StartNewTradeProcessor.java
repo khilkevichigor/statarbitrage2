@@ -32,7 +32,6 @@ public class StartNewTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final TradeLogService tradeLogService;
     private final CalculateChangesService calculateChangesService;
-    private final EntryPointService entryPointService;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest request) {
@@ -55,7 +54,7 @@ public class StartNewTradeProcessor {
             return pairData;
         }
 
-        updateZScoreDataCurrent(pairData, zScoreData);
+        pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
 
         // Проверка корректности тикеров
         if (!validateTickers(pairData, zScoreData)) {
@@ -78,29 +77,7 @@ public class StartNewTradeProcessor {
         return openTradePosition(pairData, zScoreData, settings);
     }
 
-    private void updateZScoreDataCurrent(PairData pairData, ZScoreData zScoreData) {
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
 
-        // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-            // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-                pairData.addZScorePoint(param);
-            }
-        } else {
-            // Если новой истории нет, добавляем хотя бы текущую точку
-            pairData.addZScorePoint(latestParam);
-        }
-    }
 
     private void validateRequest(StartNewTradeRequest request) {
         if (request == null || request.getPairData() == null) {
@@ -166,7 +143,7 @@ public class StartNewTradeProcessor {
             return true;
         }
 
-        Settings currentSettings = settingsService.getSettings();
+        Settings currentSettings = settingsService.getSettings(); //снова читаем из бд
         log.debug("📖 Процессор: Читаем настройки из БД: autoTrading={}", currentSettings.isAutoTradingEnabled());
 
         if (!currentSettings.isAutoTradingEnabled()) {
@@ -219,35 +196,8 @@ public class StartNewTradeProcessor {
         pairData.setStatus(TradeStatus.TRADING);
 
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-
-        candlesService.addCurrentPricesFromCandles(pairData, candlesMap);
-//        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
-//        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
-//        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
-//        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
-//        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
-//        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
-
-        entryPointService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
-//        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-//        pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
-//        pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
-//        pairData.setZScoreEntry(latestParam.getZscore());
-//        pairData.setCorrelationEntry(latestParam.getCorrelation());
-//        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
-//        pairData.setPValueEntry(latestParam.getPvalue());
-//        pairData.setMeanEntry(latestParam.getMean());
-//        pairData.setStdEntry(latestParam.getStd());
-//        pairData.setSpreadEntry(latestParam.getSpread());
-//        pairData.setAlphaEntry(latestParam.getAlpha());
-//        pairData.setBetaEntry(latestParam.getBeta());
-//        // Время входа
-//        pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
-//
-//        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-//                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-//                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-//                pairData.getZScoreEntry());
+        pairDataService.addCurrentPricesFromCandles(pairData, candlesMap);
+        pairDataService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
 
         pairDataService.save(pairData);
 

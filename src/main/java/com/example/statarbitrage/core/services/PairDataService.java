@@ -575,4 +575,35 @@ public class PairDataService {
                 .filter(p -> p != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    public void addCurrentPricesFromCandles(PairData pairData, Map<String, List<Candle>> candlesMap) {
+        List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
+        List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
+        double longTickerCurrentPrice = CandlesUtil.getLastClose(longTickerCandles);
+        double shortTickerCurrentPrice = CandlesUtil.getLastClose(shortTickerCandles);
+        pairData.setLongTickerCurrentPrice(longTickerCurrentPrice);
+        pairData.setShortTickerCurrentPrice(shortTickerCurrentPrice);
+    }
+
+    public void addEntryPoints(PairData pairData, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
+        pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
+        pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
+        pairData.setZScoreEntry(latestParam.getZscore());
+        pairData.setCorrelationEntry(latestParam.getCorrelation());
+        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
+        pairData.setPValueEntry(latestParam.getPvalue());
+        pairData.setMeanEntry(latestParam.getMean());
+        pairData.setStdEntry(latestParam.getStd());
+        pairData.setSpreadEntry(latestParam.getSpread());
+        pairData.setAlphaEntry(latestParam.getAlpha());
+        pairData.setBetaEntry(latestParam.getBeta());
+        // Время входа
+        pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
+
+        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
+                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
+                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
+                pairData.getZScoreEntry());
+    }
 }
