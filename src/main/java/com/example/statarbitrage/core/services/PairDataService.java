@@ -61,7 +61,7 @@ public class PairDataService {
         return result;
     }
 
-    private static PairData createPairData(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
+    private PairData createPairData(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
         // Проверяем наличие данных
         if (underValuedTickerCandles == null || underValuedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
             log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
@@ -76,39 +76,11 @@ public class PairDataService {
         pairData.setLongTicker(zScoreData.getUndervaluedTicker());
         pairData.setShortTicker(zScoreData.getOvervaluedTicker());
 
-        // Получаем последние параметры
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-
         // Устанавливаем текущие цены
         pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(underValuedTickerCandles));
         pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overValuedTickerCandles));
 
-        // Устанавливаем статистические параметры
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
-
-        if (pairData.getZScoreEntry() != 0) {
-            BigDecimal zScoreChanges = BigDecimal.valueOf(latestParam.getZscore()).subtract(BigDecimal.valueOf(pairData.getZScoreEntry()));
-            pairData.setZScoreChanges(zScoreChanges);
-        }
-
-        // Добавляем всю историю Z-Score из ZScoreData
-        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-            // Добавляем всю историю, если она есть
-            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-                pairData.addZScorePoint(param);
-            }
-        } else {
-            // Если истории нет, добавляем хотя бы текущую точку
-            pairData.addZScorePoint(latestParam);
-        }
+        updateZScoreDataCurrent(pairData, zScoreData);
 
         return pairData;
     }
@@ -135,22 +107,6 @@ public class PairDataService {
             // Если новой истории нет, добавляем хотя бы текущую точку
             pairData.addZScorePoint(latestParam);
         }
-    }
-
-    /**
-     * Обновляет минимальное значение
-     */
-    private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newValue) {
-        if (currentMin == null) return newValue;
-        return newValue.compareTo(currentMin) < 0 ? newValue : currentMin;
-    }
-
-    /**
-     * Обновляет максимальное значение
-     */
-    private BigDecimal updateMax(BigDecimal currentMax, BigDecimal newValue) {
-        if (currentMax == null) return newValue;
-        return newValue.compareTo(currentMax) > 0 ? newValue : currentMax;
     }
 
     /**
@@ -200,9 +156,9 @@ public class PairDataService {
         pairDataRepository.delete(pairData);
     }
 
-    public int excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
+    public void excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
-            return 0;
+            return;
         }
 
         // Получаем список уже торгующихся пар
@@ -218,7 +174,6 @@ public class PairDataService {
             String key = buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker());
             return tradingSet.contains(key);
         });
-        return zScoreDataList.size();
     }
 
     // Приватный метод для создания уникального ключа пары, независимо от порядка
@@ -236,6 +191,7 @@ public class PairDataService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    @Deprecated
     public void addCurrentPricesFromCandles(PairData pairData, Map<String, List<Candle>> candlesMap) {
         List<Candle> longTickerCandles = candlesMap.get(pairData.getLongTicker());
         List<Candle> shortTickerCandles = candlesMap.get(pairData.getShortTicker());
@@ -265,10 +221,6 @@ public class PairDataService {
                 pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
                 pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
                 pairData.getZScoreEntry());
-    }
-
-    public void updateChangesFromOpenPositions(PairData pairData) {
-        calculateChangesService.getChangesDataFromOpenPositions(pairData); //todo сделать по красоте - возвращать дто и сетить в пару
     }
 
     public void addChanges(PairData pairData) {
