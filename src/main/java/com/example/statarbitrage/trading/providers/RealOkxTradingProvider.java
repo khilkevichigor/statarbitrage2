@@ -360,6 +360,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Рассчитываем комиссии за закрытие
             BigDecimal closingFees = calculateFees(position.getAllocatedAmount(), position.getLeverage());
+            position.setClosingFees(closingFees);
             BigDecimal totalFees = position.getOpeningFees().add(closingFees);
 
             // Финальный PnL с учетом комиссий
