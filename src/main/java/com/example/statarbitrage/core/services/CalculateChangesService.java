@@ -37,12 +37,7 @@ public class CalculateChangesService {
                 return new ChangesData();
             }
 
-            Position longPosition = positionsInfo.getLongPosition();
-            Position shortPosition = positionsInfo.getShortPosition();
-
-            boolean isOpenPositions = longPosition.isOpen() && shortPosition.isOpen();
-
-            return getFromPositions(pairData, longPosition, shortPosition, isOpenPositions);
+            return getFromPositions(pairData, positionsInfo);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении данных из позиций для пары {}/{}: {}",
@@ -54,26 +49,31 @@ public class CalculateChangesService {
     /**
      * Общий метод обновления данных из открытых позиций
      */
-    private ChangesData getFromPositions(PairData pairData, Position longPosition, Position shortPosition,
-                                         boolean isOpenPositions) {
+    private ChangesData getFromPositions(PairData pairData, PositionVerificationResult positionsInfo) {
+
+        Position longPosition = positionsInfo.getLongPosition();
+        Position shortPosition = positionsInfo.getShortPosition();
+        boolean isPositionsClosed = positionsInfo.isPositionsClosed();
 
         ChangesData changesData = new ChangesData();
 
-        changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
+        //todo возможно тут нужно разделять расчет для OPEN/CLOSE позиций
+
+        changesData.setLongCurrentPrice(longPosition.getCurrentPrice()); //todo проверить что есть такое
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
 
         // Рассчитываем текущий нереализованный профит
-        BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+        BigDecimal totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL()); //todo см как в Position
         BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
 
-        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, isOpenPositions);
+        return getProfitAndStatistics(pairData, changesData, totalPnL, totalFees, isPositionsClosed);
     }
 
     /**
      * Общий метод обновления профита и статистики
      */
     private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal totalPnL, BigDecimal totalFees,
-                                               boolean isOpenPositions) {
+                                               boolean isPositionsClosed) {
 
         BigDecimal netPnL = totalPnL.subtract(totalFees);
 
@@ -87,7 +87,7 @@ public class CalculateChangesService {
         changesData.setProfitChanges(profitPercent);
 
         log.info("Получен профит из {}: {}/{}: {}% (PnL: {}, комиссии: {})",
-                isOpenPositions ? "открытых позиций" : "закрытых позиций", pairData.getLongTicker(), pairData.getShortTicker(),
+                isPositionsClosed ? "закрытых позиций" : "открытых позиций", pairData.getLongTicker(), pairData.getShortTicker(),
                 profitPercent, totalPnL, totalFees);
 
         // Обновляем статистику и экстремумы

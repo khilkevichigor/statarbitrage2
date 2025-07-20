@@ -376,12 +376,47 @@ public class TradingIntegrationService {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
 
         // Обновляем актуальную информацию с биржи
-        provider.updatePositionPrices();
+        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
         Position longPosition = provider.getPosition(longPositionId);
         Position shortPosition = provider.getPosition(shortPositionId);
 
+        boolean longClosed = (longPosition == null || longPosition.getStatus() == PositionStatus.CLOSED);
+        boolean shortClosed = (shortPosition == null || shortPosition.getStatus() == PositionStatus.CLOSED);
+
+        if (longClosed && shortClosed) {
+
+            //todo возможно здесь не нужно считать totalPnL тк считаем в CalculateChangesService
+
+            // Рассчитываем финальный PnL если позиции закрыты
+            BigDecimal totalPnL = BigDecimal.ZERO;
+            if (longPosition != null) {
+                longPosition.calculateUnrealizedPnL();
+                totalPnL = totalPnL.add(longPosition.getUnrealizedPnL());
+            }
+            if (shortPosition != null) {
+                shortPosition.calculateUnrealizedPnL();
+                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnL());
+            }
+
+            // Удаляем из локального реестра если обе позиции закрыты
+            pairToLongPositionMap.remove(pairData.getId());
+            pairToShortPositionMap.remove(pairData.getId());
+            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
+
+            return PositionVerificationResult.builder()
+                    .positionsClosed(true)
+                    .longPosition(longPosition)
+                    .shortPosition(shortPosition)
+                    .totalPnL(totalPnL)
+                    .build();
+        }
+
+        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}",
+                longClosed, shortClosed);
         return PositionVerificationResult.builder()
+                .positionsClosed(false)
                 .longPosition(longPosition)
                 .shortPosition(shortPosition)
                 .build();
