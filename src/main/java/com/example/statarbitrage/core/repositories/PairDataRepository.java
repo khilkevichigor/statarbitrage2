@@ -14,17 +14,27 @@ import java.util.List;
 @Repository
 public interface PairDataRepository extends JpaRepository<PairData, Long> {
     // 1. Сортировка по entryTime (от новых к старым)
-    @Query("SELECT p FROM PairData p WHERE p.status = :status ORDER BY p.entryTime DESC")
+    @Query("SELECT p " +
+            "FROM PairData p " +
+            "WHERE p.status = :status " +
+            "ORDER BY p.entryTime DESC")
     List<PairData> findAllByStatusOrderByEntryTimeDesc(@Param("status") TradeStatus status);
 
-    @Query("SELECT p FROM PairData p WHERE p.status = :status ORDER BY p.updatedTime DESC")
+    @Query("SELECT p " +
+            "FROM PairData p " +
+            "WHERE p.status = :status " +
+            "ORDER BY p.updatedTime DESC")
     List<PairData> findAllByStatusOrderByUpdatedTimeDesc(@Param("status") TradeStatus status);
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM PairData p WHERE p.status = :status")
+    @Query("DELETE " +
+            "FROM PairData p " +
+            "WHERE p.status = :status")
     int deleteAllByStatus(@Param("status") TradeStatus status);
 
-    @Query("SELECT COUNT(p) FROM PairData p WHERE p.status = :status")
+    @Query("SELECT COUNT(p) " +
+            "FROM PairData p " +
+            "WHERE p.status = :status")
     int countByStatus(@Param("status") TradeStatus status);
 }
