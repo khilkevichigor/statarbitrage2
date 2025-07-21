@@ -1,6 +1,6 @@
 package com.example.statarbitrage.ui.components;
 
-import com.example.statarbitrage.common.dto.TradeStatisticsDto;
+import com.example.statarbitrage.common.dto.TradePairsStatisticsDto;
 import com.example.statarbitrage.common.utils.NumberFormatter;
 import com.example.statarbitrage.core.services.StatisticsService;
 import com.vaadin.flow.component.grid.Grid;
@@ -45,10 +45,11 @@ public class StatisticsComponent extends VerticalLayout {
 
     public void updateStatistics() {
         try {
-            TradeStatisticsDto stats = statisticsService.collectStatistics();
+            TradePairsStatisticsDto stats = statisticsService.collectStatistics();
 
             List<StatisticRow> rows = List.of(
-                    new StatisticRow("Сделки", stats.getTradesToday(), stats.getTradesTotal()),
+                    new StatisticRow("Пары с ошибками", stats.getTradePairsWithErrorToday(), stats.getTradePairsWithErrorTotal()),
+                    new StatisticRow("Торгуемые пары", stats.getTradePairsToday(), stats.getTradePairsTotal()),
                     new StatisticRow("Avg Профит (%)", NumberFormatter.format(stats.getAvgProfitToday()), NumberFormatter.format(stats.getAvgProfitTotal())),
                     new StatisticRow("Сумма Профита (%)", NumberFormatter.format(stats.getSumProfitToday()), NumberFormatter.format(stats.getSumProfitTotal())),
                     new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),

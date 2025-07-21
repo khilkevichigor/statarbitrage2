@@ -11,9 +11,13 @@ import java.math.BigDecimal;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TradeStatisticsDto {
-    private long tradesToday;
-    private long tradesTotal;
+public class TradePairsStatisticsDto {
+
+    private long tradePairsWithErrorToday;
+    private long tradePairsWithErrorTotal;
+
+    private long tradePairsToday;
+    private long tradePairsTotal;
 
     private BigDecimal avgProfitToday;
     private BigDecimal avgProfitTotal;

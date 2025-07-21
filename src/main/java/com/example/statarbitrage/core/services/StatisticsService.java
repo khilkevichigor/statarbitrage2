@@ -1,6 +1,6 @@
 package com.example.statarbitrage.core.services;
 
-import com.example.statarbitrage.common.dto.TradeStatisticsDto;
+import com.example.statarbitrage.common.dto.TradePairsStatisticsDto;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.repositories.TradeHistoryRepository;
@@ -31,7 +31,7 @@ public class StatisticsService {
         log.info("🧹 Удалено {} незавершённых трейдов", deleted);
     }
 
-    public TradeStatisticsDto collectStatistics() {
+    public TradePairsStatisticsDto collectStatistics() {
         BigDecimal unrealized = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(PairData::getProfitChanges)
                 .filter(Objects::nonNull)
@@ -41,10 +41,13 @@ public class StatisticsService {
 
         BigDecimal combined = unrealized.add(realized);
 
-        return TradeStatisticsDto.builder()
+        return TradePairsStatisticsDto.builder()
 
-                .tradesToday(tradeHistoryRepository.getTradesToday())
-                .tradesTotal(tradeHistoryRepository.getTradesTotal())
+                .tradePairsWithErrorToday(tradeHistoryRepository.getByStatusForToday(TradeStatus.ERROR))
+                .tradePairsWithErrorTotal(tradeHistoryRepository.getByStatusTotal(TradeStatus.ERROR))
+
+                .tradePairsToday(tradeHistoryRepository.getTradesToday())
+                .tradePairsTotal(tradeHistoryRepository.getTradesTotal())
 
                 .avgProfitToday(tradeHistoryRepository.getAvgProfitToday())
                 .avgProfitTotal(tradeHistoryRepository.getAvgProfitTotal())
