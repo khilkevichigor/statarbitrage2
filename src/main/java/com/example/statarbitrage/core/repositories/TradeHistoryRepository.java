@@ -17,51 +17,48 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM TradeHistory t WHERE t.exitReason IS NULL")
+    @Query("DELETE " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason IS NULL")
     int deleteUnfinishedTrades();
 
-    @Query("SELECT t FROM TradeHistory t WHERE t.longTicker = :longTicker AND t.shortTicker = :shortTicker ORDER BY t.timestamp DESC")
+    @Query("SELECT t " +
+            "FROM TradeHistory t " +
+            "WHERE t.longTicker = :longTicker " +
+            "AND t.shortTicker = :shortTicker " +
+            "ORDER BY t.timestamp DESC")
     Optional<TradeHistory> findLatestByTickers(@Param("longTicker") String longTicker, @Param("shortTicker") String shortTicker);
 
-    @Query(value =
-            "SELECT t " +
-                    "FROM TradeHistory t " +
-                    "WHERE t.pairUuid = :uuid " +
-                    "ORDER BY t.timestamp DESC")
+    @Query("SELECT t " +
+            "FROM TradeHistory t " +
+            "WHERE t.pairUuid = :uuid " +
+            "ORDER BY t.timestamp DESC")
     Optional<TradeHistory> findLatestByUuid(@Param("uuid") String uuid);
 
-    //    @Query("SELECT COUNT(*) " +
-//                    "FROM TradeHistory t " +
-//                    "WHERE SUBSTR(t.entryTime, 1, 10) = DATE('now', 'localtime')")
     @Query("SELECT COUNT(*) " +
             "FROM TradeHistory t " +
             "WHERE DATE(t.entryTime) = DATE('now', 'localtime')")
     Long getTradesToday();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM Trade_History", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t")
     Long getTradesTotal();
 
-    @Query(value =
-            "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
-                    "FROM Trade_History " +
-                    "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime') " +
-                    "AND EXIT_REASON IS NOT NULL",
-            nativeQuery = true)
+    @Query("SELECT SUM(t.currentProfitPercent) " +
+            "FROM TradeHistory t " +
+            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "AND t.exitReason IS NOT NULL")
     BigDecimal getSumProfitToday();
 
-    @Query(value =
-            "SELECT SUM(t.currentProfitPercent) " +
-                    "FROM TradeHistory t " +
-                    "WHERE t.exitReason IS NOT NULL")
+    @Query("SELECT SUM(t.currentProfitPercent) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason IS NOT NULL")
     BigDecimal getSumProfitTotal();
 
-    @Query(value =
-            "SELECT AVG(t.currentProfitPercent) " +
-                    "FROM TradeHistory t " +
-                    "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
-                    "AND t.exitReason IS NOT NULL")
+    @Query("SELECT AVG(t.currentProfitPercent) " +
+            "FROM TradeHistory t " +
+            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "AND t.exitReason IS NOT NULL")
     BigDecimal getAvgProfitToday();
 
     @Query("SELECT AVG(t.currentProfitPercent) " +
@@ -69,11 +66,10 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "WHERE t.exitReason IS NOT NULL")
     BigDecimal getAvgProfitTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP' " +
-                    "AND DATE(ENTRY_TIME) = DATE('now')", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_STOP' " +
+            "AND DATE(t.entryTime) = DATE('now')")
     Long getExitByStopToday();
 
     @Query(value = "SELECT COUNT(*) " +
@@ -81,65 +77,55 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "WHERE EXIT_REASON = 'EXIT_REASON_BY_STOP'", nativeQuery = true)
     Long getExitByStopTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE' " +
-                    "AND DATE(ENTRY_TIME) = DATE('now')", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_TAKE' " +
+            "AND DATE(t.entryTime) = DATE('now')")
     Long getExitByTakeToday();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TAKE'", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_TAKE'")
     Long getExitByTakeTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_Z_MIN' AND CAST(PARSEDATETIME(t.entryTime, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE")
     Long getExitByZMinToday();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MIN'", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_Z_MIN'")
     Long getExitByZMinTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_Z_MAX' AND CAST(PARSEDATETIME(t.entryTime, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE")
     Long getExitByZMaxToday();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_Z_MAX'", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_Z_MAX'")
     Long getExitByZMaxTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_TIME' AND CAST(PARSEDATETIME(t.entryTime, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE")
     Long getExitByTimeToday();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_TIME'", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_TIME'")
     Long getExitByTimeTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_MANUALLY' AND CAST(PARSEDATETIME(ENTRY_TIME, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_MANUALLY' AND CAST(PARSEDATETIME(t.entryTime, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE")
     Long getExitByManuallyToday();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON = 'EXIT_REASON_BY_MANUALLY'", nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason = 'EXIT_REASON_BY_MANUALLY'")
     Long getExitByManuallyTotal();
 
     @Query(value =
@@ -157,6 +143,9 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             nativeQuery = true)
     Long getExitByTotal(@Param("reason") String reason);
 
-    @Query("SELECT COALESCE(SUM(p.profitChanges), 0) FROM PairData p WHERE p.status = 'CLOSED'")
+    @Query("SELECT " +
+            "COALESCE(SUM(p.profitChanges), 0) " +
+            "FROM PairData p " +
+            "WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfit();
 }
