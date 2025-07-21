@@ -29,7 +29,7 @@ public class StartNewTradeProcessor {
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
-    private final TradeLogService tradeLogService;
+    private final TradeHistoryService tradeHistoryService;
     private final StartNewTradeValidationService startNewTradeValidationService;
 
     @Transactional
@@ -127,7 +127,7 @@ public class StartNewTradeProcessor {
 
         pairDataService.save(pairData);
 
-        tradeLogService.updateTradeLog(pairData, settings);
+        tradeHistoryService.updateTradeLog(pairData, settings);
 
         return pairData;
     }

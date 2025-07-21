@@ -26,7 +26,7 @@ public class UpdateTradeProcessor {
     private final PairDataService pairDataService;
     private final CandlesService candlesService;
     private final SettingsService settingsService;
-    private final TradeLogService tradeLogService;
+    private final TradeHistoryService tradeHistoryService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
@@ -67,7 +67,7 @@ public class UpdateTradeProcessor {
         }
 
         pairDataService.save(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
+        tradeHistoryService.updateTradeLog(pairData, settings);
         return pairData;
     }
 
@@ -116,7 +116,7 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
         pairDataService.addChanges(pairData);
         pairDataService.save(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
+        tradeHistoryService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
@@ -154,7 +154,7 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(exitReason);
         pairDataService.addChanges(pairData);
         pairDataService.save(pairData);
-        tradeLogService.updateTradeLog(pairData, settings);
+        tradeHistoryService.updateTradeLog(pairData, settings);
         return pairData;
     }
 

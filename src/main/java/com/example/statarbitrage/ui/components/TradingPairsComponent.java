@@ -6,7 +6,7 @@ import com.example.statarbitrage.common.utils.NumberFormatter;
 import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
-import com.example.statarbitrage.core.services.TradeLogService;
+import com.example.statarbitrage.core.services.TradeHistoryService;
 import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
@@ -35,7 +35,7 @@ public class TradingPairsComponent extends VerticalLayout {
     private final PairDataService pairDataService;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
-    private final TradeLogService tradeLogService;
+    private final TradeHistoryService tradeHistoryService;
     private final ZScoreChartDialog zScoreChartDialog;
 
     private final Grid<PairData> selectedPairsGrid;
@@ -50,12 +50,12 @@ public class TradingPairsComponent extends VerticalLayout {
     public TradingPairsComponent(PairDataService pairDataService,
                                  StartNewTradeProcessor startNewTradeProcessor,
                                  UpdateTradeProcessor updateTradeProcessor,
-                                 TradeLogService tradeLogService,
+                                 TradeHistoryService tradeHistoryService,
                                  ZScoreChartDialog zScoreChartDialog, TradingProviderFactory tradingProviderFactory) {
         this.pairDataService = pairDataService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
-        this.tradeLogService = tradeLogService;
+        this.tradeHistoryService = tradeHistoryService;
         this.zScoreChartDialog = zScoreChartDialog;
         this.tradingProviderFactory = tradingProviderFactory;
 

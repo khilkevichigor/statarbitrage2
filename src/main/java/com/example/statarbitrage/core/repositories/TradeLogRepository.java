@@ -1,6 +1,6 @@
 package com.example.statarbitrage.core.repositories;
 
-import com.example.statarbitrage.common.model.TradeLog;
+import com.example.statarbitrage.common.model.TradeHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,8 +11,8 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 @Repository
-public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
-    Optional<TradeLog> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
+public interface TradeLogRepository extends JpaRepository<TradeHistory, Long> {
+    Optional<TradeHistory> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
 
     @Modifying
     @Query(value =
@@ -23,11 +23,11 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, Long> {
 
     @Query(value =
             "SELECT t " +
-                    "FROM TradeLog t " +
+                    "FROM TradeHistory t " +
                     "WHERE t.longTicker = :longTicker " +
                     "AND t.shortTicker = :shortTicker " +
                     "ORDER BY t.timestamp DESC")
-    Optional<TradeLog> findLatestByTickers(@Param("longTicker") String longTicker, @Param("shortTicker") String shortTicker);
+    Optional<TradeHistory> findLatestByTickers(@Param("longTicker") String longTicker, @Param("shortTicker") String shortTicker);
 
     @Query(value =
             "SELECT COUNT(*) " +

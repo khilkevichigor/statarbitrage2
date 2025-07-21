@@ -22,7 +22,7 @@ public class StatisticsService {
 
     private final TradeLogRepository tradeLogRepository;
     private final PairDataService pairDataService;
-    private final TradeLogService tradeLogService;
+    private final TradeHistoryService tradeHistoryService;
 
     @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще
     @Transactional
@@ -37,7 +37,7 @@ public class StatisticsService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal realized = Optional.ofNullable(tradeLogService.getSumRealizedProfit()).orElse(BigDecimal.ZERO);
+        BigDecimal realized = Optional.ofNullable(tradeHistoryService.getSumRealizedProfit()).orElse(BigDecimal.ZERO);
 
         BigDecimal combined = unrealized.add(realized);
 
