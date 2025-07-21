@@ -142,7 +142,12 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
                     "WHERE EXIT_REASON = 'EXIT_REASON_BY_MANUALLY'", nativeQuery = true)
     Long getExitByManuallyTotal();
 
-    @Query("SELECT COUNT(*) FROM PairData p WHERE p.exitReason = :reason AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
+    @Query(value =
+            "SELECT COUNT(*) " +
+                    "FROM PairData " +//todo wrong table
+                    "WHERE EXIT_REASON = :reason " +
+                    "AND DATE(DATETIME(ENTRY_TIME / 1000, 'unixepoch')) = DATE('now')",
+            nativeQuery = true)
     Long getExitByToday(@Param("reason") String reason);
 
     @Query(value =
