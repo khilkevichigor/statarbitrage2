@@ -30,43 +30,43 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
                     "ORDER BY t.timestamp DESC")
     Optional<TradeHistory> findLatestByUuid(@Param("uuid") String uuid);
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM TradeHistory " +
-                    "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime')", nativeQuery = true)
+    //    @Query("SELECT COUNT(*) " +
+//                    "FROM TradeHistory t " +
+//                    "WHERE SUBSTR(t.entryTime, 1, 10) = DATE('now', 'localtime')")
+    @Query("SELECT COUNT(*) " +
+            "FROM TradeHistory t " +
+            "WHERE DATE(t.entryTime) = DATE('now', 'localtime')")
     Long getTradesToday();
 
     @Query(value =
             "SELECT COUNT(*) " +
-                    "FROM TradeHistory", nativeQuery = true)
+                    "FROM Trade_History", nativeQuery = true)
     Long getTradesTotal();
 
     @Query(value =
             "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
-                    "FROM TradeHistory " +
+                    "FROM Trade_History " +
                     "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime') " +
                     "AND EXIT_REASON IS NOT NULL",
             nativeQuery = true)
     BigDecimal getSumProfitToday();
 
     @Query(value =
-            "SELECT SUM(CURRENT_PROFIT_PERCENT) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON IS NOT NULL",
-            nativeQuery = true)
+            "SELECT SUM(t.currentProfitPercent) " +
+                    "FROM TradeHistory t " +
+                    "WHERE t.exitReason IS NOT NULL")
     BigDecimal getSumProfitTotal();
 
     @Query(value =
-            "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
-                    "FROM TradeHistory " +
-                    "WHERE SUBSTR(ENTRY_TIME, 1, 10) = DATE('now', 'localtime') " +
-                    "AND EXIT_REASON IS NOT NULL", nativeQuery = true)
+            "SELECT AVG(t.currentProfitPercent) " +
+                    "FROM TradeHistory t " +
+                    "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+                    "AND t.exitReason IS NOT NULL")
     BigDecimal getAvgProfitToday();
 
-    @Query(value =
-            "SELECT AVG(CURRENT_PROFIT_PERCENT) " +
-                    "FROM TradeHistory " +
-                    "WHERE EXIT_REASON IS NOT NULL", nativeQuery = true)
+    @Query("SELECT AVG(t.currentProfitPercent) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason IS NOT NULL")
     BigDecimal getAvgProfitTotal();
 
     @Query(value =
@@ -144,7 +144,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value =
             "SELECT COUNT(*) " +
-                    "FROM PairData " +//todo wrong table
+                    "FROM Pair_Data " +//todo wrong table
                     "WHERE EXIT_REASON = :reason " +
                     "AND DATE(DATETIME(ENTRY_TIME / 1000, 'unixepoch')) = DATE('now')",
             nativeQuery = true)
@@ -152,15 +152,11 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value =
             "SELECT COUNT(*) " +
-                    "FROM PairData " +//todo wrong table
+                    "FROM Pair_Data " +//todo wrong table
                     "WHERE EXIT_REASON = :reason",
             nativeQuery = true)
     Long getExitByTotal(@Param("reason") String reason);
 
-    @Query(value =
-            "SELECT COALESCE(SUM(profit_changes), 0) " +
-                    "FROM PairData " + //todo wrong table
-                    "WHERE STATUS = 'CLOSED'",
-            nativeQuery = true)
+    @Query("SELECT COALESCE(SUM(p.profitChanges), 0) FROM PairData p WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfit();
 }
