@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -14,19 +15,12 @@ import java.util.Optional;
 public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long> {
     Optional<TradeHistory> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
 
-    @Modifying
-    @Query(value =
-            "DELETE " +
-                    "FROM trade_history " +
-                    "WHERE exit_reason IS NULL", nativeQuery = true)
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM TradeHistory t WHERE t.exitReason IS NULL")
     int deleteUnfinishedTrades();
 
-    @Query(value =
-            "SELECT t " +
-                    "FROM TradeHistory t " +
-                    "WHERE t.longTicker = :longTicker " +
-                    "AND t.shortTicker = :shortTicker " +
-                    "ORDER BY t.timestamp DESC")
+    @Query("SELECT t FROM TradeHistory t WHERE t.longTicker = :longTicker AND t.shortTicker = :shortTicker ORDER BY t.timestamp DESC")
     Optional<TradeHistory> findLatestByTickers(@Param("longTicker") String longTicker, @Param("shortTicker") String shortTicker);
 
     @Query(value =
