@@ -313,7 +313,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
     @Override
     public void updatePositionPrices(List<String> tickers) {
-        //
+        log.warn("Заглушка обновления цен позиции для виртуальной торговли!");
     }
 
     @Override
