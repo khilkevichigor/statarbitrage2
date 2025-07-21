@@ -114,7 +114,7 @@ public class PairDataService {
      * Критично для правильного срабатывания тейк-профита и стоп-лосса
      */
     @Deprecated
-    public void updateCurrentProfitBeforeExitCheck(PairData pairData) {
+    public void updateCurrentProfitBeforeExitCheck(PairData pairData) { //todo delete
         try {
             // Сначала обновляем цены позиций с биржи для актуальных данных
             tradingIntegrationService.updatePositions(List.of(pairData.getLongTicker(), pairData.getShortTicker()));

@@ -20,23 +20,6 @@ public class ZScoreService {
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
 
-    /**
-     * Считает Z для всех пар из свечей.
-     */
-    private List<ZScoreData> calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, boolean excludeExistingPairs) {
-        List<ZScoreData> rawZScoreDataList = pythonRestClient.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
-        if (rawZScoreDataList == null || rawZScoreDataList.isEmpty()) {
-            log.warn("⚠️ ZScoreService: получен пустой список от Python");
-            return Collections.emptyList();
-        }
-        checkZScoreParamsSize(rawZScoreDataList);
-        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
-        if (excludeExistingPairs) {
-            pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
-        }
-        return rawZScoreDataList;
-    }
-
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
         log.info("🔍 Проверка ZScore данных:");
         for (ZScoreData z : rawZScoreList) {
@@ -193,6 +176,26 @@ public class ZScoreService {
         return zScoreData;
     }
 
+    /**
+     * Считает Z для всех пар из свечей.
+     */
+    private List<ZScoreData> calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, boolean excludeExistingPairs) {
+
+        // Получение коинтеграции
+        List<ZScoreData> rawZScoreDataList = pythonRestClient.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
+
+        if (rawZScoreDataList == null || rawZScoreDataList.isEmpty()) {
+            log.warn("⚠️ ZScoreService: получен пустой список от Python");
+            return Collections.emptyList();
+        }
+        checkZScoreParamsSize(rawZScoreDataList);
+        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
+        if (excludeExistingPairs) {
+            pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
+        }
+        return rawZScoreDataList;
+    }
+
     public Optional<ZScoreData> calculateZScoreDataForNewTrade(PairData pairData, Settings settings, Map<String, List<Candle>> candlesMap) {
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
@@ -268,33 +271,33 @@ public class ZScoreService {
         String undervalued = best.getUndervaluedTicker();
 
         if (overvalued == null || undervalued == null) {
-            throw new IllegalArgumentException("Tickers in 'best' are not initialized");
+            throw new IllegalArgumentException("Тикеры в объекте 'best' не инициализированы");
         }
 
-        log.info("🔍 Preparing pair analysis for: {} (undervalued) / {} (overvalued)", undervalued, overvalued);
+        log.info("🔍 Подготовка парного анализа для: {} (undervalued) / {} (overvalued)", undervalued, overvalued);
 
         // Создаём новую карту только с нужными тикерами в правильном порядке
         Map<String, List<Candle>> filteredCandlesMap = new LinkedHashMap<>();
 
         // Проверяем наличие данных для каждого тикера
         if (!candlesMap.containsKey(undervalued)) {
-            throw new IllegalArgumentException("Missing candles data for undervalued ticker: " + undervalued);
+            throw new IllegalArgumentException("Отсутствуют данные свечей для undervalued тикера: " + undervalued);
         }
         if (!candlesMap.containsKey(overvalued)) {
-            throw new IllegalArgumentException("Missing candles data for overvalued ticker: " + overvalued);
+            throw new IllegalArgumentException("Отсутствуют данные свечей для overvalued тикера: " + overvalued);
         }
 
         // Добавляем тикеры в определённом порядке
         filteredCandlesMap.put(undervalued, candlesMap.get(undervalued));
         filteredCandlesMap.put(overvalued, candlesMap.get(overvalued));
 
-        log.info("📊 Filtered candles map contains {} tickers: {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
+        log.info("📊 Отфильтрованная мапа свечей содержит {} тикеров: {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
 
         // Передаём отфильтрованные данные в Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(filteredCandlesMap, settings, true);
 
         if (zScoreData.getLatest_zscore() < 0) {
-            String message = String.format("Последний Z {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatest_zscore(), undervalued, overvalued);
+            String message = String.format("Последний Z-скор {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatest_zscore(), undervalued, overvalued);
             log.error(message);
             throw new IllegalStateException(message);
         }

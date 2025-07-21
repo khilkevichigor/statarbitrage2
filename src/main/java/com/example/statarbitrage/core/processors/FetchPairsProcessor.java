@@ -125,7 +125,7 @@ public class FetchPairsProcessor {
 
     private void logCompletionStats(List<PairData> topPairs, long startTime) {
         long endTime = System.currentTimeMillis();
-        log.info("Создали {} новых PairData", topPairs.size());
+        log.info("Создали новых PairData: {{}}", topPairs.size());
         log.info("✅ Поиск пар завершен за {}с",
                 String.format("%.2f", (endTime - startTime) / 1000.0));
     }
