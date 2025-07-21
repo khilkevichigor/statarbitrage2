@@ -412,8 +412,8 @@ public class TradingIntegrationService {
                     .build();
         }
 
-        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}",
-                longClosed, shortClosed);
+//        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}", //todo сбивает с толку в логах
+//                longClosed, shortClosed);
         return Positioninfo.builder()
                 .positionsClosed(false)
                 .longPosition(longPosition)
