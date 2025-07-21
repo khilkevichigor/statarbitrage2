@@ -161,7 +161,7 @@ public class OkxClient {
         // Используем 5 потоков для соблюдения лимитов OKX API
         int threadCount = 5;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        log.info("🚀 Запускаем загрузку свечей в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
+        log.info("🔽 Запускаем загрузку свечей в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
         Map<String, List<Candle>> candlesMap = Collections.synchronizedMap(new LinkedHashMap<>()); //важен порядок чтобы скрипт не менял свечи и знак z
         if (isSorted) {
             swapTickers = swapTickers.stream().sorted().toList();
@@ -224,7 +224,7 @@ public class OkxClient {
         // Используем 5 потоков для соблюдения лимитов OKX API
         int threadCount = 5;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        log.info("🚀 Запускаем валидацию тикеров в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
+        log.info("🔍 Запускаем валидацию тикеров в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
         List<String> result = Collections.synchronizedList(new ArrayList<>());
         int volumeAverageCount = 2; // можно сделать настраиваемым
         int candleLimit = (int) limit;

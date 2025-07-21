@@ -204,13 +204,13 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             tradeHistory.add(result);
 
-            log.info("🟢 Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
+            log.info("✅ Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     symbol, positionSize, currentPrice, orderId);
 
             return result;
 
         } catch (Exception e) {
-            log.error("Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
+            log.error("❌ Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
             return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
         }
     }
@@ -312,13 +312,13 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             tradeHistory.add(result);
 
-            log.info("🔴 Открыта SHORT позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
+            log.info("✅ Открыта SHORT позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     symbol, positionSize, currentPrice, orderId);
 
             return result;
 
         } catch (Exception e) {
-            log.error("Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
+            log.error("❌ Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
             return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, e.getMessage());
         }
     }

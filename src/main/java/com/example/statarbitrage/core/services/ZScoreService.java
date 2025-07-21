@@ -291,7 +291,7 @@ public class ZScoreService {
         filteredCandlesMap.put(undervalued, candlesMap.get(undervalued));
         filteredCandlesMap.put(overvalued, candlesMap.get(overvalued));
 
-        log.info("📊 Отфильтрованная мапа свечей содержит {} тикеров: {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
+        log.info("📊 Отфильтрованная мапа свечей содержит тикеров: {{}} {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
 
         // Передаём отфильтрованные данные в Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(filteredCandlesMap, settings, true);

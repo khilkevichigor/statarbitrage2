@@ -68,7 +68,7 @@ public class TradingIntegrationService {
                 log.info("💡 Адаптивное распределение: LONG ${}, SHORT ${}", longAmount, shortAmount);
 
                 // Открываем позиции ПОСЛЕДОВАТЕЛЬНО и СИНХРОННО
-                log.info("🔵 Открытие LONG позиции: {} с размером {}", pairData.getLongTicker(), longAmount);
+                log.info("🟢 Открытие LONG позиции: {} с размером {}", pairData.getLongTicker(), longAmount);
                 TradeResult longResult = provider.openLongPosition(pairData.getLongTicker(), longAmount, leverage);
 
                 if (!longResult.isSuccess()) {

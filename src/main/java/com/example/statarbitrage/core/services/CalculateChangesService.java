@@ -235,28 +235,13 @@ public class CalculateChangesService {
      * Логирует финальные результаты
      */
     private void logFinalResults(PairData pairData, ChangesData changesData) {
-        log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("Финальное обновление изменений для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
                 pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
                 pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
         log.info("💰 Текущий профит: {}%", changesData.getProfitChanges());
         log.info("📈 Max profit: {}%, Min profit: {}%", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
-    }
-
-    /**
-     * Записи для хранения промежуточных данных расчетов
-     */
-    private record PercentageChanges(
-            BigDecimal longReturnRounded,
-            BigDecimal shortReturnRounded,
-            BigDecimal zScoreRounded,
-            BigDecimal longReturnPct,
-            BigDecimal shortReturnPct,
-            BigDecimal longEntry,
-            BigDecimal shortEntry,
-            BigDecimal longCurrent,
-            BigDecimal shortCurrent) {
     }
 
     private record ProfitExtremums(

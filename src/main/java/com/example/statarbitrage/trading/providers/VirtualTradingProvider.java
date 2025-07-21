@@ -109,7 +109,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             tradeHistory.add(result);
 
-            log.info("🟢 Открыта LONG позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
+            log.info("✅ Открыта LONG позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
                     symbol, positionSize, currentPrice, fees);
 
             return result;
@@ -182,7 +182,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             tradeHistory.add(result);
 
-            log.info("🔴 Открыта SHORT позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
+            log.info("✅ Открыта SHORT позиция: {} | Размер: {} | Цена: {} | Комиссия: {}",
                     symbol, positionSize, currentPrice, fees);
 
             return result;
