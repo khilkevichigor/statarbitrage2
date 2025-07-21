@@ -31,7 +31,7 @@ public class CalculateChangesService {
             Positioninfo positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
-                log.warn("⚠️ Не удалось получить информацию о позициях для пары {}/{}",
+                log.warn("⚠️ Не удалось получить информацию о позициях для пары {} / {}",
                         pairData.getLongTicker(), pairData.getShortTicker());
                 return new ChangesData();
             }
@@ -39,7 +39,7 @@ public class CalculateChangesService {
             return getFromPositions(pairData, positionsInfo);
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из позиций для пары {}/{}: {}",
+            log.error("❌ Ошибка при обновлении данных из позиций для пары {} / {}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
         }
         return new ChangesData();
@@ -58,8 +58,10 @@ public class CalculateChangesService {
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
 
         if (isPositionsClosed) {
+            log.info("Позиции закрыты на бирже! Начинаем расчет изменений по закрытым позициям для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
             return getFromClosedPositions(pairData, changesData, longPosition, shortPosition);
         } else {
+            log.info("Позиции открыты на бирже! Начинаем расчет изменений по открытым позициям для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
             return getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
         }
     }
@@ -117,7 +119,7 @@ public class CalculateChangesService {
 
         changesData.setProfitChanges(profitPercent);
 
-        log.info("Получен профит из {}: {}/{}: {}% (PnL: {}, комиссии: {})",
+        log.info("Получен профит из {}: {} / {}: {}% (PnL: {}, комиссии: {})",
                 isPositionsClosed ? "закрытых позиций" : "открытых позиций", pairData.getLongTicker(), pairData.getShortTicker(),
                 profitPercent, totalPnL, totalFees);
 

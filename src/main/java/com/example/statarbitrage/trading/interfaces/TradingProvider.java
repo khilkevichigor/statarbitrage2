@@ -49,6 +49,11 @@ public interface TradingProvider {
      */
     Position getPosition(String positionId);
 
+//    /**
+//     * Открыты ли сделки по паре
+//     */
+//    boolean isPositionOpen(PairData pairData);
+
     /**
      * Обновление цен всех позиций - СИНХРОННО
      */

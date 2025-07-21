@@ -109,29 +109,6 @@ public class PairDataService {
         }
     }
 
-    /**
-     * Обновляет актуальный профит перед проверкой exit strategy
-     * Критично для правильного срабатывания тейк-профита и стоп-лосса
-     */
-    @Deprecated
-    public void updateCurrentProfitBeforeExitCheck(PairData pairData) { //todo delete
-        try {
-            // Сначала обновляем цены позиций с биржи для актуальных данных
-            tradingIntegrationService.updatePositions(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-
-            // Затем получаем реальный PnL для данной пары с актуальными ценами
-            BigDecimal realPnL = tradingIntegrationService.getPositionPnL(pairData);
-
-            pairData.setProfitChanges(realPnL);
-            log.info("💰 Сохранен пре профит для расчета exit: {}% для пары {}/{}",
-                    pairData.getProfitChanges(), pairData.getLongTicker(), pairData.getShortTicker());
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении профита перед проверкой exit strategy для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
-        }
-    }
-
     public void save(PairData pairData) {
         pairDataRepository.save(pairData);
     }

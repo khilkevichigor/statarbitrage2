@@ -413,6 +413,11 @@ public class RealOkxTradingProvider implements TradingProvider {
         return positions.get(positionId);
     }
 
+//    @Override
+//    public boolean isPositionOpen(PairData pairData) {
+//        return false;
+//    }
+
     @Override
     public void updatePositionPrices() {
         try {

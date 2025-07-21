@@ -85,7 +85,7 @@ public class UpdateTradeProcessor {
             return null;
         }
 
-        log.info("🚀 Начинаем обновление трейда для {} - {}",
+        log.info("🚀 Начинаем обновление трейда для {} / {}",
                 freshPairData.getLongTicker(), freshPairData.getShortTicker());
         return freshPairData;
     }
@@ -109,36 +109,42 @@ public class UpdateTradeProcessor {
             return handleTradeError(pairData, UpdateTradeErrorType.MANUAL_CLOSE_FAILED);
         }
 
-        log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
+        log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {} / {}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
-        pairDataService.addChanges(pairData);
+        addChangesAndRemovePairFromLocalStorage(pairData);
         pairDataService.save(pairData);
         tradeHistoryService.updateTradeLog(pairData, settings);
 
         return pairData;
     }
 
+    //добавляем changes и удаляет пару из реестра тк трейды уже закрыты
+    private void addChangesAndRemovePairFromLocalStorage(PairData pairData) {
+        pairDataService.addChanges(pairData);
+        tradingIntegrationService.removePairFromLocalStorage(pairData); //после расчета changes можно удалить связи
+    }
+
     private PairData handleNoOpenPositions(PairData pairData) {
-        log.info("ℹ️ Нет открытых позиций для пары {}/{}! Возможно они были закрыты вручную на бирже.",
+        log.info("ℹ️ Нет открытых позиций для пары {} / {}! Возможно они были закрыты вручную на бирже.",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
         if (verificationResult.isPositionsClosed()) {
-            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
+            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {} / {}, PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), verificationResult.getTotalPnL());
             return handleTradeError(pairData, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
         } else {
-            log.warn("⚠️ Позиции не найдены на бирже для пары {}/{}",
+            log.warn("⚠️ Позиции не найдены на бирже для пары {} / {}",
                     pairData.getLongTicker(), pairData.getShortTicker());
             return handleTradeError(pairData, UpdateTradeErrorType.POSITIONS_NOT_FOUND);
         }
     }
 
     private PairData handleAutoClose(PairData pairData, Settings settings, String exitReason) {
-        log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
+        log.info("🚪 Найдена причина для выхода из позиции: {} для пары {} / {}",
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
         ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
@@ -147,19 +153,19 @@ public class UpdateTradeProcessor {
             return handleTradeError(pairData, UpdateTradeErrorType.AUTO_CLOSE_FAILED);
         }
 
-        log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
+        log.info("✅ Успешно закрыта арбитражная пара: {} / {}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
-        pairDataService.addChanges(pairData);
+        addChangesAndRemovePairFromLocalStorage(pairData);
         pairDataService.save(pairData);
         tradeHistoryService.updateTradeLog(pairData, settings);
         return pairData;
     }
 
     private PairData handleTradeError(PairData pairData, UpdateTradeErrorType errorType) {
-        log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
+        log.error("❌ Ошибка: {} для пары {} / {}", errorType.getDescription(),
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.ERROR);
