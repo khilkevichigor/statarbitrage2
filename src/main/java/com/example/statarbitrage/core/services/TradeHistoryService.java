@@ -3,7 +3,7 @@ package com.example.statarbitrage.core.services;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeHistory;
-import com.example.statarbitrage.core.repositories.TradeLogRepository;
+import com.example.statarbitrage.core.repositories.TradeHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,41 +20,45 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class TradeHistoryService {
-    private final TradeLogRepository tradeLogRepository;
+    private final TradeHistoryRepository tradeHistoryRepository;
 
     public void updateTradeLog(PairData pairData, Settings settings) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
+        String pairDataUuid = pairData.getUuid();
 
-        // ищем по паре
-        Optional<TradeHistory> optional = tradeLogRepository.findLatestByTickers(longTicker, shortTicker);
+        // ищем по uuid
+        Optional<TradeHistory> optional = tradeHistoryRepository.findLatestByUuid(pairDataUuid);
 
         TradeHistory tradeHistory = optional.orElseGet(TradeHistory::new);
         tradeHistory.setLongTicker(longTicker);
         tradeHistory.setShortTicker(shortTicker);
+        tradeHistory.setPairUuid(pairDataUuid);
 
         // мапим поля
-        tradeHistory.setCurrentProfitPercent(pairData.getProfitChanges());
         tradeHistory.setMinProfitPercent(pairData.getMinProfitChanges());
         tradeHistory.setMinProfitMinutes(pairData.getTimeInMinutesSinceEntryToMin() + "min");
+
         tradeHistory.setMaxProfitPercent(pairData.getMaxProfitChanges());
         tradeHistory.setMaxProfitMinutes(pairData.getTimeInMinutesSinceEntryToMax() + "min");
 
-        tradeHistory.setCurrentLongPercent(pairData.getLongChanges());
+        tradeHistory.setCurrentProfitPercent(pairData.getProfitChanges());
+
         tradeHistory.setMinLongPercent(pairData.getMinLong());
         tradeHistory.setMaxLongPercent(pairData.getMaxLong());
+        tradeHistory.setCurrentLongPercent(pairData.getLongChanges());
 
-        tradeHistory.setCurrentShortPercent(pairData.getShortChanges());
         tradeHistory.setMinShortPercent(pairData.getMinShort());
         tradeHistory.setMaxShortPercent(pairData.getMaxShort());
+        tradeHistory.setCurrentShortPercent(pairData.getShortChanges());
 
-        tradeHistory.setCurrentZ(pairData.getZScoreCurrent());
         tradeHistory.setMinZ(pairData.getMinZ());
         tradeHistory.setMaxZ(pairData.getMaxZ());
+        tradeHistory.setCurrentZ(pairData.getZScoreCurrent());
 
-        tradeHistory.setCurrentCorr(pairData.getCorrelationCurrent());
         tradeHistory.setMinCorr(pairData.getMinCorr());
         tradeHistory.setMaxCorr(pairData.getMaxCorr());
+        tradeHistory.setCurrentCorr(pairData.getCorrelationCurrent());
 
         tradeHistory.setExitTake(settings.getExitTake());
         tradeHistory.setExitStop(settings.getExitStop());
@@ -76,14 +80,14 @@ public class TradeHistoryService {
         tradeHistory.setEntryTime(formattedEntryTime);
         tradeHistory.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-        tradeLogRepository.save(tradeHistory);
+        tradeHistoryRepository.save(tradeHistory);
     }
 
     public BigDecimal getSumRealizedProfit() {
-        return tradeLogRepository.getSumRealizedProfit();
+        return tradeHistoryRepository.getSumRealizedProfit();
     }
 
     public List<TradeHistory> getAll() {
-        return tradeLogRepository.findAll();
+        return tradeHistoryRepository.findAll();
     }
 }

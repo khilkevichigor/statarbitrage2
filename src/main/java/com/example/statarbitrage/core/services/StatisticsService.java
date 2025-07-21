@@ -3,7 +3,7 @@ package com.example.statarbitrage.core.services;
 import com.example.statarbitrage.common.dto.TradeStatisticsDto;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
-import com.example.statarbitrage.core.repositories.TradeLogRepository;
+import com.example.statarbitrage.core.repositories.TradeHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -20,14 +20,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StatisticsService {
 
-    private final TradeLogRepository tradeLogRepository;
+    private final TradeHistoryRepository tradeHistoryRepository;
     private final PairDataService pairDataService;
     private final TradeHistoryService tradeHistoryService;
 
     @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще
     @Transactional
     public void deleteUnfinishedTrades() { //очищаем чтобы бд была актуальной даже после стопа приложения с незавершенным трейдом
-        int deleted = tradeLogRepository.deleteUnfinishedTrades();
+        int deleted = tradeHistoryRepository.deleteUnfinishedTrades();
         log.info("🧹 Удалено {} незавершённых трейдов", deleted);
     }
 
@@ -43,32 +43,32 @@ public class StatisticsService {
 
         return TradeStatisticsDto.builder()
 
-                .tradesToday(tradeLogRepository.getTradesToday())
-                .tradesTotal(tradeLogRepository.getTradesTotal())
+                .tradesToday(tradeHistoryRepository.getTradesToday())
+                .tradesTotal(tradeHistoryRepository.getTradesTotal())
 
-                .avgProfitToday(tradeLogRepository.getAvgProfitToday())
-                .avgProfitTotal(tradeLogRepository.getAvgProfitTotal())
+                .avgProfitToday(tradeHistoryRepository.getAvgProfitToday())
+                .avgProfitTotal(tradeHistoryRepository.getAvgProfitTotal())
 
-                .sumProfitToday(tradeLogRepository.getSumProfitToday())
-                .sumProfitTotal(tradeLogRepository.getSumProfitTotal())
+                .sumProfitToday(tradeHistoryRepository.getSumProfitToday())
+                .sumProfitTotal(tradeHistoryRepository.getSumProfitTotal())
 
-                .exitByStopToday(tradeLogRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_STOP.name()))
-                .exitByStopTotal(tradeLogRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_STOP.name()))
+                .exitByStopToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_STOP.name()))
+                .exitByStopTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_STOP.name()))
 
-                .exitByTakeToday(tradeLogRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
-                .exitByTakeTotal(tradeLogRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
+                .exitByTakeToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
+                .exitByTakeTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
 
-                .exitByZMinToday(tradeLogRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
-                .exitByZMinTotal(tradeLogRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
+                .exitByZMinToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
+                .exitByZMinTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
 
-                .exitByZMaxToday(tradeLogRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
-                .exitByZMaxTotal(tradeLogRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
+                .exitByZMaxToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
+                .exitByZMaxTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
 
-                .exitByTimeToday(tradeLogRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_TIME.name()))
-                .exitByTimeTotal(tradeLogRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_TIME.name()))
+                .exitByTimeToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_TIME.name()))
+                .exitByTimeTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_TIME.name()))
 
-                .exitByManuallyToday(tradeLogRepository.getExitByToday(ExitReasonType.EXIT_REASON_MANUALLY.name()))
-                .exitByManuallyTotal(tradeLogRepository.getExitByTotal(ExitReasonType.EXIT_REASON_MANUALLY.name()))
+                .exitByManuallyToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_MANUALLY.name()))
+                .exitByManuallyTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_MANUALLY.name()))
 
                 .sumProfitUnrealized(unrealized)
                 .sumProfitRealized(realized)

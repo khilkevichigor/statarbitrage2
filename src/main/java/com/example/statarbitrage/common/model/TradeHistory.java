@@ -1,9 +1,6 @@
 package com.example.statarbitrage.common.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +11,7 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "trade_history")
 public class TradeHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,28 +19,29 @@ public class TradeHistory {
 
     private String longTicker;
     private String shortTicker;
+    private String pairUuid;
 
-    private BigDecimal currentProfitPercent;
-    private BigDecimal minProfitPercent;
     private String minProfitMinutes;
-    private BigDecimal maxProfitPercent;
     private String maxProfitMinutes;
+    private BigDecimal minProfitPercent;
+    private BigDecimal maxProfitPercent;
+    private BigDecimal currentProfitPercent;
 
-    private BigDecimal currentLongPercent;
     private BigDecimal minLongPercent;
     private BigDecimal maxLongPercent;
+    private BigDecimal currentLongPercent;
 
-    private BigDecimal currentShortPercent;
     private BigDecimal minShortPercent;
     private BigDecimal maxShortPercent;
+    private BigDecimal currentShortPercent;
 
-    private double currentZ;
     private BigDecimal minZ;
     private BigDecimal maxZ;
+    private double currentZ;
 
-    private double currentCorr;
     private BigDecimal minCorr;
     private BigDecimal maxCorr;
+    private double currentCorr;
 
     private double exitTake;
     private double exitStop;
