@@ -4,7 +4,6 @@ import com.example.statarbitrage.client_okx.OkxClient;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
-import com.example.statarbitrage.common.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,24 +45,24 @@ public class CandlesService {
 
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap, Settings settings) {
         if (candlesMap == null) {
-            throw new IllegalArgumentException("Candles map cannot be null!");
+            throw new IllegalArgumentException("Мапа свечей не может быть null!");
         }
 
         double candleLimit = settings.getCandleLimit();
 
         candlesMap.forEach((ticker, candles) -> {
             if (candles == null) {
-                log.error("Candles list for ticker {} is null!", ticker);
-                throw new IllegalArgumentException("Candles list cannot be null for ticker: " + ticker);
+                log.error("Список свечей для тикера {} равен null!", ticker);
+                throw new IllegalArgumentException("Список свечей не может быть null для тикера: " + ticker);
             }
             if (candles.size() != candleLimit) {
                 log.error(
-                        "Candles size {} for ticker {} does not match limit {}",
+                        "Размер списка свечей {} для тикера {} не совпадает с лимитом {}",
                         candles.size(), ticker, candleLimit
                 );
                 throw new IllegalArgumentException(
                         String.format(
-                                "Candles size for ticker %s is %d, but expected %d",
+                                "Размер списка свечей для тикера %s: %d, ожидается: %d",
                                 ticker, candles.size(), candleLimit
                         )
                 );
