@@ -90,7 +90,8 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT COUNT(*) " +
             "FROM TradeHistory t " +
-            "WHERE t.exitReason = 'EXIT_REASON_BY_Z_MIN' AND CAST(PARSEDATETIME(t.entryTime, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE")
+            "WHERE t.exitReason = 'EXIT_REASON_BY_Z_MIN' " +
+            "AND CAST(PARSEDATETIME(t.entryTime, 'yyyy-MM-dd HH:mm:ss') AS DATE) = CURRENT_DATE")
     Long getExitByZMinToday();
 
     @Query("SELECT COUNT(*) " +
@@ -128,19 +129,15 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "WHERE t.exitReason = 'EXIT_REASON_BY_MANUALLY'")
     Long getExitByManuallyTotal();
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM Pair_Data " +//todo wrong table
-                    "WHERE EXIT_REASON = :reason " +
-                    "AND DATE(DATETIME(ENTRY_TIME / 1000, 'unixepoch')) = DATE('now')",
-            nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM PairData p " +
+            "WHERE p.exitReason = :reason " +
+            "AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
     Long getExitByToday(@Param("reason") String reason);
 
-    @Query(value =
-            "SELECT COUNT(*) " +
-                    "FROM Pair_Data " +//todo wrong table
-                    "WHERE EXIT_REASON = :reason",
-            nativeQuery = true)
+    @Query("SELECT COUNT(*) " +
+            "FROM PairData p " +
+            "WHERE p.exitReason = :reason")
     Long getExitByTotal(@Param("reason") String reason);
 
     @Query("SELECT " +
