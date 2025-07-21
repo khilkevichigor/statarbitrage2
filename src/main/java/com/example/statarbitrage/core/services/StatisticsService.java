@@ -52,23 +52,23 @@ public class StatisticsService {
                 .sumProfitToday(tradeHistoryRepository.getSumProfitToday())
                 .sumProfitTotal(tradeHistoryRepository.getSumProfitTotal())
 
-                .exitByStopToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_STOP.name()))
-                .exitByStopTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_STOP.name()))
+                .exitByStopToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_STOP.name()))
+                .exitByStopTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_STOP.name()))
 
-                .exitByTakeToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
-                .exitByTakeTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
+                .exitByTakeToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
+                .exitByTakeTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_TAKE.name()))
 
-                .exitByZMinToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
-                .exitByZMinTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
+                .exitByZMinToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
+                .exitByZMinTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_Z_MIN.name()))
 
-                .exitByZMaxToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
-                .exitByZMaxTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
+                .exitByZMaxToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
+                .exitByZMaxTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_Z_MAX.name()))
 
-                .exitByTimeToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_BY_TIME.name()))
-                .exitByTimeTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_BY_TIME.name()))
+                .exitByTimeToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_TIME.name()))
+                .exitByTimeTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_TIME.name()))
 
-                .exitByManuallyToday(tradeHistoryRepository.getExitByToday(ExitReasonType.EXIT_REASON_MANUALLY.name()))
-                .exitByManuallyTotal(tradeHistoryRepository.getExitByTotal(ExitReasonType.EXIT_REASON_MANUALLY.name()))
+                .exitByManuallyToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_MANUALLY.name()))
+                .exitByManuallyTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name()))
 
                 .sumProfitUnrealized(unrealized)
                 .sumProfitRealized(realized)
