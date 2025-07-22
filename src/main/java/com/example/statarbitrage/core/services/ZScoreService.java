@@ -142,10 +142,10 @@ public class ZScoreService {
                 Double adfValue = null;
                 if (params != null && !params.isEmpty()) {
                     // Для старого формата используем adfpvalue из последнего параметра
-                    adfValue = params.get(params.size() - 1).getAdfpvalue();
+                    adfValue = params.get(params.size() - 1).getAdfpvalue(); //todo здесь смесь старой и новой логики! актуализировать!!!
                 } else if (data.getCointegration_pvalue() != null) {
                     // Для нового формата используем cointegration_pvalue
-                    adfValue = data.getCointegration_pvalue();
+                    adfValue = data.getCointegration_pvalue(); //todo проверить это одно и то же???
                 }
 
                 if (adfValue != null && adfValue > settings.getMinAdfValue()) {
