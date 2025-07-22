@@ -54,7 +54,7 @@ public class CalculateChangesService {
         boolean isPositionsClosed = positionsInfo.isPositionsClosed();
 
         ChangesData changesData = new ChangesData();
-        changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
+        changesData.setLongCurrentPrice(longPosition.getCurrentPrice()); //todo походу для закрытых сделок тут getCurrentPrice = null
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
 
         if (isPositionsClosed) {

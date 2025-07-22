@@ -324,7 +324,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     @Override
-    public TradeResult closePosition(String positionId) {
+    public TradeResult closePosition(String positionId) { //todo посмотреть как получем инфу о позициях из ОКХ после CLOSE что бы так же в CalculateChangesServive сделать
         try {
             Position position = positions.get(positionId);
             if (position == null) {

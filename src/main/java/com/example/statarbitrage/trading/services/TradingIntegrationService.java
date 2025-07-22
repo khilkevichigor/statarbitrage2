@@ -104,7 +104,7 @@ public class TradingIntegrationService {
                         provider.closePosition(shortResult.getPositionId());
                     }
 
-                    log.error("❌ Не удалось открыть арбитражную пару {}/{}: Long={}, Short={}",
+                    log.error("❌ Не удалось открыть арбитражную пару {} / {}: Long={}, Short={}",
                             pairData.getLongTicker(), pairData.getShortTicker(),
                             longResult.getErrorMessage(), shortResult.getErrorMessage());
                     return ArbitragePairTradeInfo.builder()
@@ -113,7 +113,7 @@ public class TradingIntegrationService {
                 }
 
             } catch (Exception e) {
-                log.error("❌ Ошибка при открытии арбитражной пары {}/{}: {}",
+                log.error("❌ Ошибка при открытии арбитражной пары {} / {}: {}",
                         pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
                 return ArbitragePairTradeInfo.builder()
                         .success(false)
@@ -146,7 +146,7 @@ public class TradingIntegrationService {
                 log.info("🔄 Начинаем закрытие арбитражной пары: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                TradeResult longCloseResult = provider.closePosition(longPositionId);
+                TradeResult longCloseResult = provider.closePosition(longPositionId); //todo может добавить метод getTradeInfoLong
                 TradeResult shortCloseResult = provider.closePosition(shortPositionId);
 
                 boolean success = longCloseResult.isSuccess() && shortCloseResult.isSuccess();
@@ -390,9 +390,12 @@ public class TradingIntegrationService {
             }
 
             // Удаляем из локального реестра если обе позиции закрыты
-            pairToLongPositionMap.remove(pairData.getId());
-            pairToShortPositionMap.remove(pairData.getId());
-            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
+//            pairToLongPositionMap.remove(pairData.getId()); //todo протестить будут ли ошибки "⚠️ Не удалось получить информацию о позициях для пары AIXBT-USDT-SWAP / VINE-USDT-SWAP"
+//            pairToShortPositionMap.remove(pairData.getId());
+//            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
+//                    pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
+
+            log.info("🗑️ Позиции уже закрыты для пары {} / {}, финальный PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
 
             return Positioninfo.builder()
