@@ -178,7 +178,7 @@ public class TradeAndSimulationScheduler {
                 waitTime += sleepInterval;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.warn("Прерывание ожидания завершения обновления трейдов");
+                log.warn("⚠️ Прерывание ожидания завершения обновления трейдов");
                 return false;
             }
         }
@@ -235,7 +235,7 @@ public class TradeAndSimulationScheduler {
 
         List<PairData> newPairs = fetchNewPairs(missingPairs);
         if (newPairs.isEmpty()) {
-            log.warn("Отобрано 0 пар!");
+            log.warn("⚠️ Отобрано 0 пар!");
             return 0;
         }
 

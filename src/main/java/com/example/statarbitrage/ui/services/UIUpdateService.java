@@ -37,7 +37,7 @@ public class UIUpdateService {
                 try {
                     view.handleUiUpdateRequest();
                 } catch (Exception e) {
-                    log.error("Error updating UI for view: {}", ui.getUIId(), e);
+                    log.error("❌ Ошибка обновления UI для вью: {}", ui.getUIId(), e);
                 }
             } else {
                 // Clean up detached UIs

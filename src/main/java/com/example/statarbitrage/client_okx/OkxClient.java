@@ -79,7 +79,7 @@ public class OkxClient {
             return isSorted ? result.stream().sorted().toList() : result;
 
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error("❌ " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -151,7 +151,7 @@ public class OkxClient {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             return obj.getAsJsonArray("data");
         } catch (IOException e) {
-            log.error(e.getMessage(), e);
+            log.error("❌ Ошибка: " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -193,7 +193,7 @@ public class OkxClient {
                                     }
                                 }
                             } catch (Exception e) {
-                                log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+                                log.error("❌ Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
                             }
                         }, executor))
                         .toList();
@@ -246,7 +246,7 @@ public class OkxClient {
                             try {
                                 List<Candle> candles = getCandleList(symbol, timeFrame, candleLimit);
                                 if (candles.size() < volumeAverageCount) {
-                                    log.warn("Недостаточно свечей для {}", symbol);
+                                    log.warn("⚠️ Недостаточно свечей для {}", symbol);
                                     count.getAndIncrement();
                                     return;
                                 }
@@ -266,7 +266,7 @@ public class OkxClient {
                                     count.getAndIncrement();
                                 }
                             } catch (Exception e) {
-                                log.error("Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+                                log.error("❌ Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
                             }
                         }, executor))
                         .toList();

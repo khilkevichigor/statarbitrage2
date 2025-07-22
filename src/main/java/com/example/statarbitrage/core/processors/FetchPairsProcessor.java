@@ -48,7 +48,7 @@ public class FetchPairsProcessor {
         List<ZScoreData> zScoreDataList = calculateTopPairs(settings, candlesMap, count);
 
         if (zScoreDataList.isEmpty()) {
-            log.warn("Пропуск хода - подходящие пары не найдены");
+            log.warn("⚠️ Пропуск хода - подходящие пары не найдены");
             return Collections.emptyList();
         }
 

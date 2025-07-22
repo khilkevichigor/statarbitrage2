@@ -115,7 +115,7 @@ public class VirtualTradingProvider implements TradingProvider {
             return result;
 
         } catch (Exception e) {
-            log.error("Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
+            log.error("❌ Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
             return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
         }
     }
@@ -188,7 +188,7 @@ public class VirtualTradingProvider implements TradingProvider {
             return result;
 
         } catch (Exception e) {
-            log.error("Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
+            log.error("❌ Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
             return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, e.getMessage());
         }
     }
@@ -250,7 +250,7 @@ public class VirtualTradingProvider implements TradingProvider {
             return result;
 
         } catch (Exception e) {
-            log.error("Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
+            log.error("❌ Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
             return TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN", e.getMessage());
         }
     }
@@ -278,7 +278,7 @@ public class VirtualTradingProvider implements TradingProvider {
                         position.setLastUpdated(LocalDateTime.now());
                     }
                 } catch (Exception e) {
-                    log.warn("Не удалось обновить цену для позиции {}: {}",
+                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
                             position.getPositionId(), e.getMessage());
                 }
             }
@@ -287,7 +287,7 @@ public class VirtualTradingProvider implements TradingProvider {
             portfolioManager.updatePortfolioValue();
 
         } catch (Exception e) {
-            log.error("Ошибка при обновлении цен позиций: {}", e.getMessage());
+            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
         }
     }
 
@@ -306,14 +306,14 @@ public class VirtualTradingProvider implements TradingProvider {
             return BigDecimal.valueOf(1.0 + (Math.random() * 0.1 - 0.05));
 
         } catch (Exception e) {
-            log.warn("❌ Ошибка при получении цены для {}: {}, используем fallback", symbol, e.getMessage());
+            log.warn("⚠️ Ошибка при получении цены для {}: {}, используем fallback", symbol, e.getMessage());
             return BigDecimal.valueOf(1.0);
         }
     }
 
     @Override
     public void updatePositionPrices(List<String> tickers) {
-        log.warn("Заглушка обновления цен позиции для виртуальной торговли!");
+        log.warn("⚠️ Заглушка обновления цен позиции для виртуальной торговли!");
     }
 
     @Override

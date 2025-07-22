@@ -71,7 +71,7 @@ public class ClosedPairsView extends VerticalLayout implements UIUpdateable {
             try {
                 tradingPairsComponent.updateAllData();
             } catch (Exception e) {
-                log.error("Ошибка при обновлении UI", e);
+                log.error("❌ Ошибка при обновлении UI", e);
             }
         }));
     }

@@ -65,7 +65,7 @@ public class StatisticsComponent extends VerticalLayout {
 
             statisticsGrid.setItems(rows);
         } catch (Exception e) {
-            log.error("Error updating statistics", e);
+            log.error("❌ Ошибка обновления статистики", e);
         }
     }
 

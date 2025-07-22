@@ -255,7 +255,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("Error starting trade for pair: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
+                log.error("❌ Ошибка начала торговли для пары: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
                 Notification.show("Ошибка при открытии торговли: " + e.getMessage());
             }
         });
@@ -277,7 +277,7 @@ public class TradingPairsComponent extends VerticalLayout {
                 ));
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("Error closing trade for pairData: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
+                log.error("❌ Ошибка при закрытия торговли для пары: {} / {}", pairData.getLongTicker(), pairData.getShortTicker(), e);
                 Notification.show("Ошибка при закрытии торговли: " + e.getMessage());
             }
         });

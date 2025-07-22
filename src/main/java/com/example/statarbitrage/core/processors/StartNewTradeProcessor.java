@@ -78,7 +78,7 @@ public class StartNewTradeProcessor {
 
     private PairData performPreValidation(PairData pairData, Settings settings) {
         if (startNewTradeValidationService.isLastZLessThenMinZ(pairData, settings)) {
-            log.warn("Z-скор текущий < Z-скор Min для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {} - {}", pairData.getLongTicker(), pairData.getShortTicker());
             return handleTradeError(pairData, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM);
         }
         return null;
@@ -89,7 +89,7 @@ public class StartNewTradeProcessor {
         Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {
-            log.warn("📊 ZScore данные пусты для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("⚠️ ZScore данные пусты для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
             handleTradeError(pairData, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
             return null;
         }

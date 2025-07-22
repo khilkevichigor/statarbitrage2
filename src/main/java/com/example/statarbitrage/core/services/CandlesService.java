@@ -52,17 +52,17 @@ public class CandlesService {
 
         candlesMap.forEach((ticker, candles) -> {
             if (candles == null) {
-                log.error("Список свечей для тикера {} равен null!", ticker);
+                log.error("❌ Список свечей для тикера {} равен null!", ticker);
                 throw new IllegalArgumentException("Список свечей не может быть null для тикера: " + ticker);
             }
             if (candles.size() != candleLimit) {
                 log.error(
-                        "Размер списка свечей {} для тикера {} не совпадает с лимитом {}",
+                        "❌ Размер списка свечей {} для тикера {} не совпадает с лимитом {}",
                         candles.size(), ticker, candleLimit
                 );
                 throw new IllegalArgumentException(
                         String.format(
-                                "Размер списка свечей для тикера %s: %d, ожидается: %d",
+                                "❌ Размер списка свечей для тикера %s: %d, ожидается: %d",
                                 ticker, candles.size(), candleLimit
                         )
                 );

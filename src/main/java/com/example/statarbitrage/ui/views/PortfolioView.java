@@ -57,7 +57,7 @@ public class PortfolioView extends VerticalLayout implements UIUpdateable {
             try {
                 portfolioComponent.updatePortfolioInfo();
             } catch (Exception e) {
-                log.error("Ошибка при обновлении портфолио", e);
+                log.error("❌ Ошибка при обновлении портфолио", e);
             }
         }));
     }

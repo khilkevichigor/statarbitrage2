@@ -102,7 +102,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             return okxPortfolioManager.hasAvailableBalance(amount);
         } catch (Exception e) {
-            log.error("Ошибка при проверке баланса: {}", e.getMessage());
+            log.error("❌ Ошибка при проверке баланса: {}", e.getMessage());
             return false;
         }
     }
@@ -375,7 +375,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             okxPortfolioManager.onPositionClosed(position, finalPnL, totalFees);
 
             // Удаляем из активных позиций
-            positions.remove(positionId);
+//            positions.remove(positionId); //todo не удаляем пока не сделаем calculateChanges - ПРОВЕРИТЬ getPositionInfo()
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
@@ -391,7 +391,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             return result;
 
         } catch (Exception e) {
-            log.error("Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
+            log.error("❌ Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
             return TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN", e.getMessage());
         }
     }
@@ -403,7 +403,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             syncPositionsWithOkx();
             return new ArrayList<>(positions.values());
         } catch (Exception e) {
-            log.error("Ошибка при получении активных позиций: {}", e.getMessage());
+            log.error("❌ Ошибка при получении активных позиций: {}", e.getMessage());
             return new ArrayList<>(positions.values());
         }
     }
@@ -430,7 +430,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                         position.setLastUpdated(LocalDateTime.now());
                     }
                 } catch (Exception e) {
-                    log.warn("Не удалось обновить цену для позиции {}: {}",
+                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
                             position.getPositionId(), e.getMessage());
                 }
             }
@@ -439,7 +439,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             okxPortfolioManager.updatePortfolioValue();
 
         } catch (Exception e) {
-            log.error("Ошибка при обновлении цен позиций: {}", e.getMessage());
+            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
         }
     }
 
@@ -457,7 +457,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Не удалось обновить цену для позиции {}: {}",
+                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
                             position.getPositionId(), e.getMessage());
                 }
             }
@@ -466,7 +466,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             okxPortfolioManager.updatePortfolioValue();
 
         } catch (Exception e) {
-            log.error("Ошибка при обновлении цен позиций: {}", e.getMessage());
+            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
         }
     }
 
@@ -482,7 +482,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
             return null;
         } catch (Exception e) {
-            log.error("Ошибка при получении цены для {}: {}", symbol, e.getMessage());
+            log.error("❌ Ошибка при получении цены для {}: {}", symbol, e.getMessage());
             return null;
         }
     }
@@ -507,14 +507,14 @@ public class RealOkxTradingProvider implements TradingProvider {
             if (apiKey == null || apiKey.isEmpty() ||
                     apiSecret == null || apiSecret.isEmpty() ||
                     passphrase == null || passphrase.isEmpty()) {
-                log.warn("OKX API ключи не настроены");
+                log.warn("⚠️ OKX API ключи не настроены");
                 return false;
             }
 
             // Проверяем подключение запросом к API
             return checkApiConnection();
         } catch (Exception e) {
-            log.error("Ошибка при проверке подключения к OKX: {}", e.getMessage());
+            log.error("❌ Ошибка при проверке подключения к OKX: {}", e.getMessage());
             return false;
         }
     }
@@ -534,7 +534,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("🚫 БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
                 return null;
             }
 
@@ -625,7 +625,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 }
             }
         } catch (Exception e) {
-            log.error("Ошибка при создании ордера: {}", e.getMessage());
+            log.error("❌ Ошибка при создании ордера: {}", e.getMessage());
             return null;
         }
     }
@@ -634,7 +634,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("🚫 БЛОКИРОВКА: Закрытие ордера заблокировано из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Закрытие ордера заблокировано из-за геолокации!");
                 return null;
             }
 
@@ -683,11 +683,11 @@ public class RealOkxTradingProvider implements TradingProvider {
                     }
                 }
 
-                log.error("Ошибка при закрытии ордера: {}", responseBody);
+                log.error("❌ Ошибка при закрытии ордера: {}", responseBody);
                 return null;
             }
         } catch (Exception e) {
-            log.error("Ошибка при закрытии ордера: {}", e.getMessage());
+            log.error("❌ Ошибка при закрытии ордера: {}", e.getMessage());
             return null;
         }
     }
@@ -696,7 +696,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("🚫 БЛОКИРОВКА: Отмена ордера заблокирована из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Отмена ордера заблокирована из-за геолокации!");
                 return;
             }
 
@@ -730,7 +730,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.info("Отмена ордера {}: {}", orderId, responseBody);
             }
         } catch (Exception e) {
-            log.error("Ошибка при отмене ордера {}: {}", orderId, e.getMessage());
+            log.error("❌ Ошибка при отмене ордера {}: {}", orderId, e.getMessage());
         }
     }
 
@@ -738,7 +738,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("🚫 БЛОКИРОВКА: Проверка API соединения заблокирована из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Проверка API соединения заблокирована из-за геолокации!");
                 return false;
             }
 
@@ -764,7 +764,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return "0".equals(jsonResponse.get("code").getAsString());
             }
         } catch (Exception e) {
-            log.error("Ошибка при проверке подключения к OKX API: {}", e.getMessage());
+            log.error("❌ Ошибка при проверке подключения к OKX API: {}", e.getMessage());
             return false;
         }
     }
@@ -816,7 +816,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 }
             }
         } catch (Exception e) {
-            log.error("Ошибка при обновлении портфолио с OKX: {}", e.getMessage());
+            log.error("❌ Ошибка при обновлении портфолио с OKX: {}", e.getMessage());
         }
     }
 
@@ -852,7 +852,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 }
             }
         } catch (Exception e) {
-            log.error("Ошибка при синхронизации позиций с OKX: {}", e.getMessage());
+            log.error("❌ Ошибка при синхронизации позиций с OKX: {}", e.getMessage());
         }
     }
 
@@ -1003,7 +1003,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("🚫 БЛОКИРОВКА: Установка плеча заблокирована из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Установка плеча заблокирована из-за геолокации!");
                 return false;
             }
 
@@ -1092,7 +1092,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("🚫 БЛОКИРОВКА: Проверка режима позиций заблокирована из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Проверка режима позиций заблокирована из-за геолокации!");
                 return false;
             }
 
@@ -1166,7 +1166,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             byte[] hash = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (Exception e) {
-            log.error("Ошибка при генерации подписи: {}", e.getMessage());
+            log.error("❌ Ошибка при генерации подписи: {}", e.getMessage());
             return "";
         }
     }

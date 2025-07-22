@@ -72,7 +72,7 @@ public final class ZScoreChart {
 
         if (history.isEmpty()) {
             // Fallback: если истории нет, создаем минимальную точку с текущими данными
-            log.warn("История Z-Score пуста для пары {}/{}, создаем минимальные данные",
+            log.warn("⚠️ История Z-Score пуста для пары {}/{}, создаем минимальные данные",
                     pairData.getLongTicker(), pairData.getShortTicker());
             timestamps = Collections.singletonList(System.currentTimeMillis());
             zScores = Collections.singletonList(pairData.getZScoreCurrent());
@@ -94,7 +94,7 @@ public final class ZScoreChart {
         log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
 
         if (timestamps.size() != zScores.size()) {
-            log.warn("Неверные входные данные для построения Z-графика");
+            log.warn("⚠️ Неверные входные данные для построения Z-графика");
             throw new IllegalArgumentException("Timestamps and zScores lists must have the same size");
         }
 
@@ -168,7 +168,7 @@ public final class ZScoreChart {
                 log.info("✅ Линия входа добавлена на графике в позиции {}", index);
             }
         } else if (entryTimestamp > 0) {
-            log.warn("Время входа не попадает в диапазон истории - показываем приблизительную линию");
+            log.warn("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
 
             // Показываем линию входа на ближайшей границе
             Date entryDate;
@@ -207,7 +207,7 @@ public final class ZScoreChart {
 
             log.info("✅ Приблизительная линия входа добавлена на графике");
         } else {
-            log.warn("Время входа не задано (0) - линия входа не будет показана");
+            log.warn("⚠️ Время входа не задано (0) - линия входа не будет показана");
         }
 
         return chart;
@@ -241,7 +241,7 @@ public final class ZScoreChart {
         List<ZScoreParam> history = pairData.getZScoreHistory();
 
         if (history.isEmpty()) {
-            log.warn("История Z-Score пуста - невозможно рассчитать индикаторы");
+            log.warn("⚠️ История Z-Score пуста - невозможно рассчитать индикаторы");
             return chart;
         }
 
@@ -320,7 +320,7 @@ public final class ZScoreChart {
         List<Double> stochRsiValues = calculateStochRSI(zScores, 14, 3, 3);
 
         if (stochRsiValues.isEmpty()) {
-            log.warn("Не удалось рассчитать StochRSI - недостаточно данных");
+            log.warn("⚠️ Не удалось рассчитать StochRSI - недостаточно данных");
             return;
         }
 

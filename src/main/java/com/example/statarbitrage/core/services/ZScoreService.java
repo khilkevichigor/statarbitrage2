@@ -62,7 +62,7 @@ public class ZScoreService {
                 if (isIncompleteBySize) {
                     if (pairData != null) {
                         pairDataService.delete(pairData);
-                        log.warn("❌ Удалили пару {} / {} — наблюдений {} (ожидалось {})",
+                        log.warn("⚠️ Удалили пару {} / {} — наблюдений {} (ожидалось {})",
                                 data.getUndervaluedTicker(), data.getOvervaluedTicker(), actualSize, expected);
                     }
                 }
@@ -77,7 +77,7 @@ public class ZScoreService {
             } else {
                 if (pairData != null) {
                     pairDataService.delete(pairData);
-                    log.warn("❌ Удалили пару {} / {} — отсутствует информация о Z-score",
+                    log.warn("⚠️ Удалили пару {} / {} — отсутствует информация о Z-score",
                             data.getUndervaluedTicker(), data.getOvervaluedTicker());
                 }
                 return true;
@@ -87,7 +87,7 @@ public class ZScoreService {
             if (isIncompleteByZ) {
                 if (pairData != null) {
                     pairDataService.delete(pairData);
-                    log.warn("❌ Удалили пару {} / {} — Z={} < MinZ={}",
+                    log.warn("⚠️ Удалили пару {} / {} — Z-скор={} < Z-скор Min={}",
                             data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
                 }
             }
@@ -98,7 +98,7 @@ public class ZScoreService {
                 isIncompleteByRSquared = true;
                 if (pairData != null) {
                     pairDataService.delete(pairData);
-                    log.warn("❌ Удалили пару {} / {} — RSquared={} < MinRSquared={}",
+                    log.warn("⚠️ Удалили пару {} / {} — RSquared={} < MinRSquared={}",
                             data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getAvg_r_squared(), settings.getMinRSquared());
                 }
             }
@@ -109,7 +109,7 @@ public class ZScoreService {
                 isIncompleteByCorrelation = true;
                 if (pairData != null) {
                     pairDataService.delete(pairData);
-                    log.warn("❌ Удалили пару {} / {} — Correlation={} < MinCorrelation={}",
+                    log.warn("⚠️ Удалили пару {} / {} — Correlation={} < MinCorrelation={}",
                             data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getCorrelation(), settings.getMinCorrelation());
                 }
             }
@@ -130,7 +130,7 @@ public class ZScoreService {
                     isIncompleteByPValue = true;
                     if (pairData != null) {
                         pairDataService.delete(pairData);
-                        log.warn("❌ Удалили пару {} / {} — pValue={} > MinPValue={}",
+                        log.warn("⚠️ Удалили пару {} / {} — pValue={} > MinPValue={}",
                                 data.getUndervaluedTicker(), data.getOvervaluedTicker(), pValue, settings.getMinPValue());
                     }
                 }
@@ -152,7 +152,7 @@ public class ZScoreService {
                     isIncompleteByAdfValue = true;
                     if (pairData != null) {
                         pairDataService.delete(pairData);
-                        log.warn("❌ Удалили пару {} / {} — adfValue={} > MinAdfValue={}",
+                        log.warn("⚠️ Удалили пару {} / {} — adfValue={} > MinAdfValue={}",
                                 data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMinAdfValue());
                     }
                 }
@@ -170,7 +170,7 @@ public class ZScoreService {
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление трейда - zScoreData is null");
-            throw new IllegalStateException("⚠️ ⚠️ Обновление трейда - zScoreData is null");
+            throw new IllegalStateException("⚠️ Обновление трейда - zScoreData is null");
         }
 
         return zScoreData;
@@ -224,11 +224,11 @@ public class ZScoreService {
 
     private List<ZScoreData> obtainTopNBestPairs(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (topN <= 0) {
-            log.warn("Некорректное количество пар: topN={}", topN);
+            log.warn("⚠️ Некорректное количество пар: topN={}", topN);
             return Collections.emptyList();
         }
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
-            log.warn("Отобрано 0 пар!");
+            log.warn("⚠️ Отобрано 0 пар!");
             return Collections.emptyList();
         }
 
@@ -248,7 +248,7 @@ public class ZScoreService {
                 });
                 //берем только те новые тикеры которых еще нет в торговле
                 if (actualBestTickers.contains(best.getUndervaluedTicker()) || actualBestTickers.contains(best.getOvervaluedTicker())) {
-                    log.warn("Пропускаем пару {} - {} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
+                    log.warn("⚠️ Пропускаем пару {} / {} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
                             best.getUndervaluedTicker(), best.getOvervaluedTicker());
                     continue;
                 }
@@ -281,10 +281,10 @@ public class ZScoreService {
 
         // Проверяем наличие данных для каждого тикера
         if (!candlesMap.containsKey(undervalued)) {
-            throw new IllegalArgumentException("Отсутствуют данные свечей для undervalued тикера: " + undervalued);
+            throw new IllegalArgumentException("❌ Отсутствуют данные свечей для undervalued тикера: " + undervalued);
         }
         if (!candlesMap.containsKey(overvalued)) {
-            throw new IllegalArgumentException("Отсутствуют данные свечей для overvalued тикера: " + overvalued);
+            throw new IllegalArgumentException("❌ Отсутствуют данные свечей для overvalued тикера: " + overvalued);
         }
 
         // Добавляем тикеры в определённом порядке
@@ -297,7 +297,7 @@ public class ZScoreService {
         ZScoreData zScoreData = pythonRestClient.analyzePair(filteredCandlesMap, settings, true);
 
         if (zScoreData.getLatest_zscore() < 0) {
-            String message = String.format("Последний Z-скор {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatest_zscore(), undervalued, overvalued);
+            String message = String.format("❌ Последний Z-скор {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatest_zscore(), undervalued, overvalued);
             log.error(message);
             throw new IllegalStateException(message);
         }

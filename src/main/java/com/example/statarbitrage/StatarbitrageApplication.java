@@ -66,11 +66,11 @@ public class StatarbitrageApplication {
     }
 
     private void checkCointegrationApiHealth() {
-        log.info("🚀 Checking Cointegration API health...");
+        log.info("🚀 Проверка работоспособности API коинтеграции...");
         boolean healthy = healthCheck.isHealthy();
 
         if (healthy) {
-            log.info("🧪 Testing Cointegration API integration...");
+            log.info("🧪 Тестирование API коинтеграции...");
             try {
                 Map<String, List<Candle>> testData = new HashMap<>();
                 testData.put("BTC-USDT", Arrays.asList(
@@ -88,10 +88,10 @@ public class StatarbitrageApplication {
                         .build();
 
                 pythonRestClient.discoverPairs(testData, settings);
-                log.info("✅ Cointegration API integration test successful!");
+                log.info("✅ Интеграционный тест API коинтеграции прошел успешно!");
 
             } catch (Exception e) {
-                log.error("❌ Cointegration API integration test failed: {}", e.getMessage(), e);
+                log.error("❌ Ошибка при выполнении интеграционного теста API коинтеграции: {}", e.getMessage(), e);
             }
         }
     }

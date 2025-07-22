@@ -59,7 +59,7 @@ public class PythonRestClient {
         if (response.isSuccess()) {
             return convertPairAnalysisResultToZScoreData(response.getResult());
         } else {
-            throw new RuntimeException("Python API вернул success=false");
+            throw new RuntimeException("❌ Python API вернул success=false");
         }
     }
 
@@ -79,7 +79,7 @@ public class PythonRestClient {
             return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {
             });
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка конвертации настроек в мапу", e);
+            throw new RuntimeException("❌ Ошибка конвертации настроек в мапу", e);
         }
     }
 
@@ -115,16 +115,16 @@ public class PythonRestClient {
             log.debug("📥 Ответ от {}: статус={}", baseUrl + endpoint, response.getStatusCode());
 
             if (response.getStatusCode() != HttpStatus.OK) {
-                log.error("Ошибка от API коинтеграции: {} - {}", response.getStatusCode(), response.getBody());
-                throw new RuntimeException("Ошибка API коинтеграции: " + response.getStatusCode() + " - " + response.getBody());
+                log.error("❌ Ошибка от API коинтеграции: {} - {}", response.getStatusCode(), response.getBody());
+                throw new RuntimeException("❌ Ошибка API коинтеграции: " + response.getStatusCode() + " - " + response.getBody());
             }
 
             return objectMapper.readValue(response.getBody(), responseType);
 
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка обработки JSON", e);
+            throw new RuntimeException("❌ Ошибка обработки JSON", e);
         } catch (Exception e) {
-            throw new RuntimeException("Ошибка при выполнении запроса: " + e.getMessage(), e);
+            throw new RuntimeException("❌ Ошибка при выполнении запроса: " + e.getMessage(), e);
         }
     }
 
@@ -133,7 +133,7 @@ public class PythonRestClient {
         try {
             json = objectMapper.writeValueAsString(requestBody);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка сериализации запроса", e);
+            throw new RuntimeException("❌ Ошибка сериализации запроса", e);
         }
 
         log.info("📤 Sending request to {}: {}", baseUrl + endpoint, json);
@@ -159,21 +159,21 @@ public class PythonRestClient {
         log.debug("📥 Response from {}: status={}, body={}", baseUrl + endpoint, response.statusCode(), response.body());
 
         if (response.statusCode() != 200) {
-            log.error("Ошибка от API коинтеграции: {} - {}", response.statusCode(), response.body());
-            log.error("URL запроса: {}", baseUrl + endpoint);
-            log.error("Тело запроса: {}", json);
+            log.error("❌ Ошибка от API коинтеграции: {} - {}", response.statusCode(), response.body());
+            log.error("❌ URL запроса: {}", baseUrl + endpoint);
+            log.error("❌ Тело запроса: {}", json);
 
             String errorDetails = response.body();
             if (response.statusCode() == 422) {
-                throw new RuntimeException("Ошибка валидации: " + errorDetails);
+                throw new RuntimeException("❌ Ошибка валидации: " + errorDetails);
             }
-            throw new RuntimeException("Ошибка API коинтеграции: " + response.statusCode() + " - " + errorDetails);
+            throw new RuntimeException("❌ Ошибка API коинтеграции: " + response.statusCode() + " - " + errorDetails);
         }
 
         try {
             return objectMapper.readValue(response.body(), responseType);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка парсинга ответа", e);
+            throw new RuntimeException("❌ Ошибка парсинга ответа", e);
         }
     }
 

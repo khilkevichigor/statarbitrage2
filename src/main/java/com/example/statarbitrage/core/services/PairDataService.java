@@ -64,8 +64,8 @@ public class PairDataService {
     private PairData createPairData(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
         // Проверяем наличие данных
         if (underValuedTickerCandles == null || underValuedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
-            log.warn("Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
-            throw new IllegalArgumentException("Отсутствуют данные свечей");
+            log.warn("⚠️ Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
+            throw new IllegalArgumentException("⚠️ Отсутствуют данные свечей");
         }
 
         PairData pairData = new PairData();

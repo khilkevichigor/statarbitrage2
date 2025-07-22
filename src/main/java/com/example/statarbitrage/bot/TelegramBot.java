@@ -37,7 +37,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
-            log.error("Error setting bot's command list: " + e.getMessage());
+            log.error("❌ Ошибка установки команд бота: " + e.getMessage());
         }
     }
 
@@ -110,7 +110,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(photo);
         } catch (TelegramApiException e) {
-            log.error("Ошибка при отправке фото: {}", e.getMessage(), e);
+            log.error("❌ Ошибка при отправке фото: {}", e.getMessage(), e);
         }
     }
 
@@ -130,7 +130,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 //        try {
 //            execute(document);
 //        } catch (TelegramApiException e) {
-//            log.error("Ошибка при отправке документа: {}", e.getMessage(), e);
+//            log.error("❌ Ошибка при отправке документа: {}", e.getMessage(), e);
 //        }
 //    }
 }

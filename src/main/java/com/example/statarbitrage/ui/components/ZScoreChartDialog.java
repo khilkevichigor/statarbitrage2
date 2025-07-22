@@ -178,7 +178,7 @@ public class ZScoreChartDialog extends Dialog {
      */
     public void showChart(PairData pairData) {
         if (pairData == null) {
-            log.warn("Попытка показать чарт для null PairData");
+            log.warn("⚠️ Попытка показать чарт для null PairData");
             return;
         }
 
@@ -208,7 +208,7 @@ public class ZScoreChartDialog extends Dialog {
                 // Fallback если чарт не удалось создать
                 chartImage.setSrc(""); // Clear image
                 chartImage.setAlt("Chart generation failed");
-                log.warn("Не удалось создать чарт для пары: {} / {}",
+                log.warn("⚠️ Не удалось создать чарт для пары: {} / {}",
                         pairData.getLongTicker(), pairData.getShortTicker());
             }
 

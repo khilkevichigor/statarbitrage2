@@ -49,7 +49,7 @@ public class TradingIntegrationService {
                 // Рассчитываем размер позиций на основе нового портфолио
                 BigDecimal positionSize = calculatePositionSize(provider);
                 if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                    log.warn("❌ Недостаточно средств для открытия позиций по паре {}/{}",
+                    log.warn("⚠️ Недостаточно средств для открытия позиций по паре {}/{}",
                             pairData.getLongTicker(), pairData.getShortTicker());
                     return ArbitragePairTradeInfo.builder()
                             .success(false)
@@ -357,6 +357,7 @@ public class TradingIntegrationService {
      * Получение актуальной информации по позициям для пары
      */
     public Positioninfo getPositionInfo(PairData pairData) {
+        log.info("ℹ️ Запрос информации о позициях для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
@@ -365,35 +366,33 @@ public class TradingIntegrationService {
                     pairData.getLongTicker(), pairData.getShortTicker());
             return Positioninfo.builder().build();
         }
+        log.debug("Найдены ID позиций: LONG={}, SHORT={}", longPositionId, shortPositionId);
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        log.debug("Текущий провайдер: {}", provider.getClass().getSimpleName());
 
         Position longPosition = provider.getPosition(longPositionId);
         Position shortPosition = provider.getPosition(shortPositionId);
+        log.debug("Получены позиции: LONG={}, SHORT={}", longPosition, shortPosition);
 
         boolean longClosed = (longPosition == null || longPosition.getStatus() == PositionStatus.CLOSED);
         boolean shortClosed = (shortPosition == null || shortPosition.getStatus() == PositionStatus.CLOSED);
+        log.debug("Статус позиций: LONG закрыта={}, SHORT закрыта={}", longClosed, shortClosed);
 
         if (longClosed && shortClosed) {
-
-            //todo возможно здесь не нужно считать totalPnL тк считаем в CalculateChangesService
-
+            log.info("✅ Обе позиции для пары {} / {} уже закрыты.", pairData.getLongTicker(), pairData.getShortTicker());
             // Рассчитываем финальный PnL если позиции закрыты
             BigDecimal totalPnL = BigDecimal.ZERO;
             if (longPosition != null) {
                 longPosition.calculateUnrealizedPnL();
                 totalPnL = totalPnL.add(longPosition.getUnrealizedPnL());
+                log.debug("Финальный PnL для LONG позиции {}: {}", longPositionId, longPosition.getUnrealizedPnL());
             }
             if (shortPosition != null) {
                 shortPosition.calculateUnrealizedPnL();
                 totalPnL = totalPnL.add(shortPosition.getUnrealizedPnL());
+                log.debug("Финальный PnL для SHORT позиции {}: {}", shortPositionId, shortPosition.getUnrealizedPnL());
             }
-
-            // Удаляем из локального реестра если обе позиции закрыты
-//            pairToLongPositionMap.remove(pairData.getId()); //todo протестить будут ли ошибки "⚠️ Не удалось получить информацию о позициях для пары AIXBT-USDT-SWAP / VINE-USDT-SWAP"
-//            pairToShortPositionMap.remove(pairData.getId());
-//            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}/{}, финальный PnL: {}",
-//                    pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
 
             log.info("🗑️ Позиции уже закрыты для пары {} / {}, финальный PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
@@ -406,8 +405,10 @@ public class TradingIntegrationService {
                     .build();
         }
 
+        log.debug("Позиции еще открыты, обновляем цены...");
         // Обновляем актуальную информацию с биржи
         provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
+        log.debug("Цены обновлены.");
 
         return Positioninfo.builder()
                 .positionsClosed(false)

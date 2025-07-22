@@ -66,7 +66,7 @@ public class Real3CommasTradingProvider implements TradingProvider {
     @Override
     public void updatePositionPrices() {
         // СИНХРОННЫЙ метод - убрана асинхронность!
-        log.warn("Обновление цен позиций через 3Commas не реализовано");
+        log.warn("⚠️ Обновление цен позиций через 3Commas не реализовано");
     }
 
     @Override

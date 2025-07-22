@@ -36,7 +36,7 @@ public class CointegrationApiHealthCheck {
             return healthy;
 
         } catch (IOException | InterruptedException e) {
-            log.error("❌ Failed to check Cointegration API health: {}", e.getMessage());
+            log.error("❌ Ошибка проверки работоспособности API коинтеграции: {}", e.getMessage());
             return false;
         }
     }

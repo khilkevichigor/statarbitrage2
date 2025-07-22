@@ -83,7 +83,7 @@ public class SettingsComponent extends VerticalLayout {
         try {
             currentSettings = settingsService.getSettings();
         } catch (Exception e) {
-            log.error("Error loading settings", e);
+            log.error("❌ Ошибка загрузки настроек", e);
             currentSettings = new Settings(); // fallback to default
         }
     }
@@ -155,7 +155,7 @@ public class SettingsComponent extends VerticalLayout {
                     log.warn("⚠️ SettingsComponent: autoTradingChangeCallback не установлен!");
                 }
             } catch (Exception e) {
-                log.error("Error updating autoTrading mode", e);
+                log.error("❌ Ошибка при изменении режима автотрейдинга", e);
                 Notification.show("Ошибка при изменении режима автотрейдинга: " + e.getMessage());
             }
         });
@@ -468,11 +468,11 @@ public class SettingsComponent extends VerticalLayout {
                             .orElse("Неизвестная ошибка");
 
             Notification.show(errorMessage);
-            log.warn("Validation failed when saving settings: {}", errorMessage);
+            log.warn("⚠️ Настройки не прошли валидацию при сохранении: {}", errorMessage);
         } catch (Exception e) {
             String errorMessage = "Ошибка сохранения настроек: " + e.getMessage();
             Notification.show(errorMessage);
-            log.error("Error saving settings", e);
+            log.error("❌ Ошибка сохранения настроек", e);
         }
     }
 

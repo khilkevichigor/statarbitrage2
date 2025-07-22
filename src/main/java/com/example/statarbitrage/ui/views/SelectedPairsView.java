@@ -112,7 +112,7 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
                     tradingPairsComponent.setSelectedPairs(pairs);
                 }));
             } catch (Exception ex) {
-                log.error("Error fetching pairs", ex);
+                log.error("❌ Ошибка получения пар", ex);
                 getUI().ifPresent(ui -> ui.access(() ->
                         Notification.show("Ошибка при получении пар: " + ex.getMessage())
                 ));
@@ -155,7 +155,7 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
             try {
                 tradingPairsComponent.updateAllData();
             } catch (Exception e) {
-                log.error("Ошибка при обновлении UI", e);
+                log.error("❌ Ошибка при обновлении UI", e);
             }
         }));
     }

@@ -31,7 +31,7 @@ public class CalculateChangesService {
             Positioninfo positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
-                log.warn("⚠️ Не удалось получить информацию о позициях для пары {} / {}",
+                log.warn("⚠️ Не удалось получить информацию о позициях для пары {} / {}", //todo попадаем сюда когда позиции закрыты
                         pairData.getLongTicker(), pairData.getShortTicker());
                 return new ChangesData();
             }

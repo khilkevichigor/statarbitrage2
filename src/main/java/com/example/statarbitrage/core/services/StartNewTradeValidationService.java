@@ -40,7 +40,7 @@ public class StartNewTradeValidationService {
         log.debug("📖 Процессор: Читаем настройки из БД: autoTrading={}", currentSettings.isAutoTradingEnabled());
 
         if (!currentSettings.isAutoTradingEnabled()) {
-            log.warn("🛑 Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {} - {}",
+            log.warn("⚠️ Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {} - {}",
                     pairData.getLongTicker(), pairData.getShortTicker());
             return false;
         }
@@ -57,12 +57,12 @@ public class StartNewTradeValidationService {
         double zScore = pairData.getZScoreCurrent();
         if (zScore < settings.getMinZ()) {
             if (zScore < 0) {
-                log.warn("Skip this pair {} - {}. Z-score {} < 0",
+                log.warn("⚠️ Пропускаю пару {} / {}. Z-скор {} < 0",
                         pairData.getLongTicker(),
                         pairData.getShortTicker(),
                         zScore);
             } else {
-                log.warn("Skip this pair {} - {}. Z-score {} < minZ {}",
+                log.warn("⚠️ Пропускаю пару {} / {}. Z-скор {} < Z-скор Min {}",
                         pairData.getLongTicker(),
                         pairData.getShortTicker(),
                         zScore,

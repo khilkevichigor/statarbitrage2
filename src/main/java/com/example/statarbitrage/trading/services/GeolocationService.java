@@ -32,12 +32,13 @@ public class GeolocationService {
 
     /**
      * Проверка геолокации с кэшированием
+     *
      * @return true если разрешено, false если IP из США
      */
     public boolean isGeolocationAllowed() {
         try {
             long currentTime = System.currentTimeMillis();
-            
+
             // Проверяем кэш (5 минут)
             if (lastKnownCountry != null && (currentTime - lastGeoCheckTime) < GEO_CHECK_CACHE_DURATION) {
                 boolean isUSA = "US".equals(lastKnownCountry);
@@ -48,25 +49,25 @@ public class GeolocationService {
                 log.debug("✅ Геолокация проверена (кэш): {} - разрешено", lastKnownCountry);
                 return true;
             }
-            
+
             // Выполняем новую проверку
             log.info("🌍 Проверка геолокации...");
-            
+
             // Используем несколько сервисов для надёжности
             String country = checkCountryViaIpApi();
             if (country == null) {
                 country = checkCountryViaIpify();
             }
-            
+
             if (country == null) {
                 log.warn("⚠️ Не удалось определить страну, разрешаем вызов (может быть проблема с сетью)");
                 return true;
             }
-            
+
             // Обновляем кэш
             lastKnownCountry = country;
             lastGeoCheckTime = currentTime;
-            
+
             boolean isUSA = "US".equals(country);
             if (isUSA) {
                 log.error("🚫 БЛОКИРОВКА: Обнаружено местоположение в США! IP из страны: {}", country);
@@ -76,7 +77,7 @@ public class GeolocationService {
                 log.info("✅ Геолокация проверена: {} - разрешено", country);
                 return true;
             }
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при проверке геолокации: {}", e.getMessage());
             log.warn("⚠️ Разрешаем вызов из-за ошибки проверки геолокации");
@@ -97,43 +98,43 @@ public class GeolocationService {
     public String forceCheckGeolocation() {
         try {
             log.info("🧪 Принудительная проверка геолокации...");
-            
+
             // Сбрасываем кэш
             lastKnownCountry = null;
             lastGeoCheckTime = 0;
-            
+
             // Выполняем проверку
             String country = checkCountryViaIpApi();
             if (country == null) {
                 country = checkCountryViaIpify();
             }
-            
+
             if (country != null) {
                 lastKnownCountry = country;
                 lastGeoCheckTime = System.currentTimeMillis();
-                
+
                 boolean isUSA = "US".equals(country);
                 String result = String.format(
-                    "Результат геолокации:\n" +
-                    "- Страна: %s\n" +
-                    "- Разрешено: %s\n" +
-                    "- Время проверки: %s",
-                    country,
-                    isUSA ? "🚫 Нет" : "✅ Да",
-                    new java.util.Date().toString()
+                        "Результат геолокации:\n" +
+                                "- Страна: %s\n" +
+                                "- Разрешено: %s\n" +
+                                "- Время проверки: %s",
+                        country,
+                        isUSA ? "🚫 Нет" : "✅ Да",
+                        new java.util.Date().toString()
                 );
-                
+
                 log.info("🧪 {}", result);
                 return result;
             } else {
                 String result = "Не удалось определить страну при принудительной проверке";
-                log.warn("🧪 {}", result);
+                log.warn("⚠️ {}", result);
                 return result;
             }
-            
+
         } catch (Exception e) {
             String errorResult = "Ошибка при принудительной проверке геолокации: " + e.getMessage();
-            log.error("🧪 {}", errorResult);
+            log.error("❌ {}", errorResult);
             return errorResult;
         }
     }
@@ -143,23 +144,23 @@ public class GeolocationService {
      */
     public void checkGeolocationOnStartup() {
         log.info("🌍 Проверка геолокации при запуске...");
-        
+
         try {
             String country = checkCountryViaIpApi();
             if (country == null) {
                 country = checkCountryViaIpify();
             }
-            
+
             if (country == null) {
                 log.warn("⚠️ Не удалось определить страну при запуске");
                 log.warn("⚠️ Проверьте подключение к интернету");
                 return;
             }
-            
+
             // Обновляем кэш
             lastKnownCountry = country;
             lastGeoCheckTime = System.currentTimeMillis();
-            
+
             boolean isUSA = "US".equals(country);
             if (isUSA) {
                 log.error("🚫 КРИТИЧЕСКОЕ ПРЕДУПРЕЖДЕНИЕ: Обнаружено местоположение в США!");
@@ -170,7 +171,7 @@ public class GeolocationService {
             } else {
                 log.info("✅ Геолокация при запуске: {} - безопасно для OKX", country);
             }
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при проверке геолокации: {}", e.getMessage());
         }
@@ -185,21 +186,21 @@ public class GeolocationService {
                     .url("http://ip-api.com/json/?fields=countryCode")
                     .get()
                     .build();
-            
+
             try (Response response = geoCheckClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.warn("⚠️ Ошибка HTTP при проверке геолокации через ip-api: {}", response.code());
                     return null;
                 }
-                
+
                 String responseBody = response.body().string();
                 log.debug("🔍 Ответ ip-api: {}", responseBody);
-                
+
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
                 if (jsonResponse.has("countryCode")) {
                     return jsonResponse.get("countryCode").getAsString();
                 }
-                
+
                 return null;
             }
         } catch (Exception e) {
@@ -207,7 +208,7 @@ public class GeolocationService {
             return null;
         }
     }
-    
+
     /**
      * Проверка страны через ipify (резервный сервис)
      */
@@ -217,25 +218,25 @@ public class GeolocationService {
                     .url("https://api.ipify.org?format=json")
                     .get()
                     .build();
-            
+
             try (Response response = geoCheckClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.warn("⚠️ Ошибка HTTP при проверке IP через ipify: {}", response.code());
                     return null;
                 }
-                
+
                 String responseBody = response.body().string();
                 log.debug("🔍 Ответ ipify: {}", responseBody);
-                
+
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
                 if (jsonResponse.has("ip")) {
                     String ip = jsonResponse.get("ip").getAsString();
                     log.debug("🔍 Получен IP: {}", ip);
-                    
+
                     // Проверяем IP через ipgeolocation.io
                     return checkCountryByIp(ip);
                 }
-                
+
                 return null;
             }
         } catch (Exception e) {
@@ -243,7 +244,7 @@ public class GeolocationService {
             return null;
         }
     }
-    
+
     /**
      * Проверка страны по IP через ipgeolocation.io
      */
@@ -253,21 +254,21 @@ public class GeolocationService {
                     .url("https://ipgeolocation.io/ip-location/" + ip)
                     .get()
                     .build();
-            
+
             try (Response response = geoCheckClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.warn("⚠️ Ошибка HTTP при проверке геолокации по IP: {}", response.code());
                     return null;
                 }
-                
+
                 String responseBody = response.body().string();
                 log.debug("🔍 Ответ ipgeolocation: {}", responseBody);
-                
+
                 // Простой парсинг HTML для получения кода страны
                 if (responseBody.contains("United States")) {
                     return "US";
                 }
-                
+
                 // Попробуем найти другие признаки
                 if (responseBody.contains("country_code2")) {
                     // Извлекаем код страны из HTML
@@ -279,7 +280,7 @@ public class GeolocationService {
                         }
                     }
                 }
-                
+
                 return "OTHER"; // Не США
             }
         } catch (Exception e) {

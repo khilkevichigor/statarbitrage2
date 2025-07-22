@@ -57,7 +57,7 @@ public class StatisticsView extends VerticalLayout implements UIUpdateable {
             try {
                 statisticsComponent.updateStatistics();
             } catch (Exception e) {
-                log.error("Ошибка при обновлении статистики", e);
+                log.error("❌ Ошибка при обновлении статистики", e);
             }
         }));
     }

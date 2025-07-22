@@ -253,7 +253,7 @@ public class PortfolioComponent extends VerticalLayout {
             }
 
         } catch (Exception e) {
-            log.error("Ошибка при обновлении информации о портфолио", e);
+            log.error("❌ Ошибка при обновлении информации о портфолио", e);
             clearUI();
         }
     }
@@ -373,7 +373,7 @@ public class PortfolioComponent extends VerticalLayout {
                 log.debug("Режим торговли разблокирован - автотрейдинг выключен");
             }
         } catch (Exception e) {
-            log.error("Ошибка при обновлении доступности режима торговли", e);
+            log.error("❌ Ошибка при обновлении доступности режима торговли", e);
         }
     }
 
