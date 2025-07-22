@@ -6,10 +6,7 @@ import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.repositories.TradeHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -24,12 +21,14 @@ public class StatisticsService {
     private final PairDataService pairDataService;
     private final TradeHistoryService tradeHistoryService;
 
-    @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще
-    @Transactional
-    public void deleteUnfinishedTrades() { //очищаем чтобы бд была актуальной даже после стопа приложения с незавершенным трейдом
-        int deleted = tradeHistoryRepository.deleteUnfinishedTrades();
-        log.info("🧹 Удалено {} незавершённых трейдов", deleted);
-    }
+//    @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще //todo ПРОТЕСТИТЬ!!! сделать update в пропертях для БД
+//    @Transactional
+//    public void deleteUnfinishedTrades() { //очищаем чтобы бд была актуальной даже после стопа приложения с незавершенным трейдом //todo выпилить отсюда
+//        // todo переделать что бы менять статус на ERROR и сетить дескрипшн ERROR_AFTER_RESTART или
+//        // todo сделать метод синхронизации или запускать updateTradeProcessor что бы актуализиолвать пары
+//        int deleted = tradeHistoryRepository.deleteUnfinishedTrades();
+//        log.info("🧹 Удалено {} незавершённых трейдов", deleted);
+//    }
 
     public TradePairsStatisticsDto collectStatistics() {
         BigDecimal unrealized = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
