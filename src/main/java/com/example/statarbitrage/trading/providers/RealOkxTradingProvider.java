@@ -572,28 +572,23 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     private TradeResult getOrderDetails(String orderId, String symbol, TradeOperationType tradeOperationType) {
-        if (tradeOperationType == TradeOperationType.OPEN_LONG) {
-            log.info("Получаем информацию по только что открытой LONG позиции symbol={} orderId={}", symbol, orderId);
-        } else if (tradeOperationType == TradeOperationType.OPEN_SHORT) {
-            log.info("Получаем информацию по только что открытой SHORT позиции symbol={} orderId={}", symbol, orderId);
-        } else if (tradeOperationType == TradeOperationType.CLOSE_POSITION) {
-            log.info("Получаем информацию по только что закрытой позиции symbol={} orderId={}", symbol, orderId);
-        } else {
-            log.error("❌ Неизвестная операция для получения деталей с окх для symbol={} orderId={}", symbol, orderId);
-        }
+        log.info("==> getOrderDetails: НАЧАЛО для orderId={} | symbol={} | operation={}", orderId, symbol, tradeOperationType);
 
         try {
-            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("❌ БЛОКИРОВКА: Получение деталей ордера заблокировано из-за геолокации!");
+                log.error("❌ БЛОКИРОВКА: Получение деталей ордера {} заблокировано из-за геолокации!", orderId);
                 return TradeResult.failure(tradeOperationType, symbol, "Геолокация не разрешена");
             }
+            log.info("Проверка геолокации пройдена.");
 
-            // Пауза, чтобы ордер успел исполниться
-            Thread.sleep(2000); // 2 секунды
+            // Пауза, чтобы рыночный ордер успел исполниться и появиться в истории
+            final int sleepMillis = 2000;
+            log.info("Ожидаем {} мс, чтобы ордер {} исполнился...", sleepMillis, orderId);
+            Thread.sleep(sleepMillis);
 
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = "/api/v5/trade/order?instId=" + symbol + "&ordId=" + orderId;
+            log.info("Формируем запрос к OKX API: GET {}", baseUrl + endpoint);
 
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("GET", endpoint, "", timestamp);
@@ -606,32 +601,40 @@ public class RealOkxTradingProvider implements TradingProvider {
                     .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
                     .build();
 
+            log.info("Отправка запроса на получение деталей ордера {}...", orderId);
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
+                log.info("Получен ответ от OKX API для ордера {}: HTTP {} | {}", orderId, response.code(), responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
-                    log.error("❌ Ошибка при получении деталей ордера {}: {}", orderId, responseBody);
-                    return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить детали ордера");
+                    String errorMsg = jsonResponse.get("msg").getAsString();
+                    log.error("❌ Ошибка при получении деталей ордера {}: {} (Код: {})", orderId, errorMsg, jsonResponse.get("code").getAsString());
+                    return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить детали ордера: " + errorMsg);
                 }
 
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     JsonObject orderInfo = data.get(0).getAsJsonObject();
+                    log.info("Полная информация по ордеру {}: {}", orderId, orderInfo);
+
                     BigDecimal avgPx = new BigDecimal(orderInfo.get("avgPx").getAsString());
                     BigDecimal fee = new BigDecimal(orderInfo.get("fee").getAsString()).abs();
                     BigDecimal size = new BigDecimal(orderInfo.get("accFillSz").getAsString());
 
-                    log.info("📋 Информация по только что выполненной операции: symbol={} | orderId={} | size={} | avgPx={} | fee={}", symbol, orderId, size, avgPx, fee);
+                    log.info("✅ Детали ордера {} успешно извлечены: symbol={} | size={} | avgPx={} | fee={}", orderId, symbol, size, avgPx, fee);
 
-                    //todo сделать сверку каким объемом хотели открыть и каким открыли по факту! Если не бьется то возвращать TradeResult.failure по которому потом закроем все что открылось
+                    // TODO: сделать сверку каким объемом хотели открыть и каким открыли по факту! Если не бьется то возвращать TradeResult.failure по которому потом закроем все что открылось
 
-                    return TradeResult.success(orderId, tradeOperationType, symbol, size, avgPx, fee, orderId);
+                    TradeResult result = TradeResult.success(orderId, tradeOperationType, symbol, size, avgPx, fee, orderId);
+                    log.info("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
+                    return result;
                 }
+                log.error("❌ Детали ордера {} не найдены в ответе API (массив 'data' пуст).", orderId);
                 return TradeResult.failure(tradeOperationType, symbol, "Детали ордера не найдены");
             }
         } catch (Exception e) {
-            log.error("❌ Ошибка при получении деталей ордера {}: {}", orderId, e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при получении деталей ордера {}: {}", orderId, e.getMessage(), e);
             return TradeResult.failure(tradeOperationType, symbol, e.getMessage());
         }
     }
