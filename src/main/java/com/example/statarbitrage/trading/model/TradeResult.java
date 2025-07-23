@@ -38,9 +38,14 @@ public class TradeResult {
     private String symbol;
 
     /**
-     * Размер операции
+     * Размер операции (запрошенный)
      */
     private BigDecimal size;
+
+    /**
+     * Фактически исполненный размер
+     */
+    private BigDecimal executedSize;
 
     /**
      * Цена исполнения
@@ -81,14 +86,14 @@ public class TradeResult {
      * Создание успешного результата
      */
     public static TradeResult success(String positionId, TradeOperationType operationType,
-                                      String symbol, BigDecimal size, BigDecimal executionPrice,
+                                      String symbol, BigDecimal executedSize, BigDecimal executionPrice,
                                       BigDecimal fees) {
         return TradeResult.builder()
                 .success(true)
                 .positionId(positionId)
                 .operationType(operationType)
                 .symbol(symbol)
-                .size(size)
+                .executedSize(executedSize)
                 .executionPrice(executionPrice)
                 .fees(fees)
                 .executionTime(LocalDateTime.now())

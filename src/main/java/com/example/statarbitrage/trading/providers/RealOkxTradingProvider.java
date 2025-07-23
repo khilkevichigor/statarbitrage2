@@ -110,104 +110,33 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
         try {
-            // Проверяем подключение к API
-            if (!isConnected()) {
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Нет подключения к OKX API");
+            if (!preTradeChecks(symbol, amount)) {
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Ошибка предотлетной проверки");
             }
 
-            // Проверяем доступность средств
-            if (!hasAvailableBalance(amount)) {
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Недостаточно средств для открытия позиции");
-            }
-
-            // Получаем текущую цену
-            BigDecimal currentPrice = getCurrentPrice(symbol);
-            if (currentPrice == null) {
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Не удалось получить текущую цену");
-            }
-
-            // Рассчитываем размер позиции
-            BigDecimal positionSize = amount.multiply(leverage)
-                    .divide(currentPrice, 8, RoundingMode.HALF_UP);
-
-            // Корректируем размер позиции согласно lot size
-            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Размер позиции слишком мал для торговли");
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
             }
 
-            // Пересчитываем итоговую долларовую сумму после корректировки lot size
-            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
-                    symbol, amount, adjustedAmount, positionSize);
-
-            // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            // Создаем заявку на OKX
-            String orderId = placeOrder(symbol, "buy", "long", positionSize.toString(),
-                    currentPrice.toString(), leverage.toString());
-
-            if (orderId == null) {
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Не удалось создать заявку на OKX");
+            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
+            if (!orderResult.isSuccess()) {
+                return orderResult;
             }
 
-            // Резервируем средства
-            if (!okxPortfolioManager.reserveBalance(amount)) {
-                // Пытаемся отменить заявку
-                cancelOrder(orderId, symbol);
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
-                        "Не удалось зарезервировать средства");
-            }
-
-            // Рассчитываем комиссии
-            BigDecimal fees = calculateFees(amount, leverage);
-
-            // Создаем позицию
-            String positionId = UUID.randomUUID().toString();
-            Position position = Position.builder()
-                    .positionId(positionId)
-                    .symbol(symbol)
-                    .type(PositionType.LONG)
-                    .size(positionSize)
-                    .entryPrice(currentPrice)
-                    .currentPrice(currentPrice)
-                    .leverage(leverage)
-                    .allocatedAmount(amount)
-                    .unrealizedPnL(BigDecimal.ZERO)
-                    .unrealizedPnLPercent(BigDecimal.ZERO)
-                    .openingFees(fees)
-                    .status(PositionStatus.OPEN)
-                    .openTime(LocalDateTime.now())
-                    .lastUpdated(LocalDateTime.now())
-                    .externalOrderId(orderId) // Сохраняем ID заявки OKX
-                    .build();
-
-            // Сохраняем позицию
-            positions.put(positionId, position);
-
-            // Уведомляем портфолио
+            Position position = createPositionFromTradeResult(orderResult, PositionType.LONG, amount, leverage);
+            positions.put(position.getPositionId(), position);
             okxPortfolioManager.onPositionOpened(position);
 
-            // Создаем результат
-            TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
-                    symbol, positionSize, currentPrice, fees);
-            result.setPnl(BigDecimal.ZERO);
-            result.setExternalOrderId(orderId);
-
-            tradeHistory.add(result);
-
+            tradeHistory.add(orderResult);
             log.info("✅ Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
-                    symbol, positionSize, currentPrice, orderId);
+                    symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
-            return result;
+            return orderResult;
 
         } catch (Exception e) {
             log.error("❌ Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
@@ -218,104 +147,33 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
         try {
-            // Проверяем подключение к API
-            if (!isConnected()) {
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Нет подключения к OKX API");
+            if (!preTradeChecks(symbol, amount)) {
+                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Ошибка предотлетной проверки");
             }
 
-            // Проверяем доступность средств
-            if (!hasAvailableBalance(amount)) {
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Недостаточно средств для открытия позиции");
-            }
-
-            // Получаем текущую цену
-            BigDecimal currentPrice = getCurrentPrice(symbol);
-            if (currentPrice == null) {
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Не удалось получить текущую цену");
-            }
-
-            // Рассчитываем размер позиции
-            BigDecimal positionSize = amount.multiply(leverage)
-                    .divide(currentPrice, 8, RoundingMode.HALF_UP);
-
-            // Корректируем размер позиции согласно lot size
-            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Размер позиции слишком мал для торговли");
+                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Размер позиции слишком мал");
             }
 
-            // Пересчитываем итоговую долларовую сумму после корректировки lot size
-            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
-                    symbol, amount, adjustedAmount, positionSize);
-
-            // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            // Создаем заявку на OKX
-            String orderId = placeOrder(symbol, "sell", "short", positionSize.toString(),
-                    currentPrice.toString(), leverage.toString());
-
-            if (orderId == null) {
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Не удалось создать заявку на OKX");
+            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
+            if (!orderResult.isSuccess()) {
+                return orderResult;
             }
 
-            // Резервируем средства
-            if (!okxPortfolioManager.reserveBalance(amount)) {
-                // Пытаемся отменить заявку
-                cancelOrder(orderId, symbol);
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
-                        "Не удалось зарезервировать средства");
-            }
-
-            // Рассчитываем комиссии
-            BigDecimal fees = calculateFees(amount, leverage);
-
-            // Создаем позицию
-            String positionId = UUID.randomUUID().toString();
-            Position position = Position.builder()
-                    .positionId(positionId)
-                    .symbol(symbol)
-                    .type(PositionType.SHORT)
-                    .size(positionSize)
-                    .entryPrice(currentPrice)
-                    .currentPrice(currentPrice)
-                    .leverage(leverage)
-                    .allocatedAmount(amount)
-                    .unrealizedPnL(BigDecimal.ZERO)
-                    .unrealizedPnLPercent(BigDecimal.ZERO)
-                    .openingFees(fees)
-                    .status(PositionStatus.OPEN)
-                    .openTime(LocalDateTime.now())
-                    .lastUpdated(LocalDateTime.now())
-                    .externalOrderId(orderId) // Сохраняем ID заявки OKX
-                    .build();
-
-            // Сохраняем позицию
-            positions.put(positionId, position);
-
-            // Уведомляем портфолио
+            Position position = createPositionFromTradeResult(orderResult, PositionType.SHORT, amount, leverage);
+            positions.put(position.getPositionId(), position);
             okxPortfolioManager.onPositionOpened(position);
 
-            // Создаем результат
-            TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_SHORT,
-                    symbol, positionSize, currentPrice, fees);
-            result.setPnl(BigDecimal.ZERO);
-            result.setExternalOrderId(orderId);
-
-            tradeHistory.add(result);
-
+            tradeHistory.add(orderResult);
             log.info("✅ Открыта SHORT позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
-                    symbol, positionSize, currentPrice, orderId);
+                    symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
-            return result;
+            return orderResult;
 
         } catch (Exception e) {
             log.error("❌ Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
@@ -508,38 +366,26 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     // Приватные методы для работы с OKX API
 
-    private String placeOrder(String symbol, String side, String posSide, String size,
-                              String price, String leverage) {
+    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
         try {
-            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
                 log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
-                return null;
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Геолокация не разрешена");
             }
 
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
-
-            // Определяем правильный posSide в зависимости от режима аккаунта
             String correctPosSide = determinePosSide(posSide);
 
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
-            orderData.addProperty("tdMode", "isolated"); // Изолированная маржа
+            orderData.addProperty("tdMode", "isolated");
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
-            orderData.addProperty("ordType", "market"); // Рыночный ордер
-            orderData.addProperty("sz", size);
-            orderData.addProperty("lever", leverage);
+            orderData.addProperty("ordType", "market");
+            orderData.addProperty("sz", size.toPlainString());
 
-            log.info("📋 Создание ордера OKX: symbol={}, side={}, posSide={}, size={}, leverage={}",
-                    symbol, side, correctPosSide, size, leverage);
-
-            RequestBody body = RequestBody.create(
-                    orderData.toString(),
-                    MediaType.get("application/json")
-            );
-
+            RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("POST", endpoint, orderData.toString(), timestamp);
 
@@ -555,58 +401,64 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
-                log.info("🔍 OKX API ответ: {}", responseBody);
-
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-                log.info("🔍 Парсинг JSON успешен, проверяем код ответа...");
 
-                JsonElement codeElement = jsonResponse.get("code");
-                if (codeElement == null) {
-                    log.error("❌ Поле 'code' отсутствует в ответе OKX");
-                    return null;
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка при создании ордера: {}", responseBody);
+                    return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, jsonResponse.get("msg").getAsString());
                 }
 
-                String code = codeElement.getAsString();
-                log.info("🔍 Код ответа OKX: '{}'", code);
-
-                if ("0".equals(code)) {
-                    log.info("✅ Успешный ответ от OKX, проверяем данные...");
-
-                    JsonElement dataElement = jsonResponse.get("data");
-                    if (dataElement == null) {
-                        log.error("❌ Поле 'data' отсутствует в ответе OKX");
-                        return null;
-                    }
-
-                    JsonArray data = dataElement.getAsJsonArray();
-                    log.info("🔍 Размер массива data: {}", data.size());
-
-                    if (data.size() > 0) {
-                        JsonObject orderInfo = data.get(0).getAsJsonObject();
-                        log.info("🔍 Информация о заказе: {}", orderInfo.toString());
-
-                        JsonElement orderIdElement = orderInfo.get("ordId");
-                        if (orderIdElement == null) {
-                            log.error("❌ Поле 'ordId' отсутствует в данных заказа");
-                            return null;
-                        }
-
-                        String orderId = orderIdElement.getAsString();
-                        log.info("✅ Получен orderId: {}", orderId);
-                        return orderId;
-                    } else {
-                        log.error("❌ Массив 'data' пуст");
-                        return null;
-                    }
-                } else {
-                    log.error("❌ OKX вернул код ошибки: '{}', полный ответ: {}", code, responseBody);
-                    return null;
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                if (data.size() > 0) {
+                    String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
+                    return getOrderDetails(orderId, symbol);
                 }
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить ID ордера");
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при создании ордера: {}", e.getMessage());
-            return null;
+            return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
         }
+    }
+
+    private boolean preTradeChecks(String symbol, BigDecimal amount) {
+        if (!isConnected()) {
+            log.error("❌ Нет подключения к OKX API");
+            return false;
+        }
+        if (!hasAvailableBalance(amount)) {
+            log.error("❌ Недостаточно средств для открытия позиции");
+            return false;
+        }
+        return true;
+    }
+
+    private BigDecimal calculateAndAdjustPositionSize(String symbol, BigDecimal amount, BigDecimal leverage) {
+        BigDecimal currentPrice = getCurrentPrice(symbol);
+        if (currentPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal positionSize = amount.multiply(leverage).divide(currentPrice, 8, RoundingMode.HALF_UP);
+        return adjustPositionSizeToLotSize(symbol, positionSize);
+    }
+
+    private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage) {
+        String positionId = UUID.randomUUID().toString();
+        return Position.builder()
+                .positionId(positionId)
+                .symbol(tradeResult.getSymbol())
+                .type(type)
+                .size(tradeResult.getExecutedSize()) // Используем исполненный размер
+                .entryPrice(tradeResult.getExecutionPrice())
+                .currentPrice(tradeResult.getExecutionPrice())
+                .leverage(leverage)
+                .allocatedAmount(amount)
+                .openingFees(tradeResult.getFees())
+                .status(PositionStatus.OPEN)
+                .openTime(LocalDateTime.now())
+                .lastUpdated(LocalDateTime.now())
+                .externalOrderId(tradeResult.getExternalOrderId())
+                .build();
     }
 
     private TradeResult placeCloseOrder(Position position) {
