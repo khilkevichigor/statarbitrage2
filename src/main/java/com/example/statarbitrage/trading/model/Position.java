@@ -109,7 +109,9 @@ public class Position {
     private String externalOrderId;
 
     /**
-     * Расчет нереализованной прибыли/убытка
+     * Расчет нереализованной прибыли/убытка (Net PnL).
+     * Учитывает комиссию за открытие, так как она уже уплачена.
+     * Комиссия за закрытие будет учтена при расчете реализованного PnL.
      */
     public void calculateUnrealizedPnL() {
         if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
@@ -125,16 +127,19 @@ public class Position {
             priceDiff = entryPrice.subtract(currentPrice);
         }
 
-        // Абсолютная прибыль/убыток рассчитывается на основе изменения цены и размера позиции.
-        // Плечо не участвует в расчете абсолютного PnL, но влияет на размер необходимого залога (allocatedAmount).
-        unrealizedPnL = priceDiff.multiply(size);
+        // 1. Рассчитываем "грязную" прибыль/убыток (Gross PnL)
+        BigDecimal grossPnL = priceDiff.multiply(size);
 
-        // Процентная прибыль рассчитывается как отношение абсолютного PnL к выделенному залогу.
+        // 2. Вычитаем комиссию за открытие (она уже уплачена)
+        BigDecimal feesPaid = (this.openingFees != null) ? this.openingFees : BigDecimal.ZERO;
+        this.unrealizedPnL = grossPnL.subtract(feesPaid);
+
+        // 3. Рассчитываем процентную прибыль на основе чистого PnL
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            unrealizedPnLPercent = unrealizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+            this.unrealizedPnLPercent = this.unrealizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
         } else {
-            unrealizedPnLPercent = BigDecimal.ZERO;
+            this.unrealizedPnLPercent = BigDecimal.ZERO;
         }
     }
 
