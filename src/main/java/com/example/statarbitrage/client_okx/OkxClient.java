@@ -300,23 +300,30 @@ public class OkxClient {
      * @return Текущая цена или null если не удалось получить
      */
     public BigDecimal getCurrentPrice(String symbol) {
+        log.info("==> getCurrentPrice: НАЧАЛО для символа {}", symbol);
         try {
-            applyRateLimit(); // Применяем rate limiting
+            applyRateLimit();
+            log.info("Rate limit применен.");
 
             JsonArray tickerData = getTicker(symbol);
+            log.info("Получены данные тикера: {}", tickerData);
+
             if (tickerData != null && tickerData.size() > 0) {
                 JsonObject ticker = tickerData.get(0).getAsJsonObject();
-
-                // Согласно OKX API документации, last price находится в поле "last"
-                String lastPrice = ticker.get("last").getAsString();
-                return new BigDecimal(lastPrice);
+                String lastPriceStr = ticker.get("last").getAsString();
+                BigDecimal lastPrice = new BigDecimal(lastPriceStr);
+                log.info("Извлечена последняя цена: {}", lastPrice);
+                log.info("<== getCurrentPrice: КОНЕЦ (Успех) для символа {}. Цена: {}", symbol, lastPrice);
+                return lastPrice;
             }
 
-            log.warn("⚠️ Не удалось получить цену для {}: пустой ответ от API", symbol);
+            log.warn("⚠️ Не удалось получить цену для {}: пустой или неверный ответ от API. tickerData: {}", symbol, tickerData);
+            log.info("<== getCurrentPrice: КОНЕЦ (Пустой ответ) для символа {}", symbol);
             return null;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при получении цены для {}: {}", symbol, e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при получении цены для {}: {}", symbol, e.getMessage(), e);
+            log.info("<== getCurrentPrice: КОНЕЦ (Ошибка) для символа {}", symbol);
             return null;
         }
     }

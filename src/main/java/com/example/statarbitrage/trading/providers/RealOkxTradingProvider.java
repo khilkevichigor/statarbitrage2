@@ -106,27 +106,32 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     @Override
     public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
+        log.info("==> openLongPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
         try {
             if (!preTradeChecks(symbol, amount)) {
+                log.error("Предотлетная проверка не пройдена.");
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Ошибка предотлетной проверки");
             }
 
-            //todo где-то тут ошибка размера позиции!!!
-
             BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
+            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                log.error("Размер позиции после корректировки равен нулю или меньше.");
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
             }
 
-            // Пересчитываем итоговую долларовую сумму после корректировки lot size
             BigDecimal currentPrice = getCurrentPrice(symbol);
+            if (currentPrice == null) {
+                log.error("Не удалось получить текущую цену для {}.", symbol);
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить цену");
+            }
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
-                    symbol, amount, adjustedAmount, positionSize);
+            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
+                    symbol, amount, adjustedAmount, positionSize, currentPrice);
 
-            // Новая проверка размера ордера
             String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
             if (validationError != null) {
+                log.error("Ошибка валидации размера ордера: {}", validationError);
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, validationError);
             }
 
@@ -136,21 +141,24 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
             if (!orderResult.isSuccess()) {
+                log.error("Ошибка размещения ордера: {}", orderResult.getErrorMessage());
                 return orderResult;
             }
 
             Position position = createPositionFromTradeResult(orderResult, PositionType.LONG, amount, leverage);
             positions.put(position.getPositionId(), position);
             okxPortfolioManager.onPositionOpened(position);
+            log.info("Позиция создана и сохранена. ID: {}", position.getPositionId());
 
             tradeHistory.add(orderResult);
             log.info("✅ Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
+            log.info("<== openLongPosition: КОНЕЦ (Успех) для {}", symbol);
             return orderResult;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при открытии LONG позиции {}: {}", symbol, e.getMessage(), e);
             return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
         }
     }
@@ -390,15 +398,18 @@ public class RealOkxTradingProvider implements TradingProvider {
     // Приватные методы для работы с OKX API
 
     private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
+        log.info("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);
         try {
             if (!geolocationService.isGeolocationAllowed()) {
                 log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Геолокация не разрешена");
             }
+            log.info("Проверка геолокации пройдена.");
 
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
             String correctPosSide = determinePosSide(posSide);
+            log.info("Определен correctPosSide: {}", correctPosSide);
 
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
@@ -406,12 +417,11 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", size.toPlainString()); // Теперь это количество базового актива
-            orderData.addProperty("szCcy", getBaseCurrency(symbol)); // Указываем, что sz в базовой валюте
+            orderData.addProperty("sz", size.toPlainString());
+            orderData.addProperty("szCcy", getBaseCurrency(symbol));
             orderData.addProperty("lever", leverage.toPlainString());
 
-            log.info("📋 Создание ордера OKX: symbol={}, side={}, posSide={}, szCcy={}, sz={}, leverage={}",
-                    symbol, side, correctPosSide, getBaseCurrency(symbol), size, leverage);
+            log.info("📋 Тело запроса для создания ордера OKX: {}", orderData.toString());
 
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
@@ -427,8 +437,10 @@ public class RealOkxTradingProvider implements TradingProvider {
                     .addHeader("Content-Type", "application/json")
                     .build();
 
+            log.info("Отправка запроса на создание ордера...");
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
+                log.info("Получен ответ от OKX API: HTTP {} | {}", response.code(), responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
@@ -439,12 +451,14 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
+                    log.info("Ордер успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
                     return getOrderDetails(orderId, symbol, Objects.equals(posSide, "long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT);
                 }
+                log.error("Не удалось получить ID ордера из ответа API.");
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить ID ордера");
             }
         } catch (Exception e) {
-            log.error("❌ Ошибка при создании ордера: {}", e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при создании ордера: {}", e.getMessage(), e);
             return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
         }
     }
@@ -1136,31 +1150,39 @@ public class RealOkxTradingProvider implements TradingProvider {
      * @return null, если размер ордера валиден, иначе сообщение об ошибке.
      */
     private String validateOrderSize(String symbol, BigDecimal adjustedAmount, BigDecimal positionSize, BigDecimal currentPrice) {
+        log.info("==> validateOrderSize: НАЧАЛО для {} | adjustedAmount: {} | positionSize: {} | currentPrice: {}", symbol, adjustedAmount, positionSize, currentPrice);
         try {
             InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
             if (instrumentInfo == null) {
+                log.error("Не удалось получить информацию о торговом инструменте для {}.", symbol);
                 return "Не удалось получить информацию о торговом инструменте для проверки размера ордера.";
             }
+            log.info("Получена информация об инструменте: {}", instrumentInfo);
 
             BigDecimal minCcyAmt = instrumentInfo.getMinCcyAmt();
             BigDecimal minNotional = instrumentInfo.getMinNotional();
+            log.info("Минимальные требования: minCcyAmt={}, minNotional={}", minCcyAmt, minNotional);
 
             // Проверка по minCcyAmt (минимальная сумма в валюте котировки, т.е. USDT)
             if (adjustedAmount.compareTo(minCcyAmt) < 0) {
-                log.warn("⚠️ Сумма маржи {} USDT меньше минимальной {} USDT для {}", adjustedAmount, minCcyAmt, symbol);
-                return String.format("Сумма маржи %.2f USDT меньше минимальной %.2f USDT.", adjustedAmount, minCcyAmt);
+                String errorMsg = String.format("Сумма маржи %.2f USDT меньше минимальной %.2f USDT.", adjustedAmount, minCcyAmt);
+                log.warn("⚠️ {} для {}", errorMsg, symbol);
+                return errorMsg;
             }
 
             // Проверка по minNotional (минимальная условная стоимость сделки)
             BigDecimal notionalValue = positionSize.multiply(currentPrice);
+            log.info("Рассчитанная условная стоимость сделки: {}", notionalValue);
             if (notionalValue.compareTo(minNotional) < 0) {
-                log.warn("⚠️ Условная стоимость сделки {} USDT меньше минимальной {} USDT для {}", notionalValue, minNotional, symbol);
-                return String.format("Условная стоимость сделки %.2f USDT меньше минимальной %.2f USDT.", notionalValue, minNotional);
+                String errorMsg = String.format("Условная стоимость сделки %.2f USDT меньше минимальной %.2f USDT.", notionalValue, minNotional);
+                log.warn("⚠️ {} для {}", errorMsg, symbol);
+                return errorMsg;
             }
 
+            log.info("<== validateOrderSize: КОНЕЦ (Успех) для {}", symbol);
             return null; // Валидация прошла успешно
         } catch (Exception e) {
-            log.error("❌ Ошибка при валидации размера ордера для {}: {}", symbol, e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при валидации размера ордера для {}: {}", symbol, e.getMessage(), e);
             return "Ошибка при валидации размера ордера: " + e.getMessage();
         }
     }

@@ -26,22 +26,29 @@ public class CalculateChangesService {
     private final TradingIntegrationService tradingIntegrationService;
 
     public ChangesData getChanges(PairData pairData) {
+        log.info("==> getChanges: НАЧАЛО для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         try {
             // Получаем данные об открытых позициях
+            log.info("Запрашиваем информацию о позициях...");
             Positioninfo positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
+            log.info("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
-                log.warn("⚠️ Не удалось получить информацию о позициях для пары {} / {}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
-                return new ChangesData();
+                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {} / {}. PositionInfo: {}",
+                        pairData.getLongTicker(), pairData.getShortTicker(), positionsInfo);
+                return new ChangesData(); // Возвращаем пустой объект, чтобы избежать NPE
             }
 
-            return getFromPositions(pairData, positionsInfo);
+            ChangesData result = getFromPositions(pairData, positionsInfo);
+            log.info("<== getChanges: КОНЕЦ для пары {}/{}. Результат: {}", pairData.getLongTicker(), pairData.getShortTicker(), result);
+            return result;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении данных из позиций для пары {} / {}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {} / {}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage(), e);
         }
+        // В случае исключения, возвращаем пустой объект
+        log.info("<== getChanges: КОНЕЦ (с ошибкой) для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         return new ChangesData();
     }
 
@@ -49,19 +56,22 @@ public class CalculateChangesService {
      * Общий метод обновления данных из позиций
      */
     private ChangesData getFromPositions(PairData pairData, Positioninfo positionsInfo) {
+        log.info("--> getFromPositions: НАЧАЛО для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         Position longPosition = positionsInfo.getLongPosition();
         Position shortPosition = positionsInfo.getShortPosition();
         boolean isPositionsClosed = positionsInfo.isPositionsClosed();
+        log.info("Статус позиций: isPositionsClosed = {}", isPositionsClosed);
 
         ChangesData changesData = new ChangesData();
         changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
+        log.info("Текущие цены: LONG {} = {}, SHORT {} = {}", longPosition.getSymbol(), longPosition.getCurrentPrice(), shortPosition.getSymbol(), shortPosition.getCurrentPrice());
 
         if (isPositionsClosed) {
-            log.info("Позиции закрыты на бирже! Начинаем расчет изменений по закрытым позициям для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.info("Позиции определены как ЗАКРЫТЫЕ. Переход в getFromClosedPositions.");
             return getFromClosedPositions(pairData, changesData, longPosition, shortPosition);
         } else {
-            log.info("Позиции открыты на бирже! Начинаем расчет изменений по открытым позициям для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.info("Позиции определены как ОТКРЫТЫЕ. Переход в getFromOpenPositions.");
             return getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
         }
     }
@@ -70,13 +80,17 @@ public class CalculateChangesService {
      * Расчет данных для открытых позиций (нереализованный PnL)
      */
     private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+        log.info("--> getFromOpenPositions для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         // 1. Суммируем нереализованный PnL (он уже очищен от комиссии за открытие в классе Position)
         BigDecimal netPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+        log.info("Рассчитан нереализованный PnL: {} (Long: {}, Short: {})", netPnL, longPosition.getUnrealizedPnL(), shortPosition.getUnrealizedPnL());
 
         // 2. Суммируем комиссии за открытие для статистики
         BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
+        log.info("Рассчитаны комиссии за открытие: {} (Long: {}, Short: {})", totalFees, longPosition.getOpeningFees(), shortPosition.getOpeningFees());
 
         // 3. Обновляем статистику
+        log.info("Переход в getProfitAndStatistics для открытых позиций.");
         return getProfitAndStatistics(pairData, changesData, netPnL, totalFees, false, longPosition, shortPosition);
     }
 
@@ -84,16 +98,20 @@ public class CalculateChangesService {
      * Расчет данных для закрытых позиций (реализованный PnL)
      */
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+        log.info("--> getFromClosedPositions для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         // 1. Суммируем реализованный PnL (он уже очищен от всех комиссий в классе Position)
         BigDecimal netPnL = longPosition.getRealizedPnL().add(shortPosition.getRealizedPnL());
+        log.info("Рассчитан реализованный PnL: {} (Long: {}, Short: {})", netPnL, longPosition.getRealizedPnL(), shortPosition.getRealizedPnL());
 
         // 2. Суммируем все комиссии для статистики
         BigDecimal totalFees = (longPosition.getOpeningFees() != null ? longPosition.getOpeningFees() : BigDecimal.ZERO)
                 .add(longPosition.getClosingFees() != null ? longPosition.getClosingFees() : BigDecimal.ZERO)
                 .add(shortPosition.getOpeningFees() != null ? shortPosition.getOpeningFees() : BigDecimal.ZERO)
                 .add(shortPosition.getClosingFees() != null ? shortPosition.getClosingFees() : BigDecimal.ZERO);
+        log.info("Рассчитаны общие комиссии (открытие + закрытие): {}", totalFees);
 
         // 3. Обновляем статистику
+        log.info("Переход в getProfitAndStatistics для закрытых позиций.");
         return getProfitAndStatistics(pairData, changesData, netPnL, totalFees, true, longPosition, shortPosition);
     }
 
@@ -102,16 +120,19 @@ public class CalculateChangesService {
      */
     private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal netPnL, BigDecimal totalFees,
                                                boolean isPositionsClosed, Position longPosition, Position shortPosition) {
+        log.info("--> getProfitAndStatistics для пары {}/{}. isPositionsClosed={}", pairData.getLongTicker(), pairData.getShortTicker(), isPositionsClosed);
 
         // Рассчитываем общую сумму инвестиций из позиций
         BigDecimal totalInvestment = longPosition.getAllocatedAmount()
                 .add(shortPosition.getAllocatedAmount());
+        log.info("Общая сумма инвестиций: {} (Long: {}, Short: {})", totalInvestment, longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
 
         // Конвертируем в процент от позиции
         BigDecimal profitPercent = calculateProfitPercent(
                 netPnL,
                 totalInvestment
         );
+        log.info("Рассчитан процент профита: {}", profitPercent);
 
         changesData.setProfitChanges(profitPercent);
 
@@ -120,6 +141,7 @@ public class CalculateChangesService {
                 profitPercent, netPnL, totalFees);
 
         // Обновляем статистику и экстремумы
+        log.info("Переход в getStatistics для обновления статистики и экстремумов.");
         return getStatistics(pairData, changesData);
     }
 
