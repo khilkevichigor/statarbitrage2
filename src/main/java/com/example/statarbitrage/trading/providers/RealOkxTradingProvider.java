@@ -108,6 +108,114 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
+//    @Override
+//    public TradeResult openLongPositionOld(String symbol, BigDecimal amount, BigDecimal leverage) {
+//        try {
+//            // Проверяем подключение к API
+//            if (!isConnected()) {
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+//                        "Нет подключения к OKX API");
+//            }
+//
+//            // Проверяем доступность средств
+//            if (!hasAvailableBalance(amount)) {
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+//                        "Недостаточно средств для открытия позиции");
+//            }
+//
+//            // Получаем текущую цену
+//            BigDecimal currentPrice = getCurrentPrice(symbol);
+//            if (currentPrice == null) {
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+//                        "Не удалось получить текущую цену");
+//            }
+//
+//            // Рассчитываем размер позиции
+//            BigDecimal positionSize = amount.multiply(leverage)
+//                    .divide(currentPrice, 8, RoundingMode.HALF_UP);
+//
+//            // Корректируем размер позиции согласно lot size
+//            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+//            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+//                        "Размер позиции слишком мал для торговли");
+//            }
+//
+//            // Пересчитываем итоговую долларовую сумму после корректировки lot size
+//            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+//            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+//                    symbol, amount, adjustedAmount, positionSize);
+//
+//            // Устанавливаем правильное плечо перед открытием позиции
+//            if (!setLeverage(symbol, leverage)) {
+//                log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
+//            }
+//
+//            // Создаем заявку на OKX
+//            String orderId = placeOrder(symbol, "buy", "long", positionSize.toString(),
+//                    currentPrice.toString(), leverage.toString());
+//
+//            if (orderId == null) {
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+//                        "Не удалось создать заявку на OKX");
+//            }
+//
+//            // Резервируем средства
+//            if (!okxPortfolioManager.reserveBalance(amount)) {
+//                // Пытаемся отменить заявку
+//                cancelOrder(orderId, symbol);
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+//                        "Не удалось зарезервировать средства");
+//            }
+//
+//            // Рассчитываем комиссии
+//            BigDecimal fees = calculateFees(amount, leverage);
+//
+//            // Создаем позицию
+//            String positionId = UUID.randomUUID().toString();
+//            Position position = Position.builder()
+//                    .positionId(positionId)
+//                    .symbol(symbol)
+//                    .type(PositionType.LONG)
+//                    .size(positionSize)
+//                    .entryPrice(currentPrice)
+//                    .currentPrice(currentPrice)
+//                    .leverage(leverage)
+//                    .allocatedAmount(amount)
+//                    .unrealizedPnL(BigDecimal.ZERO)
+//                    .unrealizedPnLPercent(BigDecimal.ZERO)
+//                    .openingFees(fees)
+//                    .status(PositionStatus.OPEN)
+//                    .openTime(LocalDateTime.now())
+//                    .lastUpdated(LocalDateTime.now())
+//                    .externalOrderId(orderId) // Сохраняем ID заявки OKX
+//                    .build();
+//
+//            // Сохраняем позицию
+//            positions.put(positionId, position);
+//
+//            // Уведомляем портфолио
+//            okxPortfolioManager.onPositionOpened(position);
+//
+//            // Создаем результат
+//            TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
+//                    symbol, positionSize, currentPrice, fees);
+//            result.setPnl(BigDecimal.ZERO);
+//            result.setExternalOrderId(orderId);
+//
+//            tradeHistory.add(result);
+//
+//            log.info("✅ Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
+//                    symbol, positionSize, currentPrice, orderId);
+//
+//            return result;
+//
+//        } catch (Exception e) {
+//            log.error("❌ Ошибка при открытии LONG позиции {}: {}", symbol, e.getMessage());
+//            return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
+//        }
+//    }
+
     @Override
     public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
         log.info("==> openLongPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
@@ -117,28 +225,56 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Ошибка предотлетной проверки");
             }
 
-            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
-            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
-            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                log.error("Размер позиции после корректировки равен нулю или меньше.");
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
-            }
+//            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
+//            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
+//            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+//                log.error("Размер позиции после корректировки равен нулю или меньше.");
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
+//            }
+//
+//            BigDecimal currentPrice = getCurrentPrice(symbol);
+//            if (currentPrice == null) {
+//                log.error("Не удалось получить текущую цену для {}.", symbol);
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить цену");
+//            }
+//            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+//            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
+//                    symbol, amount, adjustedAmount, positionSize, currentPrice);
+//
+//            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
+//            if (validationError != null) {
+//                log.error("Ошибка валидации размера ордера: {}", validationError);
+//                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, validationError);
+//            }
+//
+//            if (!setLeverage(symbol, leverage)) {
+//                log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
+//            }
 
+            // Получаем текущую цену
             BigDecimal currentPrice = getCurrentPrice(symbol);
             if (currentPrice == null) {
-                log.error("Не удалось получить текущую цену для {}.", symbol);
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить цену");
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                        "Не удалось получить текущую цену");
             }
+
+            // Рассчитываем размер позиции
+            BigDecimal positionSize = amount.multiply(leverage)
+                    .divide(currentPrice, 8, RoundingMode.HALF_UP);
+
+            // Корректируем размер позиции согласно lot size
+            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                        "Размер позиции слишком мал для торговли");
+            }
+
+            // Пересчитываем итоговую долларовую сумму после корректировки lot size
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
-                    symbol, amount, adjustedAmount, positionSize, currentPrice);
+            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+                    symbol, amount, adjustedAmount, positionSize);
 
-            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
-            if (validationError != null) {
-                log.error("Ошибка валидации размера ордера: {}", validationError);
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, validationError);
-            }
-
+            // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
@@ -176,28 +312,56 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Ошибка предотлетной проверки");
             }
 
-            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
-            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
-            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-                log.error("Размер позиции после корректировки равен нулю или меньше.");
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Размер позиции слишком мал");
-            }
+//            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
+//            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
+//            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+//                log.error("Размер позиции после корректировки равен нулю или меньше.");
+//                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Размер позиции слишком мал");
+//            }
+//
+//            BigDecimal currentPrice = getCurrentPrice(symbol);
+//            if (currentPrice == null) {
+//                log.error("Не удалось получить текущую цену для {}.", symbol);
+//                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Не удалось получить цену");
+//            }
+//            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+//            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
+//                    symbol, amount, adjustedAmount, positionSize, currentPrice);
+//
+//            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
+//            if (validationError != null) {
+//                log.error("Ошибка валидации размера ордера: {}", validationError);
+//                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, validationError);
+//            }
+//
+//            if (!setLeverage(symbol, leverage)) {
+//                log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
+//            }
 
+            // Получаем текущую цену
             BigDecimal currentPrice = getCurrentPrice(symbol);
             if (currentPrice == null) {
-                log.error("Не удалось получить текущую цену для {}.", symbol);
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Не удалось получить цену");
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                        "Не удалось получить текущую цену");
             }
+
+            // Рассчитываем размер позиции
+            BigDecimal positionSize = amount.multiply(leverage)
+                    .divide(currentPrice, 8, RoundingMode.HALF_UP);
+
+            // Корректируем размер позиции согласно lot size
+            positionSize = adjustPositionSizeToLotSize(symbol, positionSize);
+            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
+                        "Размер позиции слишком мал для торговли");
+            }
+
+            // Пересчитываем итоговую долларовую сумму после корректировки lot size
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
-                    symbol, amount, adjustedAmount, positionSize, currentPrice);
+            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+                    symbol, amount, adjustedAmount, positionSize);
 
-            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
-            if (validationError != null) {
-                log.error("Ошибка валидации размера ордера: {}", validationError);
-                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, validationError);
-            }
-
+            // Устанавливаем правильное плечо перед открытием позиции
             if (!setLeverage(symbol, leverage)) {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
