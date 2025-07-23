@@ -2,7 +2,6 @@ package com.example.statarbitrage.trading.services;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
-import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
@@ -376,8 +375,13 @@ public class TradingIntegrationService {
         Position shortPosition = provider.getPosition(shortPositionId);
         log.debug("Получены позиции: LONG={}, SHORT={}", longPosition, shortPosition);
 
-        boolean longClosed = (longPosition == null || longPosition.getStatus() == PositionStatus.CLOSED);
-        boolean shortClosed = (shortPosition == null || shortPosition.getStatus() == PositionStatus.CLOSED);
+        if (longPosition == null || shortPosition == null) {
+            log.error("❌ Ошибка расчета changes - позиции равны null для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
+            return Positioninfo.builder().build();
+        }
+
+        boolean longClosed = (longPosition.getStatus() == PositionStatus.CLOSED);
+        boolean shortClosed = (shortPosition.getStatus() == PositionStatus.CLOSED);
         log.debug("Статус позиций: LONG закрыта={}, SHORT закрыта={}", longClosed, shortClosed);
 
         if (longClosed && shortClosed) {

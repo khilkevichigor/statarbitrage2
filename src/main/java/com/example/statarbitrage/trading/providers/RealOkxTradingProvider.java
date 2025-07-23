@@ -22,10 +22,7 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -436,7 +433,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
-                    return getOrderDetails(orderId, symbol, TradeOperationType.OPEN_LONG);
+                    return getOrderDetails(orderId, symbol, Objects.equals(posSide, "long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT);
                 }
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить ID ордера");
             }
@@ -546,6 +543,16 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     private TradeResult getOrderDetails(String orderId, String symbol, TradeOperationType tradeOperationType) {
+        if (tradeOperationType == TradeOperationType.OPEN_LONG) {
+            log.info("Получаем информацию по только что открытой LONG позиции symbol={} orderId={}", symbol, orderId);
+        } else if (tradeOperationType == TradeOperationType.OPEN_SHORT) {
+            log.info("Получаем информацию по только что открытой SHORT позиции symbol={} orderId={}", symbol, orderId);
+        } else if (tradeOperationType == TradeOperationType.CLOSE_POSITION) {
+            log.info("Получаем информацию по только что закрытой позиции symbol={} orderId={}", symbol, orderId);
+        } else {
+            log.error("❌ Неизвестная операция для получения деталей с окх для symbol={} orderId={}", symbol, orderId);
+        }
+
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
