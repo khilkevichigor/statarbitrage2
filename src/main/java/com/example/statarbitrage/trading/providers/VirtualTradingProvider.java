@@ -104,7 +104,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
-                    symbol, positionSize, currentPrice, fees);
+                    symbol, positionSize, currentPrice, fees, null);
             result.setPnl(BigDecimal.ZERO);
 
             tradeHistory.add(result);
@@ -177,7 +177,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_SHORT,
-                    symbol, positionSize, currentPrice, fees);
+                    symbol, positionSize, currentPrice, fees, null);
             result.setPnl(BigDecimal.ZERO);
 
             tradeHistory.add(result);
@@ -239,7 +239,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
-                    position.getSymbol(), position.getSize(), currentPrice, closingFees);
+                    position.getSymbol(), position.getSize(), currentPrice, closingFees, null);
             result.setPnl(finalPnL);
 
             tradeHistory.add(result);

@@ -87,7 +87,7 @@ public class TradeResult {
      */
     public static TradeResult success(String positionId, TradeOperationType operationType,
                                       String symbol, BigDecimal executedSize, BigDecimal executionPrice,
-                                      BigDecimal fees) {
+                                      BigDecimal fees, String externalOrderId) {
         return TradeResult.builder()
                 .success(true)
                 .positionId(positionId)
@@ -97,6 +97,7 @@ public class TradeResult {
                 .executionPrice(executionPrice)
                 .fees(fees)
                 .executionTime(LocalDateTime.now())
+                .externalOrderId(externalOrderId)
                 .build();
     }
 

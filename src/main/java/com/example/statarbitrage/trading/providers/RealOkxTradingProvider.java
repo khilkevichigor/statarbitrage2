@@ -160,7 +160,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage); //передаем плечо на всякий случай
+            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -215,7 +215,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 5. Создаем итоговый результат операции
             TradeResult finalResult = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
-                    position.getSymbol(), position.getSize(), closeOrderResult.getExecutionPrice(), closeOrderResult.getFees());
+                    position.getSymbol(), position.getSize(), closeOrderResult.getExecutionPrice(), closeOrderResult.getFees(), closeOrderResult.getExternalOrderId());
             finalResult.setPnl(position.getRealizedPnL());
             finalResult.setExternalOrderId(closeOrderResult.getExternalOrderId());
 
@@ -562,7 +562,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     BigDecimal fee = new BigDecimal(orderInfo.get("fee").getAsString()).abs();
                     BigDecimal size = new BigDecimal(orderInfo.get("accFillSz").getAsString());
 
-                    return TradeResult.success(orderId, TradeOperationType.CLOSE_POSITION, symbol, size, avgPx, fee);
+                    return TradeResult.success(orderId, TradeOperationType.CLOSE_POSITION, symbol, size, avgPx, fee, orderId);
                 }
                 return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, "Детали ордера не найдены");
             }
