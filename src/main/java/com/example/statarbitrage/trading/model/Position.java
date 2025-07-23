@@ -112,7 +112,7 @@ public class Position {
      * Расчет нереализованной прибыли/убытка
      */
     public void calculateUnrealizedPnL() {
-        if (entryPrice == null || currentPrice == null || size == null) {
+        if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
             unrealizedPnL = BigDecimal.ZERO;
             unrealizedPnLPercent = BigDecimal.ZERO;
             return;
@@ -125,13 +125,16 @@ public class Position {
             priceDiff = entryPrice.subtract(currentPrice);
         }
 
-        // Абсолютная прибыль
-        unrealizedPnL = priceDiff.multiply(size).multiply(leverage);
+        // Абсолютная прибыль/убыток рассчитывается на основе изменения цены и размера позиции.
+        // Плечо не участвует в расчете абсолютного PnL, но влияет на размер необходимого залога (allocatedAmount).
+        unrealizedPnL = priceDiff.multiply(size);
 
-        // Процентная прибыль
+        // Процентная прибыль рассчитывается как отношение абсолютного PnL к выделенному залогу.
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             unrealizedPnLPercent = unrealizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
+        } else {
+            unrealizedPnLPercent = BigDecimal.ZERO;
         }
     }
 
