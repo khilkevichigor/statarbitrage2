@@ -169,25 +169,32 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     @Override
     public TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
+        log.info("==> openShortPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
         try {
             if (!preTradeChecks(symbol, amount)) {
+                log.error("Предотлетная проверка не пройдена.");
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Ошибка предотлетной проверки");
             }
 
             BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
+            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
+                log.error("Размер позиции после корректировки равен нулю или меньше.");
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Размер позиции слишком мал");
             }
 
-            // Пересчитываем итоговую долларовую сумму после корректировки lot size
             BigDecimal currentPrice = getCurrentPrice(symbol);
+            if (currentPrice == null) {
+                log.error("Не удалось получить текущую цену для {}.", symbol);
+                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Не удалось получить цену");
+            }
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
-                    symbol, amount, adjustedAmount, positionSize);
+            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
+                    symbol, amount, adjustedAmount, positionSize, currentPrice);
 
-            // Новая проверка размера ордера
             String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
             if (validationError != null) {
+                log.error("Ошибка валидации размера ордера: {}", validationError);
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, validationError);
             }
 
@@ -197,21 +204,24 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
             if (!orderResult.isSuccess()) {
+                log.error("Ошибка размещения ордера: {}", orderResult.getErrorMessage());
                 return orderResult;
             }
 
             Position position = createPositionFromTradeResult(orderResult, PositionType.SHORT, amount, leverage);
             positions.put(position.getPositionId(), position);
             okxPortfolioManager.onPositionOpened(position);
+            log.info("Позиция создана и сохранена. ID: {}", position.getPositionId());
 
             tradeHistory.add(orderResult);
             log.info("✅ Открыта SHORT позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
+            log.info("<== openShortPosition: КОНЕЦ (Успех) для {}", symbol);
             return orderResult;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при открытии SHORT позиции {}: {}", symbol, e.getMessage());
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при открытии SHORT позиции {}: {}", symbol, e.getMessage(), e);
             return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, e.getMessage());
         }
     }
@@ -423,7 +433,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
             orderData.addProperty("sz", size.toPlainString());
-            orderData.addProperty("szCcy", getBaseCurrency(symbol));
+            orderData.addProperty("szCcy", getBaseCurrency(symbol)); // Указываем, что sz в базовой валюте
             orderData.addProperty("lever", leverage.toPlainString());
 
             log.info("📋 Тело запроса для создания ордера OKX: {}", orderData.toString());
