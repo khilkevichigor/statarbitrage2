@@ -495,7 +495,12 @@ public class RealOkxTradingProvider implements TradingProvider {
         if (currentPrice == null) {
             return BigDecimal.ZERO;
         }
-        BigDecimal positionSize = amount.multiply(leverage).divide(currentPrice, 8, RoundingMode.HALF_UP);
+        // ИСПРАВЛЕНИЕ: Убираем leverage из расчета sz для фьючерсов
+        // sz должен быть в единицах базового актива, а leverage влияет только на маржу
+        // Формула: amount (USDT) / price = количество базового актива
+        BigDecimal positionSize = amount.divide(currentPrice, 8, RoundingMode.HALF_UP);
+        log.debug("🔢 Расчет размера позиции для {}: amount={} USDT, price={}, positionSize={} базового актива", 
+                 symbol, amount, currentPrice, positionSize);
         return adjustPositionSizeToLotSize(symbol, positionSize);
     }
 
