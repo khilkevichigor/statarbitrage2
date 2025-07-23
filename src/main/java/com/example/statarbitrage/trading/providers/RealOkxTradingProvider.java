@@ -324,7 +324,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     @Override
-    public TradeResult closePosition(String positionId) { //todo посмотреть как получем инфу о позициях из ОКХ после CLOSE что бы так же в CalculateChangesServive сделать
+    public TradeResult closePosition(String positionId) {
         try {
             Position position = positions.get(positionId);
             if (position == null) {
@@ -337,58 +337,37 @@ public class RealOkxTradingProvider implements TradingProvider {
                         "Позиция не открыта: " + position.getStatus());
             }
 
-            // Получаем текущую цену
-            BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
-            if (currentPrice == null) {
-                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(),
-                        "Не удалось получить текущую цену");
+            // 1. Отправляем ордер на закрытие и получаем результат с реальной ценой и комиссией
+            TradeResult closeOrderResult = placeCloseOrder(position);
+            if (!closeOrderResult.isSuccess()) {
+                return closeOrderResult; // Возвращаем ошибку, если не удалось закрыть ордер
             }
 
-            // Создаем заявку на закрытие позиции
-            String closeOrderId = placeCloseOrder(position.getSymbol(),
-                    position.getType() == PositionType.LONG ? "sell" : "buy",
-                    position.getSize().toString(), currentPrice.toString());
+            // 2. Рассчитываем и сохраняем реализованный PnL, используя данные из результата ордера
+            position.calculateAndSetRealizedPnL(closeOrderResult.getExecutionPrice(), closeOrderResult.getFees());
 
-            if (closeOrderId == null) {
-                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(),
-                        "Не удалось создать заявку на закрытие");
-            }
-
-            // Обновляем цену и рассчитываем PnL
-            position.setCurrentPrice(currentPrice);
-            position.calculateUnrealizedPnL();
-
-            // Рассчитываем комиссии за закрытие
-            BigDecimal closingFees = calculateFees(position.getAllocatedAmount(), position.getLeverage());
-            position.setClosingFees(closingFees);
-            BigDecimal totalFees = position.getOpeningFees().add(closingFees);
-
-            // Финальный PnL с учетом комиссий
-            BigDecimal finalPnL = position.getUnrealizedPnL().subtract(closingFees);
-
-            // Закрываем позицию
+            // 3. Обновляем статус позиции
             position.setStatus(PositionStatus.CLOSED);
             position.setLastUpdated(LocalDateTime.now());
 
-            // Освобождаем средства и уведомляем портфолио
+            // 4. Освобождаем средства и уведомляем портфолио о закрытии
             okxPortfolioManager.releaseReservedBalance(position.getAllocatedAmount());
-            okxPortfolioManager.onPositionClosed(position, finalPnL, totalFees);
+            BigDecimal totalFees = position.getOpeningFees().add(position.getClosingFees());
+            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnL(), totalFees);
 
-            // Удаляем из активных позиций
-//            positions.remove(positionId); //todo не удаляем пока не сделаем calculateChanges - ПРОВЕРИТЬ getPositionInfo()
+            // 5. Создаем итоговый результат операции
+            TradeResult finalResult = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
+                    position.getSymbol(), position.getSize(), closeOrderResult.getExecutionPrice(), closeOrderResult.getFees());
+            finalResult.setPnl(position.getRealizedPnL());
+            finalResult.setExternalOrderId(closeOrderResult.getExternalOrderId());
 
-            // Создаем результат
-            TradeResult result = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
-                    position.getSymbol(), position.getSize(), currentPrice, closingFees);
-            result.setPnl(finalPnL);
-            result.setExternalOrderId(closeOrderId);
-
-            tradeHistory.add(result);
+            tradeHistory.add(finalResult);
 
             log.info("⚫ Закрыта позиция на OKX: {} {} | Цена: {} | PnL: {} | OrderID: {}",
-                    position.getSymbol(), position.getDirectionString(), currentPrice, finalPnL, closeOrderId);
+                    position.getSymbol(), position.getDirectionString(),
+                    finalResult.getExecutionPrice(), finalResult.getPnl(), finalResult.getExternalOrderId());
 
-            return result;
+            return finalResult;
 
         } catch (Exception e) {
             log.error("❌ Ошибка при закрытии позиции {}: {}", positionId, e.getMessage());
@@ -630,35 +609,29 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
-    private String placeCloseOrder(String symbol, String side, String size, String price) {
+    private TradeResult placeCloseOrder(Position position) {
         try {
             // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
             if (!geolocationService.isGeolocationAllowed()) {
                 log.error("❌ БЛОКИРОВКА: Закрытие ордера заблокировано из-за геолокации!");
-                return null;
+                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(), "Геолокация не разрешена");
             }
 
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_ORDER_ENDPOINT;
 
-            // Для закрытия позиции всегда используем "net" в Net режиме
-            String correctPosSide = isHedgeMode() ?
-                    (side.equals("buy") ? "short" : "long") : // В hedge режиме - противоположная сторона
-                    "net"; // В net режиме - всегда net
+            String side = position.getType() == PositionType.LONG ? "sell" : "buy";
+            String correctPosSide = isHedgeMode() ? (side.equals("buy") ? "short" : "long") : "net";
 
             JsonObject orderData = new JsonObject();
-            orderData.addProperty("instId", symbol);
+            orderData.addProperty("instId", position.getSymbol());
             orderData.addProperty("tdMode", "isolated");
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", size);
+            orderData.addProperty("sz", position.getSize().toPlainString());
 
-            RequestBody body = RequestBody.create(
-                    orderData.toString(),
-                    MediaType.get("application/json")
-            );
-
+            RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
             String signature = generateSignature("POST", endpoint, orderData.toString(), timestamp);
 
@@ -676,19 +649,67 @@ public class RealOkxTradingProvider implements TradingProvider {
                 String responseBody = response.body().string();
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
-                if ("0".equals(jsonResponse.get("code").getAsString())) {
-                    JsonArray data = jsonResponse.getAsJsonArray("data");
-                    if (data.size() > 0) {
-                        return data.get(0).getAsJsonObject().get("ordId").getAsString();
-                    }
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка при создании ордера на закрытие: {}", responseBody);
+                    return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(), jsonResponse.get("msg").getAsString());
                 }
 
-                log.error("❌ Ошибка при закрытии ордера: {}", responseBody);
-                return null;
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                if (data.size() > 0) {
+                    String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
+                    // После успешного размещения ордера, запрашиваем его детали для получения цены и комиссии
+                    return getOrderDetails(orderId, position.getSymbol());
+                }
+                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(), "Не удалось получить ID ордера");
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при закрытии ордера: {}", e.getMessage());
-            return null;
+            return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(), e.getMessage());
+        }
+    }
+
+    private TradeResult getOrderDetails(String orderId, String symbol) {
+        try {
+            // Пауза, чтобы ордер успел исполниться
+            Thread.sleep(2000); // 2 секунды
+
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = "/api/v5/trade/order?instId=" + symbol + "&ordId=" + orderId;
+
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
+            Request request = new Request.Builder()
+                    .url(baseUrl + endpoint)
+                    .addHeader("OK-ACCESS-KEY", apiKey)
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
+                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body().string();
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка при получении деталей ордера {}: {}", orderId, responseBody);
+                    return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, "Не удалось получить детали ордера");
+                }
+
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                if (data.size() > 0) {
+                    JsonObject orderInfo = data.get(0).getAsJsonObject();
+                    BigDecimal avgPx = new BigDecimal(orderInfo.get("avgPx").getAsString());
+                    BigDecimal fee = new BigDecimal(orderInfo.get("fee").getAsString()).abs();
+                    BigDecimal size = new BigDecimal(orderInfo.get("accFillSz").getAsString());
+
+                    return TradeResult.success(orderId, TradeOperationType.CLOSE_POSITION, symbol, size, avgPx, fee);
+                }
+                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, "Детали ордера не найдены");
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении деталей ордера {}: {}", orderId, e.getMessage());
+            return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, e.getMessage());
         }
     }
 

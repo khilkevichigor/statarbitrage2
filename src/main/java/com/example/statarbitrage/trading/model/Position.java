@@ -50,6 +50,11 @@ public class Position {
     private BigDecimal entryPrice;
 
     /**
+     * Цена закрытия
+     */
+    private BigDecimal closingPrice;
+
+    /**
      * Текущая рыночная цена
      */
     private BigDecimal currentPrice;

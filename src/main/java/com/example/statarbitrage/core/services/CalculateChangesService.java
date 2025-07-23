@@ -25,7 +25,6 @@ public class CalculateChangesService {
 
     private final TradingIntegrationService tradingIntegrationService;
 
-    //todo сделать метод где то getProfit() который будет возвращать дто Profit в %, $ с необходимой инфой о размере позиции и тд
     public ChangesData getChanges(PairData pairData) {
         try {
             // Получаем данные об открытых позициях
@@ -55,7 +54,7 @@ public class CalculateChangesService {
         boolean isPositionsClosed = positionsInfo.isPositionsClosed();
 
         ChangesData changesData = new ChangesData();
-        changesData.setLongCurrentPrice(longPosition.getCurrentPrice()); //todo походу для закрытых сделок тут getCurrentPrice = null
+        changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
         changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
 
         if (isPositionsClosed) {
