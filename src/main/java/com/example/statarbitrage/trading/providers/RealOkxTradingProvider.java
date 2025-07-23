@@ -119,11 +119,23 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
             }
 
+            // Пересчитываем итоговую долларовую сумму после корректировки lot size
+            BigDecimal currentPrice = getCurrentPrice(symbol);
+            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+                    symbol, amount, adjustedAmount, positionSize);
+
+            // Новая проверка размера ордера
+            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
+            if (validationError != null) {
+                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, validationError);
+            }
+
             if (!setLeverage(symbol, leverage)) {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage); //передаем плечо на всякий случай
+            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -154,6 +166,18 @@ public class RealOkxTradingProvider implements TradingProvider {
             BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Размер позиции слишком мал");
+            }
+
+            // Пересчитываем итоговую долларовую сумму после корректировки lot size
+            BigDecimal currentPrice = getCurrentPrice(symbol);
+            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц",
+                    symbol, amount, adjustedAmount, positionSize);
+
+            // Новая проверка размера ордера
+            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
+            if (validationError != null) {
+                return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, validationError);
             }
 
             if (!setLeverage(symbol, leverage)) {
@@ -828,17 +852,21 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 String lotSizeStr = instrument.get("lotSz").getAsString();
                 String minSizeStr = instrument.get("minSz").getAsString();
+                String minCcyAmtStr = instrument.has("minCcyAmt") ? instrument.get("minCcyAmt").getAsString() : "0";
+                String minNotionalStr = instrument.has("minNotional") ? instrument.get("minNotional").getAsString() : "0";
 
                 InstrumentInfo instrumentInfo = new InstrumentInfo(
                         symbol,
                         new BigDecimal(lotSizeStr),
-                        new BigDecimal(minSizeStr)
+                        new BigDecimal(minSizeStr),
+                        new BigDecimal(minCcyAmtStr),
+                        new BigDecimal(minNotionalStr)
                 );
 
                 // Кэшируем информацию
                 instrumentInfoCache.put(symbol, instrumentInfo);
-                log.debug("🔍 Кэшировал информацию о торговом инструменте {}: lot size = {}, min size = {}",
-                        symbol, instrumentInfo.getLotSize(), instrumentInfo.getMinSize());
+                log.debug("🔍 Кэшировал информацию о торговом инструменте {}: lot size = {}, min size = {}, minCcyAmt = {}, minNotional = {}",
+                        symbol, instrumentInfo.getLotSize(), instrumentInfo.getMinSize(), instrumentInfo.getMinCcyAmt(), instrumentInfo.getMinNotional());
 
                 return instrumentInfo;
 
@@ -856,11 +884,15 @@ public class RealOkxTradingProvider implements TradingProvider {
         private final String symbol;
         private final BigDecimal lotSize;
         private final BigDecimal minSize;
+        private final BigDecimal minCcyAmt; // Минимальная сумма в валюте котировки
+        private final BigDecimal minNotional; // Минимальная условная стоимость
 
-        public InstrumentInfo(String symbol, BigDecimal lotSize, BigDecimal minSize) {
+        public InstrumentInfo(String symbol, BigDecimal lotSize, BigDecimal minSize, BigDecimal minCcyAmt, BigDecimal minNotional) {
             this.symbol = symbol;
             this.lotSize = lotSize;
             this.minSize = minSize;
+            this.minCcyAmt = minCcyAmt;
+            this.minNotional = minNotional;
         }
 
         public String getSymbol() {
@@ -873,6 +905,14 @@ public class RealOkxTradingProvider implements TradingProvider {
 
         public BigDecimal getMinSize() {
             return minSize;
+        }
+
+        public BigDecimal getMinCcyAmt() {
+            return minCcyAmt;
+        }
+
+        public BigDecimal getMinNotional() {
+            return minNotional;
         }
     }
 
@@ -1048,6 +1088,45 @@ public class RealOkxTradingProvider implements TradingProvider {
         } catch (Exception e) {
             log.error("❌ Ошибка при генерации подписи: {}", e.getMessage());
             return "";
+        }
+    }
+
+    /**
+     * Проверяет, соответствует ли размер ордера минимальным требованиям OKX (minCcyAmt, minNotional).
+     *
+     * @param symbol         Символ торгового инструмента.
+     * @param adjustedAmount Скорректированная сумма в USDT (маржа).
+     * @param positionSize   Скорректированный размер позиции в единицах актива.
+     * @param currentPrice   Текущая рыночная цена.
+     * @return null, если размер ордера валиден, иначе сообщение об ошибке.
+     */
+    private String validateOrderSize(String symbol, BigDecimal adjustedAmount, BigDecimal positionSize, BigDecimal currentPrice) {
+        try {
+            InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
+            if (instrumentInfo == null) {
+                return "Не удалось получить информацию о торговом инструменте для проверки размера ордера.";
+            }
+
+            BigDecimal minCcyAmt = instrumentInfo.getMinCcyAmt();
+            BigDecimal minNotional = instrumentInfo.getMinNotional();
+
+            // Проверка по minCcyAmt (минимальная сумма в валюте котировки, т.е. USDT)
+            if (adjustedAmount.compareTo(minCcyAmt) < 0) {
+                log.warn("⚠️ Сумма маржи {} USDT меньше минимальной {} USDT для {}", adjustedAmount, minCcyAmt, symbol);
+                return String.format("Сумма маржи %.2f USDT меньше минимальной %.2f USDT.", adjustedAmount, minCcyAmt);
+            }
+
+            // Проверка по minNotional (минимальная условная стоимость сделки)
+            BigDecimal notionalValue = positionSize.multiply(currentPrice);
+            if (notionalValue.compareTo(minNotional) < 0) {
+                log.warn("⚠️ Условная стоимость сделки {} USDT меньше минимальной {} USDT для {}", notionalValue, minNotional, symbol);
+                return String.format("Условная стоимость сделки %.2f USDT меньше минимальной %.2f USDT.", notionalValue, minNotional);
+            }
+
+            return null; // Валидация прошла успешно
+        } catch (Exception e) {
+            log.error("❌ Ошибка при валидации размера ордера для {}: {}", symbol, e.getMessage());
+            return "Ошибка при валидации размера ордера: " + e.getMessage();
         }
     }
 }
