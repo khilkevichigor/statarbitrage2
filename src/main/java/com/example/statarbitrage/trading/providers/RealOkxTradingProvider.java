@@ -10,6 +10,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +23,10 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -399,10 +403,11 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
         log.info("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);
+        TradeOperationType tradeOperationType = posSide.equals("long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT;
         try {
             if (!geolocationService.isGeolocationAllowed()) {
                 log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Геолокация не разрешена");
+                return TradeResult.failure(tradeOperationType, symbol, "Геолокация не разрешена");
             }
             log.info("Проверка геолокации пройдена.");
 
@@ -445,21 +450,21 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
                     log.error("❌ Ошибка при создании ордера: {}", responseBody);
-                    return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, jsonResponse.get("msg").getAsString());
+                    return TradeResult.failure(tradeOperationType, symbol, jsonResponse.get("msg").getAsString());
                 }
 
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
                     log.info("Ордер успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
-                    return getOrderDetails(orderId, symbol, Objects.equals(posSide, "long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT);
+                    return getOrderDetails(orderId, symbol, tradeOperationType);
                 }
                 log.error("Не удалось получить ID ордера из ответа API.");
-                return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить ID ордера");
+                return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить ID ордера");
             }
         } catch (Exception e) {
             log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при создании ордера: {}", e.getMessage(), e);
-            return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
+            return TradeResult.failure(tradeOperationType, symbol, e.getMessage());
         }
     }
 
@@ -607,7 +612,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
                     log.error("❌ Ошибка при получении деталей ордера {}: {}", orderId, responseBody);
-                    return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, "Не удалось получить детали ордера");
+                    return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить детали ордера");
                 }
 
                 JsonArray data = jsonResponse.getAsJsonArray("data");
@@ -621,13 +626,13 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                     //todo сделать сверку каким объемом хотели открыть и каким открыли по факту! Если не бьется то возвращать TradeResult.failure по которому потом закроем все что открылось
 
-                    return TradeResult.success(orderId, TradeOperationType.CLOSE_POSITION, symbol, size, avgPx, fee, orderId);
+                    return TradeResult.success(orderId, tradeOperationType, symbol, size, avgPx, fee, orderId);
                 }
-                return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, "Детали ордера не найдены");
+                return TradeResult.failure(tradeOperationType, symbol, "Детали ордера не найдены");
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при получении деталей ордера {}: {}", orderId, e.getMessage());
-            return TradeResult.failure(TradeOperationType.CLOSE_POSITION, symbol, e.getMessage());
+            return TradeResult.failure(tradeOperationType, symbol, e.getMessage());
         }
     }
 
@@ -915,6 +920,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     /**
      * Информация о торговом инструменте
      */
+    @ToString
     private static class InstrumentInfo {
         private final String symbol;
         private final BigDecimal lotSize;
@@ -1161,7 +1167,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             BigDecimal minCcyAmt = instrumentInfo.getMinCcyAmt();
             BigDecimal minNotional = instrumentInfo.getMinNotional();
-            log.info("Минимальные требования: minCcyAmt={}, minNotional={}", minCcyAmt, minNotional);
+            log.info("Минимальные требования: minCcyAmt={}, minNotional={}", minCcyAmt, minNotional); //todo здесь нули!
 
             // Проверка по minCcyAmt (минимальная сумма в валюте котировки, т.е. USDT)
             if (adjustedAmount.compareTo(minCcyAmt) < 0) {
