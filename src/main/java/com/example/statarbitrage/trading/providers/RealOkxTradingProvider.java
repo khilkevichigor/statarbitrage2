@@ -123,7 +123,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
+            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage); //передаем плечо на всякий случай
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -160,7 +160,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
+            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage); //передаем плечо на всякий случай
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -384,6 +384,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
             orderData.addProperty("sz", size.toPlainString());
+            orderData.addProperty("lever", leverage.toPlainString()); // Добавлено использование параметра leverage
 
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
@@ -411,7 +412,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
-                    return getOrderDetails(orderId, symbol);
+                    return getOrderDetails(orderId, symbol, TradeOperationType.OPEN_LONG);
                 }
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить ID ордера");
             }
@@ -510,7 +511,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
                     // После успешного размещения ордера, запрашиваем его детали для получения цены и комиссии
-                    return getOrderDetails(orderId, position.getSymbol());
+                    return getOrderDetails(orderId, position.getSymbol(), TradeOperationType.CLOSE_POSITION);
                 }
                 return TradeResult.failure(TradeOperationType.CLOSE_POSITION, position.getSymbol(), "Не удалось получить ID ордера");
             }
@@ -520,8 +521,14 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
-    private TradeResult getOrderDetails(String orderId, String symbol) {
+    private TradeResult getOrderDetails(String orderId, String symbol, TradeOperationType tradeOperationType) {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("❌ БЛОКИРОВКА: Получение деталей ордера заблокировано из-за геолокации!");
+                return TradeResult.failure(tradeOperationType, symbol, "Геолокация не разрешена");
+            }
+
             // Пауза, чтобы ордер успел исполниться
             Thread.sleep(2000); // 2 секунды
 
