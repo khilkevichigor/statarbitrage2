@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class ExitStrategyService {
 
     public String getExitReason(PairData pairData, Settings settings) {
-        double profit = pairData.getProfitChanges().doubleValue();
+        double profit = pairData.getProfitChanges().doubleValue(); //todo здесь берем из changes-ов, а надо заменить на calcProfit
         double zScoreCurrent = pairData.getZScoreCurrent();
         double zScoreEntry = pairData.getZScoreEntry();
         long entryTimeMillis = pairData.getEntryTime();

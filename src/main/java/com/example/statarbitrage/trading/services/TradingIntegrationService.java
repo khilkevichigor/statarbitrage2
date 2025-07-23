@@ -157,7 +157,7 @@ public class TradingIntegrationService {
                     BigDecimal totalFees = longCloseResult.getFees().add(shortCloseResult.getFees());
 
                     log.info("✅ Закрыта арбитражная пара: {} / {} | PnL: {} | Комиссии: {}",
-                            pairData.getLongTicker(), pairData.getShortTicker(), totalPnL, totalFees);
+                            pairData.getLongTicker(), pairData.getShortTicker(), totalPnL, totalFees); //todo totalFees тут 0.01 хотя позже будет х2
 
                     return ArbitragePairTradeInfo.builder()
                             .success(true)
@@ -187,6 +187,7 @@ public class TradingIntegrationService {
     }
 
     public void removePairFromLocalStorage(PairData pairData) {
+        log.info("Удаляем связи из реестра для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
         pairToLongPositionMap.remove(pairData.getId());
         pairToShortPositionMap.remove(pairData.getId());
     }
@@ -357,7 +358,7 @@ public class TradingIntegrationService {
      * Получение актуальной информации по позициям для пары
      */
     public Positioninfo getPositionInfo(PairData pairData) {
-        log.info("ℹ️ Запрос информации о позициях для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("ℹ️ Запрос информации о позициях для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 

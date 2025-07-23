@@ -25,6 +25,7 @@ public class CalculateChangesService {
 
     private final TradingIntegrationService tradingIntegrationService;
 
+    //todo сделать метод где то getProfit() который будет возвращать дто Profit в %, $ с необходимой инфой о размере позиции и тд
     public ChangesData getChanges(PairData pairData) {
         try {
             // Получаем данные об открытых позициях
@@ -121,7 +122,7 @@ public class CalculateChangesService {
 
         log.info("Получен профит из {}: {} / {}: {}% (PnL: {}, комиссии: {})",
                 isPositionsClosed ? "закрытых позиций" : "открытых позиций", pairData.getLongTicker(), pairData.getShortTicker(),
-                profitPercent, totalPnL, totalFees);
+                profitPercent, totalPnL, totalFees); //todo totalFees уже 0.02
 
         // Обновляем статистику и экстремумы
         return getStatistics(pairData, changesData);

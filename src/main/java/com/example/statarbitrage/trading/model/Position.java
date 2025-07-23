@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 /**
  * Модель торговой позиции (универсальная для виртуальной и реальной торговли)
+ * Включает расчет как нереализованной (для открытых позиций), так и реализованной (для закрытых) прибыли.
  */
 @Data
 @Builder
@@ -59,12 +60,12 @@ public class Position {
     private BigDecimal leverage;
 
     /**
-     * Выделенная сумма из депозита
+     * Выделенная сумма из депозита (маржа)
      */
     private BigDecimal allocatedAmount;
 
     /**
-     * Нереализованная прибыль/убыток
+     * Нереализованная прибыль/убыток (Net PnL)
      */
     private BigDecimal unrealizedPnL;
 
@@ -72,6 +73,16 @@ public class Position {
      * Нереализованная прибыль/убыток (%)
      */
     private BigDecimal unrealizedPnLPercent;
+
+    /**
+     * Реализованная (зафиксированная) прибыль/убыток (Net PnL)
+     */
+    private BigDecimal realizedPnL;
+
+    /**
+     * Реализованная прибыль/убыток (%)
+     */
+    private BigDecimal realizedPnLPercent;
 
     /**
      * Комиссии за открытие
@@ -141,6 +152,48 @@ public class Position {
         } else {
             this.unrealizedPnLPercent = BigDecimal.ZERO;
         }
+    }
+
+    /**
+     * Расчет и установка реализованной прибыли/убытка (Net PnL) после закрытия позиции.
+     *
+     * @param closingPrice Цена, по которой позиция была закрыта.
+     * @param closingFees  Комиссия, уплаченная за закрытие позиции.
+     */
+    public void calculateAndSetRealizedPnL(BigDecimal closingPrice, BigDecimal closingFees) {
+        if (entryPrice == null || closingPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
+            this.realizedPnL = BigDecimal.ZERO;
+            this.realizedPnLPercent = BigDecimal.ZERO;
+            return;
+        }
+
+        BigDecimal priceDiff;
+        if (type == PositionType.LONG) {
+            priceDiff = closingPrice.subtract(entryPrice);
+        } else {
+            priceDiff = entryPrice.subtract(closingPrice);
+        }
+
+        // 1. Рассчитываем "грязную" прибыль/убыток (Gross PnL)
+        BigDecimal grossPnL = priceDiff.multiply(size);
+
+        // 2. Вычитаем все комиссии (за открытие и закрытие)
+        BigDecimal totalFees = (this.openingFees != null ? this.openingFees : BigDecimal.ZERO)
+                .add(closingFees != null ? closingFees : BigDecimal.ZERO);
+        this.realizedPnL = grossPnL.subtract(totalFees);
+        this.closingFees = closingFees; // Сохраняем комиссию за закрытие
+
+        // 3. Рассчитываем процентную прибыль
+        if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
+            this.realizedPnLPercent = this.realizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+        } else {
+            this.realizedPnLPercent = BigDecimal.ZERO;
+        }
+
+        // 4. Сбрасываем нереализованный PnL, так как позиция закрыта
+        this.unrealizedPnL = BigDecimal.ZERO;
+        this.unrealizedPnLPercent = BigDecimal.ZERO;
     }
 
     /**
