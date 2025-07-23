@@ -47,10 +47,11 @@ public class DbInitializer {
 
                     .checkInterval(1)
 
-                    .initialVirtualBalance(10_000.0)
-                    .maxLongMarginSize(1.0)
-                    .maxShortMarginSize(1.0)
+                    .maxLongMarginSize(2.0)
+                    .maxShortMarginSize(2.0)
                     .leverage(10.0)
+
+                    .initialVirtualBalance(10_000.0)
                     .feePctPerTrade(0.05)
 
                     .useExitTake(true)
