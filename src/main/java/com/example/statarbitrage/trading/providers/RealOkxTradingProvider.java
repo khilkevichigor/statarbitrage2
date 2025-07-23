@@ -111,6 +111,8 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Ошибка предотлетной проверки");
             }
 
+            //todo где-то тут ошибка размера позиции!!!
+
             BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
             if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
@@ -601,7 +603,9 @@ public class RealOkxTradingProvider implements TradingProvider {
                     BigDecimal fee = new BigDecimal(orderInfo.get("fee").getAsString()).abs();
                     BigDecimal size = new BigDecimal(orderInfo.get("accFillSz").getAsString());
 
-                    log.info("Информация по symbol={}: size={} | avgPx={} | fee={} | orderId={}", symbol, size, avgPx, fee, orderId);
+                    log.info("📋 Информация по только что выполненной операции: symbol={} | orderId={} | size={} | avgPx={} | fee={}", symbol, orderId, size, avgPx, fee);
+
+                    //todo сделать сверку каким объемом хотели открыть и каким открыли по факту! Если не бьется то возвращать TradeResult.failure по которому потом закроем все что открылось
 
                     return TradeResult.success(orderId, TradeOperationType.CLOSE_POSITION, symbol, size, avgPx, fee, orderId);
                 }
