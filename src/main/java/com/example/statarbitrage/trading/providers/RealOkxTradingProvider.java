@@ -132,7 +132,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
+            TradeResult orderResult = placeOrder(symbol, "buy", "long", adjustedAmount, leverage);
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -181,7 +181,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
+            TradeResult orderResult = placeOrder(symbol, "sell", "short", adjustedAmount, leverage);
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -236,7 +236,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 5. Создаем итоговый результат операции
             TradeResult finalResult = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
-                    position.getSymbol(), position.getSize(), closeOrderResult.getExecutionPrice(), closeOrderResult.getFees(), closeOrderResult.getExternalOrderId());
+                    position.getSymbol(), closeOrderResult.getExecutedSize(), closeOrderResult.getExecutionPrice(), closeOrderResult.getFees(), closeOrderResult.getExternalOrderId());
             finalResult.setPnl(position.getRealizedPnL());
             finalResult.setExternalOrderId(closeOrderResult.getExternalOrderId());
 
@@ -387,7 +387,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     // Приватные методы для работы с OKX API
 
-    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
+    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal totalOrderValue, BigDecimal leverage) {
         try {
             if (!geolocationService.isGeolocationAllowed()) {
                 log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
@@ -404,8 +404,12 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", size.toPlainString());
-            orderData.addProperty("lever", leverage.toPlainString()); // Добавлено использование параметра leverage
+            orderData.addProperty("sz", totalOrderValue.toPlainString()); // Теперь это общая стоимость в USDT
+            orderData.addProperty("szCcy", "USDT"); // Указываем, что sz в USDT
+            orderData.addProperty("lever", leverage.toPlainString());
+
+            log.info("📋 Создание ордера OKX: symbol={}, side={}, posSide={}, szCcy=USDT, sz={}, leverage={}",
+                    symbol, side, correctPosSide, totalOrderValue, leverage);
 
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
@@ -497,13 +501,17 @@ public class RealOkxTradingProvider implements TradingProvider {
             String side = position.getType() == PositionType.LONG ? "sell" : "buy";
             String correctPosSide = isHedgeMode() ? (side.equals("buy") ? "short" : "long") : "net";
 
+            // Рассчитываем общую стоимость ордера для закрытия
+            BigDecimal totalOrderValue = position.getSize().multiply(position.getCurrentPrice());
+
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", position.getSymbol());
             orderData.addProperty("tdMode", "isolated");
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", position.getSize().toPlainString());
+            orderData.addProperty("sz", totalOrderValue.toPlainString()); // Теперь это общая стоимость в USDT
+            orderData.addProperty("szCcy", "USDT"); // Указываем, что sz в USDT
 
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
