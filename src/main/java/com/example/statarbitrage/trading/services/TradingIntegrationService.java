@@ -146,7 +146,7 @@ public class TradingIntegrationService {
                 log.info("🔄 Начинаем закрытие арбитражной пары: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
 
-                TradeResult longCloseResult = provider.closePosition(longPositionId); //todo может добавить метод getTradeInfoLong
+                TradeResult longCloseResult = provider.closePosition(longPositionId);
                 TradeResult shortCloseResult = provider.closePosition(shortPositionId);
 
                 boolean success = longCloseResult.isSuccess() && shortCloseResult.isSuccess();
@@ -157,7 +157,7 @@ public class TradingIntegrationService {
                     BigDecimal totalFees = longCloseResult.getFees().add(shortCloseResult.getFees());
 
                     log.info("✅ Закрыта арбитражная пара: {} / {} | PnL: {} | Комиссии: {}",
-                            pairData.getLongTicker(), pairData.getShortTicker(), totalPnL, totalFees); //todo totalFees тут 0.01 хотя позже будет х2
+                            pairData.getLongTicker(), pairData.getShortTicker(), totalPnL, totalFees);
 
                     return ArbitragePairTradeInfo.builder()
                             .success(true)
@@ -456,18 +456,6 @@ public class TradingIntegrationService {
 
         // Не больше доступного баланса
         return fixedPositionSize.min(portfolio.getAvailableBalance());
-    }
-
-    private void updatePairDataFromPositions(PairData pairData, TradeResult longResult, TradeResult shortResult) {
-        // Обновляем цены входа (они могли отличаться от текущих рыночных)
-        pairData.setLongTickerEntryPrice(longResult.getExecutionPrice().doubleValue());
-        pairData.setShortTickerEntryPrice(shortResult.getExecutionPrice().doubleValue());
-
-        // Статус остается TRADING
-        pairData.setStatus(TradeStatus.TRADING);
-
-        // Время входа
-        pairData.setEntryTime(longResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
     }
 
     /**

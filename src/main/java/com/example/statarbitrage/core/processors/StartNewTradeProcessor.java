@@ -108,12 +108,12 @@ public class StartNewTradeProcessor {
         ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData, settings); //todo передавать UUID?
 
         if (openResult == null || !openResult.isSuccess()) {
-            log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
+            log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {} / {}",
                     pairData.getLongTicker(), pairData.getShortTicker());
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
+        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {} / {}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.TRADING);
