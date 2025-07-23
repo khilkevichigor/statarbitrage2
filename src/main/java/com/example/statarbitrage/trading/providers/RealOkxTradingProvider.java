@@ -132,7 +132,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "buy", "long", adjustedAmount, leverage);
+            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -181,7 +181,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "sell", "short", adjustedAmount, leverage);
+            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
             if (!orderResult.isSuccess()) {
                 return orderResult;
             }
@@ -387,7 +387,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     // Приватные методы для работы с OKX API
 
-    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal totalOrderValue, BigDecimal leverage) {
+    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
         try {
             if (!geolocationService.isGeolocationAllowed()) {
                 log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
@@ -404,12 +404,12 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", totalOrderValue.toPlainString()); // Теперь это общая стоимость в USDT
-            orderData.addProperty("szCcy", "USDT"); // Указываем, что sz в USDT
+            orderData.addProperty("sz", size.toPlainString()); // Теперь это количество базового актива
+            orderData.addProperty("szCcy", getBaseCurrency(symbol)); // Указываем, что sz в базовой валюте
             orderData.addProperty("lever", leverage.toPlainString());
 
-            log.info("📋 Создание ордера OKX: symbol={}, side={}, posSide={}, szCcy=USDT, sz={}, leverage={}",
-                    symbol, side, correctPosSide, totalOrderValue, leverage);
+            log.info("📋 Создание ордера OKX: symbol={}, side={}, posSide={}, szCcy={}, sz={}, leverage={}",
+                    symbol, side, correctPosSide, getBaseCurrency(symbol), size, leverage);
 
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
@@ -510,8 +510,8 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", totalOrderValue.toPlainString()); // Теперь это общая стоимость в USDT
-            orderData.addProperty("szCcy", "USDT"); // Указываем, что sz в USDT
+            orderData.addProperty("sz", position.getSize().toPlainString()); // Теперь это количество базового актива
+            orderData.addProperty("szCcy", getBaseCurrency(position.getSymbol())); // Указываем, что sz в базовой валюте
 
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
             String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
@@ -600,6 +600,8 @@ public class RealOkxTradingProvider implements TradingProvider {
                     BigDecimal avgPx = new BigDecimal(orderInfo.get("avgPx").getAsString());
                     BigDecimal fee = new BigDecimal(orderInfo.get("fee").getAsString()).abs();
                     BigDecimal size = new BigDecimal(orderInfo.get("accFillSz").getAsString());
+
+                    log.info("Информация по symbol={}: size={} | avgPx={} | fee={} | orderId={}", symbol, size, avgPx, fee, orderId);
 
                     return TradeResult.success(orderId, TradeOperationType.CLOSE_POSITION, symbol, size, avgPx, fee, orderId);
                 }
@@ -1104,6 +1106,20 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.error("❌ Ошибка при генерации подписи: {}", e.getMessage());
             return "";
         }
+    }
+
+    /**
+     * Извлекает базовую валюту из символа торгового инструмента (например, "BTC" из "BTC-USDT-SWAP").
+     *
+     * @param symbol Символ торгового инструмента.
+     * @return Базовая валюта.
+     */
+    private String getBaseCurrency(String symbol) {
+        if (symbol == null || !symbol.contains("-")) {
+            log.warn("⚠️ Некорректный символ для извлечения базовой валюты: {}", symbol);
+            return "";
+        }
+        return symbol.split("-")[0];
     }
 
     /**
