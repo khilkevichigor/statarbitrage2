@@ -479,21 +479,15 @@ public class TradingIntegrationService {
 
         // Используем фиксированный размер позиции из настроек
         Settings settings = settingsService.getSettings();
-        BigDecimal marginSize = BigDecimal.valueOf(settings.getMaxShortMarginSize()).add(BigDecimal.valueOf(settings.getMaxLongMarginSize()));
+        BigDecimal totalAllocation = BigDecimal.valueOf(settings.getMaxShortMarginSize()).add(BigDecimal.valueOf(settings.getMaxLongMarginSize()));
 
-        // ИСПРАВЛЕНИЕ: Умножаем на плечо для получения условной стоимости позиций
-        // При плече x10 и маржинальном размере 2$ получаем 20$ условной стоимости
-        BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
-        BigDecimal totalNotionalSize = marginSize.multiply(leverage);
+        log.info("💰 Расчет размера позиций: общая аллокация {}$ (без учета плеча)",
+                totalAllocation);
 
-        log.info("💰 Расчет размера позиций: маржинальный размер {}$, плечо {}x, условная стоимость {}$",
-                marginSize, leverage, totalNotionalSize);
+        // Не больше доступного баланса
+        BigDecimal resultSize = totalAllocation.min(portfolio.getAvailableBalance());
 
-        // Не больше доступного баланса (в условной стоимости)
-        BigDecimal maxNotionalByBalance = portfolio.getAvailableBalance().multiply(leverage);
-        BigDecimal resultSize = totalNotionalSize.min(maxNotionalByBalance);
-
-        log.info("💰 Итоговый размер позиций: {}$ (ограничен балансом: {}$)", resultSize, maxNotionalByBalance);
+        log.info("💰 Итоговый размер позиций: {}$ (ограничен балансом: {}$)", resultSize, portfolio.getAvailableBalance());
         return resultSize;
     }
 

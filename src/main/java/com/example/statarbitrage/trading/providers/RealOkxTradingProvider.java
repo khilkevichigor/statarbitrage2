@@ -145,7 +145,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "buy", "long", positionSize, leverage);
+            TradeResult orderResult = placeOrder(symbol, "buy", "long", adjustedAmount, leverage);
             if (!orderResult.isSuccess()) {
                 log.error("Ошибка размещения ордера: {}", orderResult.getErrorMessage());
                 return orderResult;
@@ -212,7 +212,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
             }
 
-            TradeResult orderResult = placeOrder(symbol, "sell", "short", positionSize, leverage);
+            TradeResult orderResult = placeOrder(symbol, "sell", "short", adjustedAmount, leverage);
             if (!orderResult.isSuccess()) {
                 log.error("Ошибка размещения ордера: {}", orderResult.getErrorMessage());
                 return orderResult;
@@ -449,7 +449,8 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
             orderData.addProperty("sz", size.toPlainString());
-            orderData.addProperty("szCcy", getBaseCurrency(symbol)); // Указываем, что sz в базовой валюте
+            // Для фьючерсов размер указывается в USDT (условной стоимости), не в базовых единицах
+            orderData.addProperty("szCcy", "USDT");
             orderData.addProperty("lever", leverage.toPlainString());
 
             log.info("📋 Тело запроса для создания ордера OKX: {}", orderData.toString());
@@ -515,8 +516,8 @@ public class RealOkxTradingProvider implements TradingProvider {
         // sz должен быть в единицах базового актива, а leverage влияет только на маржу
         // Формула: amount (USDT) / price = количество базового актива
         BigDecimal positionSize = amount.divide(currentPrice, 8, RoundingMode.HALF_UP);
-        log.debug("🔢 Расчет размера позиции для {}: amount={} USDT, price={}, positionSize={} базового актива", 
-                 symbol, amount, currentPrice, positionSize);
+        log.debug("🔢 Расчет размера позиции для {}: amount={} USDT, price={}, positionSize={} базового актива",
+                symbol, amount, currentPrice, positionSize);
         return adjustPositionSizeToLotSize(symbol, positionSize);
     }
 
@@ -1209,7 +1210,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // Небольшая пауза, чтобы позиция появилась в системе OKX
             Thread.sleep(1000);
-            
+
             JsonObject positionData = getRealPositionFromOkx(symbol);
             if (positionData == null) {
                 log.warn("⚠️ Не удалось получить реальные данные о позиции для {}", symbol);
@@ -1218,7 +1219,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Извлекаем ключевые данные о позиции с проверкой на null
             String instId = getJsonStringValue(positionData, "instId");
-            String posSide = getJsonStringValue(positionData, "posSide"); 
+            String posSide = getJsonStringValue(positionData, "posSide");
             String pos = getJsonStringValue(positionData, "pos"); // Размер позиции в базовых единицах
             String posSize = getJsonStringValue(positionData, "posSize"); // Размер позиции (положительное число)
             String avgPx = getJsonStringValue(positionData, "avgPx"); // Средняя цена входа
