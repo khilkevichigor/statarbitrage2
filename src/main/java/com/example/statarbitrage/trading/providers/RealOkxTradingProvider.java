@@ -163,6 +163,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             // НОВАЯ ФУНКЦИЯ: Логируем реальные данные о позиции с OKX
             logRealPositionData(symbol, "OPEN_LONG");
 
+            // ИСПРАВЛЕНИЕ: Заменяем positionId в результате на внутренний ID для корректного поиска позиций
+            orderResult.setPositionId(position.getPositionId());
+
             log.info("<== openLongPosition: КОНЕЦ (Успех) для {}", symbol);
             return orderResult;
 
@@ -226,6 +229,9 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // НОВАЯ ФУНКЦИЯ: Логируем реальные данные о позиции с OKX
             logRealPositionData(symbol, "OPEN_SHORT");
+
+            // ИСПРАВЛЕНИЕ: Заменяем positionId в результате на внутренний ID для корректного поиска позиций
+            orderResult.setPositionId(position.getPositionId());
 
             log.info("<== openShortPosition: КОНЕЦ (Успех) для {}", symbol);
             return orderResult;
@@ -651,7 +657,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                     // TODO: сделать сверку каким объемом хотели открыть и каким открыли по факту! Если не бьется то возвращать TradeResult.failure по которому потом закроем все что открылось
 
-                    TradeResult result = TradeResult.success(orderId, tradeOperationType, symbol, size, avgPx, fee, orderId);
+                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, size, avgPx, fee, orderId); //todo null тк positionId еще нету
                     log.info("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
                     return result;
                 }
