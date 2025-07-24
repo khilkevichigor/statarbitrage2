@@ -427,6 +427,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     // Приватные методы для работы с OKX API
 
+
     private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
         log.info("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);
         TradeOperationType tradeOperationType = posSide.equals("long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT;
@@ -442,15 +443,48 @@ public class RealOkxTradingProvider implements TradingProvider {
             String correctPosSide = determinePosSide(posSide);
             log.info("Определен correctPosSide: {}", correctPosSide);
 
+            // Получаем информацию об инструменте для правильного расчета размера
+            InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
+            if (instrumentInfo == null) {
+                log.error("❌ Не удалось получить информацию об инструменте {}", symbol);
+                return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить информацию об инструменте");
+            }
+
+            log.info("📋 Информация об инструменте {}: {}", symbol, instrumentInfo);
+
+            // Извлекаем параметры lot size
+            BigDecimal lotSize = instrumentInfo.getLotSize();
+            BigDecimal minSize = instrumentInfo.getMinSize();
+
+            log.info("📋 Lot Size: {}, Min Size: {}", lotSize, minSize);
+
+            // Получаем текущую цену для конвертации
+            BigDecimal currentPrice = getCurrentPrice(symbol);
+            if (currentPrice == null) {
+                log.error("❌ Не удалось получить цену для {}", symbol);
+                return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить цену");
+            }
+
+            // Конвертируем размер из USDT в базовые единицы
+            BigDecimal sizeInBaseUnits = size.divide(currentPrice, 8, RoundingMode.DOWN);
+            log.info("💰 Конвертация размера: {}$ / {} = {} базовых единиц", size, currentPrice, sizeInBaseUnits);
+
+            // Округляем до lot size
+            BigDecimal adjustedSize = sizeInBaseUnits.divide(lotSize, 0, RoundingMode.DOWN).multiply(lotSize);
+            if (adjustedSize.compareTo(minSize) < 0) {
+                adjustedSize = minSize;
+            }
+
+            log.info("📏 Скорректированный размер: {} -> {} базовых единиц", sizeInBaseUnits, adjustedSize);
+
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
             orderData.addProperty("tdMode", "isolated");
             orderData.addProperty("side", side);
             orderData.addProperty("posSide", correctPosSide);
             orderData.addProperty("ordType", "market");
-            orderData.addProperty("sz", size.toPlainString());
-            // Для фьючерсов размер указывается в USDT (условной стоимости), не в базовых единицах
-            orderData.addProperty("szCcy", "USDT");
+            orderData.addProperty("sz", adjustedSize.toPlainString());
+            // Для SWAP инструментов не указываем szCcy - размер в базовых единицах
             orderData.addProperty("lever", leverage.toPlainString());
 
             log.info("📋 Тело запроса для создания ордера OKX: {}", orderData.toString());
