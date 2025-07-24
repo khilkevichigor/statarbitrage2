@@ -160,6 +160,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.info("✅ Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
+            // НОВАЯ ФУНКЦИЯ: Логируем реальные данные о позиции с OKX
+            logRealPositionData(symbol, "OPEN_LONG");
+
             log.info("<== openLongPosition: КОНЕЦ (Успех) для {}", symbol);
             return orderResult;
 
@@ -220,6 +223,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             tradeHistory.add(orderResult);
             log.info("✅ Открыта SHORT позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
+
+            // НОВАЯ ФУНКЦИЯ: Логируем реальные данные о позиции с OKX
+            logRealPositionData(symbol, "OPEN_SHORT");
 
             log.info("<== openShortPosition: КОНЕЦ (Успех) для {}", symbol);
             return orderResult;
@@ -1131,6 +1137,116 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     /**
+     * Получение реальной информации о позиции с OKX API по символу
+     */
+    private JsonObject getRealPositionFromOkx(String symbol) {
+        log.info("==> getRealPositionFromOkx: Запрос реальной позиции для {}", symbol);
+        try {
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("❌ БЛОКИРОВКА: Запрос позиции заблокирован из-за геолокации!");
+                return null;
+            }
+
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = TRADE_POSITIONS_ENDPOINT + "?instId=" + symbol;
+
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
+            Request request = new Request.Builder()
+                    .url(baseUrl + endpoint)
+                    .addHeader("OK-ACCESS-KEY", apiKey)
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
+                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.error("❌ HTTP ошибка при запросе позиции {}: {}", symbol, response.code());
+                    return null;
+                }
+
+                String responseBody = response.body().string();
+                log.debug("📋 Ответ OKX API для позиции {}: {}", symbol, responseBody);
+
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка OKX API при запросе позиции {}: {}", symbol, jsonResponse.get("msg").getAsString());
+                    return null;
+                }
+
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                if (data.isEmpty()) {
+                    log.info("📋 Позиция для {} не найдена (массив data пуст)", symbol);
+                    return null;
+                }
+
+                // Возвращаем первую найденную позицию для данного символа
+                JsonObject positionData = data.get(0).getAsJsonObject();
+                log.info("✅ Получена реальная позиция для {}: {}", symbol, positionData);
+                return positionData;
+
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при запросе реальной позиции для {}: {}", symbol, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Логирование реальных данных о позиции с OKX
+     */
+    private void logRealPositionData(String symbol, String operationType) {
+        log.info("==> logRealPositionData: Логирование реальной позиции {} после {}", symbol, operationType);
+        try {
+            // Небольшая пауза, чтобы позиция появилась в системе OKX
+            Thread.sleep(1000);
+            
+            JsonObject positionData = getRealPositionFromOkx(symbol);
+            if (positionData == null) {
+                log.warn("⚠️ Не удалось получить реальные данные о позиции для {}", symbol);
+                return;
+            }
+
+            // Извлекаем ключевые данные о позиции с проверкой на null
+            String instId = getJsonStringValue(positionData, "instId");
+            String posSide = getJsonStringValue(positionData, "posSide"); 
+            String pos = getJsonStringValue(positionData, "pos"); // Размер позиции в базовых единицах
+            String posSize = getJsonStringValue(positionData, "posSize"); // Размер позиции (положительное число)
+            String avgPx = getJsonStringValue(positionData, "avgPx"); // Средняя цена входа
+            String markPx = getJsonStringValue(positionData, "markPx"); // Текущая марк-цена
+            String notionalUsd = getJsonStringValue(positionData, "notionalUsd"); // Условная стоимость в USD
+            String margin = getJsonStringValue(positionData, "margin"); // Используемая маржа
+            String imr = getJsonStringValue(positionData, "imr"); // Начальная маржа
+            String mmr = getJsonStringValue(positionData, "mmr"); // Поддерживающая маржа
+            String upl = getJsonStringValue(positionData, "upl"); // Нереализованный PnL
+            String uplRatio = getJsonStringValue(positionData, "uplRatio"); // Коэффициент PnL
+            String lever = getJsonStringValue(positionData, "lever"); // Текущее плечо
+
+            log.info("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
+            log.info("🔍 Инструмент: {}", instId);
+            log.info("🔍 Сторона позиции: {}", posSide);
+            log.info("🔍 Размер позиции (базовые единицы): {} {}", pos, getBaseCurrency(symbol));
+            log.info("🔍 Размер позиции (абсолютный): {} {}", posSize, getBaseCurrency(symbol));
+            log.info("🔍 Средняя цена входа: {} USDT", avgPx);
+            log.info("🔍 Текущая марк-цена: {} USDT", markPx);
+            log.info("🔍 Условная стоимость: {} USD", notionalUsd);
+            log.info("🔍 Используемая маржа: {} USDT", margin);
+            log.info("🔍 Начальная маржа: {} USDT", imr);
+            log.info("🔍 Поддерживающая маржа: {} USDT", mmr);
+            log.info("🔍 Нереализованный PnL: {} USDT", upl);
+            log.info("🔍 Коэффициент PnL: {}%", uplRatio);
+            log.info("🔍 Плечо: {}x", lever);
+            log.info("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при логировании реальных данных позиции для {}: {}", symbol, e.getMessage());
+        }
+    }
+
+    /**
      * Публичный метод для тестирования геолокации
      * Делегирует вызов GeolocationService
      */
@@ -1213,5 +1329,20 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при валидации размера ордера для {}: {}", symbol, e.getMessage(), e);
             return "Ошибка при валидации размера ордера: " + e.getMessage();
         }
+    }
+
+    /**
+     * Безопасное извлечение строкового значения из JsonObject с защитой от null
+     */
+    private String getJsonStringValue(JsonObject jsonObject, String fieldName) {
+        try {
+            JsonElement element = jsonObject.get(fieldName);
+            if (element != null && !element.isJsonNull()) {
+                return element.getAsString();
+            }
+        } catch (Exception e) {
+            log.debug("⚠️ Ошибка при извлечении поля '{}': {}", fieldName, e.getMessage());
+        }
+        return "N/A";
     }
 }

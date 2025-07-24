@@ -34,10 +34,10 @@ public class DbInitializer {
                     .minPValue(0.01)
 
                     .useMinAdfValueFilter(true)
-                    .minAdfValue(0.6)
+                    .minAdfValue(1.0)
 
                     .useMinCorrelationFilter(true)
-                    .minCorrelation(0.9)
+                    .minCorrelation(0.8)
 
                     .useMinVolumeFilter(true)
                     .minVolume(1.0)
@@ -47,8 +47,8 @@ public class DbInitializer {
 
                     .checkInterval(1)
 
-                    .maxLongMarginSize(2.0)
-                    .maxShortMarginSize(2.0)
+                    .maxLongMarginSize(1.0)
+                    .maxShortMarginSize(1.0)
                     .leverage(10.0)
 
                     .initialVirtualBalance(10_000.0)
