@@ -129,7 +129,9 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.error("Не удалось получить текущую цену для {}.", symbol);
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Не удалось получить цену");
             }
-            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            // ИСПРАВЛЕНИЕ: Для фьючерсов adjustedAmount = размер * цена (без деления на leverage)
+            // Плечо влияет только на требуемую маржу, а не на размер ордера
+            BigDecimal adjustedAmount = positionSize.multiply(currentPrice);
             log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
                     symbol, amount, adjustedAmount, positionSize, currentPrice);
 
@@ -188,7 +190,9 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.error("Не удалось получить текущую цену для {}.", symbol);
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Не удалось получить цену");
             }
-            BigDecimal adjustedAmount = positionSize.multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            // ИСПРАВЛЕНИЕ: Для фьючерсов adjustedAmount = размер * цена (без деления на leverage)
+            // Плечо влияет только на требуемую маржу, а не на размер ордера
+            BigDecimal adjustedAmount = positionSize.multiply(currentPrice);
             log.info("📊 {} SHORT: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
                     symbol, amount, adjustedAmount, positionSize, currentPrice);
 
