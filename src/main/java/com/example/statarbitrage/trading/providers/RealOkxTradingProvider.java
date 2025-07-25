@@ -953,7 +953,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
-                log.debug("🔄 Синхронизация позиций с OKX для тикеров {}: {}", tickers, responseBody);
+                log.info("🔄 Синхронизация позиций с OKX для тикеров {}: {}", tickers, responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
                 if ("0".equals(jsonResponse.get("code").getAsString())) {
@@ -966,10 +966,10 @@ public class RealOkxTradingProvider implements TradingProvider {
                         String instId = getJsonStringValue(okxPosition, "instId");
                         
                         if (tickers.contains(instId)) {
-                            log.debug("🎯 Обновляем позицию для тикера {}", instId);
+                            log.info("🎯 Обновляем позицию для тикера {}", instId);
                             updatePositionFromOkxData(okxPosition);
                         } else {
-                            log.debug("⏭️ Пропускаем позицию для тикера {} (не в списке для обновления)", instId);
+                            log.info("⏭️ Пропускаем позицию для тикера {} (не в списке для обновления)", instId);
                         }
                     }
                 } else {
@@ -995,7 +995,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             String margin = getJsonStringValue(okxPosition, "margin"); // Используемая маржа
 
             if ("N/A".equals(instId) || "N/A".equals(upl)) {
-                log.debug("⚠️ Пропускаем позицию с неполными данными: {}", instId);
+                log.info("⚠️ Пропускаем позицию с неполными данными: {}", instId);
                 return;
             }
 
@@ -1021,7 +1021,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.info("🔄 Обновлена позиция {} с реальными данными OKX: PnL={} USDT, цена={}, размер={}", 
                         instId, upl, markPx, pos);
             } else {
-                log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
+                log.info("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
             }
 
         } catch (Exception e) {
