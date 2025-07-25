@@ -476,11 +476,11 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             log.info("📏 Скорректированный размер: {} -> {} базовых единиц", sizeInBaseUnits, adjustedSize);
-            
+
             // Рассчитываем итоговую условную стоимость и маржу
             BigDecimal notionalValue = adjustedSize.multiply(currentPrice);
             BigDecimal requiredMargin = notionalValue.divide(leverage, 2, RoundingMode.HALF_UP);
-            log.info("🔍 Условная стоимость: {} USD, требуемая маржа: {} USDT (с плечом {}x)", 
+            log.info("🔍 Условная стоимость: {} USD, требуемая маржа: {} USDT (с плечом {}x)",
                     notionalValue, requiredMargin, leverage);
 
             JsonObject orderData = new JsonObject();
@@ -874,6 +874,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.error("❌ Ошибка при синхронизации позиций с OKX: {}", e.getMessage());
         }
     }
+
 
     /**
      * Корректировка размера позиции согласно lot size OKX
