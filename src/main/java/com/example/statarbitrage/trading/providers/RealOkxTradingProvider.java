@@ -319,13 +319,24 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public void updatePositionPrices() {
         try {
+            log.info("🔄 Обновление позиций: синхронизация с реальными данными OKX");
+            
+            // Синхронизируем позиции с OKX для получения реальных PnL
+            syncPositionsWithOkx();
+
+            // Дополнительно обновляем цены через ticker API (для случаев когда позиции не найдены в OKX)
             for (Position position : positions.values()) {
                 try {
-                    BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
-                    if (currentPrice != null) {
-                        position.setCurrentPrice(currentPrice);
-                        position.calculateUnrealizedPnL();
-                        position.setLastUpdated(LocalDateTime.now());
+                    if (position.getStatus() == PositionStatus.OPEN) {
+                        BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
+                        if (currentPrice != null) {
+                            position.setCurrentPrice(currentPrice);
+                            // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkx
+                            if (position.getUnrealizedPnL() == null || position.getUnrealizedPnL().compareTo(BigDecimal.ZERO) == 0) {
+                                position.calculateUnrealizedPnL();
+                            }
+                            position.setLastUpdated(LocalDateTime.now());
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
@@ -863,6 +874,12 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     private void syncPositionsWithOkx() {
         try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("❌ БЛОКИРОВКА: Синхронизация позиций заблокирована из-за геолокации!");
+                return;
+            }
+
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_POSITIONS_ENDPOINT;
 
@@ -879,22 +896,84 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
+                log.debug("🔄 Синхронизация позиций с OKX: {}", responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
                 if ("0".equals(jsonResponse.get("code").getAsString())) {
                     JsonArray data = jsonResponse.getAsJsonArray("data");
+                    log.info("📊 Получено {} позиций с OKX для синхронизации", data.size());
 
-                    // Обновляем информацию о позициях
+                    // Обновляем информацию о позициях с реальными данными OKX
                     for (JsonElement positionElement : data) {
-                        JsonObject positionData = positionElement.getAsJsonObject();
-                        // Здесь можно добавить логику синхронизации позиций
-                        // с данными от OKX
+                        JsonObject okxPosition = positionElement.getAsJsonObject();
+                        updatePositionFromOkxData(okxPosition);
                     }
+                } else {
+                    log.error("❌ Ошибка OKX API при синхронизации позиций: {}", jsonResponse.get("msg").getAsString());
                 }
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при синхронизации позиций с OKX: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Обновляет внутреннюю позицию данными с OKX
+     */
+    private void updatePositionFromOkxData(JsonObject okxPosition) {
+        try {
+            String instId = getJsonStringValue(okxPosition, "instId");
+            String upl = getJsonStringValue(okxPosition, "upl"); // Реальный нереализованный PnL с OKX
+            String markPx = getJsonStringValue(okxPosition, "markPx"); // Текущая марк-цена
+            String pos = getJsonStringValue(okxPosition, "pos"); // Размер позиции
+            String avgPx = getJsonStringValue(okxPosition, "avgPx"); // Средняя цена входа
+            String lever = getJsonStringValue(okxPosition, "lever"); // Плечо
+            String margin = getJsonStringValue(okxPosition, "margin"); // Используемая маржа
+
+            if ("N/A".equals(instId) || "N/A".equals(upl)) {
+                log.debug("⚠️ Пропускаем позицию с неполными данными: {}", instId);
+                return;
+            }
+
+            // Ищем соответствующую внутреннюю позицию по символу
+            Position internalPosition = findPositionBySymbol(instId);
+            if (internalPosition != null) {
+                // Обновляем позицию реальными данными с OKX
+                if (!"N/A".equals(markPx)) {
+                    internalPosition.setCurrentPrice(new BigDecimal(markPx));
+                }
+                if (!"N/A".equals(upl)) {
+                    internalPosition.setUnrealizedPnL(new BigDecimal(upl));
+                }
+                if (!"N/A".equals(avgPx)) {
+                    internalPosition.setEntryPrice(new BigDecimal(avgPx));
+                }
+                if (!"N/A".equals(pos)) {
+                    internalPosition.setSize(new BigDecimal(pos).abs()); // abs() для учета знака
+                }
+
+                internalPosition.setLastUpdated(LocalDateTime.now());
+
+                log.info("🔄 Обновлена позиция {} с реальными данными OKX: PnL={} USDT, цена={}, размер={}", 
+                        instId, upl, markPx, pos);
+            } else {
+                log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении позиции из данных OKX: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Находит внутреннюю позицию по символу инструмента
+     */
+    private Position findPositionBySymbol(String symbol) {
+        return positions.values().stream()
+                .filter(pos -> symbol.equals(pos.getSymbol()))
+                .filter(pos -> pos.getStatus() == PositionStatus.OPEN)
+                .findFirst()
+                .orElse(null);
     }
 
 
