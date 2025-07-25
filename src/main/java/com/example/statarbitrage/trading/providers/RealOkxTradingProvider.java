@@ -476,6 +476,12 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             log.info("📏 Скорректированный размер: {} -> {} базовых единиц", sizeInBaseUnits, adjustedSize);
+            
+            // Рассчитываем итоговую условную стоимость и маржу
+            BigDecimal notionalValue = adjustedSize.multiply(currentPrice);
+            BigDecimal requiredMargin = notionalValue.divide(leverage, 2, RoundingMode.HALF_UP);
+            log.info("🔍 Условная стоимость: {} USD, требуемая маржа: {} USDT (с плечом {}x)", 
+                    notionalValue, requiredMargin, leverage);
 
             JsonObject orderData = new JsonObject();
             orderData.addProperty("instId", symbol);
@@ -941,7 +947,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 }
 
                 String responseBody = response.body().string();
-                log.debug("🔍 Информация о торговом инструменте {}: {}", symbol, responseBody);
+                log.info("🔍 Информация о торговом инструменте {}: {}", symbol, responseBody);
 
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
