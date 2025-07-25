@@ -23,16 +23,16 @@ public class TestTradingController {
     private final RealOkxTradingProvider realOkxTradingProvider;
 
     /**
-     * Тестовое открытие LONG позиции XRP на $1 с плечом x1
+     * Тестовое открытие LONG позиции XRP на $0.5 с плечом x1
      * GET /api/test-trading/xrp-long
      */
     @GetMapping("/xrp-long")
     public String testXrpLong() {
-        log.info("🧪 ТЕСТ: Открытие LONG позиции XRP-USDT-SWAP на $1 с плечом x1");
+        log.info("🧪 ТЕСТ: Открытие LONG позиции XRP-USDT-SWAP на $0.5 с плечом x1");
 
         try {
             String symbol = "XRP-USDT-SWAP";
-            BigDecimal amount = BigDecimal.valueOf(1.0); // $1
+            BigDecimal amount = BigDecimal.valueOf(0.5); // $0.5
             BigDecimal leverage = BigDecimal.valueOf(1.0); // x1
 
             TradeResult result = realOkxTradingProvider.openLongPosition(symbol, amount, leverage);
@@ -54,16 +54,16 @@ public class TestTradingController {
     }
 
     /**
-     * Тестовое открытие SHORT позиции XRP на $1 с плечом x1
+     * Тестовое открытие SHORT позиции XRP на $0.5 с плечом x1
      * GET /api/test-trading/xrp-short
      */
     @GetMapping("/xrp-short")
     public String testXrpShort() {
-        log.info("🧪 ТЕСТ: Открытие SHORT позиции XRP-USDT-SWAP на $1 с плечом x1");
+        log.info("🧪 ТЕСТ: Открытие SHORT позиции XRP-USDT-SWAP на $0.5 с плечом x1");
 
         try {
             String symbol = "XRP-USDT-SWAP";
-            BigDecimal amount = BigDecimal.valueOf(1.0); // $1
+            BigDecimal amount = BigDecimal.valueOf(0.5); // $0.5
             BigDecimal leverage = BigDecimal.valueOf(1.0); // x1
 
             TradeResult result = realOkxTradingProvider.openShortPosition(symbol, amount, leverage);
@@ -90,7 +90,7 @@ public class TestTradingController {
      */
     @GetMapping("/xrp-custom")
     public String testXrpCustom(
-            @RequestParam(defaultValue = "1") double amount,
+            @RequestParam(defaultValue = "0.5") double amount,
             @RequestParam(defaultValue = "1") double leverage,
             @RequestParam(defaultValue = "long") String direction) {
 

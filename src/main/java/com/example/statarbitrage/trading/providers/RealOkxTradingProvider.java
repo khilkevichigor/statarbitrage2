@@ -552,13 +552,35 @@ public class RealOkxTradingProvider implements TradingProvider {
         if (currentPrice == null) {
             return BigDecimal.ZERO;
         }
-        // ИСПРАВЛЕНИЕ: Убираем leverage из расчета sz для фьючерсов
-        // sz должен быть в единицах базового актива, а leverage влияет только на маржу
-        // Формула: amount (USDT) / price = количество базового актива
-        BigDecimal positionSize = amount.divide(currentPrice, 8, RoundingMode.HALF_UP);
-        log.debug("🔢 Расчет размера позиции для {}: amount={} USDT, price={}, positionSize={} базового актива",
-                symbol, amount, currentPrice, positionSize);
-        return adjustPositionSizeToLotSize(symbol, positionSize);
+
+        // Получаем информацию об инструменте для ctVal
+        InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
+        if (instrumentInfo == null) {
+            log.error("❌ Не удалось получить информацию об инструменте {}", symbol);
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal ctVal = instrumentInfo.getCtVal();
+        BigDecimal minSize = instrumentInfo.getMinSize();
+        log.info("📋 Информация для расчета {}: ctVal={}, цена={}, minSize={}", symbol, ctVal, currentPrice, minSize);
+
+        // ПРОВЕРЯЕМ: сколько будет стоить минимальный лот
+        BigDecimal minLotCost = minSize.multiply(ctVal).multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+        log.info("💰 Стоимость минимального лота: {} контрактов × {} ctVal × {} цена ÷ {} плечо = {} USDT",
+                minSize, ctVal, currentPrice, leverage, minLotCost);
+
+        if (minLotCost.compareTo(amount) > 0) {
+            log.error("❌ БЛОКИРОВКА: Минимальный лот стоит {} USDT, а пользователь хочет потратить только {} USDT",
+                    minLotCost, amount);
+            return BigDecimal.ZERO; // Блокируем открытие позиции
+        }
+
+        // Рассчитываем максимальное количество контрактов в рамках бюджета
+        BigDecimal maxContracts = amount.multiply(leverage).divide(ctVal.multiply(currentPrice), 8, RoundingMode.DOWN);
+        log.info("🔢 Максимально доступно контрактов в рамках бюджета {} USDT: {}", amount, maxContracts);
+
+        // Корректируем до кратного lotSize, но не превышая бюджет
+        return adjustPositionSizeToLotSizeWithBudgetLimit(symbol, maxContracts, amount, leverage);
     }
 
     private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage) {
@@ -877,6 +899,61 @@ public class RealOkxTradingProvider implements TradingProvider {
 
 
     /**
+     * Корректировка размера позиции согласно lot size с учетом бюджетных ограничений
+     */
+    private BigDecimal adjustPositionSizeToLotSizeWithBudgetLimit(String symbol, BigDecimal maxContracts, BigDecimal userBudget, BigDecimal leverage) {
+        try {
+            InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
+            if (instrumentInfo == null) {
+                log.warn("⚠️ Не удалось получить информацию о торговом инструменте {}", symbol);
+                return BigDecimal.ZERO;
+            }
+
+            BigDecimal lotSize = instrumentInfo.getLotSize();
+            BigDecimal minSize = instrumentInfo.getMinSize();
+            BigDecimal ctVal = instrumentInfo.getCtVal();
+            BigDecimal currentPrice = getCurrentPrice(symbol);
+
+            log.info("📋 Корректировка с бюджетным ограничением для {}: maxContracts={}, lotSize={}, minSize={}, ctVal={}",
+                    symbol, maxContracts, lotSize, minSize, ctVal);
+
+            // Корректируем до кратного lotSize, но не превышая maxContracts
+            BigDecimal adjustedSize = maxContracts.divide(lotSize, 0, RoundingMode.DOWN).multiply(lotSize);
+
+            // Проверяем минимальный размер
+            if (adjustedSize.compareTo(minSize) < 0) {
+                adjustedSize = minSize;
+
+                // Проверяем не превышает ли минимальный лот бюджет пользователя
+                BigDecimal minLotCost = adjustedSize.multiply(ctVal).multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+                if (minLotCost.compareTo(userBudget) > 0) {
+                    log.error("❌ ОКОНЧАТЕЛЬНАЯ БЛОКИРОВКА: Минимальный лот {} стоит {} USDT, превышает бюджет {} USDT",
+                            adjustedSize, minLotCost, userBudget);
+                    return BigDecimal.ZERO;
+                }
+            }
+
+            // Финальная проверка бюджета
+            BigDecimal finalCost = adjustedSize.multiply(ctVal).multiply(currentPrice).divide(leverage, 2, RoundingMode.HALF_UP);
+            log.info("💰 Финальная стоимость позиции: {} контрактов × {} ctVal × {} цена ÷ {} плечо = {} USDT (бюджет: {} USDT)",
+                    adjustedSize, ctVal, currentPrice, leverage, finalCost, userBudget);
+
+            if (finalCost.compareTo(userBudget) > 0) {
+                log.error("❌ БЛОКИРОВКА: Финальная стоимость {} USDT превышает бюджет {} USDT", finalCost, userBudget);
+                return BigDecimal.ZERO;
+            }
+
+            log.info("✅ Размер позиции {} контрактов одобрен (стоимость {} USDT в рамках бюджета {} USDT)",
+                    adjustedSize, finalCost, userBudget);
+            return adjustedSize;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при корректировке размера позиции с бюджетным ограничением для {}: {}", symbol, e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
      * Корректировка размера позиции согласно lot size OKX
      */
     private BigDecimal adjustPositionSizeToLotSize(String symbol, BigDecimal positionSize) {
@@ -970,19 +1047,21 @@ public class RealOkxTradingProvider implements TradingProvider {
                 String minSizeStr = instrument.get("minSz").getAsString();
                 String minCcyAmtStr = instrument.has("minCcyAmt") ? instrument.get("minCcyAmt").getAsString() : "0";
                 String minNotionalStr = instrument.has("minNotional") ? instrument.get("minNotional").getAsString() : "0";
+                String ctValStr = instrument.has("ctVal") ? instrument.get("ctVal").getAsString() : "1"; // Значение контракта, для спот = 1
 
                 InstrumentInfo instrumentInfo = new InstrumentInfo(
                         symbol,
                         new BigDecimal(lotSizeStr),
                         new BigDecimal(minSizeStr),
                         new BigDecimal(minCcyAmtStr),
-                        new BigDecimal(minNotionalStr)
+                        new BigDecimal(minNotionalStr),
+                        new BigDecimal(ctValStr)
                 );
 
                 // Кэшируем информацию
                 instrumentInfoCache.put(symbol, instrumentInfo);
-                log.debug("🔍 Кэшировал информацию о торговом инструменте {}: lot size = {}, min size = {}, minCcyAmt = {}, minNotional = {}",
-                        symbol, instrumentInfo.getLotSize(), instrumentInfo.getMinSize(), instrumentInfo.getMinCcyAmt(), instrumentInfo.getMinNotional());
+                log.debug("🔍 Кэшировал информацию о торговом инструменте {}: lot size = {}, min size = {}, minCcyAmt = {}, minNotional = {}, ctVal = {}",
+                        symbol, instrumentInfo.getLotSize(), instrumentInfo.getMinSize(), instrumentInfo.getMinCcyAmt(), instrumentInfo.getMinNotional(), instrumentInfo.getCtVal());
 
                 return instrumentInfo;
 
@@ -1003,13 +1082,15 @@ public class RealOkxTradingProvider implements TradingProvider {
         private final BigDecimal minSize;
         private final BigDecimal minCcyAmt; // Минимальная сумма в валюте котировки
         private final BigDecimal minNotional; // Минимальная условная стоимость
+        private final BigDecimal ctVal; // Размер контракта
 
-        public InstrumentInfo(String symbol, BigDecimal lotSize, BigDecimal minSize, BigDecimal minCcyAmt, BigDecimal minNotional) {
+        public InstrumentInfo(String symbol, BigDecimal lotSize, BigDecimal minSize, BigDecimal minCcyAmt, BigDecimal minNotional, BigDecimal ctVal) {
             this.symbol = symbol;
             this.lotSize = lotSize;
             this.minSize = minSize;
             this.minCcyAmt = minCcyAmt;
             this.minNotional = minNotional;
+            this.ctVal = ctVal;
         }
 
         public String getSymbol() {
@@ -1030,6 +1111,10 @@ public class RealOkxTradingProvider implements TradingProvider {
 
         public BigDecimal getMinNotional() {
             return minNotional;
+        }
+
+        public BigDecimal getCtVal() {
+            return ctVal;
         }
     }
 
