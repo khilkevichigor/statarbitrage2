@@ -31,6 +31,7 @@ public class ChangesData {
     private BigDecimal minProfitChanges;
     private BigDecimal maxProfitChanges;
     private BigDecimal profitChanges;
+    private BigDecimal profitUSDTChanges;
 
 
     private long timeInMinutesSinceEntryToMin;

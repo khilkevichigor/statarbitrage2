@@ -303,11 +303,11 @@ public class TradingIntegrationService {
             BigDecimal totalPnL = BigDecimal.ZERO;
             if (longPosition != null) {
                 longPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(longPosition.getUnrealizedPnL());
+                totalPnL = totalPnL.add(longPosition.getUnrealizedPnLUSDT());
             }
             if (shortPosition != null) {
                 shortPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnL());
+                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnLUSDT());
             }
 
             // Удаляем из локального реестра если обе позиции закрыты
@@ -361,7 +361,7 @@ public class TradingIntegrationService {
             BigDecimal totalPnL = BigDecimal.ZERO;
             longPosition.calculateUnrealizedPnL();
             shortPosition.calculateUnrealizedPnL();
-            totalPnL = longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+            totalPnL = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
 
             log.debug("📊 Актуальный PnL для открытых позиций {}/{}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), totalPnL);
@@ -422,13 +422,13 @@ public class TradingIntegrationService {
             BigDecimal totalPnL = BigDecimal.ZERO;
             if (longPosition != null) {
                 longPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(longPosition.getUnrealizedPnL());
-                log.debug("Финальный PnL для LONG позиции {}: {}", longPositionId, longPosition.getUnrealizedPnL());
+                totalPnL = totalPnL.add(longPosition.getUnrealizedPnLUSDT());
+                log.debug("Финальный PnL для LONG позиции {}: {}", longPositionId, longPosition.getUnrealizedPnLUSDT());
             }
             if (shortPosition != null) {
                 shortPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnL());
-                log.debug("Финальный PnL для SHORT позиции {}: {}", shortPositionId, shortPosition.getUnrealizedPnL());
+                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnLUSDT());
+                log.debug("Финальный PnL для SHORT позиции {}: {}", shortPositionId, shortPosition.getUnrealizedPnLUSDT());
             }
 
             log.info("🗑️ Позиции уже закрыты для пары {} / {}, финальный PnL: {}",
@@ -477,7 +477,7 @@ public class TradingIntegrationService {
         longPosition.calculateUnrealizedPnL();
         shortPosition.calculateUnrealizedPnL();
 
-        return longPosition.getUnrealizedPnL().add(shortPosition.getUnrealizedPnL());
+        return longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
     }
 
     private BigDecimal calculatePositionSize(TradingProvider provider) {

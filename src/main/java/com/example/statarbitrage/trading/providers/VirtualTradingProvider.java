@@ -88,7 +88,7 @@ public class VirtualTradingProvider implements TradingProvider {
                     .currentPrice(currentPrice)
                     .leverage(leverage)
                     .allocatedAmount(amount)
-                    .unrealizedPnL(BigDecimal.ZERO)
+                    .unrealizedPnLUSDT(BigDecimal.ZERO)
                     .unrealizedPnLPercent(BigDecimal.ZERO)
                     .openingFees(fees)
                     .status(PositionStatus.OPEN)
@@ -161,7 +161,7 @@ public class VirtualTradingProvider implements TradingProvider {
                     .currentPrice(currentPrice)
                     .leverage(leverage)
                     .allocatedAmount(amount)
-                    .unrealizedPnL(BigDecimal.ZERO)
+                    .unrealizedPnLUSDT(BigDecimal.ZERO)
                     .unrealizedPnLPercent(BigDecimal.ZERO)
                     .openingFees(fees)
                     .status(PositionStatus.OPEN)
@@ -224,7 +224,7 @@ public class VirtualTradingProvider implements TradingProvider {
             BigDecimal totalFees = position.getOpeningFees().add(closingFees);
 
             // Финальный PnL с учетом комиссий
-            BigDecimal finalPnL = position.getUnrealizedPnL().subtract(closingFees);
+            BigDecimal finalPnL = position.getUnrealizedPnLUSDT().subtract(closingFees);
 
             // Закрываем позицию
             position.setStatus(PositionStatus.CLOSED);

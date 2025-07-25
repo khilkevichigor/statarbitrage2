@@ -72,7 +72,7 @@ public class Position {
     /**
      * Нереализованная прибыль/убыток (Net PnL)
      */
-    private BigDecimal unrealizedPnL;
+    private BigDecimal unrealizedPnLUSDT;
 
     /**
      * Нереализованная прибыль/убыток (%)
@@ -131,7 +131,7 @@ public class Position {
      */
     public void calculateUnrealizedPnL() {
         if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
-            unrealizedPnL = BigDecimal.ZERO;
+            unrealizedPnLUSDT = BigDecimal.ZERO;
             unrealizedPnLPercent = BigDecimal.ZERO;
             return;
         }
@@ -148,11 +148,11 @@ public class Position {
 
         // 2. Вычитаем комиссию за открытие (она уже уплачена)
         BigDecimal feesPaid = (this.openingFees != null) ? this.openingFees : BigDecimal.ZERO;
-        this.unrealizedPnL = grossPnL.subtract(feesPaid);
+        this.unrealizedPnLUSDT = grossPnL.subtract(feesPaid);
 
         // 3. Рассчитываем процентную прибыль на основе чистого PnL
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            this.unrealizedPnLPercent = this.unrealizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+            this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
         } else {
             this.unrealizedPnLPercent = BigDecimal.ZERO;
@@ -197,7 +197,7 @@ public class Position {
         }
 
         // 4. Сбрасываем нереализованный PnL, так как позиция закрыта
-        this.unrealizedPnL = BigDecimal.ZERO;
+        this.unrealizedPnLUSDT = BigDecimal.ZERO;
         this.unrealizedPnLPercent = BigDecimal.ZERO;
     }
 

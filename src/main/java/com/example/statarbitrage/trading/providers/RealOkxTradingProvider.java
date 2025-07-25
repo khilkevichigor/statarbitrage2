@@ -320,7 +320,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     public void updatePositionPrices() {
         try {
             log.info("🔄 Обновление позиций: синхронизация с реальными данными OKX");
-            
+
             // Синхронизируем позиции с OKX для получения реальных PnL
             syncPositionsWithOkx();
 
@@ -332,7 +332,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                         if (currentPrice != null) {
                             position.setCurrentPrice(currentPrice);
                             // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkx
-                            if (position.getUnrealizedPnL() == null || position.getUnrealizedPnL().compareTo(BigDecimal.ZERO) == 0) {
+                            if (position.getUnrealizedPnLUSDT() == null || position.getUnrealizedPnLUSDT().compareTo(BigDecimal.ZERO) == 0) {
                                 position.calculateUnrealizedPnL();
                             }
                             position.setLastUpdated(LocalDateTime.now());
@@ -356,7 +356,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     public void updatePositionPrices(List<String> tickers) {
         try {
             log.info("🔄 Обновление позиций для конкретных тикеров: {} (с синхронизацией OKX)", tickers);
-            
+
             // Синхронизируем позиции с OKX для получения реальных PnL только для нужных тикеров
             syncPositionsWithOkxForTickers(tickers);
 
@@ -368,7 +368,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                         if (currentPrice != null) {
                             position.setCurrentPrice(currentPrice);
                             // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkxForTickers
-                            if (position.getUnrealizedPnL() == null || position.getUnrealizedPnL().compareTo(BigDecimal.ZERO) == 0) {
+                            if (position.getUnrealizedPnLUSDT() == null || position.getUnrealizedPnLUSDT().compareTo(BigDecimal.ZERO) == 0) {
                                 position.calculateUnrealizedPnL();
                             }
                             position.setLastUpdated(LocalDateTime.now());
@@ -964,7 +964,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     for (JsonElement positionElement : data) {
                         JsonObject okxPosition = positionElement.getAsJsonObject();
                         String instId = getJsonStringValue(okxPosition, "instId");
-                        
+
                         if (tickers.contains(instId)) {
                             log.info("🎯 Обновляем позицию для тикера {}", instId);
                             updatePositionFromOkxData(okxPosition);
@@ -986,18 +986,49 @@ public class RealOkxTradingProvider implements TradingProvider {
      */
     private void updatePositionFromOkxData(JsonObject okxPosition) {
         try {
+            // Извлекаем основные поля позиции
             String instId = getJsonStringValue(okxPosition, "instId");
-            String upl = getJsonStringValue(okxPosition, "upl"); // Реальный нереализованный PnL с OKX
-            String markPx = getJsonStringValue(okxPosition, "markPx"); // Текущая марк-цена
-            String pos = getJsonStringValue(okxPosition, "pos"); // Размер позиции
+            String instType = getJsonStringValue(okxPosition, "instType");
+            String mgnMode = getJsonStringValue(okxPosition, "mgnMode");
+            String posId = getJsonStringValue(okxPosition, "posId");
+            String posSide = getJsonStringValue(okxPosition, "posSide");
+            String pos = getJsonStringValue(okxPosition, "pos"); // Размер позиции (со знаком)
+            String posCcy = getJsonStringValue(okxPosition, "posCcy");
             String avgPx = getJsonStringValue(okxPosition, "avgPx"); // Средняя цена входа
+            String markPx = getJsonStringValue(okxPosition, "markPx"); // Текущая марк-цена
+            String upl = getJsonStringValue(okxPosition, "upl"); // Нереализованный PnL в USDT
+            String uplRatio = getJsonStringValue(okxPosition, "uplRatio"); // Нереализованный PnL в %
+            String realizedPnl = getJsonStringValue(okxPosition, "realizedPnl"); // Реализованный PnL
             String lever = getJsonStringValue(okxPosition, "lever"); // Плечо
             String margin = getJsonStringValue(okxPosition, "margin"); // Используемая маржа
+            String imr = getJsonStringValue(okxPosition, "imr"); // Начальная маржа
+            String mmr = getJsonStringValue(okxPosition, "mmr"); // Поддерживающая маржа
+            String notionalUsd = getJsonStringValue(okxPosition, "notionalUsd"); // Условная стоимость в USD
+            String interest = getJsonStringValue(okxPosition, "interest"); // Проценты
+            String tradeId = getJsonStringValue(okxPosition, "tradeId");
+            String cTime = getJsonStringValue(okxPosition, "cTime");
+            String uTime = getJsonStringValue(okxPosition, "uTime");
+            String ccy = getJsonStringValue(okxPosition, "ccy");
+            String bePx = getJsonStringValue(okxPosition, "bePx"); // Точка безубыточности
 
-            if ("N/A".equals(instId) || "N/A".equals(upl)) {
-                log.info("⚠️ Пропускаем позицию с неполными данными: {}", instId);
+            if ("N/A".equals(instId)) {
+                log.debug("⚠️ Пропускаем позицию с пустым instId");
                 return;
             }
+
+            // ПОЛНЫЙ ЛОГ ВСЕХ ДАННЫХ ПОЗИЦИИ OKX
+            log.info("📊 === ПОЛНАЯ ИНФОРМАЦИЯ О ПОЗИЦИИ OKX ===");
+            log.info("📊 Инструмент: {} | Тип: {} | Режим маржи: {} | ID позиции: {}", instId, instType, mgnMode, posId);
+            log.info("📊 Сторона: {} | Размер: {} {} | Валюта: {}", posSide, pos, posCcy, ccy);
+            log.info("📊 Средняя цена входа: {} USDT | Марк-цена: {} USDT", avgPx, markPx);
+            log.info("📊 💰 Нереализованный PnL: {} USDT ({} %)", upl, uplRatio);
+            log.info("📊 💰 Реализованный PnL: {} USDT", realizedPnl);
+            log.info("📊 Плечо: {}x | Маржа: {} USDT", lever, margin);
+            log.info("📊 Начальная маржа: {} USDT | Поддерживающая маржа: {} USDT", imr, mmr);
+            log.info("📊 Условная стоимость: {} USD | Точка безубыточности: {} USDT", notionalUsd, bePx);
+            log.info("📊 Проценты: {} | ID сделки: {}", interest, tradeId);
+            log.info("📊 Время создания: {} | Время обновления: {}", cTime, uTime);
+            log.info("📊 === КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ ===");
 
             // Ищем соответствующую внутреннюю позицию по символу
             Position internalPosition = findPositionBySymbol(instId);
@@ -1006,9 +1037,21 @@ public class RealOkxTradingProvider implements TradingProvider {
                 if (!"N/A".equals(markPx)) {
                     internalPosition.setCurrentPrice(new BigDecimal(markPx));
                 }
+
+                // ВАЖНО: Устанавливаем PnL в USDT как на бирже OKX
                 if (!"N/A".equals(upl)) {
-                    internalPosition.setUnrealizedPnL(new BigDecimal(upl));
+                    BigDecimal pnlInUsdt = new BigDecimal(upl);
+                    internalPosition.setUnrealizedPnLUSDT(pnlInUsdt);
+                    log.info("💰 Установлен PnL в USDT для {}: {} USDT (как на бирже OKX)", instId, pnlInUsdt);
                 }
+
+                // ВАЖНО: Устанавливаем PnL в % как на бирже OKX
+                if (!"N/A".equals(uplRatio)) {
+                    BigDecimal pnlInPercent = new BigDecimal(uplRatio);
+                    internalPosition.setUnrealizedPnLPercent(pnlInPercent);
+                    log.info("💰 Установлен PnL в % для {}: {} % (как на бирже OKX)", instId, pnlInPercent);
+                }
+
                 if (!"N/A".equals(avgPx)) {
                     internalPosition.setEntryPrice(new BigDecimal(avgPx));
                 }
@@ -1018,10 +1061,10 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("🔄 Обновлена позиция {} с реальными данными OKX: PnL={} USDT, цена={}, размер={}", 
-                        instId, upl, markPx, pos);
+                log.info("✅ Обновлена позиция {} с реальными данными OKX: PnL={} USDT ({}%), цена={}, размер={}",
+                        instId, upl, uplRatio, markPx, pos);
             } else {
-                log.info("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
+                log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
             }
 
         } catch (Exception e) {
