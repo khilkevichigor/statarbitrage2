@@ -355,13 +355,22 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public void updatePositionPrices(List<String> tickers) {
         try {
+            log.info("🔄 Обновление позиций для конкретных тикеров: {} (с синхронизацией OKX)", tickers);
+            
+            // Синхронизируем позиции с OKX для получения реальных PnL только для нужных тикеров
+            syncPositionsWithOkxForTickers(tickers);
+
+            // Дополнительно обновляем цены через ticker API (для случаев когда позиции не найдены в OKX)
             for (Position position : positions.values()) {
                 try {
-                    if (tickers.contains(position.getSymbol())) {
+                    if (tickers.contains(position.getSymbol()) && position.getStatus() == PositionStatus.OPEN) {
                         BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
                         if (currentPrice != null) {
                             position.setCurrentPrice(currentPrice);
-                            position.calculateUnrealizedPnL();
+                            // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkxForTickers
+                            if (position.getUnrealizedPnL() == null || position.getUnrealizedPnL().compareTo(BigDecimal.ZERO) == 0) {
+                                position.calculateUnrealizedPnL();
+                            }
                             position.setLastUpdated(LocalDateTime.now());
                         }
                     }
@@ -914,6 +923,61 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при синхронизации позиций с OKX: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Синхронизация позиций с OKX только для конкретных тикеров
+     */
+    private void syncPositionsWithOkxForTickers(List<String> tickers) {
+        try {
+            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
+            if (!geolocationService.isGeolocationAllowed()) {
+                log.error("❌ БЛОКИРОВКА: Синхронизация позиций заблокирована из-за геолокации!");
+                return;
+            }
+
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = TRADE_POSITIONS_ENDPOINT;
+
+            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
+            Request request = new Request.Builder()
+                    .url(baseUrl + endpoint)
+                    .addHeader("OK-ACCESS-KEY", apiKey)
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
+                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body().string();
+                log.debug("🔄 Синхронизация позиций с OKX для тикеров {}: {}", tickers, responseBody);
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                if ("0".equals(jsonResponse.get("code").getAsString())) {
+                    JsonArray data = jsonResponse.getAsJsonArray("data");
+                    log.info("📊 Получено {} позиций с OKX, фильтруем по тикерам {}", data.size(), tickers);
+
+                    // Обновляем информацию только о позициях для нужных тикеров
+                    for (JsonElement positionElement : data) {
+                        JsonObject okxPosition = positionElement.getAsJsonObject();
+                        String instId = getJsonStringValue(okxPosition, "instId");
+                        
+                        if (tickers.contains(instId)) {
+                            log.debug("🎯 Обновляем позицию для тикера {}", instId);
+                            updatePositionFromOkxData(okxPosition);
+                        } else {
+                            log.debug("⏭️ Пропускаем позицию для тикера {} (не в списке для обновления)", instId);
+                        }
+                    }
+                } else {
+                    log.error("❌ Ошибка OKX API при синхронизации позиций для тикеров {}: {}", tickers, jsonResponse.get("msg").getAsString());
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при синхронизации позиций с OKX для тикеров {}: {}", tickers, e.getMessage());
         }
     }
 
