@@ -17,8 +17,8 @@ import java.math.RoundingMode;
 @RequiredArgsConstructor
 public class CalculateChangesService {
 
-    private static final BigDecimal PERCENTAGE_MULTIPLIER = BigDecimal.valueOf(100);
-    private static final int PROFIT_CALCULATION_SCALE = 4;
+    //    private static final BigDecimal PERCENTAGE_MULTIPLIER = BigDecimal.valueOf(100);
+//    private static final int PROFIT_CALCULATION_SCALE = 4;
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
 
     private final TradingIntegrationService tradingIntegrationService;
@@ -157,24 +157,24 @@ public class CalculateChangesService {
         return getStatistics(pairData, changesData, longPosition, shortPosition);
     }
 
-    /**
-     * Рассчитывает процент профита от общей суммы инвестиций (ROI)
-     * Единая логика расчета для всех типов операций
-     */
-    private BigDecimal calculateProfitPercent(BigDecimal netPnlUSDT, BigDecimal totalInvestmentUSDT) {
-        if (totalInvestmentUSDT == null || totalInvestmentUSDT.compareTo(BigDecimal.ZERO) <= 0) {
-            log.warn("⚠️ Сумма инвестиций равна нулю или не задана, невозможно рассчитать процент профита.");
-            return BigDecimal.ZERO;
-        }
-
-        try {
-            return netPnlUSDT.divide(totalInvestmentUSDT, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP)
-                    .multiply(PERCENTAGE_MULTIPLIER);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при расчете процента профита: {}", e.getMessage());
-            return BigDecimal.ZERO;
-        }
-    }
+//    /**
+//     * Рассчитывает процент профита от общей суммы инвестиций (ROI)
+//     * Единая логика расчета для всех типов операций
+//     */
+//    private BigDecimal calculateProfitPercent(BigDecimal netPnlUSDT, BigDecimal totalInvestmentUSDT) {
+//        if (totalInvestmentUSDT == null || totalInvestmentUSDT.compareTo(BigDecimal.ZERO) <= 0) {
+//            log.warn("⚠️ Сумма инвестиций равна нулю или не задана, невозможно рассчитать процент профита.");
+//            return BigDecimal.ZERO;
+//        }
+//
+//        try {
+//            return netPnlUSDT.divide(totalInvestmentUSDT, PROFIT_CALCULATION_SCALE, RoundingMode.HALF_UP)
+//                    .multiply(PERCENTAGE_MULTIPLIER);
+//        } catch (Exception e) {
+//            log.error("❌ Ошибка при расчете процента профита: {}", e.getMessage());
+//            return BigDecimal.ZERO;
+//        }
+//    }
 
     /**
      * Обновляет статистику и экстремумы для пары
@@ -205,37 +205,37 @@ public class CalculateChangesService {
         return changesData;
     }
 
-    /**
-     * Рассчитывает процентные изменения позиций
-     */
-    private void calculatePercentageChanges(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
-//        BigDecimal longCurrent = changesData.getLongCurrentPrice();
-//        BigDecimal shortCurrent = changesData.getShortCurrentPrice();
-//        BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
-//        BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
-//
-//        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
-//                .divide(longEntry, PERCENTAGE_CALCULATION_SCALE, RoundingMode.HALF_UP)
-//                .multiply(PERCENTAGE_MULTIPLIER);
-//
-//        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
-//                .divide(shortEntry, PERCENTAGE_CALCULATION_SCALE, RoundingMode.HALF_UP)
-//                .multiply(PERCENTAGE_MULTIPLIER);
+//    /**
+//     * Рассчитывает процентные изменения позиций
+//     */
+//    private void calculatePercentageChanges(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+////        BigDecimal longCurrent = changesData.getLongCurrentPrice();
+////        BigDecimal shortCurrent = changesData.getShortCurrentPrice();
+////        BigDecimal longEntry = BigDecimal.valueOf(pairData.getLongTickerEntryPrice());
+////        BigDecimal shortEntry = BigDecimal.valueOf(pairData.getShortTickerEntryPrice());
+////
+////        BigDecimal longReturnPct = longCurrent.subtract(longEntry)
+////                .divide(longEntry, PERCENTAGE_CALCULATION_SCALE, RoundingMode.HALF_UP)
+////                .multiply(PERCENTAGE_MULTIPLIER);
+////
+////        BigDecimal shortReturnPct = shortEntry.subtract(shortCurrent)
+////                .divide(shortEntry, PERCENTAGE_CALCULATION_SCALE, RoundingMode.HALF_UP)
+////                .multiply(PERCENTAGE_MULTIPLIER);
+////
+////        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
+////        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+////
+////        changesData.setLongChanges(longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+////        changesData.setShortChanges(shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+////        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
 //
 //        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
 //        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+//        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP));
 //
-//        changesData.setLongChanges(longReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
-//        changesData.setShortChanges(shortReturnPct.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
-//        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
-
-        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP));
-
-        changesData.setLongChanges(longPosition.getUnrealizedPnLPercent());
-        changesData.setShortChanges(shortPosition.getUnrealizedPnLPercent());
-    }
+//        changesData.setLongChanges(longPosition.getUnrealizedPnLPercent());
+//        changesData.setShortChanges(shortPosition.getUnrealizedPnLPercent());
+//    }
 
     /**
      * Рассчитывает время в минутах с момента входа
