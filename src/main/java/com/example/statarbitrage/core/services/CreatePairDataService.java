@@ -17,44 +17,60 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class CreatePairDataService {
+
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
 
+    /**
+     * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
+     */
     public List<PairData> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();
 
         for (ZScoreData zScoreData : zScoreDataList) {
             try {
-                List<Candle> underValuedTickerCandles = candlesMap.get(zScoreData.getUndervaluedTicker());
-                List<Candle> overValuedTickerCandles = candlesMap.get(zScoreData.getOvervaluedTicker());
-                PairData newPairData = createPair(zScoreData, underValuedTickerCandles, overValuedTickerCandles);
-                result.add(newPairData);
-            } catch (Exception e) {
-                log.error("Ошибка при создании PairData для пары {}/{}: {}",
+                PairData pairData = buildPairData(zScoreData, candlesMap);
+                result.add(pairData);
+            } catch (IllegalArgumentException e) {
+                log.warn("⚠️ Пропущена пара {}/{}: {}",
                         zScoreData.getUndervaluedTicker(),
                         zScoreData.getOvervaluedTicker(),
                         e.getMessage());
+            } catch (Exception e) {
+                log.error("❌ Ошибка при создании PairData для пары {}/{}: {}",
+                        zScoreData.getUndervaluedTicker(),
+                        zScoreData.getOvervaluedTicker(),
+                        e.getMessage(), e);
             }
         }
+
         return result;
     }
 
-    private PairData createPair(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
-        // Проверяем наличие данных
-        if (underValuedTickerCandles == null || underValuedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
-            log.warn("⚠️ Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
-            throw new IllegalArgumentException("⚠️ Отсутствуют данные свечей");
+    /**
+     * Строит одну пару на основе Z-данных и свечей
+     */
+    private PairData buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+        String undervalued = zScoreData.getUndervaluedTicker();
+        String overvalued = zScoreData.getOvervaluedTicker();
+
+        List<Candle> undervaluedCandles = candlesMap.get(undervalued);
+        List<Candle> overvaluedCandles = candlesMap.get(overvalued);
+
+        if (isEmpty(undervaluedCandles) || isEmpty(overvaluedCandles)) {
+            throw new IllegalArgumentException("Недостаточно данных по свечам");
         }
 
-        PairData pairData = new PairData(zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
-
+        PairData pairData = new PairData(undervalued, overvalued);
         pairData.setStatus(TradeStatus.SELECTED);
-
-        // Устанавливаем текущие цены
-        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(underValuedTickerCandles));
-        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overValuedTickerCandles));
+        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedCandles));
+        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
 
         updateZScoreDataCurrentService.updateCurrent(pairData, zScoreData);
 
         return pairData;
+    }
+
+    private boolean isEmpty(List<?> list) {
+        return list == null || list.isEmpty();
     }
 }
