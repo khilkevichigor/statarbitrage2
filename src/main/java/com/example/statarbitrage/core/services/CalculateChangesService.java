@@ -133,7 +133,7 @@ public class CalculateChangesService {
                 .add(shortPosition.getAllocatedAmount());
 
         changesData.setTotalInvestmentUSDT(totalInvestmentUSDT);
-        log.info("Общая сумма инвестиций в USDT: {} (Long: {}, Short: {})", totalInvestmentUSDT, longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
+        log.info("Общая сумма инвестиций в USDT: {} (Long: {}USDT, Short: {}USDT)", totalInvestmentUSDT, longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
 
         // Конвертируем в процент от позиции
 //        BigDecimal profitPercent = calculateProfitPercent(
@@ -154,7 +154,7 @@ public class CalculateChangesService {
 
         // Обновляем статистику и экстремумы
         log.info("Переход в getStatistics для обновления статистики и экстремумов.");
-        return getStatistics(pairData, changesData, longPosition, shortPosition);
+        return getStatistics(pairData, changesData);
     }
 
 //    /**
@@ -179,7 +179,7 @@ public class CalculateChangesService {
     /**
      * Обновляет статистику и экстремумы для пары
      */
-    private ChangesData getStatistics(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+    private ChangesData getStatistics(PairData pairData, ChangesData changesData) {
 //        calculatePercentageChanges(pairData, changesData, longPosition, shortPosition);
 
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
