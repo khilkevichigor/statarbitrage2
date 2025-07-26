@@ -85,7 +85,7 @@ public class UpdateTradeProcessor {
             return null;
         }
 
-        log.info("🚀 Начинаем обновление трейда для {} / {}",
+        log.info("🚀 Начинаем обновление трейда для {}/{}",
                 freshPairData.getLongTicker(), freshPairData.getShortTicker());
         return freshPairData;
     }
@@ -109,7 +109,7 @@ public class UpdateTradeProcessor {
             return handleTradeError(pairData, UpdateTradeErrorType.MANUAL_CLOSE_FAILED);
         }
 
-        log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {} / {}",
+        log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.CLOSED);
@@ -129,20 +129,20 @@ public class UpdateTradeProcessor {
 
     private PairData handleNoOpenPositions(PairData pairData) {
         log.info("==> handleNoOpenPositions: НАЧАЛО для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
-        log.info("ℹ️ Нет открытых позиций для пары {} / {}! Возможно они были закрыты вручную на бирже.",
+        log.info("ℹ️ Нет открытых позиций для пары {}/{}! Возможно они были закрыты вручную на бирже.",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
         log.info("Результат верификации закрытия позиций: {}", verificationResult);
 
         if (verificationResult.isPositionsClosed()) {
-            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {} / {}, PnL: {}",
+            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}/{}, PnL: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), verificationResult.getTotalPnL());
             PairData result = handleTradeError(pairData, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
             log.info("<== handleNoOpenPositions: КОНЕЦ (позиции закрыты) для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
             return result;
         } else {
-            log.warn("⚠️ Позиции НЕ найдены на бирже для пары {} / {}. Это может быть ошибка синхронизации.",
+            log.warn("⚠️ Позиции НЕ найдены на бирже для пары {}/{}. Это может быть ошибка синхронизации.",
                     pairData.getLongTicker(), pairData.getShortTicker());
             PairData result = handleTradeError(pairData, UpdateTradeErrorType.POSITIONS_NOT_FOUND);
             log.info("<== handleNoOpenPositions: КОНЕЦ (позиции не найдены) для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
@@ -151,7 +151,7 @@ public class UpdateTradeProcessor {
     }
 
     private PairData handleAutoClose(PairData pairData, Settings settings, String exitReason) {
-        log.info("🚪 Найдена причина для выхода из позиции: {} для пары {} / {}",
+        log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}/{}",
                 exitReason, pairData.getLongTicker(), pairData.getShortTicker());
 
         ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
@@ -160,7 +160,7 @@ public class UpdateTradeProcessor {
             return handleTradeError(pairData, UpdateTradeErrorType.AUTO_CLOSE_FAILED);
         }
 
-        log.info("✅ Успешно закрыта арбитражная пара: {} / {}",
+        log.info("✅ Успешно закрыта арбитражная пара: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.CLOSED);
@@ -172,7 +172,7 @@ public class UpdateTradeProcessor {
     }
 
     private PairData handleTradeError(PairData pairData, UpdateTradeErrorType errorType) {
-        log.error("❌ Ошибка: {} для пары {} / {}", errorType.getDescription(),
+        log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         pairData.setStatus(TradeStatus.ERROR);

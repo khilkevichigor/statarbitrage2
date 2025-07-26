@@ -183,7 +183,7 @@ public class ZScoreChartDialog extends Dialog {
         }
 
         try {
-            log.info("📊 Показываем Z-Score чарт для пары: {} / {}",
+            log.info("📊 Показываем Z-Score чарт для пары: {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker());
 
             // Сохраняем текущие данные пары
@@ -208,7 +208,7 @@ public class ZScoreChartDialog extends Dialog {
                 // Fallback если чарт не удалось создать
                 chartImage.setSrc(""); // Clear image
                 chartImage.setAlt("Chart generation failed");
-                log.warn("⚠️ Не удалось создать чарт для пары: {} / {}",
+                log.warn("⚠️ Не удалось создать чарт для пары: {}/{}",
                         pairData.getLongTicker(), pairData.getShortTicker());
             }
 
@@ -219,7 +219,7 @@ public class ZScoreChartDialog extends Dialog {
             open();
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при показе чарта для пары: {} / {}",
+            log.error("❌ Ошибка при показе чарта для пары: {}/{}",
                     pairData.getLongTicker(), pairData.getShortTicker(), e);
 
             // Показываем ошибку пользователю

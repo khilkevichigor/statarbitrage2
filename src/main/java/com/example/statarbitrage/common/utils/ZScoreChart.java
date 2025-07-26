@@ -29,7 +29,7 @@ public final class ZScoreChart {
      * @return BufferedImage с Z-Score графиком
      */
     public static BufferedImage createBufferedImage(PairData pairData) {
-        log.info("Создание BufferedImage Z-Score графика для пары: {} / {}",
+        log.info("Создание BufferedImage Z-Score графика для пары: {}/{}",
                 pairData.getLongTicker(), pairData.getShortTicker());
 
         XYChart chart = buildZScoreChart(pairData);
@@ -48,7 +48,7 @@ public final class ZScoreChart {
      * @return BufferedImage с расширенным графиком
      */
     public static BufferedImage createEnhancedBufferedImage(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi) {
-        log.info("Создание расширенного Z-Score графика для пары: {} / {} (EMA: {}, период: {}, StochRSI: {})",
+        log.info("Создание расширенного Z-Score графика для пары: {}/{} (EMA: {}, период: {}, StochRSI: {})",
                 pairData.getLongTicker(), pairData.getShortTicker(), showEma, emaPeriod, showStochRsi);
 
         XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi);

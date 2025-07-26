@@ -32,7 +32,7 @@ public class CalculateChangesService {
             log.info("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
-                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {} / {}. PositionInfo: {}",
+                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}/{}. PositionInfo: {}",
                         pairData.getLongTicker(), pairData.getShortTicker(), positionsInfo);
                 return new ChangesData(); // Возвращаем пустой объект, чтобы избежать NPE
             }
@@ -42,7 +42,7 @@ public class CalculateChangesService {
             return result;
 
         } catch (Exception e) {
-            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {} / {}: {}",
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}/{}: {}",
                     pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage(), e);
         }
         // В случае исключения, возвращаем пустой объект
@@ -148,7 +148,7 @@ public class CalculateChangesService {
         changesData.setProfitUSDTChanges(netPnlUSDT);
         changesData.setProfitPercentChanges(netPnlPercent);
 
-        log.info("Получен профит из {}: {} / {}: {}% (Net PnL: {}USDT, с учетом комиссии: {})",
+        log.info("Получен профит из {}: {}/{}: {}% (Net PnL: {}USDT, с учетом комиссии: {})",
                 isPositionsClosed ? "закрытых позиций" : "открытых позиций", pairData.getLongTicker(), pairData.getShortTicker(),
                 netPnlPercent, netPnlUSDT, totalFees);
 
@@ -278,7 +278,7 @@ public class CalculateChangesService {
      * Логирует финальные результаты
      */
     private void logFinalResults(PairData pairData, ChangesData changesData) {
-        log.info("Финальное обновление изменений для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("Финальное обновление изменений для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
         log.info("💰 Текущий профит: {}USDT ({}%)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());

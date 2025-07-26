@@ -227,7 +227,7 @@ public class TradingPairsComponent extends VerticalLayout {
                 ));
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("❌ Ошибка при закрытия торговли для пары: {} / {}", pairData.getLongTicker(), pairData.getShortTicker(), e);
+                log.error("❌ Ошибка при закрытия торговли для пары: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
                 Notification.show("Ошибка при закрытии торговли: " + e.getMessage());
             }
         });
@@ -364,11 +364,11 @@ public class TradingPairsComponent extends VerticalLayout {
 
         chartButton.addClickListener(event -> {
             try {
-                log.info("📊 Открываем Z-Score чарт для пары: {} / {}",
+                log.info("📊 Открываем Z-Score чарт для пары: {}/{}",
                         pair.getLongTicker(), pair.getShortTicker());
                 zScoreChartDialog.showChart(pair);
             } catch (Exception e) {
-                log.error("❌ Ошибка при показе чарта для пары: {} / {}",
+                log.error("❌ Ошибка при показе чарта для пары: {}/{}",
                         pair.getLongTicker(), pair.getShortTicker(), e);
                 Notification.show("Ошибка при загрузке чарта: " + e.getMessage());
             }
