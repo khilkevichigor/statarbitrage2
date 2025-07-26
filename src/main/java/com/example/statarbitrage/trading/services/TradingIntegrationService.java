@@ -244,25 +244,6 @@ public class TradingIntegrationService {
     }
 
     /**
-     * Проверка наличия открытых позиций для пары
-     */
-    public boolean hasOpenPositions(PairData pairData) {
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
-
-        if (longPositionId == null || shortPositionId == null) {
-            return false;
-        }
-
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        Position longPosition = provider.getPosition(longPositionId);
-        Position shortPosition = provider.getPosition(shortPositionId);
-
-        // Если хотя бы одна позиция не найдена, считаем что пара не имеет открытых позиций
-        return longPosition != null && shortPosition != null;
-    }
-
-    /**
      * Проверка что позиции действительно закрыты на бирже с получением PnL
      */
     public Positioninfo verifyPositionsClosed(PairData pairData) {
@@ -294,14 +275,6 @@ public class TradingIntegrationService {
             // Рассчитываем финальный PnL если позиции закрыты
             BigDecimal totalRealizedPnlUSDT = BigDecimal.ZERO;
             BigDecimal totalRealizedPnlPercent = BigDecimal.ZERO;
-//            if (longPosition != null) {
-//                longPosition.calculateUnrealizedPnL();
-//                totalRealizedPnlPercent = totalRealizedPnlPercent.add(longPosition.getUnrealizedPnLUSDT());
-//            }
-//            if (shortPosition != null) {
-//                shortPosition.calculateUnrealizedPnL();
-//                totalRealizedPnlPercent = totalRealizedPnlPercent.add(shortPosition.getUnrealizedPnLUSDT());
-//            }
             if (longPosition != null) {
                 totalRealizedPnlUSDT = totalRealizedPnlUSDT.add(longPosition.getRealizedPnLUSDT());
                 totalRealizedPnlPercent = totalRealizedPnlPercent.add(longPosition.getRealizedPnLPercent());
@@ -310,7 +283,6 @@ public class TradingIntegrationService {
                 totalRealizedPnlUSDT = totalRealizedPnlUSDT.add(shortPosition.getRealizedPnLUSDT());
                 totalRealizedPnlPercent = totalRealizedPnlPercent.add(shortPosition.getRealizedPnLPercent());
             }
-
 
             // Удаляем из локального реестра если обе позиции закрыты
             removePairFromLocalStorage(pairData);
@@ -414,28 +386,10 @@ public class TradingIntegrationService {
 
         if (longClosed && shortClosed) {
             log.info("✅ Обе позиции для пары {} уже закрыты.", pairData.getPairName());
-            //todo для закрытых считаем позже а не здесь!
-
-            // Рассчитываем финальный PnL если позиции закрыты
-//            BigDecimal totalPnL = BigDecimal.ZERO;
-//            if (longPosition != null) {
-//                longPosition.calculateUnrealizedPnL();
-//                totalPnL = totalPnL.add(longPosition.getUnrealizedPnLUSDT());
-//                log.debug("Финальный PnL для LONG позиции {}: {}", longPositionId, longPosition.getUnrealizedPnLUSDT());
-//            }
-//            if (shortPosition != null) {
-//                shortPosition.calculateUnrealizedPnL();
-//                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnLUSDT());
-//                log.debug("Финальный PnL для SHORT позиции {}: {}", shortPositionId, shortPosition.getUnrealizedPnLUSDT());
-//            }
-//
-//            log.info("🗑️ Позиции уже закрыты для пары {}, финальный PnL: {}", pairData.getPairName(), totalPnL);
-
             return Positioninfo.builder()
                     .positionsClosed(true)
                     .longPosition(longPosition)
                     .shortPosition(shortPosition)
-//                    .totalPnL(totalPnL)
                     .build();
         }
 
@@ -449,32 +403,6 @@ public class TradingIntegrationService {
                 .longPosition(longPosition)
                 .shortPosition(shortPosition)
                 .build();
-    }
-
-    /**
-     * Получение реальной прибыли позиции
-     */
-    public BigDecimal getPositionPnL(PairData pairData) {
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
-
-        if (longPositionId == null || shortPositionId == null) {
-            return BigDecimal.ZERO;
-        }
-
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        Position longPosition = provider.getPosition(longPositionId);
-        Position shortPosition = provider.getPosition(shortPositionId);
-
-        if (longPosition == null || shortPosition == null) {
-            return BigDecimal.ZERO;
-        }
-
-        // Обновляем расчеты PnL
-        longPosition.calculateUnrealizedPnL();
-        shortPosition.calculateUnrealizedPnL();
-
-        return longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
     }
 
     private BigDecimal calculatePositionSize(TradingProvider provider) {
@@ -582,46 +510,6 @@ public class TradingIntegrationService {
      */
     public TradingProviderType getCurrentTradingMode() {
         return tradingProviderFactory.getCurrentProviderType();
-    }
-
-    /**
-     * Получение размера позиции для данной пары
-     * Используется для правильного расчета процентного профита
-     */
-    public BigDecimal getPositionSize(PairData pairData) {
-        try {
-            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-
-            // Получаем ID позиций для данной пары из внутренних карт
-            String longPositionId = pairToLongPositionMap.get(pairData.getId());
-            String shortPositionId = pairToShortPositionMap.get(pairData.getId());
-
-            if (longPositionId == null || shortPositionId == null) {
-                return null; // Позиции не найдены
-            }
-
-            // Получаем позиции
-            Position longPosition = provider.getPosition(longPositionId);
-            Position shortPosition = provider.getPosition(shortPositionId);
-
-            if (longPosition != null && shortPosition != null &&
-                    longPosition.getAllocatedAmount() != null && shortPosition.getAllocatedAmount() != null) {
-
-                // Возвращаем сумму выделенных сумм для обеих позиций
-                BigDecimal totalAllocated = longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount());
-
-                log.debug("📏 Размер позиции для {}: {} USDT (LONG: {}, SHORT: {})",
-                        pairData.getPairName(), totalAllocated,
-                        longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
-
-                return totalAllocated;
-            }
-
-        } catch (Exception e) {
-            log.debug("⚠️ Не удалось получить размер позиции для {}: {}", pairData.getPairName(), e.getMessage());
-        }
-
-        return null; // Fallback в PairDataService будет использовать примерный расчет
     }
 
     /**
