@@ -3,7 +3,6 @@ package com.example.statarbitrage.core.services;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ChangesData;
 import com.example.statarbitrage.common.dto.ZScoreData;
-import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
@@ -15,8 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -26,6 +27,10 @@ public class PairDataService {
     private final TradingIntegrationService tradingIntegrationService;
     private final CalculateChangesService calculateChangesService;
     private final EntryPointService entryPointService;
+    private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
+    private final ExcludeExistingTradingPairsService excludeExistingTradingPairsService;
+    private final UpdateChangesService updateChangesService;
+    private final CreatePairDataService createPairDataService;
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> result = new ArrayList<>();
@@ -63,51 +68,11 @@ public class PairDataService {
     }
 
     private PairData createPairData(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
-        // Проверяем наличие данных
-        if (underValuedTickerCandles == null || underValuedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
-            log.warn("⚠️ Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
-            throw new IllegalArgumentException("⚠️ Отсутствуют данные свечей");
-        }
-
-        PairData pairData = new PairData();
-
-        pairData.setStatus(TradeStatus.SELECTED);
-
-        // Устанавливаем основные параметры
-        pairData.setLongTicker(zScoreData.getUndervaluedTicker());
-        pairData.setShortTicker(zScoreData.getOvervaluedTicker());
-
-        // Устанавливаем текущие цены
-        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(underValuedTickerCandles));
-        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overValuedTickerCandles));
-
-        updateZScoreDataCurrent(pairData, zScoreData);
-
-        return pairData;
+        return createPairDataService.createPair(zScoreData, underValuedTickerCandles, overValuedTickerCandles);
     }
 
     public void updateZScoreDataCurrent(PairData pairData, ZScoreData zScoreData) {
-        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-        pairData.setZScoreCurrent(latestParam.getZscore());
-        pairData.setCorrelationCurrent(latestParam.getCorrelation());
-        pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        pairData.setPValueCurrent(latestParam.getPvalue());
-        pairData.setMeanCurrent(latestParam.getMean());
-        pairData.setStdCurrent(latestParam.getStd());
-        pairData.setSpreadCurrent(latestParam.getSpread());
-        pairData.setAlphaCurrent(latestParam.getAlpha());
-        pairData.setBetaCurrent(latestParam.getBeta());
-
-        // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
-            // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZscoreParams()) {
-                pairData.addZScorePoint(param);
-            }
-        } else {
-            // Если новой истории нет, добавляем хотя бы текущую точку
-            pairData.addZScorePoint(latestParam);
-        }
+        updateZScoreDataCurrentService.updateCurrent(pairData, zScoreData);
     }
 
     public void save(PairData pairData) {
@@ -135,30 +100,7 @@ public class PairDataService {
     }
 
     public void excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
-        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
-            return;
-        }
-
-        // Получаем список уже торгующихся пар
-        List<PairData> tradingPairs = findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
-
-        // Собираем множество идентификаторов пар в торговле (например, "BTC-USDT-ETH-USDT")
-        Set<String> tradingSet = tradingPairs.stream()
-                .map(pair -> buildKey(pair.getLongTicker(), pair.getShortTicker()))
-                .collect(Collectors.toSet());
-
-        // Удаляем из списка те пары, которые уже торгуются
-        zScoreDataList.removeIf(z -> {
-            String key = buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker());
-            return tradingSet.contains(key);
-        });
-    }
-
-    // Приватный метод для создания уникального ключа пары, независимо от порядка
-    private String buildKey(String ticker1, String ticker2) {
-        List<String> sorted = Arrays.asList(ticker1, ticker2);
-        Collections.sort(sorted);
-        return sorted.get(0) + "-" + sorted.get(1);
+        excludeExistingTradingPairsService.exclude(zScoreDataList);
     }
 
     public BigDecimal getUnrealizedProfitTotal() {
@@ -181,56 +123,10 @@ public class PairDataService {
 
     public void addEntryPoints(PairData pairData, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
         entryPointService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
-//        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
-//
-//        pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
-//        pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
-//
-//        pairData.setZScoreEntry(latestParam.getZscore());
-//        pairData.setCorrelationEntry(latestParam.getCorrelation());
-//        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
-//        pairData.setPValueEntry(latestParam.getPvalue());
-//        pairData.setMeanEntry(latestParam.getMean());
-//        pairData.setStdEntry(latestParam.getStd());
-//        pairData.setSpreadEntry(latestParam.getSpread());
-//        pairData.setAlphaEntry(latestParam.getAlpha());
-//        pairData.setBetaEntry(latestParam.getBeta());
-//        // Время входа
-//        pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
-//
-//        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
-//                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-//                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-//                pairData.getZScoreEntry());
     }
 
     public void addChanges(PairData pairData) {
         ChangesData changes = calculateChangesService.getChanges(pairData);
-
-        pairData.setMinLong(changes.getMinLong());
-        pairData.setMaxLong(changes.getMaxLong());
-        pairData.setLongChanges(changes.getLongChanges());
-        pairData.setLongTickerCurrentPrice(changes.getLongCurrentPrice().doubleValue());
-
-        pairData.setMinShort(changes.getMinShort());
-        pairData.setMaxShort(changes.getMaxShort());
-        pairData.setShortChanges(changes.getShortChanges());
-        pairData.setShortTickerCurrentPrice(changes.getShortCurrentPrice().doubleValue());
-
-        changes.setMinZ(changes.getMinZ());
-        pairData.setMaxZ(changes.getMaxZ());
-
-        pairData.setMinCorr(changes.getMinCorr());
-        pairData.setMaxCorr(changes.getMaxCorr());
-
-        pairData.setMinProfitChanges(changes.getMinProfitChanges());
-        pairData.setMaxProfitChanges(changes.getMaxProfitChanges());
-        pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
-        pairData.setProfitUSDTChanges(changes.getProfitUSDTChanges());
-
-        pairData.setTimeInMinutesSinceEntryToMin(changes.getTimeInMinutesSinceEntryToMin());
-        pairData.setTimeInMinutesSinceEntryToMax(changes.getTimeInMinutesSinceEntryToMax());
-
-        pairData.setZScoreChanges(changes.getZScoreChanges());
+        updateChangesService.update(pairData, changes);
     }
 }
