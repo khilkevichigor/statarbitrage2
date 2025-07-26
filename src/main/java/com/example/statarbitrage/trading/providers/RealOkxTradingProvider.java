@@ -112,7 +112,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
         log.info("==> openLongPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
         try {
-            if (!preTradeChecks(symbol, amount)) {
+            if (!preTradeChecks(amount)) {
                 log.error("Предторговая проверка не пройдена.");
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Ошибка предотлетной проверки");
             }
@@ -179,7 +179,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     public TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
         log.info("==> openShortPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
         try {
-            if (!preTradeChecks(symbol, amount)) {
+            if (!preTradeChecks(amount)) {
                 log.error("Предотлетная проверка не пройдена.");
                 return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol, "Ошибка предотлетной проверки");
             }
@@ -310,11 +310,6 @@ public class RealOkxTradingProvider implements TradingProvider {
     public Position getPosition(String positionId) {
         return positions.get(positionId);
     }
-
-//    @Override
-//    public boolean isPositionOpen(PairData pairData) {
-//        return false;
-//    }
 
     @Override
     public void updatePositionPrices() {
@@ -555,7 +550,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
-    private boolean preTradeChecks(String symbol, BigDecimal amount) {
+    private boolean preTradeChecks(BigDecimal amount) {
         if (!isConnected()) {
             log.error("❌ Нет подключения к OKX API");
             return false;
