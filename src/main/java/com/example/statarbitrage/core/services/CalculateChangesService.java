@@ -78,6 +78,7 @@ public class CalculateChangesService {
         // 1. Суммируем нереализованный PnL (он уже очищен от комиссии за открытие в классе Position)
         BigDecimal netPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
         log.info("Рассчитан нереализованный PnL в USDT: {} (Long: {}, Short: {})", netPnlUSDT, longPosition.getUnrealizedPnLUSDT(), shortPosition.getUnrealizedPnLUSDT());
+
         BigDecimal netPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
         log.info("Рассчитан нереализованный PnL в %: {} (Long: {}, Short: {})", netPnlPercent, longPosition.getUnrealizedPnLPercent(), shortPosition.getUnrealizedPnLPercent());
 
@@ -125,8 +126,7 @@ public class CalculateChangesService {
         changesData.setShortAllocatedAmount(shortPosition.getAllocatedAmount());
 
         // Рассчитываем общую сумму инвестиций из позиций
-        BigDecimal totalInvestmentUSDT = longPosition.getAllocatedAmount()
-                .add(shortPosition.getAllocatedAmount());
+        BigDecimal totalInvestmentUSDT = longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount());
 
         changesData.setTotalInvestmentUSDT(totalInvestmentUSDT);
         log.info("Общая сумма инвестиций в USDT: {} (Long: {}USDT, Short: {}USDT)", totalInvestmentUSDT, longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
