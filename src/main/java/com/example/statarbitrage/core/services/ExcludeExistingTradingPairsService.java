@@ -8,42 +8,56 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExcludeExistingTradingPairsService {
+
     private final PairDataRepository pairDataRepository;
 
+    /**
+     * Исключает из списка ZScoreData те пары, которые уже торгуются
+     */
     public void exclude(List<ZScoreData> zScoreDataList) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            log.debug("Список ZScoreData пуст, пропускаем исключение торговых пар.");
             return;
         }
 
-        // Получаем список уже торгующихся пар
         List<PairData> tradingPairs = pairDataRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        if (tradingPairs.isEmpty()) {
+            log.debug("Нет активных торговых пар, все ZScoreData будут использоваться.");
+            return;
+        }
 
-        // Собираем множество идентификаторов пар в торговле (например, "BTC-USDT-ETH-USDT")
-        Set<String> tradingSet = tradingPairs.stream()
+        Set<String> existingKeys = tradingPairs.stream()
                 .map(pair -> buildKey(pair.getLongTicker(), pair.getShortTicker()))
                 .collect(Collectors.toSet());
 
-        // Удаляем из списка те пары, которые уже торгуются
-        zScoreDataList.removeIf(z -> {
-            String key = buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker());
-            return tradingSet.contains(key);
-        });
+        int beforeSize = zScoreDataList.size();
+
+        zScoreDataList.removeIf(z ->
+                existingKeys.contains(buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker()))
+        );
+
+        int removed = beforeSize - zScoreDataList.size();
+        if (removed > 0) {
+            log.info("Исключено {} уже торгующихся пар из ZScoreData", removed);
+        } else {
+            log.info("Нет совпадений с активными торговыми парами — ничего не исключено.");
+        }
     }
 
-    // Приватный метод для создания уникального ключа пары, независимо от порядка
+    /**
+     * Строит уникальный ключ пары, не зависящий от порядка тикеров
+     */
     private String buildKey(String ticker1, String ticker2) {
-        List<String> sorted = Arrays.asList(ticker1, ticker2);
-        Collections.sort(sorted);
-        return sorted.get(0) + "-" + sorted.get(1);
+        return Stream.of(ticker1, ticker2)
+                .sorted()
+                .collect(Collectors.joining("-"));
     }
 }
