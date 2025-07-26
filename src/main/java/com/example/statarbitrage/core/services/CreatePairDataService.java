@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -17,7 +19,26 @@ import java.util.List;
 public class CreatePairDataService {
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
 
-    public PairData createPair(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
+    public List<PairData> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+        List<PairData> result = new ArrayList<>();
+
+        for (ZScoreData zScoreData : zScoreDataList) {
+            try {
+                List<Candle> underValuedTickerCandles = candlesMap.get(zScoreData.getUndervaluedTicker());
+                List<Candle> overValuedTickerCandles = candlesMap.get(zScoreData.getOvervaluedTicker());
+                PairData newPairData = createPair(zScoreData, underValuedTickerCandles, overValuedTickerCandles);
+                result.add(newPairData);
+            } catch (Exception e) {
+                log.error("Ошибка при создании PairData для пары {}/{}: {}",
+                        zScoreData.getUndervaluedTicker(),
+                        zScoreData.getOvervaluedTicker(),
+                        e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    private PairData createPair(ZScoreData zScoreData, List<Candle> underValuedTickerCandles, List<Candle> overValuedTickerCandles) {
         // Проверяем наличие данных
         if (underValuedTickerCandles == null || underValuedTickerCandles.isEmpty() || overValuedTickerCandles == null || overValuedTickerCandles.isEmpty()) {
             log.warn("⚠️ Нет данных по свечам для пары: {} - {}", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
