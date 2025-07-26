@@ -67,14 +67,6 @@ public class PairData {
     private String shortTicker;
     private String pairName;
 
-
-    public String getPairName() {
-        if (pairName == null || pairName.isEmpty()) {
-            return longTicker + "/" + shortTicker;
-        }
-        return pairName;
-    }
-
     private double longTickerEntryPrice;
     private double longTickerCurrentPrice;
 
@@ -135,6 +127,13 @@ public class PairData {
 
     private String exitReason;
     private long timestamp;
+
+    public String getPairName() {
+        if (pairName == null || pairName.isEmpty()) {
+            return longTicker + "/" + shortTicker;
+        }
+        return pairName;
+    }
 
     // Упрощенные геттеры для совместимости
     public double getCorrelation() {

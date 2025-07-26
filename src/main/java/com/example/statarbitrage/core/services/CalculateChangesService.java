@@ -17,8 +17,6 @@ import java.math.RoundingMode;
 @RequiredArgsConstructor
 public class CalculateChangesService {
 
-    //    private static final BigDecimal PERCENTAGE_MULTIPLIER = BigDecimal.valueOf(100);
-//    private static final int PROFIT_CALCULATION_SCALE = 4;
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
 
     private final TradingIntegrationService tradingIntegrationService;
