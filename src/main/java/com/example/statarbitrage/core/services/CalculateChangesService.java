@@ -154,7 +154,7 @@ public class CalculateChangesService {
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
         log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
-        log.info("📈 Max profit: {} %, Min profit: {} %", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
+        log.info("📈 Max profit: {} %, Min profit: {} %", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges()); //todo постоянно перезаписываются и не сохраняют экстремумы!
     }
 
     private void updateExtremumValues(PairData pairData, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
