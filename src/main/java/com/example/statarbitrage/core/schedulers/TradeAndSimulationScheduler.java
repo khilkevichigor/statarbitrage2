@@ -293,7 +293,6 @@ public class TradeAndSimulationScheduler {
 
     private void logMaintainPairsCompletion(long startTime, int newPairsCount) {
         long duration = System.currentTimeMillis() - startTime;
-        log.info("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар",
-                duration / 1000.0, newPairsCount);
+        log.info("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар", duration / 1000.0, newPairsCount);
     }
 }

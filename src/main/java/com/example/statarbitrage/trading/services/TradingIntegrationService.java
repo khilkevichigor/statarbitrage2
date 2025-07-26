@@ -289,28 +289,39 @@ public class TradingIntegrationService {
         boolean shortClosed = (shortPosition == null || shortPosition.getStatus() == PositionStatus.CLOSED);
 
         if (longClosed && shortClosed) {
+            //todo здесь брать данные с окх
+
             // Рассчитываем финальный PnL если позиции закрыты
-            BigDecimal totalPnL = BigDecimal.ZERO;
+            BigDecimal totalRealizedPnlUSDT = BigDecimal.ZERO;
+            BigDecimal totalRealizedPnlPercent = BigDecimal.ZERO;
+//            if (longPosition != null) {
+//                longPosition.calculateUnrealizedPnL();
+//                totalRealizedPnlPercent = totalRealizedPnlPercent.add(longPosition.getUnrealizedPnLUSDT());
+//            }
+//            if (shortPosition != null) {
+//                shortPosition.calculateUnrealizedPnL();
+//                totalRealizedPnlPercent = totalRealizedPnlPercent.add(shortPosition.getUnrealizedPnLUSDT());
+//            }
             if (longPosition != null) {
-                longPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(longPosition.getUnrealizedPnLUSDT());
+                totalRealizedPnlUSDT = totalRealizedPnlUSDT.add(longPosition.getRealizedPnLUSDT());
+                totalRealizedPnlPercent = totalRealizedPnlPercent.add(longPosition.getRealizedPnLPercent());
             }
             if (shortPosition != null) {
-                shortPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnLUSDT());
+                totalRealizedPnlUSDT = totalRealizedPnlUSDT.add(shortPosition.getRealizedPnLUSDT());
+                totalRealizedPnlPercent = totalRealizedPnlPercent.add(shortPosition.getRealizedPnLPercent());
             }
+
 
             // Удаляем из локального реестра если обе позиции закрыты
             removePairFromLocalStorage(pairData);
-            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}, финальный PnL: {}", pairData.getPairName(), totalPnL);
+            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}, финальный PnL: {}$ ({}%)", pairData.getPairName(), totalRealizedPnlUSDT, totalRealizedPnlPercent);
             return Positioninfo.builder()
                     .positionsClosed(true)
-                    .totalPnL(totalPnL)
+                    .totalPnL(totalRealizedPnlPercent)
                     .build();
         }
 
-        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}",
-                longClosed, shortClosed);
+        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}", longClosed, shortClosed);
         return Positioninfo.builder()
                 .positionsClosed(false)
                 .totalPnL(BigDecimal.ZERO)

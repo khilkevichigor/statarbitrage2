@@ -82,7 +82,7 @@ public class Position {
     /**
      * Реализованная (зафиксированная) прибыль/убыток (Net PnL)
      */
-    private BigDecimal realizedPnL;
+    private BigDecimal realizedPnLUSDT;
 
     /**
      * Реализованная прибыль/убыток (%)
@@ -167,7 +167,7 @@ public class Position {
      */
     public void calculateAndSetRealizedPnL(BigDecimal closingPrice, BigDecimal closingFees) {
         if (entryPrice == null || closingPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
-            this.realizedPnL = BigDecimal.ZERO;
+            this.realizedPnLUSDT = BigDecimal.ZERO;
             this.realizedPnLPercent = BigDecimal.ZERO;
             return;
         }
@@ -185,12 +185,12 @@ public class Position {
         // 2. Вычитаем все комиссии (за открытие и закрытие)
         BigDecimal totalFees = (this.openingFees != null ? this.openingFees : BigDecimal.ZERO)
                 .add(closingFees != null ? closingFees : BigDecimal.ZERO);
-        this.realizedPnL = grossPnL.subtract(totalFees);
+        this.realizedPnLUSDT = grossPnL.subtract(totalFees);
         this.closingFees = closingFees; // Сохраняем комиссию за закрытие
 
         // 3. Рассчитываем процентную прибыль
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            this.realizedPnLPercent = this.realizedPnL.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+            this.realizedPnLPercent = this.realizedPnLUSDT.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
         } else {
             this.realizedPnLPercent = BigDecimal.ZERO;

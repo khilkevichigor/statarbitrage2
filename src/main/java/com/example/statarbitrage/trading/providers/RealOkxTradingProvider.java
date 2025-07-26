@@ -272,12 +272,12 @@ public class RealOkxTradingProvider implements TradingProvider {
             // 4. Освобождаем средства и уведомляем портфолио о закрытии
             okxPortfolioManager.releaseReservedBalance(position.getAllocatedAmount());
             BigDecimal totalFees = position.getOpeningFees().add(position.getClosingFees());
-            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnL(), totalFees);
+            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnLUSDT(), totalFees);
 
             // 5. Создаем итоговый результат операции
             TradeResult finalResult = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
                     position.getSymbol(), closeOrderResult.getExecutedSize(), closeOrderResult.getExecutionPrice(), closeOrderResult.getFees(), closeOrderResult.getExternalOrderId());
-            finalResult.setPnl(position.getRealizedPnL());
+            finalResult.setPnl(position.getRealizedPnLUSDT());
             finalResult.setExternalOrderId(closeOrderResult.getExternalOrderId());
 
             tradeHistory.add(finalResult);

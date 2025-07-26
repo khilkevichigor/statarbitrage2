@@ -96,8 +96,8 @@ public class CalculateChangesService {
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromClosedPositions для пары {}", pairData.getPairName());
         // 1. Суммируем реализованный PnL (он уже очищен от всех комиссий в классе Position)
-        BigDecimal netPnlUSDT = longPosition.getRealizedPnL().add(shortPosition.getRealizedPnL());
-        log.info("Рассчитан реализованный PnL в USDT: {} (Long: {}, Short: {})", netPnlUSDT, longPosition.getRealizedPnL(), shortPosition.getRealizedPnL());
+        BigDecimal netPnlUSDT = longPosition.getRealizedPnLUSDT().add(shortPosition.getRealizedPnLUSDT());
+        log.info("Рассчитан реализованный PnL в USDT: {} (Long: {}, Short: {})", netPnlUSDT, longPosition.getRealizedPnLUSDT(), shortPosition.getRealizedPnLUSDT());
         BigDecimal netPnlPercent = longPosition.getRealizedPnLPercent().add(shortPosition.getRealizedPnLPercent());
         log.info("Рассчитан реализованный PnL в %: {} (Long: {}, Short: {})", netPnlPercent, longPosition.getRealizedPnLPercent(), shortPosition.getRealizedPnLPercent());
 
