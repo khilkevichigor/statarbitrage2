@@ -65,6 +65,15 @@ public class PairData {
 
     private String longTicker;
     private String shortTicker;
+    private String pairName;
+
+
+    public String getPairName() {
+        if (pairName == null || pairName.isEmpty()) {
+            return longTicker + "/" + shortTicker;
+        }
+        return pairName;
+    }
 
     private double longTickerEntryPrice;
     private double longTickerCurrentPrice;

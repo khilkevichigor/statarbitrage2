@@ -29,8 +29,7 @@ public final class ZScoreChart {
      * @return BufferedImage с Z-Score графиком
      */
     public static BufferedImage createBufferedImage(PairData pairData) {
-        log.info("Создание BufferedImage Z-Score графика для пары: {}/{}",
-                pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("Создание BufferedImage Z-Score графика для пары: {}", pairData.getPairName());
 
         XYChart chart = buildZScoreChart(pairData);
 
@@ -48,8 +47,8 @@ public final class ZScoreChart {
      * @return BufferedImage с расширенным графиком
      */
     public static BufferedImage createEnhancedBufferedImage(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi) {
-        log.info("Создание расширенного Z-Score графика для пары: {}/{} (EMA: {}, период: {}, StochRSI: {})",
-                pairData.getLongTicker(), pairData.getShortTicker(), showEma, emaPeriod, showStochRsi);
+        log.info("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {})",
+                pairData.getPairName(), showEma, emaPeriod, showStochRsi);
 
         XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi);
 
@@ -72,8 +71,7 @@ public final class ZScoreChart {
 
         if (history.isEmpty()) {
             // Fallback: если истории нет, создаем минимальную точку с текущими данными
-            log.warn("⚠️ История Z-Score пуста для пары {}/{}, создаем минимальные данные",
-                    pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("⚠️ История Z-Score пуста для пары {}, создаем минимальные данные", pairData.getPairName());
             timestamps = Collections.singletonList(System.currentTimeMillis());
             zScores = Collections.singletonList(pairData.getZScoreCurrent());
         } else {
@@ -85,8 +83,7 @@ public final class ZScoreChart {
                     .map(ZScoreParam::getZscore)
                     .collect(Collectors.toList());
 
-            log.info("Используем реальную историю Z-Score: {} точек для пары {}/{}",
-                    history.size(), pairData.getLongTicker(), pairData.getShortTicker());
+            log.info("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
         }
 
         log.info("Временной диапазон графика от: {} - до: {}",

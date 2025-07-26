@@ -183,15 +183,13 @@ public class ZScoreChartDialog extends Dialog {
         }
 
         try {
-            log.info("📊 Показываем Z-Score чарт для пары: {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
+            log.info("📊 Показываем Z-Score чарт для пары: {}", pairData.getPairName());
 
             // Сохраняем текущие данные пары
             this.currentPairData = pairData;
 
             // Устанавливаем заголовок
-            pairTitle.setText(String.format("📊 Z-Score Chart: %s / %s",
-                    pairData.getLongTicker(), pairData.getShortTicker()));
+            pairTitle.setText(String.format("📊 Z-Score Chart: %s", pairData.getPairName()));
 
             // Сбрасываем состояние чекбоксов
             showEmaCheckbox.setValue(false);
@@ -203,13 +201,12 @@ public class ZScoreChartDialog extends Dialog {
             if (chartBufferedImage != null) {
                 StreamResource chartResource = createStreamResource(chartBufferedImage);
                 chartImage.setSrc(chartResource);
-                chartImage.setAlt("Z-Score Chart for " + pairData.getLongTicker() + " / " + pairData.getShortTicker());
+                chartImage.setAlt("Z-Score Chart for " + pairData.getPairName());
             } else {
                 // Fallback если чарт не удалось создать
                 chartImage.setSrc(""); // Clear image
                 chartImage.setAlt("Chart generation failed");
-                log.warn("⚠️ Не удалось создать чарт для пары: {}/{}",
-                        pairData.getLongTicker(), pairData.getShortTicker());
+                log.warn("⚠️ Не удалось создать чарт для пары: {}", pairData.getPairName());
             }
 
             // Заполняем детальную информацию
@@ -219,8 +216,7 @@ public class ZScoreChartDialog extends Dialog {
             open();
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при показе чарта для пары: {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e);
+            log.error("❌ Ошибка при показе чарта для пары: {}", pairData.getPairName(), e);
 
             // Показываем ошибку пользователю
             pairTitle.setText("❌ Error Loading Chart");

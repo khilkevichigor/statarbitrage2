@@ -39,7 +39,7 @@ public class StartNewTradeProcessor {
         PairData pairData = request.getPairData();
         Settings settings = settingsService.getSettings();
 
-        log.info("🚀 Начинаем новый трейд для {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("🚀 Начинаем новый трейд для {}", pairData.getPairName());
 
         // Предварительные проверки
         PairData validationResult = performPreValidation(pairData, settings);
@@ -78,7 +78,7 @@ public class StartNewTradeProcessor {
 
     private PairData performPreValidation(PairData pairData, Settings settings) {
         if (startNewTradeValidationService.isLastZLessThenMinZ(pairData, settings)) {
-            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", pairData.getPairName());
             return handleTradeError(pairData, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM);
         }
         return null;
@@ -89,7 +89,7 @@ public class StartNewTradeProcessor {
         Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
 
         if (maybeZScoreData.isEmpty()) {
-            log.warn("⚠️ ZScore данные пусты для пары {}/{}", pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("⚠️ ZScore данные пусты для пары {}", pairData.getPairName());
             handleTradeError(pairData, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
             return null;
         }
@@ -108,13 +108,11 @@ public class StartNewTradeProcessor {
         ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData, settings); //todo передавать UUID?
 
         if (openResult == null || !openResult.isSuccess()) {
-            log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}/{}",
-                    pairData.getLongTicker(), pairData.getShortTicker());
+            log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pairData.getPairName());
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}/{}",
-                pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}", pairData.getPairName());
 
         pairData.setStatus(TradeStatus.TRADING);
 
@@ -133,9 +131,7 @@ public class StartNewTradeProcessor {
     }
 
     private PairData handleTradeError(PairData pairData, StartTradeErrorType errorType) {
-        log.error("❌ Ошибка: {} для пары {}/{}", errorType.getDescription(),
-                pairData.getLongTicker(), pairData.getShortTicker());
-
+        log.error("❌ Ошибка: {} для пары {}", errorType.getDescription(), pairData.getPairName());
         pairData.setStatus(TradeStatus.ERROR);
         pairData.setErrorDescription(errorType.getDescription());
         pairDataService.save(pairData);

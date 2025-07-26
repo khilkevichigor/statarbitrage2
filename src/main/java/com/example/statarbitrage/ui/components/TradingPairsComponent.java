@@ -193,19 +193,19 @@ public class TradingPairsComponent extends VerticalLayout {
                         .build());
                 if (newPairData != null) {
                     Notification.show(String.format(
-                            "Статус пары %s/%s изменен на %s",
-                            pairData.getLongTicker(), pairData.getShortTicker(), TradeStatus.TRADING
+                            "Статус пары %s изменен на %s",
+                            pairData.getPairName(), TradeStatus.TRADING
                     ));
                 } else {
                     Notification.show(String.format(
-                            "Пропускаем новый трейд для пары %s/%s",
-                            pairData.getLongTicker(), pairData.getShortTicker()
+                            "Пропускаем новый трейд для пары %s",
+                            pairData.getPairName()
                     ));
                 }
 
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("❌ Ошибка начала торговли для пары: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
+                log.error("❌ Ошибка начала торговли для пары: {}", pairData.getPairName(), e);
                 Notification.show("Ошибка при открытии торговли: " + e.getMessage());
             }
         });
@@ -222,12 +222,12 @@ public class TradingPairsComponent extends VerticalLayout {
                         .closeManually(true)
                         .build());
                 Notification.show(String.format(
-                        "Статус пары %s/%s изменен на %s",
-                        updatedPairData.getLongTicker(), updatedPairData.getShortTicker(), updatedPairData.getStatus()
+                        "Статус пары %s изменен на %s",
+                        updatedPairData.getPairName(), updatedPairData.getStatus()
                 ));
                 notifyUIUpdate();
             } catch (Exception e) {
-                log.error("❌ Ошибка при закрытия торговли для пары: {}/{}", pairData.getLongTicker(), pairData.getShortTicker(), e);
+                log.error("❌ Ошибка при закрытия торговли для пары: {}", pairData.getPairName(), e);
                 Notification.show("Ошибка при закрытии торговли: " + e.getMessage());
             }
         });
@@ -364,12 +364,10 @@ public class TradingPairsComponent extends VerticalLayout {
 
         chartButton.addClickListener(event -> {
             try {
-                log.info("📊 Открываем Z-Score чарт для пары: {}/{}",
-                        pair.getLongTicker(), pair.getShortTicker());
+                log.info("📊 Открываем Z-Score чарт для пары: {}", pair.getPairName());
                 zScoreChartDialog.showChart(pair);
             } catch (Exception e) {
-                log.error("❌ Ошибка при показе чарта для пары: {}/{}",
-                        pair.getLongTicker(), pair.getShortTicker(), e);
+                log.error("❌ Ошибка при показе чарта для пары: {}", pair.getPairName(), e);
                 Notification.show("Ошибка при загрузке чарта: " + e.getMessage());
             }
         });

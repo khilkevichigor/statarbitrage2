@@ -129,8 +129,7 @@ public class TradeAndSimulationScheduler {
                     .closeManually(false)
                     .build());
         } catch (Exception e) {
-            log.warn("⚠️ Ошибка при обновлении пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+            log.warn("⚠️ Ошибка при обновлении пары {}: {}", pairData.getPairName(), e.getMessage());
         }
     }
 
@@ -287,8 +286,7 @@ public class TradeAndSimulationScheduler {
                     .build());
             return result != null;
         } catch (Exception e) {
-            log.warn("⚠️ Не удалось запустить новый трейд для пары {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+            log.warn("⚠️ Не удалось запустить новый трейд для пары {}: {}", pairData.getPairName(), e.getMessage());
             return false;
         }
     }
