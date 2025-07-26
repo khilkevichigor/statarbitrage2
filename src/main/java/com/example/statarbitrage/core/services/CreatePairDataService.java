@@ -45,13 +45,9 @@ public class CreatePairDataService {
             throw new IllegalArgumentException("⚠️ Отсутствуют данные свечей");
         }
 
-        PairData pairData = new PairData();
+        PairData pairData = new PairData(zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
 
         pairData.setStatus(TradeStatus.SELECTED);
-
-        // Устанавливаем основные параметры
-        pairData.setLongTicker(zScoreData.getUndervaluedTicker());
-        pairData.setShortTicker(zScoreData.getOvervaluedTicker());
 
         // Устанавливаем текущие цены
         pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(underValuedTickerCandles));

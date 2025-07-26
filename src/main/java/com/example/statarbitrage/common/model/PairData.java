@@ -128,6 +128,12 @@ public class PairData {
     private String exitReason;
     private long timestamp;
 
+    public PairData(String longTicker, String shortTicker) {
+        this.longTicker = longTicker;
+        this.shortTicker = shortTicker;
+        this.pairName = getPairName();
+    }
+
     public String getPairName() {
         if (pairName == null || pairName.isEmpty()) {
             return longTicker + "/" + shortTicker;
