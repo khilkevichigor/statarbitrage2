@@ -52,7 +52,7 @@ public class DbInitializer {
                     .leverage(5.0)
 
                     .initialVirtualBalance(10_000.0)
-                    .feePctPerTrade(0.05)
+                    .virtualFeePctPerTrade(0.05)
 
                     .useExitTake(true)
                     .exitTake(5.0)

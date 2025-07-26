@@ -33,7 +33,7 @@ public class Settings {
     private double maxLongMarginSize;
     private double maxShortMarginSize;
     private double leverage;
-    private double feePctPerTrade;
+    private double virtualFeePctPerTrade;
 
     private double exitTake;
     private double exitStop;
