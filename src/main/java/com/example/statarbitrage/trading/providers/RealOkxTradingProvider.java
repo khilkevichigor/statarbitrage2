@@ -1070,7 +1070,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("✅ Обновлена позиция {} с реальными данными OKX: нереализованный PnL={} USDT ({}%), реализованный PnL={} USDT, цена={}, размер={}",
+                log.info("✅ Обновлена позиция {} с реальными данными OKX: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}",
                         instId, upl, uplRatio, realizedPnlUSDT, markPx, pos);
             } else {
                 log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
@@ -1164,7 +1164,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 if (!"N/A".equals(pos)) internalPosition.setSize(new BigDecimal(pos).abs());
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("✅ Обновлена позиция {}: PnL={} USDT, %={}%, реализованный={} USDT, цена={}, размер={}",
+                log.info("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}",
                         instId, scaledUpl, scaledUplRatio, scaledRealizedPnl, scaledMarkPx, pos);
             } else {
                 log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
@@ -1659,7 +1659,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.info("🔍 Начальная маржа: {} USDT", imr);
             log.info("🔍 Поддерживающая маржа: {} USDT", mmr);
             log.info("🔍 Нереализованный PnL: {} USDT", upl);
-            log.info("🔍 Коэффициент PnL: {}%", uplRatio);
+            log.info("🔍 Коэффициент PnL: {} %", uplRatio);
             log.info("🔍 Плечо: {}x", lever);
             log.info("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
 

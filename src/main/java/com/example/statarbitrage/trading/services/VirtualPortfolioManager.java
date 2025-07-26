@@ -221,7 +221,7 @@ public class VirtualPortfolioManager implements PortfolioManager {
 
             if (portfolio.isPresent()) {
                 this.currentPortfolio = portfolio.get();
-                log.info("📊 Загружено портфолио: баланс {}, доходность {}%",
+                log.info("📊 Загружено портфолио: баланс {}, доходность {} %",
                         currentPortfolio.getTotalBalance(), currentPortfolio.getTotalReturn());
             } else {
                 // Инициализируем с настройками по умолчанию

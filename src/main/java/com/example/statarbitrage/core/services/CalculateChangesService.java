@@ -18,20 +18,21 @@ import java.math.RoundingMode;
 public class CalculateChangesService {
 
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
+    private static final RoundingMode DEFAULT_ROUNDING_MODE = RoundingMode.HALF_UP;
+    private static final int DEFAULT_SCALE = 2;
 
     private final TradingIntegrationService tradingIntegrationService;
 
     public ChangesData getChanges(PairData pairData) {
         log.info("==> getChanges: НАЧАЛО для пары {}", pairData.getPairName());
         try {
-            // Получаем данные об открытых позициях
             log.info("Запрашиваем информацию о позициях...");
             Positioninfo positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
             log.info("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
                 log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", pairData.getPairName(), positionsInfo);
-                return new ChangesData(); // Возвращаем пустой объект, чтобы избежать NPE
+                return new ChangesData();
             }
 
             ChangesData result = getFromPositions(pairData, positionsInfo);
@@ -41,14 +42,10 @@ public class CalculateChangesService {
         } catch (Exception e) {
             log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", pairData.getPairName(), e.getMessage(), e);
         }
-        // В случае исключения, возвращаем пустой объект
         log.info("<== getChanges: КОНЕЦ (с ошибкой) для пары {}", pairData.getPairName());
         return new ChangesData();
     }
 
-    /**
-     * Общий метод обновления данных из позиций
-     */
     private ChangesData getFromPositions(PairData pairData, Positioninfo positionsInfo) {
         log.info("--> getFromPositions: НАЧАЛО для пары {}", pairData.getPairName());
         Position longPosition = positionsInfo.getLongPosition();
@@ -57,118 +54,75 @@ public class CalculateChangesService {
         log.info("Статус позиций: isPositionsClosed = {}", isPositionsClosed);
 
         ChangesData changesData = new ChangesData();
-        changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
-        changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
+        changesData.setLongCurrentPrice(scale(longPosition.getCurrentPrice()));
+        changesData.setShortCurrentPrice(scale(shortPosition.getCurrentPrice()));
         log.info("Текущие цены: LONG {} = {}, SHORT {} = {}", longPosition.getSymbol(), longPosition.getCurrentPrice(), shortPosition.getSymbol(), shortPosition.getCurrentPrice());
 
-        if (isPositionsClosed) {
-            log.info("Позиции определены как ЗАКРЫТЫЕ. Переход в getFromClosedPositions.");
-            return getFromClosedPositions(pairData, changesData, longPosition, shortPosition);
-        } else {
-            log.info("Позиции определены как ОТКРЫТЫЕ. Переход в getFromOpenPositions.");
-            return getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
-        }
+        return isPositionsClosed ?
+                getFromClosedPositions(pairData, changesData, longPosition, shortPosition) :
+                getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
     }
 
-    /**
-     * Расчет данных для открытых позиций (нереализованный PnL)
-     */
     private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
-        // 1. Суммируем нереализованный PnL (он уже очищен от комиссии за открытие в классе Position)
-        BigDecimal netPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
-        log.info("Рассчитан нереализованный PnL в USDT: {} (Long: {}, Short: {})", netPnlUSDT, longPosition.getUnrealizedPnLUSDT(), shortPosition.getUnrealizedPnLUSDT());
 
-        BigDecimal netPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
-        log.info("Рассчитан нереализованный PnL в %: {} (Long: {}, Short: {})", netPnlPercent, longPosition.getUnrealizedPnLPercent(), shortPosition.getUnrealizedPnLPercent());
+        BigDecimal netPnlUSDT = scale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()));
+        BigDecimal netPnlPercent = scale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent()));
+        BigDecimal totalFees = scale(longPosition.getOpeningFees().add(shortPosition.getOpeningFees()));
 
-        // 2. Суммируем комиссии за открытие для статистики
-        BigDecimal totalFees = longPosition.getOpeningFees().add(shortPosition.getOpeningFees());
-        log.info("Рассчитаны комиссии за открытие: {} (Long: {}, Short: {})", totalFees, longPosition.getOpeningFees(), shortPosition.getOpeningFees());
+        log.info("Нереализованный PnL в USDT: {}, в %: {}, комиссии: {}", netPnlUSDT, netPnlPercent, totalFees);
 
-        // 3. Обновляем статистику
-        log.info("Переход в getProfitAndStatistics для открытых позиций.");
         return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, totalFees, false, longPosition, shortPosition);
     }
 
-    /**
-     * Расчет данных для закрытых позиций (реализованный PnL)
-     */
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromClosedPositions для пары {}", pairData.getPairName());
-        // 1. Суммируем реализованный PnL (он уже очищен от всех комиссий в классе Position)
-        BigDecimal netPnlUSDT = longPosition.getRealizedPnLUSDT().add(shortPosition.getRealizedPnLUSDT());
-        log.info("Рассчитан реализованный PnL в USDT: {} (Long: {}, Short: {})", netPnlUSDT, longPosition.getRealizedPnLUSDT(), shortPosition.getRealizedPnLUSDT());
-        BigDecimal netPnlPercent = longPosition.getRealizedPnLPercent().add(shortPosition.getRealizedPnLPercent());
-        log.info("Рассчитан реализованный PnL в %: {} (Long: {}, Short: {})", netPnlPercent, longPosition.getRealizedPnLPercent(), shortPosition.getRealizedPnLPercent());
 
-        // 2. Суммируем все комиссии для статистики
-        BigDecimal totalFees = (longPosition.getOpeningFees() != null ? longPosition.getOpeningFees() : BigDecimal.ZERO)
-                .add(longPosition.getClosingFees() != null ? longPosition.getClosingFees() : BigDecimal.ZERO)
-                .add(shortPosition.getOpeningFees() != null ? shortPosition.getOpeningFees() : BigDecimal.ZERO)
-                .add(shortPosition.getClosingFees() != null ? shortPosition.getClosingFees() : BigDecimal.ZERO);
-        log.info("Рассчитаны общие комиссии (открытие + закрытие): {}", totalFees);
+        BigDecimal netPnlUSDT = scale(longPosition.getRealizedPnLUSDT().add(shortPosition.getRealizedPnLUSDT()));
+        BigDecimal netPnlPercent = scale(longPosition.getRealizedPnLPercent().add(shortPosition.getRealizedPnLPercent()));
+        BigDecimal totalFees = scale(
+                safeAdd(longPosition.getOpeningFees(), longPosition.getClosingFees())
+                        .add(safeAdd(shortPosition.getOpeningFees(), shortPosition.getClosingFees())));
 
-        // 3. Обновляем статистику
-        log.info("Переход в getProfitAndStatistics для закрытых позиций.");
+        log.info("Реализованный PnL в USDT: {}, в %: {}, комиссии: {}", netPnlUSDT, netPnlPercent, totalFees);
+
         return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, totalFees, true, longPosition, shortPosition);
     }
 
-    /**
-     * Общий метод обновления профита и статистики
-     */
-    private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal netPnlUSDT, BigDecimal netPnlPercent, BigDecimal totalFees,
-                                               boolean isPositionsClosed, Position longPosition, Position shortPosition) {
-        log.info("--> getProfitAndStatistics для пары {}. isPositionsClosed={}", pairData.getPairName(), isPositionsClosed);
+    private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal netPnlUSDT, BigDecimal netPnlPercent,
+                                               BigDecimal totalFees, boolean isPositionsClosed,
+                                               Position longPosition, Position shortPosition) {
 
-        // Сумма инвестиций
-        changesData.setLongAllocatedAmount(longPosition.getAllocatedAmount());
-        changesData.setShortAllocatedAmount(shortPosition.getAllocatedAmount());
+        changesData.setLongAllocatedAmount(scale(longPosition.getAllocatedAmount()));
+        changesData.setShortAllocatedAmount(scale(shortPosition.getAllocatedAmount()));
 
-        // Рассчитываем общую сумму инвестиций из позиций
-        BigDecimal totalInvestmentUSDT = longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount());
-
+        BigDecimal totalInvestmentUSDT = scale(longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount()));
         changesData.setTotalInvestmentUSDT(totalInvestmentUSDT);
-        log.info("Общая сумма инвестиций в USDT: {} (Long: {}USDT, Short: {}USDT)", totalInvestmentUSDT, longPosition.getAllocatedAmount(), shortPosition.getAllocatedAmount());
 
-        log.info("Рассчитан процент профита: {}", netPnlPercent);
-
-        changesData.setLongChanges(longPosition.getUnrealizedPnLPercent());
-        changesData.setShortChanges(shortPosition.getUnrealizedPnLPercent());
+        changesData.setLongChanges(scale(longPosition.getUnrealizedPnLPercent()));
+        changesData.setShortChanges(scale(shortPosition.getUnrealizedPnLPercent()));
 
         changesData.setProfitUSDTChanges(netPnlUSDT);
         changesData.setProfitPercentChanges(netPnlPercent);
 
-        log.info("Получен профит из {}: {}: {}% (Net PnL: {}USDT, с учетом комиссии: {})",
-                isPositionsClosed ? "закрытых позиций" : "открытых позиций", pairData.getPairName(),
-                netPnlPercent, netPnlUSDT, totalFees);
+        log.info("Профит: {} USDT ({} %) из {}", netPnlUSDT, netPnlPercent, isPositionsClosed ? "закрытых позиций" : "открытых позиций");
 
-        // Обновляем статистику и экстремумы
-        log.info("Переход в getStatistics для обновления статистики и экстремумов.");
         return getStatistics(pairData, changesData);
     }
 
-    /**
-     * Обновляет статистику и экстремумы для пары
-     */
     private ChangesData getStatistics(PairData pairData, ChangesData changesData) {
-//        calculatePercentageChanges(pairData, changesData, longPosition, shortPosition);
-
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP));
+        changesData.setZScoreChanges(scale(zScoreCurrent.subtract(zScoreEntry)));
 
         long currentTimeInMinutes = calculateTimeInMinutes(pairData.getEntryTime());
         ProfitExtremums profitExtremums = updateProfitExtremums(changesData, currentTimeInMinutes);
 
-        // Обновляем экстремумы всех метрик
         updateExtremumValues(pairData, changesData, changesData.getLongChanges(), changesData.getShortChanges(),
                 BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
 
-        // Записываем в ChangesData
         changesData.setMinProfitChanges(profitExtremums.minProfit());
         changesData.setMaxProfitChanges(profitExtremums.maxProfit());
-
         changesData.setTimeInMinutesSinceEntryToMax(profitExtremums.timeToMax());
         changesData.setTimeInMinutesSinceEntryToMin(profitExtremums.timeToMin());
 
@@ -177,100 +131,66 @@ public class CalculateChangesService {
         return changesData;
     }
 
-    /**
-     * Рассчитывает время в минутах с момента входа
-     */
     private long calculateTimeInMinutes(long entryTime) {
-        long now = System.currentTimeMillis();
-        return (now - entryTime) / MILLISECONDS_IN_MINUTE;
+        return (System.currentTimeMillis() - entryTime) / MILLISECONDS_IN_MINUTE;
     }
 
-    /**
-     * Обновляет экстремумы профита
-     */
     private ProfitExtremums updateProfitExtremums(ChangesData changesData, long currentTimeInMinutes) {
-        BigDecimal currentProfitForStats = changesData.getProfitPercentChanges() != null ? changesData.getProfitPercentChanges() : BigDecimal.ZERO;
-
-        MaxProfitResult maxResult = updateMaxProfit(currentProfitForStats, changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMax(), currentTimeInMinutes);
-        MinProfitResult minResult = updateMinProfit(currentProfitForStats, changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMin(), currentTimeInMinutes);
-
-        return new ProfitExtremums(maxResult.maxProfit(), minResult.minProfit(), maxResult.timeToMax(),
-                minResult.timeToMin(), currentProfitForStats);
+        BigDecimal currentProfit = changesData.getProfitPercentChanges() != null ? changesData.getProfitPercentChanges() : BigDecimal.ZERO;
+        MaxProfitResult max = updateMaxProfit(currentProfit, changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMax(), currentTimeInMinutes);
+        MinProfitResult min = updateMinProfit(currentProfit, changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMin(), currentTimeInMinutes);
+        return new ProfitExtremums(max.maxProfit(), min.minProfit(), max.timeToMax(), min.timeToMin(), currentProfit);
     }
 
-    private MaxProfitResult updateMaxProfit(BigDecimal currentProfit, BigDecimal currentMaxProfit, long currentTimeToMax, long currentTimeInMinutes) {
-        if (currentMaxProfit == null || currentProfit.compareTo(currentMaxProfit) > 0) {
-            log.debug("🚀 Новый максимум прибыли: {}% за {} мин", currentProfit, currentTimeInMinutes);
-            return new MaxProfitResult(currentProfit, currentTimeInMinutes);
-        }
-        return new MaxProfitResult(currentMaxProfit, currentTimeToMax);
+    private MaxProfitResult updateMaxProfit(BigDecimal current, BigDecimal max, long timeToMax, long now) {
+        return (max == null || current.compareTo(max) > 0) ? new MaxProfitResult(current, now) : new MaxProfitResult(max, timeToMax);
     }
 
-    private MinProfitResult updateMinProfit(BigDecimal currentProfit, BigDecimal currentMinProfit, long currentTimeToMin, long currentTimeInMinutes) {
-        if (currentMinProfit == null || currentProfit.compareTo(currentMinProfit) < 0) {
-            log.debug("📉 Новый минимум прибыли: {}% за {} мин", currentProfit, currentTimeInMinutes);
-            return new MinProfitResult(currentProfit, currentTimeInMinutes);
-        }
-        return new MinProfitResult(currentMinProfit, currentTimeToMin);
+    private MinProfitResult updateMinProfit(BigDecimal current, BigDecimal min, long timeToMin, long now) {
+        return (min == null || current.compareTo(min) < 0) ? new MinProfitResult(current, now) : new MinProfitResult(min, timeToMin);
     }
 
-    /**
-     * Логирует финальные результаты
-     */
     private void logFinalResults(PairData pairData, ChangesData changesData) {
-        log.info("Финальное обновление изменений для пары {}", pairData.getPairName());
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
-        log.info("💰 Текущий профит: {}USDT ({}%)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
-        log.info("📈 Max profit: {}%, Min profit: {}%", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
+        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
+        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
+        log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
+        log.info("📈 Max profit: {} %, Min profit: {} %", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
     }
 
-    private record ProfitExtremums(
-            BigDecimal maxProfit,
-            BigDecimal minProfit,
-            long timeToMax,
-            long timeToMin,
-            BigDecimal currentProfit
-    ) {
+    private void updateExtremumValues(PairData pairData, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
+                                      BigDecimal zScore, BigDecimal corr) {
+        changesData.setMinZ(updateMin(pairData.getMinZ(), zScore));
+        changesData.setMaxZ(updateMax(pairData.getMaxZ(), zScore));
+        changesData.setMinLong(updateMin(pairData.getMinLong(), longPct));
+        changesData.setMaxLong(updateMax(pairData.getMaxLong(), longPct));
+        changesData.setMinShort(updateMin(pairData.getMinShort(), shortPct));
+        changesData.setMaxShort(updateMax(pairData.getMaxShort(), shortPct));
+        changesData.setMinCorr(updateMin(pairData.getMinCorr(), corr));
+        changesData.setMaxCorr(updateMax(pairData.getMaxCorr(), corr));
     }
 
-    // Helper records for the results
+    private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newVal) {
+        return (currentMin == null || newVal.compareTo(currentMin) < 0) ? newVal : currentMin;
+    }
+
+    private BigDecimal updateMax(BigDecimal currentMax, BigDecimal newVal) {
+        return (currentMax == null || newVal.compareTo(currentMax) > 0) ? newVal : currentMax;
+    }
+
+    private BigDecimal safeAdd(BigDecimal a, BigDecimal b) {
+        return (a != null ? a : BigDecimal.ZERO).add(b != null ? b : BigDecimal.ZERO);
+    }
+
+    private BigDecimal scale(BigDecimal value) {
+        return value != null ? value.setScale(DEFAULT_SCALE, DEFAULT_ROUNDING_MODE) : null;
+    }
+
+    private record ProfitExtremums(BigDecimal maxProfit, BigDecimal minProfit, long timeToMax, long timeToMin, BigDecimal currentProfit) {
+    }
+
     private record MaxProfitResult(BigDecimal maxProfit, long timeToMax) {
     }
 
     private record MinProfitResult(BigDecimal minProfit, long timeToMin) {
-    }
-
-    /**
-     * Обновляет экстремумы всех метрик
-     */
-    private void updateExtremumValues(PairData pairData, ChangesData changesData, BigDecimal longReturnPct, BigDecimal shortReturnPct,
-                                      BigDecimal zScoreCurrent, BigDecimal corrCurrent) {
-        changesData.setMinZ(updateMin(pairData.getMinZ(), zScoreCurrent));
-        changesData.setMaxZ(updateMax(pairData.getMaxZ(), zScoreCurrent));
-        changesData.setMinLong(updateMin(pairData.getMinLong(), longReturnPct));
-        changesData.setMaxLong(updateMax(pairData.getMaxLong(), longReturnPct));
-        changesData.setMinShort(updateMin(pairData.getMinShort(), shortReturnPct));
-        changesData.setMaxShort(updateMax(pairData.getMaxShort(), shortReturnPct));
-        changesData.setMinCorr(updateMin(pairData.getMinCorr(), corrCurrent));
-        changesData.setMaxCorr(updateMax(pairData.getMaxCorr(), corrCurrent));
-    }
-
-    /**
-     * Обновляет минимальное значение
-     */
-    private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newValue) {
-        if (currentMin == null) {
-            return newValue;
-        }
-        return newValue.compareTo(currentMin) < 0 ? newValue : currentMin;
-    }
-
-    /**
-     * Обновляет максимальное значение
-     */
-    private BigDecimal updateMax(BigDecimal currentMax, BigDecimal newValue) {
-        if (currentMax == null) return newValue;
-        return newValue.compareTo(currentMax) > 0 ? newValue : currentMax;
     }
 }

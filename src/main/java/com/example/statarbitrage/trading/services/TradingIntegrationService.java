@@ -314,7 +314,7 @@ public class TradingIntegrationService {
 
             // Удаляем из локального реестра если обе позиции закрыты
             removePairFromLocalStorage(pairData);
-            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}, финальный PnL: {}$ ({}%)", pairData.getPairName(), totalRealizedPnlUSDT, totalRealizedPnlPercent);
+            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}, финальный PnL: {}$ ({} %)", pairData.getPairName(), totalRealizedPnlUSDT, totalRealizedPnlPercent);
             return Positioninfo.builder()
                     .positionsClosed(true)
                     .totalPnL(totalRealizedPnlPercent)
