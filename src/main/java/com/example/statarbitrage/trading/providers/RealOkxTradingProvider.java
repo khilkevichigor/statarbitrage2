@@ -30,6 +30,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
+
 /**
  * Реальная торговля через OKX API
  * Выполняет настоящие торговые операции через OKX биржу
@@ -983,7 +985,8 @@ public class RealOkxTradingProvider implements TradingProvider {
     /**
      * Обновляет внутреннюю позицию данными с OKX
      */
-    private void updatePositionFromOkxData(JsonObject okxPosition) {
+    @Deprecated
+    private void updatePositionFromOkxDataOld(JsonObject okxPosition) {
         try {
             // Извлекаем основные поля позиции
             String instId = getJsonStringValue(okxPosition, "instId");
@@ -1075,6 +1078,100 @@ public class RealOkxTradingProvider implements TradingProvider {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении позиции из данных OKX: {}", e.getMessage());
+        }
+    }
+
+    private void updatePositionFromOkxData(JsonObject okxPosition) {
+        try {
+            // Извлекаем поля как строки
+            String instId = getJsonStringValue(okxPosition, "instId");
+            String instType = getJsonStringValue(okxPosition, "instType");
+            String mgnMode = getJsonStringValue(okxPosition, "mgnMode");
+            String posId = getJsonStringValue(okxPosition, "posId");
+            String posSide = getJsonStringValue(okxPosition, "posSide");
+            String pos = getJsonStringValue(okxPosition, "pos");
+            String posCcy = getJsonStringValue(okxPosition, "posCcy");
+            String avgPx = getJsonStringValue(okxPosition, "avgPx");
+            String markPx = getJsonStringValue(okxPosition, "markPx");
+            String upl = getJsonStringValue(okxPosition, "upl");
+            String uplRatio = getJsonStringValue(okxPosition, "uplRatio");
+            String realizedPnlUSDT = getJsonStringValue(okxPosition, "realizedPnl");
+            String lever = getJsonStringValue(okxPosition, "lever");
+            String margin = getJsonStringValue(okxPosition, "margin");
+            String imr = getJsonStringValue(okxPosition, "imr");
+            String mmr = getJsonStringValue(okxPosition, "mmr");
+            String notionalUsd = getJsonStringValue(okxPosition, "notionalUsd");
+            String interest = getJsonStringValue(okxPosition, "interest");
+            String tradeId = getJsonStringValue(okxPosition, "tradeId");
+            String cTime = getJsonStringValue(okxPosition, "cTime");
+            String uTime = getJsonStringValue(okxPosition, "uTime");
+            String ccy = getJsonStringValue(okxPosition, "ccy");
+            String bePx = getJsonStringValue(okxPosition, "bePx");
+
+            if ("N/A".equals(instId)) {
+                log.debug("⚠️ Пропускаем позицию с пустым instId");
+                return;
+            }
+
+            // ЛОГИРОВАНИЕ ВСЕХ ПОЛЕЙ С РУССКИМИ ПОДПИСЯМИ И ПОДОЗРИТЕЛЬНЫМИ ЗНАЧЕНИЯМИ
+            log.info("📊 === ПОЛНАЯ ИНФОРМАЦИЯ О ПОЗИЦИИ OKX ===");
+            log.info("🔹 instId         : {} (ID инструмента)", instId);
+            log.info("🔹 instType       : {} (тип инструмента)", instType);
+            log.info("🔹 mgnMode        : {} (режим маржи)", mgnMode);
+            log.info("🔹 posId          : {} (ID позиции)", posId);
+            log.info("🔹 posSide        : {} (направление позиции: long/short)", posSide);
+            log.info("🔹 pos            : {} {} (размер позиции)", pos, posCcy);
+            log.info("🔹 posCcy         : {} (валюта позиции)", posCcy);
+            log.info("🔹 ccy            : {} (базовая валюта)", ccy);
+
+            BigDecimal scaledAvgPx = safeScale(avgPx);
+            BigDecimal scaledMarkPx = safeScale(markPx);
+            log.info("🔹 avgPx          : {} USDT (средняя цена входа)", scaledAvgPx);
+            log.info("🔹 markPx         : {} USDT (маркировочная цена){}",
+                    scaledMarkPx, scaledMarkPx != null && scaledMarkPx.compareTo(BigDecimal.ZERO) == 0 ? " ⚠️ [возможно неверная цена]" : "");
+
+            BigDecimal scaledUpl = safeScale(upl);
+            BigDecimal scaledUplRatio = safeScale(uplRatio);
+            log.info("🔹 upl            : {} USDT (нереализованный PnL)", scaledUpl);
+            log.info("🔹 uplRatio       : {} % (PnL в процентах){}",
+                    scaledUplRatio, scaledUplRatio != null && scaledUplRatio.compareTo(new BigDecimal("100")) > 0 ? " ⚠️ [выше 100%]" : "");
+
+            BigDecimal scaledRealizedPnl = safeScale(realizedPnlUSDT);
+            log.info("🔹 realizedPnl    : {} USDT (реализованный PnL){}",
+                    scaledRealizedPnl, scaledRealizedPnl != null && scaledRealizedPnl.compareTo(BigDecimal.ZERO) < 0 ? " ⚠️ [отрицательный доход]" : "");
+
+            BigDecimal scaledBePx = safeScale(bePx);
+            log.info("🔹 bePx           : {} USDT (цена безубыточности)", scaledBePx);
+            log.info("🔹 lever          : {}x (плечо)", lever);
+            log.info("🔹 margin         : {} USDT (используемая маржа)", safeScale(margin));
+            log.info("🔹 imr            : {} USDT (начальная маржа)", safeScale(imr));
+            log.info("🔹 mmr            : {} USDT (поддерживающая маржа)", safeScale(mmr));
+            log.info("🔹 notionalUsd    : {} USD (условная стоимость)", safeScale(notionalUsd));
+            log.info("🔹 interest       : {} (проценты)", safeScale(interest));
+            log.info("🔹 tradeId        : {} (ID сделки)", tradeId);
+            log.info("🔹 cTime          : {} (время открытия позиции)", cTime);
+            log.info("🔹 uTime          : {} (время последнего обновления)", uTime);
+            log.info("📊 === КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ ===");
+
+            // Ищем и обновляем внутреннюю позицию
+            Position internalPosition = findPositionBySymbol(instId);
+            if (internalPosition != null) {
+                if (scaledMarkPx != null) internalPosition.setCurrentPrice(scaledMarkPx);
+                if (scaledUpl != null) internalPosition.setUnrealizedPnLUSDT(scaledUpl);
+                if (scaledUplRatio != null) internalPosition.setUnrealizedPnLPercent(scaledUplRatio);
+                if (scaledRealizedPnl != null) internalPosition.setRealizedPnLUSDT(scaledRealizedPnl);
+                if (scaledAvgPx != null) internalPosition.setEntryPrice(scaledAvgPx);
+                if (!"N/A".equals(pos)) internalPosition.setSize(new BigDecimal(pos).abs());
+                internalPosition.setLastUpdated(LocalDateTime.now());
+
+                log.info("✅ Обновлена позиция {}: PnL={} USDT, %={}%, реализованный={} USDT, цена={}, размер={}",
+                        instId, scaledUpl, scaledUplRatio, scaledRealizedPnl, scaledMarkPx, pos);
+            } else {
+                log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении позиции из данных OKX: {}", e.getMessage(), e);
         }
     }
 
