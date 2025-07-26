@@ -414,26 +414,28 @@ public class TradingIntegrationService {
 
         if (longClosed && shortClosed) {
             log.info("✅ Обе позиции для пары {} уже закрыты.", pairData.getPairName());
-            // Рассчитываем финальный PnL если позиции закрыты
-            BigDecimal totalPnL = BigDecimal.ZERO;
-            if (longPosition != null) {
-                longPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(longPosition.getUnrealizedPnLUSDT());
-                log.debug("Финальный PnL для LONG позиции {}: {}", longPositionId, longPosition.getUnrealizedPnLUSDT());
-            }
-            if (shortPosition != null) {
-                shortPosition.calculateUnrealizedPnL();
-                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnLUSDT());
-                log.debug("Финальный PnL для SHORT позиции {}: {}", shortPositionId, shortPosition.getUnrealizedPnLUSDT());
-            }
+            //todo для закрытых считаем позже а не здесь!
 
-            log.info("🗑️ Позиции уже закрыты для пары {}, финальный PnL: {}", pairData.getPairName(), totalPnL);
+            // Рассчитываем финальный PnL если позиции закрыты
+//            BigDecimal totalPnL = BigDecimal.ZERO;
+//            if (longPosition != null) {
+//                longPosition.calculateUnrealizedPnL();
+//                totalPnL = totalPnL.add(longPosition.getUnrealizedPnLUSDT());
+//                log.debug("Финальный PnL для LONG позиции {}: {}", longPositionId, longPosition.getUnrealizedPnLUSDT());
+//            }
+//            if (shortPosition != null) {
+//                shortPosition.calculateUnrealizedPnL();
+//                totalPnL = totalPnL.add(shortPosition.getUnrealizedPnLUSDT());
+//                log.debug("Финальный PnL для SHORT позиции {}: {}", shortPositionId, shortPosition.getUnrealizedPnLUSDT());
+//            }
+//
+//            log.info("🗑️ Позиции уже закрыты для пары {}, финальный PnL: {}", pairData.getPairName(), totalPnL);
 
             return Positioninfo.builder()
                     .positionsClosed(true)
                     .longPosition(longPosition)
                     .shortPosition(shortPosition)
-                    .totalPnL(totalPnL)
+//                    .totalPnL(totalPnL)
                     .build();
         }
 

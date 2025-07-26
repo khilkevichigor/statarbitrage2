@@ -42,7 +42,7 @@ public class UpdateTradeProcessor {
 
         Settings settings = settingsService.getSettings();
 
-        Positioninfo openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        Positioninfo openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData); //todo если позиция закрыта руками на бирже - мы не увидим этого! может можно убеждаться по realizedPnl???
         if (openPositionsInfo.isPositionsClosed()) {
             log.error("❌ Позиции уже закрыты для пары {}.", pairData.getPairName());
             return handleNoOpenPositions(pairData);

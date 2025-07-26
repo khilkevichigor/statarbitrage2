@@ -319,25 +319,27 @@ public class RealOkxTradingProvider implements TradingProvider {
             // Синхронизируем позиции с OKX для получения реальных PnL
             syncPositionsWithOkx();
 
+            //todo не будем заниматься отсебятиной - не уверен в расчетах! берем все с окх
+
             // Дополнительно обновляем цены через ticker API (для случаев когда позиции не найдены в OKX)
-            for (Position position : positions.values()) {
-                try {
-                    if (position.getStatus() == PositionStatus.OPEN) {
-                        BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
-                        if (currentPrice != null) {
-                            position.setCurrentPrice(currentPrice);
-                            // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkx
-                            if (position.getUnrealizedPnLUSDT() == null || position.getUnrealizedPnLUSDT().compareTo(BigDecimal.ZERO) == 0) {
-                                position.calculateUnrealizedPnL();
-                            }
-                            position.setLastUpdated(LocalDateTime.now());
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
-                            position.getPositionId(), e.getMessage());
-                }
-            }
+//            for (Position position : positions.values()) {
+//                try {
+//                    if (position.getStatus() == PositionStatus.OPEN) {
+//                        BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
+//                        if (currentPrice != null) {
+//                            position.setCurrentPrice(currentPrice);
+//                            // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkx
+//                            if (position.getUnrealizedPnLUSDT() == null || position.getUnrealizedPnLUSDT().compareTo(BigDecimal.ZERO) == 0) {
+//                                position.calculateUnrealizedPnL(); //todo уже все просечено в syncPositionsWithOkx()
+//                            }
+//                            position.setLastUpdated(LocalDateTime.now());
+//                        }
+//                    }
+//                } catch (Exception e) {
+//                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
+//                            position.getPositionId(), e.getMessage());
+//                }
+//            }
 
             // Обновляем портфолио
             okxPortfolioManager.updatePortfolioValue();
@@ -355,25 +357,27 @@ public class RealOkxTradingProvider implements TradingProvider {
             // Синхронизируем позиции с OKX для получения реальных PnL только для нужных тикеров
             syncPositionsWithOkxForTickers(tickers);
 
+            //todo не будем заниматься отсебятиной - не уверен в расчетах! берем все с окх
+
             // Дополнительно обновляем цены через ticker API (для случаев когда позиции не найдены в OKX)
-            for (Position position : positions.values()) {
-                try {
-                    if (tickers.contains(position.getSymbol()) && position.getStatus() == PositionStatus.OPEN) {
-                        BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
-                        if (currentPrice != null) {
-                            position.setCurrentPrice(currentPrice);
-                            // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkxForTickers
-                            if (position.getUnrealizedPnLUSDT() == null || position.getUnrealizedPnLUSDT().compareTo(BigDecimal.ZERO) == 0) {
-                                position.calculateUnrealizedPnL();
-                            }
-                            position.setLastUpdated(LocalDateTime.now());
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
-                            position.getPositionId(), e.getMessage());
-                }
-            }
+//            for (Position position : positions.values()) {
+//                try {
+//                    if (tickers.contains(position.getSymbol()) && position.getStatus() == PositionStatus.OPEN) {
+//                        BigDecimal currentPrice = getCurrentPrice(position.getSymbol());
+//                        if (currentPrice != null) {
+//                            position.setCurrentPrice(currentPrice);
+//                            // НЕ пересчитываем PnL, если он уже был обновлен через syncPositionsWithOkxForTickers
+//                            if (position.getUnrealizedPnLUSDT() == null || position.getUnrealizedPnLUSDT().compareTo(BigDecimal.ZERO) == 0) {
+//                                position.calculateUnrealizedPnL();
+//                            }
+//                            position.setLastUpdated(LocalDateTime.now());
+//                        }
+//                    }
+//                } catch (Exception e) {
+//                    log.warn("⚠️ Не удалось обновить цену для позиции {}: {}",
+//                            position.getPositionId(), e.getMessage());
+//                }
+//            }
 
             // Обновляем портфолио
             okxPortfolioManager.updatePortfolioValue();
@@ -993,7 +997,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             String markPx = getJsonStringValue(okxPosition, "markPx"); // Текущая марк-цена
             String upl = getJsonStringValue(okxPosition, "upl"); // Нереализованный PnL в USDT
             String uplRatio = getJsonStringValue(okxPosition, "uplRatio"); // Нереализованный PnL в %
-            String realizedPnl = getJsonStringValue(okxPosition, "realizedPnl"); // Реализованный PnL
+            String realizedPnlUSDT = getJsonStringValue(okxPosition, "realizedPnl"); // Реализованный PnL
             String lever = getJsonStringValue(okxPosition, "lever"); // Плечо
             String margin = getJsonStringValue(okxPosition, "margin"); // Используемая маржа
             String imr = getJsonStringValue(okxPosition, "imr"); // Начальная маржа
@@ -1017,7 +1021,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.info("📊 Сторона: {} | Размер: {} {} | Валюта: {}", posSide, pos, posCcy, ccy);
             log.info("📊 Средняя цена входа: {} USDT | Марк-цена: {} USDT", avgPx, markPx);
             log.info("📊 💰 Нереализованный PnL: {} USDT ({} %)", upl, uplRatio);
-            log.info("📊 💰 Реализованный PnL: {} USDT", realizedPnl);
+            log.info("📊 💰 Реализованный PnL: {} USDT", realizedPnlUSDT);
             log.info("📊 Плечо: {}x | Маржа: {} USDT", lever, margin);
             log.info("📊 Начальная маржа: {} USDT | Поддерживающая маржа: {} USDT", imr, mmr);
             log.info("📊 Условная стоимость: {} USD | Точка безубыточности: {} USDT", notionalUsd, bePx);
@@ -1030,7 +1034,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             if (internalPosition != null) {
                 // Обновляем позицию реальными данными с OKX
                 if (!"N/A".equals(markPx)) {
-                    internalPosition.setCurrentPrice(new BigDecimal(markPx));
+                    internalPosition.setCurrentPrice(new BigDecimal(markPx)); //todo маркировочная цена? почему не средняя avgPx?
                 }
 
                 // ВАЖНО: Устанавливаем PnL в USDT как на бирже OKX
@@ -1047,6 +1051,13 @@ public class RealOkxTradingProvider implements TradingProvider {
                     log.info("💰 Установлен PnL в % для {}: {} % (как на бирже OKX)", instId, pnlInPercent);
                 }
 
+                // ВАЖНО: Устанавливаем PnL в USDT как на бирже OKX
+                if (!"N/A".equals(realizedPnlUSDT)) {
+                    BigDecimal realizedPnlInUsdt = new BigDecimal(realizedPnlUSDT);
+                    internalPosition.setRealizedPnLUSDT(realizedPnlInUsdt);
+                    log.info("💰 Установлен реализованный PnL в USDT для {}: {} USDT (как на бирже OKX)", instId, realizedPnlInUsdt);
+                }
+
                 if (!"N/A".equals(avgPx)) {
                     internalPosition.setEntryPrice(new BigDecimal(avgPx));
                 }
@@ -1056,8 +1067,8 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("✅ Обновлена позиция {} с реальными данными OKX: PnL={} USDT ({}%), цена={}, размер={}",
-                        instId, upl, uplRatio, markPx, pos);
+                log.info("✅ Обновлена позиция {} с реальными данными OKX: нереализованный PnL={} USDT ({}%), реализованный PnL={} USDT, цена={}, размер={}",
+                        instId, upl, uplRatio, realizedPnlUSDT, markPx, pos);
             } else {
                 log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
             }
