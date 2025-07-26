@@ -113,7 +113,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         log.info("==> openLongPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
         try {
             if (!preTradeChecks(symbol, amount)) {
-                log.error("Предотлетная проверка не пройдена.");
+                log.error("Предторговая проверка не пройдена.");
                 return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, "Ошибка предотлетной проверки");
             }
 
