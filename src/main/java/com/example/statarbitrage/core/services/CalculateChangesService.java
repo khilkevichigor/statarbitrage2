@@ -72,7 +72,7 @@ public class CalculateChangesService {
 
         log.info("Нереализованный PnL в USDT: {}, в %: {}, комиссии: {}", netPnlUSDT, netPnlPercent, totalFees);
 
-        return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, totalFees, false, longPosition, shortPosition);
+        return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, false, longPosition, shortPosition);
     }
 
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
@@ -86,11 +86,11 @@ public class CalculateChangesService {
 
         log.info("Реализованный PnL в USDT: {}, в %: {}, комиссии: {}", netPnlUSDT, netPnlPercent, totalFees);
 
-        return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, totalFees, true, longPosition, shortPosition);
+        return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, true, longPosition, shortPosition);
     }
 
     private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal netPnlUSDT, BigDecimal netPnlPercent,
-                                               BigDecimal totalFees, boolean isPositionsClosed,
+                                               boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
         changesData.setLongAllocatedAmount(scale(longPosition.getAllocatedAmount()));
