@@ -15,10 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -30,72 +27,60 @@ public class FetchPairsProcessor {
     private final SettingsService settingsService;
 
     public List<PairData> fetchPairs(FetchPairsRequest request) {
-        validateRequest(request);
+        if (request == null) {
+            throw new IllegalArgumentException("❌ FetchPairsRequest не может быть null");
+        }
 
-        long startTime = System.currentTimeMillis();
-        log.info("🚀 Начинаем поиск пар для торговли...");
+        long start = System.currentTimeMillis();
+        log.info("🚀 Начало поиска торговых пар...");
 
         Settings settings = settingsService.getSettings();
-        List<String> tradingTickers = collectTradingTickers();
+        List<String> usedTickers = getUsedTickers();
+        Map<String, List<Candle>> candlesMap = getCandles(settings, usedTickers);
 
-        Map<String, List<Candle>> candlesMap = fetchCandlesData(settings, tradingTickers);
         if (candlesMap.isEmpty()) {
-            log.warn("⚠️ Не удалось получить данные свечей");
+            log.warn("⚠️ Данные свечей не получены — пропуск поиска.");
             return Collections.emptyList();
         }
 
-        int count = determinePairCount(request, settings);
-        List<ZScoreData> zScoreDataList = calculateTopPairs(settings, candlesMap, count);
+        int count = Optional.ofNullable(request.getCountOfPairs())
+                .orElse((int) settings.getUsePairs());
 
+        List<ZScoreData> zScoreDataList = computeZScorePairs(settings, candlesMap, count);
         if (zScoreDataList.isEmpty()) {
-            log.warn("⚠️ Пропуск хода - подходящие пары не найдены");
+            log.warn("⚠️ Подходящих пар не найдено");
             return Collections.emptyList();
         }
 
-        logFoundPairs(zScoreDataList);
+        logZScoreResults(zScoreDataList);
 
-        List<PairData> topPairs = createPairDataList(zScoreDataList, candlesMap);
+        List<PairData> pairs = createPairs(zScoreDataList, candlesMap);
 
-        logCompletionStats(topPairs, startTime);
+        log.info("✅ Создано {} пар", pairs.size());
+        pairs.forEach(p -> log.info("📈 {}", p.getPairName()));
+        log.info("🕒 Время выполнения: {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
 
-        return topPairs;
+        return pairs;
     }
 
-    private void validateRequest(FetchPairsRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Неверный запрос на поиск пар");
+    private List<String> getUsedTickers() {
+        List<PairData> activePairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<String> tickers = new ArrayList<>();
+        for (PairData pair : activePairs) {
+            tickers.add(pair.getLongTicker());
+            tickers.add(pair.getShortTicker());
         }
+        return tickers;
     }
 
-    private List<String> collectTradingTickers() {
-        List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
-
-        List<String> tradingTickers = new ArrayList<>();
-        tradingPairs.forEach(p -> {
-            tradingTickers.add(p.getLongTicker());
-            tradingTickers.add(p.getShortTicker());
-        });
-
-        return tradingTickers;
+    private Map<String, List<Candle>> getCandles(Settings settings, List<String> tradingTickers) {
+        long start = System.currentTimeMillis();
+        Map<String, List<Candle>> map = candlesService.getApplicableCandlesMap(settings, tradingTickers);
+        log.info("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
+        return map;
     }
 
-    private Map<String, List<Candle>> fetchCandlesData(Settings settings, List<String> tradingTickers) {
-        long candlesStartTime = System.currentTimeMillis();
-
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(settings, tradingTickers);
-
-        long candlesEndTime = System.currentTimeMillis();
-        log.info("✅ Собрали карту свечей за {}с",
-                String.format("%.2f", (candlesEndTime - candlesStartTime) / 1000.0));
-
-        return candlesMap;
-    }
-
-    private int determinePairCount(FetchPairsRequest request, Settings settings) {
-        return request.getCountOfPairs() != null ? request.getCountOfPairs() : (int) settings.getUsePairs();
-    }
-
-    private List<ZScoreData> calculateTopPairs(Settings settings, Map<String, List<Candle>> candlesMap, int count) {
+    private List<ZScoreData> computeZScorePairs(Settings settings, Map<String, List<Candle>> candlesMap, int count) {
         try {
             return zScoreService.getTopNPairs(settings, candlesMap, count);
         } catch (Exception e) {
@@ -104,29 +89,22 @@ public class FetchPairsProcessor {
         }
     }
 
-    private void logFoundPairs(List<ZScoreData> zScoreDataList) {
-        for (int i = 0; i < zScoreDataList.size(); i++) {
-            ZScoreData zScoreData = zScoreDataList.get(i);
-            ZScoreParam latest = zScoreData.getLastZScoreParam();
-            log.info(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                    i + 1, zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                    latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+    private void logZScoreResults(List<ZScoreData> dataList) {
+        int index = 1;
+        for (ZScoreData data : dataList) {
+            ZScoreParam param = data.getLastZScoreParam();
+            log.info("{}. Пара: {} / {} | p={:.5f} | adf={:.5f} | z={:.2f} | corr={:.2f}",
+                    index++, data.getUndervaluedTicker(), data.getOvervaluedTicker(),
+                    param.getPvalue(), param.getAdfpvalue(), param.getZscore(), param.getCorrelation());
         }
     }
 
-    private List<PairData> createPairDataList(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+    private List<PairData> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
             return pairDataService.createPairDataList(zScoreDataList, candlesMap);
         } catch (Exception e) {
             log.error("❌ Ошибка при создании PairData: {}", e.getMessage());
             return Collections.emptyList();
         }
-    }
-
-    private void logCompletionStats(List<PairData> topPairs, long startTime) {
-        long endTime = System.currentTimeMillis();
-        log.info("Создали новых PairData: {{}}", topPairs.size());
-        topPairs.forEach(p -> log.info(p.getPairName()));
-        log.info("✅ Поиск пар завершен за {}с", String.format("%.2f", (endTime - startTime) / 1000.0));
     }
 }
