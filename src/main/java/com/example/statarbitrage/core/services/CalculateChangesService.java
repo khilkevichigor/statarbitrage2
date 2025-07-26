@@ -19,8 +19,6 @@ public class CalculateChangesService {
 
     private static final BigDecimal PERCENTAGE_MULTIPLIER = BigDecimal.valueOf(100);
     private static final int PROFIT_CALCULATION_SCALE = 4;
-    private static final int PERCENTAGE_CALCULATION_SCALE = 10;
-    private static final int DISPLAY_SCALE = 2;
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
 
     private final TradingIntegrationService tradingIntegrationService;
@@ -144,6 +142,9 @@ public class CalculateChangesService {
 //        );
         log.info("Рассчитан процент профита: {}", netPnlPercent);
 
+        changesData.setLongChanges(longPosition.getUnrealizedPnLPercent());
+        changesData.setShortChanges(shortPosition.getUnrealizedPnLPercent());
+
         changesData.setProfitUSDTChanges(netPnlUSDT);
         changesData.setProfitPercentChanges(netPnlPercent);
 
@@ -179,7 +180,11 @@ public class CalculateChangesService {
      * Обновляет статистику и экстремумы для пары
      */
     private ChangesData getStatistics(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
-        calculatePercentageChanges(pairData, changesData, longPosition, shortPosition);
+//        calculatePercentageChanges(pairData, changesData, longPosition, shortPosition);
+
+        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
+        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP));
 
         long currentTimeInMinutes = calculateTimeInMinutes(pairData.getEntryTime());
         ProfitExtremums profitExtremums = updateProfitExtremums(changesData, currentTimeInMinutes);
@@ -226,10 +231,10 @@ public class CalculateChangesService {
 
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(2, RoundingMode.HALF_UP));
 
         changesData.setLongChanges(longPosition.getUnrealizedPnLPercent());
         changesData.setShortChanges(shortPosition.getUnrealizedPnLPercent());
-        changesData.setZScoreChanges(zScoreCurrent.subtract(zScoreEntry).setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
     }
 
     /**
@@ -274,10 +279,8 @@ public class CalculateChangesService {
      */
     private void logFinalResults(PairData pairData, ChangesData changesData) {
         log.info("Финальное обновление изменений для пары {} / {}", pairData.getLongTicker(), pairData.getShortTicker());
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%",
-                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
+        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {}%", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
+        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {}%", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
         log.info("💰 Текущий профит: {}USDT ({}%)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
         log.info("📈 Max profit: {}%, Min profit: {}%", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
     }
