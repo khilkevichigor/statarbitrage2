@@ -36,65 +36,52 @@ public class StartNewTradeProcessor {
     public PairData startNewTrade(StartNewTradeRequest request) {
         startNewTradeValidationService.validateRequest(request);
 
-        PairData pairData = request.getPairData();
-        Settings settings = settingsService.getSettings();
+        final PairData pairData = request.getPairData();
+        final Settings settings = settingsService.getSettings();
 
         log.info("🚀 Начинаем новый трейд для {}", pairData.getPairName());
 
-        // Предварительные проверки
-        PairData validationResult = performPreValidation(pairData, settings);
-        if (validationResult != null) {
-            return validationResult;
-        }
+        // 1. Предварительная валидация
+        Optional<PairData> preValidationError = preValidate(pairData, settings);
+        if (preValidationError.isPresent()) return preValidationError.get();
 
-        // Получение и проверка данных
-        ZScoreData zScoreData = calculateAndValidateZScoreData(pairData, settings);
-        if (zScoreData == null) {
-            return pairData;
-        }
+        // 2. Получаем и проверяем ZScore данные
+        Optional<ZScoreData> maybeZScoreData = calculateZScoreData(pairData, settings);
+        if (maybeZScoreData.isEmpty()) return handleTradeError(pairData, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
 
+        final ZScoreData zScoreData = maybeZScoreData.get();
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
 
-        // Проверка корректности тикеров
+        // 3. Валидация тикеров и автотрейдинга
         if (!startNewTradeValidationService.validateTickers(pairData, zScoreData)) {
             return handleTradeError(pairData, StartTradeErrorType.TICKERS_SWITCHED);
         }
-
-        // Проверка автотрейдинга
         if (!startNewTradeValidationService.validateAutoTrading(pairData, request.isCheckAutoTrading())) {
             return handleTradeError(pairData, StartTradeErrorType.AUTO_TRADING_DISABLED);
         }
 
         logTradeInfo(zScoreData);
 
-        // Проверка баланса
+        // 4. Проверка баланса
         if (!startNewTradeValidationService.validateBalance(pairData)) {
             return handleTradeError(pairData, StartTradeErrorType.INSUFFICIENT_FUNDS);
         }
 
-        // Открытие позиции
+        // 5. Открытие позиции
         return openTradePosition(pairData, zScoreData, settings);
     }
 
-    private PairData performPreValidation(PairData pairData, Settings settings) {
+    private Optional<PairData> preValidate(PairData pairData, Settings settings) {
         if (startNewTradeValidationService.isLastZLessThenMinZ(pairData, settings)) {
             log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", pairData.getPairName());
-            return handleTradeError(pairData, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM);
+            return Optional.of(handleTradeError(pairData, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM));
         }
-        return null;
+        return Optional.empty();
     }
 
-    private ZScoreData calculateAndValidateZScoreData(PairData pairData, Settings settings) {
+    private Optional<ZScoreData> calculateZScoreData(PairData pairData, Settings settings) {
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        Optional<ZScoreData> maybeZScoreData = zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
-
-        if (maybeZScoreData.isEmpty()) {
-            log.warn("⚠️ ZScore данные пусты для пары {}", pairData.getPairName());
-            handleTradeError(pairData, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
-            return null;
-        }
-
-        return maybeZScoreData.get();
+        return zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
     }
 
     private void logTradeInfo(ZScoreData zScoreData) {
@@ -105,24 +92,22 @@ public class StartNewTradeProcessor {
     }
 
     private PairData openTradePosition(PairData pairData, ZScoreData zScoreData, Settings settings) {
-        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData, settings); //todo передавать UUID?
+        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pairData, settings);
 
         if (openResult == null || !openResult.isSuccess()) {
             log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pairData.getPairName());
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        log.info("✅ Успешно открыта арбитражная пара через торговую систему: {}", pairData.getPairName());
+        log.info("✅ Успешно открыта арбитражная пара: {}", pairData.getPairName());
 
         pairData.setStatus(TradeStatus.TRADING);
 
-        TradeResult openLongTradeResult = openResult.getLongTradeResult();
-        TradeResult openShortTradeResult = openResult.getShortTradeResult();
+        TradeResult longTrade = openResult.getLongTradeResult();
+        TradeResult shortTrade = openResult.getShortTradeResult();
 
-        pairDataService.addEntryPoints(pairData, zScoreData, openLongTradeResult, openShortTradeResult);
-
+        pairDataService.addEntryPoints(pairData, zScoreData, longTrade, shortTrade);
         pairDataService.addChanges(pairData);
-
         pairDataService.save(pairData);
 
         tradeHistoryService.updateTradeLog(pairData, settings);
