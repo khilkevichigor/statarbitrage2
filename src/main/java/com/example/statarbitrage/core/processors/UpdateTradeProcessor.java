@@ -35,32 +35,28 @@ public class UpdateTradeProcessor {
     public PairData updateTrade(UpdateTradeRequest request) {
         validateRequest(request);
 
-        PairData pairData = loadFreshPairData(request.getPairData());
+        final PairData pairData = loadFreshPairData(request.getPairData());
         if (pairData == null) {
             return request.getPairData();
         }
 
-        Settings settings = settingsService.getSettings();
+        final Settings settings = settingsService.getSettings();
 
-        Positioninfo openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData); //todo если позиция закрыта руками на бирже - мы не увидим этого! может можно убеждаться по realizedPnl???
-        if (openPositionsInfo.isPositionsClosed()) {
-            log.error("❌ Позиции уже закрыты для пары {}.", pairData.getPairName());
+        if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);
         }
 
-        ZScoreData zScoreData = calculateZScoreData(pairData, settings);
+        final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
         logPairInfo(zScoreData);
 
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
-
-        // 🎯 КРИТИЧНО: Обновляем профит ДО проверки exit strategy для актуального принятия решений
-        pairDataService.addChanges(pairData);
+        pairDataService.addChanges(pairData); // обновляем профит до проверки стратегии выхода
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);
         }
 
-        String exitReason = exitStrategyService.getExitReason(pairData, settings);
+        final String exitReason = exitStrategyService.getExitReason(pairData, settings);
         if (exitReason != null) {
             return handleAutoClose(pairData, settings, exitReason);
         }
@@ -77,32 +73,39 @@ public class UpdateTradeProcessor {
     }
 
     private PairData loadFreshPairData(PairData pairData) {
-        PairData freshPairData = pairDataService.findById(pairData.getId());
+        final PairData freshPairData = pairDataService.findById(pairData.getId());
         if (freshPairData == null || freshPairData.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}", pairData.getPairName());
             return null;
         }
 
-        log.info("🚀 Начинаем обновление трейда для {}/{}",
-                freshPairData.getLongTicker(), freshPairData.getShortTicker());
+        log.info("🚀 Начинаем обновление трейда для {}/{}", freshPairData.getLongTicker(), freshPairData.getShortTicker());
         return freshPairData;
     }
 
+    private boolean arePositionsClosed(PairData pairData) {
+        final Positioninfo openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        if (openPositionsInfo.isPositionsClosed()) {
+            log.error("❌ Позиции уже закрыты для пары {}.", pairData.getPairName());
+            return true;
+        }
+        return false;
+    }
+
     private ZScoreData calculateZScoreData(PairData pairData, Settings settings) {
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         return zScoreService.calculateZScoreData(settings, candlesMap);
     }
 
     private void logPairInfo(ZScoreData zScoreData) {
-        ZScoreParam latest = zScoreData.getLastZScoreParam();
+        final ZScoreParam latest = zScoreData.getLastZScoreParam();
         log.info(String.format("Наша пара: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()
-        ));
+                latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
     }
 
     private PairData handleManualClose(PairData pairData, Settings settings) {
-        ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
+        final ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeInfo == null || !closeInfo.isSuccess()) {
             return handleTradeError(pairData, UpdateTradeErrorType.MANUAL_CLOSE_FAILED);
         }
@@ -111,24 +114,22 @@ public class UpdateTradeProcessor {
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
-        addChangesAndRemovePairFromLocalStorage(pairData);
-        pairDataService.save(pairData);
-        tradeHistoryService.updateTradeLog(pairData, settings);
-
+        finalizeClosedTrade(pairData, settings);
         return pairData;
     }
 
-    //добавляем changes и удаляет пару из реестра тк трейды уже закрыты
-    private void addChangesAndRemovePairFromLocalStorage(PairData pairData) {
+    private void finalizeClosedTrade(PairData pairData, Settings settings) {
         pairDataService.addChanges(pairData);
-        tradingIntegrationService.removePairFromLocalStorage(pairData); //после расчета changes можно удалить связи
+        tradingIntegrationService.removePairFromLocalStorage(pairData);
+        pairDataService.save(pairData);
+        tradeHistoryService.updateTradeLog(pairData, settings);
     }
 
     private PairData handleNoOpenPositions(PairData pairData) {
         log.info("==> handleNoOpenPositions: НАЧАЛО для пары {}", pairData.getPairName());
         log.info("ℹ️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", pairData.getPairName());
 
-        Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
+        final Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
         log.info("Результат верификации закрытия позиций: {}", verificationResult);
 
         if (verificationResult.isPositionsClosed()) {
@@ -147,7 +148,7 @@ public class UpdateTradeProcessor {
     private PairData handleAutoClose(PairData pairData, Settings settings, String exitReason) {
         log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}", exitReason, pairData.getPairName());
 
-        ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
+        final ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
             pairData.setExitReason(exitReason);
             return handleTradeError(pairData, UpdateTradeErrorType.AUTO_CLOSE_FAILED);
@@ -157,9 +158,7 @@ public class UpdateTradeProcessor {
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
-        addChangesAndRemovePairFromLocalStorage(pairData);
-        pairDataService.save(pairData);
-        tradeHistoryService.updateTradeLog(pairData, settings);
+        finalizeClosedTrade(pairData, settings);
         return pairData;
     }
 
@@ -169,7 +168,7 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.ERROR);
         pairData.setErrorDescription(errorType.getDescription());
         pairDataService.save(pairData);
-        //не обновляем другие данные тк нужны реальные данные по сделкам!
+        // не обновляем другие данные тк нужны реальные данные по сделкам!
         return pairData;
     }
 }
