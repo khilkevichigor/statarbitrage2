@@ -278,10 +278,10 @@ public class ZScoreChartDialog extends Dialog {
         HorizontalLayout metricsRow2 = new HorizontalLayout();
         metricsRow2.setWidthFull();
 
-        if (pairData.getProfitChanges() != null) {
+        if (pairData.getProfitPercentChanges() != null) {
             Div profitInfo = createMetricDiv("Profit",
-                    pairData.getProfitChanges().setScale(2, RoundingMode.HALF_UP) + "%",
-                    getProfitColor(pairData.getProfitChanges().doubleValue()));
+                    pairData.getProfitPercentChanges().setScale(2, RoundingMode.HALF_UP) + "%",
+                    getProfitColor(pairData.getProfitPercentChanges().doubleValue()));
             metricsRow2.add(profitInfo);
         }
 

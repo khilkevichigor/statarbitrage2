@@ -30,9 +30,12 @@ public class ChangesData {
 
     private BigDecimal minProfitChanges;
     private BigDecimal maxProfitChanges;
-    private BigDecimal profitChanges;
+    private BigDecimal profitPercentChanges;
     private BigDecimal profitUSDTChanges;
 
+    private BigDecimal longAllocatedAmount;
+    private BigDecimal shortAllocatedAmount;
+    private BigDecimal totalInvestmentUSDT;
 
     private long timeInMinutesSinceEntryToMin;
     private long timeInMinutesSinceEntryToMax;

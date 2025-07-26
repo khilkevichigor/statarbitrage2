@@ -32,7 +32,7 @@ public class StatisticsService {
 
     public TradePairsStatisticsDto collectStatistics() {
         BigDecimal unrealized = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
-                .map(PairData::getProfitChanges)
+                .map(PairData::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

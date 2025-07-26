@@ -103,7 +103,8 @@ public class PairData {
 
     private BigDecimal longChanges;
     private BigDecimal shortChanges;
-    private BigDecimal profitChanges;
+    private BigDecimal profitPercentChanges;
+    private BigDecimal profitUSDTChanges;
 
     private long timeInMinutesSinceEntryToMin;
     private long timeInMinutesSinceEntryToMax;

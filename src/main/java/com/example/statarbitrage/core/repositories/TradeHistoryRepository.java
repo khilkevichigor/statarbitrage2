@@ -82,7 +82,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     Long getAllByExitReason(@Param("reason") String reason);
 
     @Query("SELECT " +
-            "COALESCE(SUM(p.profitChanges), 0) " +
+            "COALESCE(SUM(p.profitPercentChanges), 0) " +
             "FROM PairData p " +
             "WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfit();

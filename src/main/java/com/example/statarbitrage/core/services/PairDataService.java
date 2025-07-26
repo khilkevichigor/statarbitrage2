@@ -163,7 +163,7 @@ public class PairDataService {
     public BigDecimal getUnrealizedProfitTotal() {
         List<PairData> tradingPairs = findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         return tradingPairs.stream()
-                .map(PairData::getProfitChanges)
+                .map(PairData::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -223,7 +223,8 @@ public class PairDataService {
 
         pairData.setMinProfitChanges(changes.getMinProfitChanges());
         pairData.setMaxProfitChanges(changes.getMaxProfitChanges());
-        pairData.setProfitChanges(changes.getProfitChanges());
+        pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
+        pairData.setProfitUSDTChanges(changes.getProfitUSDTChanges());
 
         pairData.setTimeInMinutesSinceEntryToMin(changes.getTimeInMinutesSinceEntryToMin());
         pairData.setTimeInMinutesSinceEntryToMax(changes.getTimeInMinutesSinceEntryToMax());
