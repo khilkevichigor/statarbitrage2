@@ -30,10 +30,12 @@ public class TradingIntegrationService {
     private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
     private final SettingsService settingsService;
+    private final PositionSizeService positionSizeService;
 
-    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService) {
+    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PositionSizeService positionSizeService) {
         this.tradingProviderFactory = tradingProviderFactory;
         this.settingsService = settingsService;
+        this.positionSizeService = positionSizeService;
     }
 
     /**
@@ -48,7 +50,7 @@ public class TradingIntegrationService {
                 log.info("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
 
                 // Рассчитываем размер позиций на основе нового портфолио
-                BigDecimal positionSize = calculatePositionSize(provider);
+                BigDecimal positionSize = positionSizeService.calculatePositionSize(provider, settings);
                 log.info("Рассчитанный размер позиций: {}", positionSize);
                 if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
                     log.warn("⚠️ Недостаточно средств для открытия позиций по паре {}. Размер позиции: {}", pairData.getPairName(), positionSize);
@@ -237,9 +239,9 @@ public class TradingIntegrationService {
     /**
      * Проверка, достаточно ли средств для новой пары
      */
-    public boolean canOpenNewPair() {
+    public boolean canOpenNewPair(Settings settings) {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        BigDecimal requiredAmount = calculatePositionSize(provider);
+        BigDecimal requiredAmount = positionSizeService.calculatePositionSize(provider, settings);
         return provider.hasAvailableBalance(requiredAmount);
     }
 
@@ -405,25 +407,25 @@ public class TradingIntegrationService {
                 .build();
     }
 
-    private BigDecimal calculatePositionSize(TradingProvider provider) {
-        Portfolio portfolio = provider.getPortfolio();
-        if (portfolio == null) {
-            return BigDecimal.ZERO;
-        }
-
-        // Используем фиксированный размер позиции из настроек
-        Settings settings = settingsService.getSettings();
-        BigDecimal totalAllocation = BigDecimal.valueOf(settings.getMaxShortMarginSize()).add(BigDecimal.valueOf(settings.getMaxLongMarginSize()));
-
-        log.info("💰 Расчет размера позиций: общая аллокация {}$ (без учета плеча)",
-                totalAllocation);
-
-        // Не больше доступного баланса
-        BigDecimal resultSize = totalAllocation.min(portfolio.getAvailableBalance());
-
-        log.info("💰 Итоговый размер позиций: {}$ (ограничен балансом: {}$)", resultSize, portfolio.getAvailableBalance());
-        return resultSize;
-    }
+//    private BigDecimal calculatePositionSize(TradingProvider provider) {
+//        Portfolio portfolio = provider.getPortfolio();
+//        if (portfolio == null) {
+//            return BigDecimal.ZERO;
+//        }
+//
+//        // Используем фиксированный размер позиции из настроек
+//        Settings settings = settingsService.getSettings();
+//        BigDecimal totalAllocation = BigDecimal.valueOf(settings.getMaxShortMarginSize()).add(BigDecimal.valueOf(settings.getMaxLongMarginSize()));
+//
+//        log.info("💰 Расчет размера позиций: общая аллокация {}$ (без учета плеча)",
+//                totalAllocation);
+//
+//        // Не больше доступного баланса
+//        BigDecimal resultSize = totalAllocation.min(portfolio.getAvailableBalance());
+//
+//        log.info("💰 Итоговый размер позиций: {}$ (ограничен балансом: {}$)", resultSize, portfolio.getAvailableBalance());
+//        return resultSize;
+//    }
 
     /**
      * Адаптивный расчет сумм для минимизации дисбаланса после lot size корректировки

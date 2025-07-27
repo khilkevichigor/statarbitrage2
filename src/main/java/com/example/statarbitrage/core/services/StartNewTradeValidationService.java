@@ -65,8 +65,8 @@ public class StartNewTradeValidationService {
         return false;
     }
 
-    public boolean validateBalance(PairData pairData) {
-        if (!tradingIntegrationService.canOpenNewPair()) {
+    public boolean validateBalance(PairData pairData, Settings settings) {
+        if (!tradingIntegrationService.canOpenNewPair(settings)) {
             log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}", pairData.getPairName());
             return false;
         }

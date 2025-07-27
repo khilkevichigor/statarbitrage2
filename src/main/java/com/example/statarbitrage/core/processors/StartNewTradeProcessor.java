@@ -63,7 +63,7 @@ public class StartNewTradeProcessor {
         logTradeInfo(zScoreData);
 
         // 4. Проверка баланса
-        if (!startNewTradeValidationService.validateBalance(pairData)) {
+        if (!startNewTradeValidationService.validateBalance(pairData, settings)) {
             return handleTradeError(pairData, StartTradeErrorType.INSUFFICIENT_FUNDS);
         }
 
