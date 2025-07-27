@@ -41,4 +41,32 @@ public class ChangesData {
     private long timeInMinutesSinceEntryToMax;
 
     private BigDecimal zScoreChanges;
+
+    @Override
+    public String toString() {
+        return "\nChangesData {\n" +
+                "  minLong: " + minLong + "\n" +
+                "  maxLong: " + maxLong + "\n" +
+                "  longChanges: " + longChanges + "\n" +
+                "  longCurrentPrice: " + longCurrentPrice + "\n" +
+                "  minShort: " + minShort + "\n" +
+                "  maxShort: " + maxShort + "\n" +
+                "  shortChanges: " + shortChanges + "\n" +
+                "  shortCurrentPrice: " + shortCurrentPrice + "\n" +
+                "  minZ: " + minZ + "\n" +
+                "  maxZ: " + maxZ + "\n" +
+                "  minCorr: " + minCorr + "\n" +
+                "  maxCorr: " + maxCorr + "\n" +
+                "  minProfitChanges: " + minProfitChanges + "\n" +
+                "  maxProfitChanges: " + maxProfitChanges + "\n" +
+                "  profitPercentChanges: " + profitPercentChanges + "\n" +
+                "  profitUSDTChanges: " + profitUSDTChanges + "\n" +
+                "  longAllocatedAmount: " + longAllocatedAmount + "\n" +
+                "  shortAllocatedAmount: " + shortAllocatedAmount + "\n" +
+                "  totalInvestmentUSDT: " + totalInvestmentUSDT + "\n" +
+                "  timeInMinutesSinceEntryToMin: " + timeInMinutesSinceEntryToMin + "\n" +
+                "  timeInMinutesSinceEntryToMax: " + timeInMinutesSinceEntryToMax + "\n" +
+                "  zScoreChanges: " + zScoreChanges + "\n" +
+                '}';
+    }
 }
