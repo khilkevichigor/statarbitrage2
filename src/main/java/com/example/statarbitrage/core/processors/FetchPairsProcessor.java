@@ -93,9 +93,9 @@ public class FetchPairsProcessor {
         int index = 1;
         for (ZScoreData data : dataList) {
             ZScoreParam param = data.getLastZScoreParam();
-            log.info("{}. Пара: {} / {} | p={:.5f} | adf={:.5f} | z={:.2f} | corr={:.2f}",
+            log.info(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                     index++, data.getUndervaluedTicker(), data.getOvervaluedTicker(),
-                    param.getPvalue(), param.getAdfpvalue(), param.getZscore(), param.getCorrelation());
+                    param.getPvalue(), param.getAdfpvalue(), param.getZscore(), param.getCorrelation()));
         }
     }
 
