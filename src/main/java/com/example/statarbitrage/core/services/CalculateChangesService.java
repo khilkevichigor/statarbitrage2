@@ -1,6 +1,7 @@
 package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ChangesData;
+import com.example.statarbitrage.common.dto.ProfitExtremum;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.trading.model.Position;
 import com.example.statarbitrage.trading.model.Positioninfo;
@@ -18,10 +19,8 @@ import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
 @Service
 @RequiredArgsConstructor
 public class CalculateChangesService {
-
-    private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
-
     private final TradingIntegrationService tradingIntegrationService;
+    private final ProfitExtremumService profitExtremumService;
 
     public ChangesData getChanges(PairData pairData) {
         log.info("==> getChanges: НАЧАЛО для пары {}", pairData.getPairName());
@@ -67,7 +66,6 @@ public class CalculateChangesService {
         log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
 
         BigDecimal netPnlUSDT = safeScale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()));
-//        BigDecimal netPnlPercent = scale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent())); //не то что на окх...
         BigDecimal netPnlPercent = safeScale(calcPercent(longPosition, shortPosition));
         BigDecimal totalFees = safeScale(longPosition.getOpeningFees().add(shortPosition.getOpeningFees()));
 
@@ -106,12 +104,6 @@ public class CalculateChangesService {
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
-        changesData.setLongAllocatedAmount(safeScale(longPosition.getAllocatedAmount())); //todo сетим каждый вызов тк changesData создается каждый раз
-        changesData.setShortAllocatedAmount(safeScale(shortPosition.getAllocatedAmount()));
-
-        BigDecimal totalInvestmentUSDT = safeScale(longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount()));
-        changesData.setTotalInvestmentUSDT(totalInvestmentUSDT);
-
         changesData.setLongChanges(safeScale(longPosition.getUnrealizedPnLPercent()));
         changesData.setShortChanges(safeScale(shortPosition.getUnrealizedPnLPercent()));
 
@@ -128,61 +120,19 @@ public class CalculateChangesService {
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
         changesData.setZScoreChanges(safeScale(zScoreCurrent.subtract(zScoreEntry)));
 
-        long currentTimeInMinutes = calculateTimeInMinutes(pairData.getEntryTime());
-        ProfitExtremums profitExtremums = updateProfitExtremums(pairData, changesData, currentTimeInMinutes);
+        ProfitExtremum profitExtremum = profitExtremumService.getProfitExtremums(pairData, changesData);
 
         updateExtremumValues(pairData, changesData, changesData.getLongChanges(), changesData.getShortChanges(),
                 BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
 
-        changesData.setMinProfitChanges(profitExtremums.minProfit());
-        changesData.setMaxProfitChanges(profitExtremums.maxProfit());
-        changesData.setTimeInMinutesSinceEntryToMax(profitExtremums.timeToMax());
-        changesData.setTimeInMinutesSinceEntryToMin(profitExtremums.timeToMin());
+        changesData.setMinProfitChanges(profitExtremum.minProfit());
+        changesData.setMaxProfitChanges(profitExtremum.maxProfit());
+        changesData.setTimeInMinutesSinceEntryToMax(profitExtremum.timeToMax());
+        changesData.setTimeInMinutesSinceEntryToMin(profitExtremum.timeToMin());
 
         logFinalResults(pairData, changesData);
 
         return changesData;
-    }
-
-    private long calculateTimeInMinutes(long entryTime) {
-        return (System.currentTimeMillis() - entryTime) / MILLISECONDS_IN_MINUTE;
-    }
-
-    // Экстремумы берём из pairData, т.к. changesData создаётся заново при каждом вызове
-    private ProfitExtremums updateProfitExtremums(PairData pairData, ChangesData changesData, long currentTimeInMinutes) {
-        BigDecimal currentProfit = changesData.getProfitPercentChanges() != null
-                ? changesData.getProfitPercentChanges()
-                : BigDecimal.ZERO;
-
-        // Инициализируем max/min значениями из pairData или currentProfit при первом заходе
-        BigDecimal maxProfit = pairData.getMaxProfitChanges() != null
-                ? pairData.getMaxProfitChanges()
-                : currentProfit;
-
-        BigDecimal minProfit = pairData.getMinProfitChanges() != null
-                ? pairData.getMinProfitChanges()
-                : currentProfit;
-
-        long timeToMax = pairData.getTimeInMinutesSinceEntryToMax() > 0
-                ? pairData.getTimeInMinutesSinceEntryToMax()
-                : currentTimeInMinutes;
-
-        long timeToMin = pairData.getTimeInMinutesSinceEntryToMin() > 0
-                ? pairData.getTimeInMinutesSinceEntryToMin()
-                : currentTimeInMinutes;
-
-        // Обновление значений
-        if (currentProfit.compareTo(maxProfit) > 0) {
-            maxProfit = currentProfit;
-            timeToMax = currentTimeInMinutes;
-        }
-
-        if (currentProfit.compareTo(minProfit) < 0) {
-            minProfit = currentProfit;
-            timeToMin = currentTimeInMinutes;
-        }
-
-        return new ProfitExtremums(maxProfit, minProfit, timeToMax, timeToMin, currentProfit);
     }
 
     private void logFinalResults(PairData pairData, ChangesData changesData) {
@@ -214,8 +164,5 @@ public class CalculateChangesService {
 
     private BigDecimal safeAdd(BigDecimal a, BigDecimal b) {
         return (a != null ? a : BigDecimal.ZERO).add(b != null ? b : BigDecimal.ZERO);
-    }
-
-    private record ProfitExtremums(BigDecimal maxProfit, BigDecimal minProfit, long timeToMax, long timeToMin, BigDecimal currentProfit) {
     }
 }

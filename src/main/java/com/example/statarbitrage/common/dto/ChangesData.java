@@ -33,9 +33,9 @@ public class ChangesData {
     private BigDecimal profitPercentChanges;
     private BigDecimal profitUSDTChanges;
 
-    private BigDecimal longAllocatedAmount;
-    private BigDecimal shortAllocatedAmount;
-    private BigDecimal totalInvestmentUSDT;
+//    private BigDecimal longAllocatedAmount; //todo удалить?
+//    private BigDecimal shortAllocatedAmount; //todo удалить?
+//    private BigDecimal totalInvestmentUSDT; //todo удалить?
 
     private long timeInMinutesSinceEntryToMin;
     private long timeInMinutesSinceEntryToMax;
@@ -61,9 +61,9 @@ public class ChangesData {
                 "  maxProfitChanges: " + maxProfitChanges + "\n" +
                 "  profitPercentChanges: " + profitPercentChanges + "\n" +
                 "  profitUSDTChanges: " + profitUSDTChanges + "\n" +
-                "  longAllocatedAmount: " + longAllocatedAmount + "\n" +
-                "  shortAllocatedAmount: " + shortAllocatedAmount + "\n" +
-                "  totalInvestmentUSDT: " + totalInvestmentUSDT + "\n" +
+//                "  longAllocatedAmount: " + longAllocatedAmount + "\n" + //todo удалить?
+//                "  shortAllocatedAmount: " + shortAllocatedAmount + "\n" + //todo удалить?
+//                "  totalInvestmentUSDT: " + totalInvestmentUSDT + "\n" + //todo удалить?
                 "  timeInMinutesSinceEntryToMin: " + timeInMinutesSinceEntryToMin + "\n" +
                 "  timeInMinutesSinceEntryToMax: " + timeInMinutesSinceEntryToMax + "\n" +
                 "  zScoreChanges: " + zScoreChanges + "\n" +
