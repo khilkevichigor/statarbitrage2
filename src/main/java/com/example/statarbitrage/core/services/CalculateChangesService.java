@@ -148,6 +148,7 @@ public class CalculateChangesService {
         return (System.currentTimeMillis() - entryTime) / MILLISECONDS_IN_MINUTE;
     }
 
+    // Экстремумы берём из pairData, т.к. changesData создаётся заново при каждом вызове
     private ProfitExtremums updateProfitExtremums(PairData pairData, ChangesData changesData, long currentTimeInMinutes) {
         BigDecimal currentProfit = changesData.getProfitPercentChanges() != null
                 ? changesData.getProfitPercentChanges()
