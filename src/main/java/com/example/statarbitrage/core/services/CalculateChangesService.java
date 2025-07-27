@@ -88,7 +88,6 @@ public class CalculateChangesService {
                 .multiply(BigDecimal.valueOf(100));
     }
 
-
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromClosedPositions для пары {}", pairData.getPairName());
 
@@ -185,7 +184,6 @@ public class CalculateChangesService {
         return new ProfitExtremums(maxProfit, minProfit, timeToMax, timeToMin, currentProfit);
     }
 
-
     private void logFinalResults(PairData pairData, ChangesData changesData) {
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
@@ -216,10 +214,6 @@ public class CalculateChangesService {
     private BigDecimal safeAdd(BigDecimal a, BigDecimal b) {
         return (a != null ? a : BigDecimal.ZERO).add(b != null ? b : BigDecimal.ZERO);
     }
-
-//    private BigDecimal scale(BigDecimal value) {
-//        return value != null ? value.setScale(DEFAULT_SCALE, DEFAULT_ROUNDING_MODE) : null;
-//    }
 
     private record ProfitExtremums(BigDecimal maxProfit, BigDecimal minProfit, long timeToMax, long timeToMin, BigDecimal currentProfit) {
     }
