@@ -1186,7 +1186,6 @@ public class RealOkxTradingProvider implements TradingProvider {
                 .orElse(null);
     }
 
-
     /**
      * Корректировка размера позиции согласно lot size с учетом бюджетных ограничений
      */
