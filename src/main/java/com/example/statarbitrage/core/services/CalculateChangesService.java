@@ -54,8 +54,8 @@ public class CalculateChangesService {
         log.info("Статус позиций: isPositionsClosed = {}", isPositionsClosed);
 
         ChangesData changesData = new ChangesData();
-        changesData.setLongCurrentPrice(scale(longPosition.getCurrentPrice()));
-        changesData.setShortCurrentPrice(scale(shortPosition.getCurrentPrice()));
+        changesData.setLongCurrentPrice(longPosition.getCurrentPrice());
+        changesData.setShortCurrentPrice(shortPosition.getCurrentPrice());
         log.info("Текущие цены: LONG {} = {}, SHORT {} = {}", longPosition.getSymbol(), longPosition.getCurrentPrice(), shortPosition.getSymbol(), shortPosition.getCurrentPrice());
 
         return isPositionsClosed ?
@@ -67,13 +67,27 @@ public class CalculateChangesService {
         log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
 
         BigDecimal netPnlUSDT = scale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()));
-        BigDecimal netPnlPercent = scale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent()));
+//        BigDecimal netPnlPercent = scale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent())); //todo не то что на окх... странно
+        BigDecimal netPnlPercent = scale(calcPercent(longPosition, shortPosition));
         BigDecimal totalFees = scale(longPosition.getOpeningFees().add(shortPosition.getOpeningFees()));
 
         log.info("Нереализованный PnL в USDT: {}, в %: {}, комиссии: {}", netPnlUSDT, netPnlPercent, totalFees);
 
         return getProfitAndStatistics(pairData, changesData, netPnlUSDT, netPnlPercent, false, longPosition, shortPosition);
     }
+
+    //сами считаем общий процент
+    private BigDecimal calcPercent(Position longPosition, Position shortPosition) {
+        BigDecimal totalAllocatedAmount = longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount());
+        BigDecimal netPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
+        if (totalAllocatedAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO; // защита от деления на ноль
+        }
+        return netPnlUSDT
+                .divide(totalAllocatedAmount, 8, RoundingMode.HALF_UP) // делим с нужной точностью
+                .multiply(BigDecimal.valueOf(100));
+    }
+
 
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromClosedPositions для пары {}", pairData.getPairName());
