@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,12 +31,14 @@ public class TradingIntegrationService {
     private final SettingsService settingsService;
     private final PositionSizeService positionSizeService;
     private final AdaptiveAmountService adaptiveAmountService;
+    private final ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService;
 
-    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PositionSizeService positionSizeService, AdaptiveAmountService adaptiveAmountService) {
+    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PositionSizeService positionSizeService, AdaptiveAmountService adaptiveAmountService, ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService) {
         this.tradingProviderFactory = tradingProviderFactory;
         this.settingsService = settingsService;
         this.positionSizeService = positionSizeService;
         this.adaptiveAmountService = adaptiveAmountService;
+        this.validateMinimumLotRequirementsService = validateMinimumLotRequirementsService;
     }
 
     /**
@@ -62,13 +63,13 @@ public class TradingIntegrationService {
                 }
 
                 // Используем адаптивное распределение для минимизации дисбаланса после lot size корректировки
-                BigDecimal[] adaptiveAmounts = adaptiveAmountService.calculateAdaptiveAmounts(provider, pairData, positionSize);
+                BigDecimal[] adaptiveAmounts = adaptiveAmountService.calculate(provider, pairData, positionSize);
                 BigDecimal longAmount = adaptiveAmounts[0];
                 BigDecimal shortAmount = adaptiveAmounts[1];
                 log.info("Адаптивное распределение средств: LONG {} = {}, SHORT {} = {}", pairData.getLongTicker(), longAmount, pairData.getShortTicker(), shortAmount);
 
                 // НОВАЯ ПРОВЕРКА: Проверяем не приведет ли минимальный лот к превышению в 3+ раза
-                if (!validatePairForMinimumLotRequirements(provider, pairData, longAmount, shortAmount)) {
+                if (!validateMinimumLotRequirementsService.validate(provider, pairData, longAmount, shortAmount)) {
                     log.warn("⚠️ ПРОПУСК ПАРЫ: {} не подходит из-за больших минимальных лотов", pairData.getPairName());
                     return ArbitragePairTradeInfo.builder()
                             .success(false)
@@ -516,73 +517,73 @@ public class TradingIntegrationService {
         return tradingProviderFactory.getCurrentProviderType();
     }
 
-    /**
-     * Проверка пары на соответствие требованиям минимального лота
-     * Возвращает false если минимальный лот для любой позиции превышает желаемую сумму в 3+ раза
-     */
-    private boolean validatePairForMinimumLotRequirements(TradingProvider provider, PairData pairData, BigDecimal longAmount, BigDecimal shortAmount) {
-        try {
-            // Получаем текущие цены
-            BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
-            BigDecimal shortPrice = provider.getCurrentPrice(pairData.getShortTicker());
+//    /**
+//     * Проверка пары на соответствие требованиям минимального лота
+//     * Возвращает false если минимальный лот для любой позиции превышает желаемую сумму в 3+ раза
+//     */
+//    private boolean validatePairForMinimumLotRequirements(TradingProvider provider, PairData pairData, BigDecimal longAmount, BigDecimal shortAmount) {
+//        try {
+//            // Получаем текущие цены
+//            BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
+//            BigDecimal shortPrice = provider.getCurrentPrice(pairData.getShortTicker());
+//
+//            if (longPrice == null || shortPrice == null ||
+//                    longPrice.compareTo(BigDecimal.ZERO) <= 0 || shortPrice.compareTo(BigDecimal.ZERO) <= 0) {
+//                log.warn("⚠️ Не удалось получить цены для проверки минимальных лотов {}", pairData.getPairName());
+//                return true; // Позволяем торговлю если не удалось получить цены
+//            }
+//
+//            // Проверяем LONG позицию
+//            if (!validatePositionForMinimumLot(pairData.getLongTicker(), longAmount, longPrice)) {
+//                return false;
+//            }
+//
+//            // Проверяем SHORT позицию
+//            if (!validatePositionForMinimumLot(pairData.getShortTicker(), shortAmount, shortPrice)) {
+//                return false;
+//            }
+//
+//            log.info("✅ Пара {} прошла проверку минимальных лотов", pairData.getPairName());
+//            return true;
+//
+//        } catch (Exception e) {
+//            log.error("❌ Ошибка при проверке минимальных лотов для {}: {}", pairData.getPairName(), e.getMessage());
+//            return true; // Позволяем торговлю при ошибке проверки
+//        }
+//    }
 
-            if (longPrice == null || shortPrice == null ||
-                    longPrice.compareTo(BigDecimal.ZERO) <= 0 || shortPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                log.warn("⚠️ Не удалось получить цены для проверки минимальных лотов {}", pairData.getPairName());
-                return true; // Позволяем торговлю если не удалось получить цены
-            }
-
-            // Проверяем LONG позицию
-            if (!validatePositionForMinimumLot(pairData.getLongTicker(), longAmount, longPrice)) {
-                return false;
-            }
-
-            // Проверяем SHORT позицию
-            if (!validatePositionForMinimumLot(pairData.getShortTicker(), shortAmount, shortPrice)) {
-                return false;
-            }
-
-            log.info("✅ Пара {} прошла проверку минимальных лотов", pairData.getPairName());
-            return true;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при проверке минимальных лотов для {}: {}", pairData.getPairName(), e.getMessage());
-            return true; // Позволяем торговлю при ошибке проверки
-        }
-    }
-
-    /**
-     * Проверка конкретной позиции на соответствие требованиям минимального лота
-     */
-    private boolean validatePositionForMinimumLot(String symbol, BigDecimal desiredAmount, BigDecimal currentPrice) {
-        try {
-            // Рассчитываем желаемый размер позиции
-            BigDecimal desiredSize = desiredAmount.divide(currentPrice, 8, RoundingMode.HALF_UP);
-
-            // Симулируем корректировку минимального лота (упрощенно)
-            BigDecimal adjustedSize = desiredSize.setScale(0, RoundingMode.DOWN);
-            if (adjustedSize.compareTo(BigDecimal.ONE) < 0) {
-                adjustedSize = BigDecimal.ONE; // Минимальный лот = 1 единица
-            }
-
-            // Рассчитываем итоговую стоимость после корректировки
-            BigDecimal adjustedAmount = adjustedSize.multiply(currentPrice);
-            BigDecimal excessRatio = adjustedAmount.divide(desiredAmount, 4, RoundingMode.HALF_UP);
-
-            // Если превышение больше 3x - блокируем пару
-            if (excessRatio.compareTo(BigDecimal.valueOf(3.0)) > 0) {
-                log.warn("❌ БЛОКИРОВКА: {} минимальный лот приводит к позиции ${{}} вместо желаемых ${{}} (превышение в {} раз)",
-                        symbol, adjustedAmount, desiredAmount, excessRatio);
-                return false;
-            }
-
-            log.debug("✅ {} прошел проверку: желаемая сумма=${{}}, итоговая сумма=${{}}, соотношение={}",
-                    symbol, desiredAmount, adjustedAmount, excessRatio);
-            return true;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при проверке минимального лота для {}: {}", symbol, e.getMessage());
-            return true; // Позволяем торговлю при ошибке
-        }
-    }
+//    /**
+//     * Проверка конкретной позиции на соответствие требованиям минимального лота
+//     */
+//    private boolean validatePositionForMinimumLot(String symbol, BigDecimal desiredAmount, BigDecimal currentPrice) {
+//        try {
+//            // Рассчитываем желаемый размер позиции
+//            BigDecimal desiredSize = desiredAmount.divide(currentPrice, 8, RoundingMode.HALF_UP);
+//
+//            // Симулируем корректировку минимального лота (упрощенно)
+//            BigDecimal adjustedSize = desiredSize.setScale(0, RoundingMode.DOWN);
+//            if (adjustedSize.compareTo(BigDecimal.ONE) < 0) {
+//                adjustedSize = BigDecimal.ONE; // Минимальный лот = 1 единица
+//            }
+//
+//            // Рассчитываем итоговую стоимость после корректировки
+//            BigDecimal adjustedAmount = adjustedSize.multiply(currentPrice);
+//            BigDecimal excessRatio = adjustedAmount.divide(desiredAmount, 4, RoundingMode.HALF_UP);
+//
+//            // Если превышение больше 3x - блокируем пару
+//            if (excessRatio.compareTo(BigDecimal.valueOf(3.0)) > 0) {
+//                log.warn("❌ БЛОКИРОВКА: {} минимальный лот приводит к позиции ${{}} вместо желаемых ${{}} (превышение в {} раз)",
+//                        symbol, adjustedAmount, desiredAmount, excessRatio);
+//                return false;
+//            }
+//
+//            log.debug("✅ {} прошел проверку: желаемая сумма=${{}}, итоговая сумма=${{}}, соотношение={}",
+//                    symbol, desiredAmount, adjustedAmount, excessRatio);
+//            return true;
+//
+//        } catch (Exception e) {
+//            log.error("❌ Ошибка при проверке минимального лота для {}: {}", symbol, e.getMessage());
+//            return true; // Позволяем торговлю при ошибке
+//        }
+//    }
 }

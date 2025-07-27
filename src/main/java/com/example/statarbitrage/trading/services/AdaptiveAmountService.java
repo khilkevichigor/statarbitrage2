@@ -16,7 +16,7 @@ public class AdaptiveAmountService {
     /**
      * Адаптивный расчет сумм для минимизации дисбаланса после lot size корректировки
      */
-    public BigDecimal[] calculateAdaptiveAmounts(TradingProvider provider, PairData pairData, BigDecimal totalAmount) {
+    public BigDecimal[] calculate(TradingProvider provider, PairData pairData, BigDecimal totalAmount) {
         try {
             // Получаем текущие цены для расчета lot size
             BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
