@@ -7,11 +7,8 @@ import java.math.RoundingMode;
 
 @Slf4j
 public class BigDecimalUtil {
-    private static final int SCALE = 2;
-    private static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_UP;
-
     public static BigDecimal safeScale(String str) {
-        if (str == null || "N/A".equals(str)) return null;
+        if (str == null || str.trim().isEmpty() || "N/A".equals(str)) return null;
         try {
             return new BigDecimal(str).setScale(2, RoundingMode.HALF_UP);
         } catch (NumberFormatException e) {
@@ -23,5 +20,4 @@ public class BigDecimalUtil {
     public static BigDecimal safeScale(BigDecimal value) {
         return value != null ? value.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
     }
-
 }

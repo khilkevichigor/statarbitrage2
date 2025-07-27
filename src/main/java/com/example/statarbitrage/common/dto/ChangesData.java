@@ -42,31 +42,31 @@ public class ChangesData {
 
     private BigDecimal zScoreChanges;
 
-    @Override
-    public String toString() {
-        return "\nChangesData {\n" +
-                "  minLong: " + minLong + "\n" +
-                "  maxLong: " + maxLong + "\n" +
-                "  longChanges: " + longChanges + "\n" +
-                "  longCurrentPrice: " + longCurrentPrice + "\n" +
-                "  minShort: " + minShort + "\n" +
-                "  maxShort: " + maxShort + "\n" +
-                "  shortChanges: " + shortChanges + "\n" +
-                "  shortCurrentPrice: " + shortCurrentPrice + "\n" +
-                "  minZ: " + minZ + "\n" +
-                "  maxZ: " + maxZ + "\n" +
-                "  minCorr: " + minCorr + "\n" +
-                "  maxCorr: " + maxCorr + "\n" +
-                "  minProfitChanges: " + minProfitChanges + "\n" +
-                "  maxProfitChanges: " + maxProfitChanges + "\n" +
-                "  profitPercentChanges: " + profitPercentChanges + "\n" +
-                "  profitUSDTChanges: " + profitUSDTChanges + "\n" +
-//                "  longAllocatedAmount: " + longAllocatedAmount + "\n" + //todo удалить?
-//                "  shortAllocatedAmount: " + shortAllocatedAmount + "\n" + //todo удалить?
-//                "  totalInvestmentUSDT: " + totalInvestmentUSDT + "\n" + //todo удалить?
-                "  timeInMinutesSinceEntryToMin: " + timeInMinutesSinceEntryToMin + "\n" +
-                "  timeInMinutesSinceEntryToMax: " + timeInMinutesSinceEntryToMax + "\n" +
-                "  zScoreChanges: " + zScoreChanges + "\n" +
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "\nChangesData {\n" +
+//                "  minLong: " + minLong + "\n" +
+//                "  maxLong: " + maxLong + "\n" +
+//                "  longChanges: " + longChanges + "\n" +
+//                "  longCurrentPrice: " + longCurrentPrice + "\n" +
+//                "  minShort: " + minShort + "\n" +
+//                "  maxShort: " + maxShort + "\n" +
+//                "  shortChanges: " + shortChanges + "\n" +
+//                "  shortCurrentPrice: " + shortCurrentPrice + "\n" +
+//                "  minZ: " + minZ + "\n" +
+//                "  maxZ: " + maxZ + "\n" +
+//                "  minCorr: " + minCorr + "\n" +
+//                "  maxCorr: " + maxCorr + "\n" +
+//                "  minProfitChanges: " + minProfitChanges + "\n" +
+//                "  maxProfitChanges: " + maxProfitChanges + "\n" +
+//                "  profitPercentChanges: " + profitPercentChanges + "\n" +
+//                "  profitUSDTChanges: " + profitUSDTChanges + "\n" +
+////                "  longAllocatedAmount: " + longAllocatedAmount + "\n" + //todo удалить?
+////                "  shortAllocatedAmount: " + shortAllocatedAmount + "\n" + //todo удалить?
+////                "  totalInvestmentUSDT: " + totalInvestmentUSDT + "\n" + //todo удалить?
+//                "  timeInMinutesSinceEntryToMin: " + timeInMinutesSinceEntryToMin + "\n" +
+//                "  timeInMinutesSinceEntryToMax: " + timeInMinutesSinceEntryToMax + "\n" +
+//                "  zScoreChanges: " + zScoreChanges + "\n" +
+//                '}';
+//    }
 }
