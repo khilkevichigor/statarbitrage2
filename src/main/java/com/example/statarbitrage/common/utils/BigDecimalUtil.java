@@ -19,4 +19,9 @@ public class BigDecimalUtil {
             return null;
         }
     }
+
+    public static BigDecimal safeScale(BigDecimal value) {
+        return value != null ? value.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+    }
+
 }

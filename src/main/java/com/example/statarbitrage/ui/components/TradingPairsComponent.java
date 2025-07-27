@@ -27,6 +27,8 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
+
 @Slf4j
 @SpringComponent
 @UIScope
@@ -104,11 +106,11 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(p -> p.getProfitUSDTChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        tradingPairsGrid.addColumn(p -> p.getProfitPercentChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges())).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges())).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        tradingPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getLongChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getShortChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin())).setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax())).setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -127,11 +129,11 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        closedPairsGrid.addColumn(p -> p.getProfitUSDTChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        closedPairsGrid.addColumn(p -> p.getProfitPercentChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges())).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges())).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        closedPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        closedPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getLongChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getShortChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin())).setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax())).setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -151,11 +153,11 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        errorPairsGrid.addColumn(p -> p.getProfitUSDTChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> p.getProfitPercentChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges())).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges())).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        errorPairsGrid.addColumn(p -> p.getLongChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> p.getShortChanges().setScale(2, RoundingMode.HALF_UP)).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getLongChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getShortChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin())).setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax())).setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
