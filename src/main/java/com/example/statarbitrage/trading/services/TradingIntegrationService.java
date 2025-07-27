@@ -329,7 +329,7 @@ public class TradingIntegrationService {
         if (longOpen && shortOpen) {
             // Рассчитываем актуальный PnL для открытых позиций
             BigDecimal totalPnL = BigDecimal.ZERO;
-            longPosition.calculateUnrealizedPnL();
+            longPosition.calculateUnrealizedPnL(); //todo нужно брать с окх
             shortPosition.calculateUnrealizedPnL();
             totalPnL = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
 
