@@ -37,7 +37,7 @@ public class TradingIntegrationService {
      * Открытие пары позиций для статарбитража - СИНХРОННО
      */
     public ArbitragePairTradeInfo openArbitragePair(PairData pairData, Settings settings) {
-        log.info("==> openArbitragePair: НАЧАЛО для пары {}", pairData.getPairName());
+        log.info("=== Начало открытия арбитражной пары: {}", pairData.getPairName());
 
         synchronized (openPositionLock) {
             try {
@@ -45,45 +45,50 @@ public class TradingIntegrationService {
                 log.info("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
 
                 BigDecimal positionSize = positionSizeService.calculatePositionSize(provider, settings);
-                log.info("Рассчитанный размер позиций: {}", positionSize);
+                log.info("Вычислен размер позиции: {}", positionSize);
 
                 if (isInvalidPositionSize(positionSize, pairData)) {
+                    log.warn("Недостаточный размер позиции для пары {}: {}", pairData.getPairName(), positionSize);
                     return buildFailure();
                 }
 
                 BigDecimal[] adaptiveAmounts = adaptiveAmountService.calculate(provider, pairData, positionSize);
                 BigDecimal longAmount = adaptiveAmounts[0];
                 BigDecimal shortAmount = adaptiveAmounts[1];
-                log.info("Адаптивное распределение средств: LONG {} = {}, SHORT {} = {}", pairData.getLongTicker(), longAmount, pairData.getShortTicker(), shortAmount);
+                log.info("Адаптивное распределение средств: LONG {} = {}, SHORT {} = {}",
+                        pairData.getLongTicker(), longAmount, pairData.getShortTicker(), shortAmount);
 
                 if (!validateMinimumLotRequirementsService.validate(provider, pairData, longAmount, shortAmount)) {
-                    log.warn("⚠️ ПРОПУСК ПАРЫ: {} не подходит из-за больших минимальных лотов", pairData.getPairName());
+                    log.warn("Пропуск пары {}: минимальные лоты не соответствуют требованиям", pairData.getPairName());
                     return buildFailure();
                 }
 
                 BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
-                log.info("Используемое плечо: {}", leverage);
+                log.info("Используемое кредитное плечо: {}", leverage);
 
                 TradeResult longResult = openLong(provider, pairData, longAmount, leverage);
                 if (!longResult.isSuccess()) {
+                    log.error("Ошибка открытия LONG позиции для {}: {}", pairData.getLongTicker(), longResult.getErrorMessage());
                     return buildFailure();
                 }
 
                 TradeResult shortResult = openShort(provider, pairData, shortAmount, leverage);
-
                 if (shortResult.isSuccess()) {
                     savePositionIds(pairData, longResult, shortResult);
+                    log.info("Успешно открыты позиции для пары {}: LONG ID = {}, SHORT ID = {}",
+                            pairData.getPairName(), longResult.getPositionId(), shortResult.getPositionId());
                     return buildSuccess(longResult, shortResult, pairData);
                 } else {
+                    log.error("Ошибка открытия SHORT позиции для {}: {}", pairData.getShortTicker(), shortResult.getErrorMessage());
                     rollbackIfNecessary(provider, longResult, shortResult);
                     return buildFailure();
                 }
 
             } catch (Exception e) {
-                log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при открытии арбитражной пары {}: {}", pairData.getPairName(), e.getMessage(), e);
+                log.error("Критическая ошибка при открытии арбитражной пары {}: {}", pairData.getPairName(), e.getMessage(), e);
                 return buildFailure();
             } finally {
-                log.info("<== openArbitragePair: КОНЕЦ для пары {}", pairData.getPairName());
+                log.info("=== Конец открытия арбитражной пары: {}", pairData.getPairName());
             }
         }
     }
@@ -92,21 +97,22 @@ public class TradingIntegrationService {
      * Закрытие пары позиций - СИНХРОННО
      */
     public ArbitragePairTradeInfo closeArbitragePair(PairData pairData) {
-        log.info("==> closeArbitragePair: НАЧАЛО для пары {}", pairData.getPairName());
+        log.info("=== Начало закрытия арбитражной пары: {}", pairData.getPairName());
 
         synchronized (openPositionLock) {
             try {
                 String longPositionId = pairToLongPositionMap.get(pairData.getId());
                 String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
-                if (!positionsExistInMap(longPositionId, shortPositionId, pairData)) {
+                if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+                    log.warn("Не найдены ID позиций для пары {}. Закрытие невозможно.", pairData.getPairName());
                     return buildFailure();
                 }
 
                 TradingProvider provider = tradingProviderFactory.getCurrentProvider();
                 log.info("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
 
-                log.info("🔄 Закрытие арбитражной пары: {}", pairData.getPairName());
+                log.info("Начинаем закрытие позиций для пары {}", pairData.getPairName());
 
                 TradeResult longResult = closePosition(provider, longPositionId, "LONG");
                 TradeResult shortResult = closePosition(provider, shortPositionId, "SHORT");
@@ -124,10 +130,10 @@ public class TradingIntegrationService {
                         .build();
 
             } catch (Exception e) {
-                log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при закрытии арбитражной пары {}: {}", pairData.getPairName(), e.getMessage(), e);
+                log.error("Критическая ошибка при закрытии арбитражной пары {}: {}", pairData.getPairName(), e.getMessage(), e);
                 return buildFailure();
             } finally {
-                log.info("<== closeArbitragePair: КОНЕЦ для пары {}", pairData.getPairName());
+                log.info("=== Конец закрытия арбитражной пары: {}", pairData.getPairName());
             }
         }
     }
@@ -139,7 +145,8 @@ public class TradingIntegrationService {
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
-        if (!positionsExistInMap(longPositionId, shortPositionId, pairData)) {
+        if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+            log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
             return buildClosedPositionInfo(BigDecimal.ZERO);
         }
 
@@ -155,12 +162,12 @@ public class TradingIntegrationService {
         if (longClosed && shortClosed) {
             BigDecimal finalPnlPercent = calculateTotalPnlPercent(longPosition, shortPosition);
             removePairFromLocalStorage(pairData);
-            log.info("🗑️ Удалены закрытые позиции из реестра для пары {}, финальный PnL: {}%", pairData.getPairName(), finalPnlPercent);
+            log.info("Удалены закрытые позиции из реестра для пары {}. Итоговый PnL: {}%", pairData.getPairName(), finalPnlPercent);
 
             return buildClosedPositionInfo(finalPnlPercent);
         }
 
-        log.warn("⚠️ Не все позиции закрыты на бирже: LONG закрыта={}, SHORT закрыта={}", longClosed, shortClosed);
+        log.warn("Не все позиции закрыты для пары {}: LONG закрыта={}, SHORT закрыта={}", pairData.getPairName(), longClosed, shortClosed);
         return buildOpenPositionInfo();
     }
 
@@ -171,7 +178,8 @@ public class TradingIntegrationService {
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
-        if (!positionsExistInMap(longPositionId, shortPositionId, pairData)) {
+        if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+            log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
             return buildClosedPositionInfo();
         }
 
@@ -185,13 +193,13 @@ public class TradingIntegrationService {
             calculateUnrealizedPnL(longPosition, shortPosition);
             BigDecimal totalPnL = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
 
-            log.debug("📊 Актуальный PnL для открытых позиций {}: {}", pairData.getPairName(), totalPnL);
+            log.info("Текущий PnL для открытых позиций пары {}: {}", pairData.getPairName(), totalPnL);
 
             return buildOpenPositionInfo(longPosition, shortPosition, totalPnL);
         }
 
-        log.warn("⚠️ Не все позиции открыты на бирже: LONG открыта={}, SHORT открыта={}",
-                isOpen(longPosition), isOpen(shortPosition));
+        log.warn("Не все позиции открыты для пары {}: LONG открыта={}, SHORT открыта={}",
+                pairData.getPairName(), isOpen(longPosition), isOpen(shortPosition));
 
         return buildPartiallyClosedInfo(longPosition, shortPosition);
     }
@@ -200,42 +208,44 @@ public class TradingIntegrationService {
      * Получение актуальной информации по позициям для пары
      */
     public Positioninfo getPositionInfo(PairData pairData) {
-        log.info("ℹ️ Запрос информации о позициях для пары {}", pairData.getPairName());
+        log.info("Запрос информации о позициях для пары {}", pairData.getPairName());
 
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
 
-        if (!positionsExistInMap(longPositionId, shortPositionId, pairData)) {
+        if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+            log.warn("Не найдены ID позиций для пары {}", pairData.getPairName());
             return Positioninfo.builder().build();
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        log.debug("Текущий провайдер: {}", provider.getClass().getSimpleName());
+        log.debug("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
 
         Position longPosition = provider.getPosition(longPositionId);
         Position shortPosition = provider.getPosition(shortPositionId);
 
         if (positionsAreNull(longPosition, shortPosition, pairData)) {
+            log.error("Позиции равны null для пары {}", pairData.getPairName());
             return Positioninfo.builder().build();
         }
 
         boolean bothClosed = isClosed(longPosition) && isClosed(shortPosition);
-        log.debug("Статус позиций: LONG закрыта={}, SHORT закрыта={}", isClosed(longPosition), isClosed(shortPosition));
+        log.debug("Статус позиций для пары {}: LONG закрыта={}, SHORT закрыта={}", pairData.getPairName(), isClosed(longPosition), isClosed(shortPosition));
 
         if (bothClosed) {
-            log.info("✅ Обе позиции для пары {} уже закрыты.", pairData.getPairName());
+            log.info("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
             return buildPositionInfo(true, longPosition, shortPosition);
         }
 
-        log.debug("Позиции еще открыты, обновляем цены...");
+        log.debug("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
         provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-        log.debug("Цены обновлены.");
+        log.debug("Цены для пары {} обновлены.", pairData.getPairName());
 
         return buildPositionInfo(false, longPosition, shortPosition);
     }
 
     public void removePairFromLocalStorage(PairData pairData) {
-        log.info("Удаляем связи из реестра для пары {}", pairData.getPairName());
+        log.info("Удаляем сохранённые ID позиций из локального реестра для пары {}", pairData.getPairName());
         pairToLongPositionMap.remove(pairData.getId());
         pairToShortPositionMap.remove(pairData.getId());
     }
@@ -246,9 +256,11 @@ public class TradingIntegrationService {
     public void updateAllPositions() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         try {
+            log.info("🔄 Обновление цен по всем открытым позициям...");
             provider.updatePositionPrices(); // Полностью синхронно
+            log.info("✅ Обновление цен завершено успешно.");
         } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
+            log.error("❌ Ошибка при обновлении цен по позициям: {}", e.getMessage(), e);
         }
     }
 
@@ -293,39 +305,82 @@ public class TradingIntegrationService {
     }
 
     private TradeResult openLong(TradingProvider provider, PairData pairData, BigDecimal amount, BigDecimal leverage) {
-        log.info("🟢 Открытие LONG позиции: {} с размером {}", pairData.getLongTicker(), amount);
+        log.info("🟢 Открытие LONG позиции по тикеру {}. Сумма: {}, плечо: {}", pairData.getLongTicker(), amount, leverage);
         TradeResult result = provider.openLongPosition(pairData.getLongTicker(), amount, leverage);
-        log.info("Результат открытия LONG позиции: {}", result);
+
+        if (result.isSuccess()) {
+            log.info("✅ LONG позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {}, комиссии: {}",
+                    pairData.getLongTicker(),
+                    result.getPositionId(),
+                    result.getPnl(),
+                    result.getFees());
+        } else {
+            log.warn("❌ Не удалось открыть LONG позицию по тикеру {}. Ошибка: {}", pairData.getLongTicker(), result.getErrorMessage());
+        }
+
         return result;
     }
 
     private TradeResult openShort(TradingProvider provider, PairData pairData, BigDecimal amount, BigDecimal leverage) {
-        log.info("🔴 Открытие SHORT позиции: {} с размером {}", pairData.getShortTicker(), amount);
+        log.info("🔴 Открытие SHORT позиции по тикеру {}. Сумма: {}, плечо: {}", pairData.getShortTicker(), amount, leverage);
         TradeResult result = provider.openShortPosition(pairData.getShortTicker(), amount, leverage);
-        log.info("Результат открытия SHORT позиции: {}", result);
+
+        if (result.isSuccess()) {
+            log.info("✅ SHORT позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {}, комиссии: {}",
+                    pairData.getShortTicker(),
+                    result.getPositionId(),
+                    result.getPnl(),
+                    result.getFees());
+        } else {
+            log.warn("❌ Не удалось открыть SHORT позицию по тикеру {}. Ошибка: {}", pairData.getShortTicker(), result.getErrorMessage());
+        }
+
         return result;
     }
 
     private void rollbackIfNecessary(TradingProvider provider, TradeResult longResult, TradeResult shortResult) {
-        log.warn("Одна из позиций не открылась. Производим откат...");
+        log.warn("⚠️ Одна из позиций не была успешно открыта. Начинаем откат...");
+
         if (longResult.isSuccess()) {
-            log.info("Закрываем успешно открытую LONG позицию: {}", longResult.getPositionId());
-            provider.closePosition(longResult.getPositionId());
+            log.info("🔁 Закрытие ранее открытой LONG позиции. ID: {}", longResult.getPositionId());
+            TradeResult closeResult = provider.closePosition(longResult.getPositionId());
+
+            if (closeResult.isSuccess()) {
+                log.info("✅ LONG позиция успешно закрыта.");
+            } else {
+                log.error("❌ Ошибка при закрытии LONG позиции: {}", closeResult.getErrorMessage());
+            }
         }
+
         if (shortResult.isSuccess()) {
-            log.info("Закрываем успешно открытую SHORT позицию: {}", shortResult.getPositionId());
-            provider.closePosition(shortResult.getPositionId());
+            log.info("🔁 Закрытие ранее открытой SHORT позиции. ID: {}", shortResult.getPositionId());
+            TradeResult closeResult = provider.closePosition(shortResult.getPositionId());
+
+            if (closeResult.isSuccess()) {
+                log.info("✅ SHORT позиция успешно закрыта.");
+            } else {
+                log.error("❌ Ошибка при закрытии SHORT позиции: {}", closeResult.getErrorMessage());
+            }
         }
     }
 
     private void savePositionIds(PairData pairData, TradeResult longResult, TradeResult shortResult) {
         pairToLongPositionMap.put(pairData.getId(), longResult.getPositionId());
         pairToShortPositionMap.put(pairData.getId(), shortResult.getPositionId());
-        log.info("Сохранены ID позиций в мапу: LONG ID = {}, SHORT ID = {}", longResult.getPositionId(), shortResult.getPositionId());
+
+        log.info("💾 Сохранены ID открытых позиций для пары {}: LONG = {}, SHORT = {}",
+                pairData.getPairName(),
+                longResult.getPositionId(),
+                shortResult.getPositionId());
     }
 
     private ArbitragePairTradeInfo buildSuccess(TradeResult longResult, TradeResult shortResult, PairData pairData) {
-        log.info("✅ Открыта арбитражная пара: {} LONG / {} SHORT", pairData.getLongTicker(), pairData.getShortTicker());
+        log.info("✅ УСПЕХ: Арбитражная пара открыта — LONG: {} (ID: {}), SHORT: {} (ID: {})",
+                pairData.getLongTicker(),
+                longResult.getPositionId(),
+                pairData.getShortTicker(),
+                shortResult.getPositionId());
+
         return ArbitragePairTradeInfo.builder()
                 .success(true)
                 .longTradeResult(longResult)
@@ -339,33 +394,50 @@ public class TradingIntegrationService {
                 .build();
     }
 
-    private boolean positionsExistInMap(String longId, String shortId, PairData pairData) {
+    private boolean positionsMissingInMap(String longId, String shortId, PairData pairData) {
         if (longId == null || shortId == null) {
-            log.warn("⚠️ Не найдены ID позиций в мапе для пары {}.", pairData.getPairName());
-            return false;
+            log.warn("⚠️ Не найдены ID позиций в локальном хранилище для пары {}. LONG: {}, SHORT: {}",
+                    pairData.getPairName(), longId, shortId);
+            return true;
         }
-        log.info("ID позиций из мапы: LONG ID = {}, SHORT ID = {}", longId, shortId);
-        return true;
+        log.info("✅ Найдены ID позиций: LONG = {}, SHORT = {} для пары {}", longId, shortId, pairData.getPairName());
+        return false;
     }
 
     private TradeResult closePosition(TradingProvider provider, String positionId, String type) {
-        log.info("{} Закрытие {} позиции: ID = {}", type.equals("LONG") ? "🔴" : "🟢", type, positionId);
+        String emoji = type.equalsIgnoreCase("LONG") ? "🔴" : "🟢";
+        String positionLabel = type.equalsIgnoreCase("LONG") ? "лонг" : "шорт";
+
+        log.info("{} Закрытие {} позиции. ID: {}", emoji, positionLabel.toUpperCase(), positionId);
         TradeResult result = provider.closePosition(positionId);
-        log.info("Результат закрытия {} позиции: {}", type, result);
+
+        if (result.isSuccess()) {
+            log.info("✅ Позиция {} успешно закрыта. ID: {}, PnL: {}, Комиссия: {}",
+                    positionLabel, positionId, result.getPnl(), result.getFees());
+        } else {
+            log.warn("❌ Не удалось закрыть {} позицию. ID: {}, Ошибка: {}",
+                    positionLabel, positionId, result.getErrorMessage());
+        }
+
         return result;
     }
+
 
     private void logSuccess(PairData pairData, TradeResult longResult, TradeResult shortResult) {
         BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
         BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
-        log.info("✅ УСПЕШНО закрыта арбитражная пара: {} | Общий PnL: {} | Общие комиссии: {}",
-                pairData.getPairName(), totalPnL, totalFees);
+
+        log.info("✅ Арбитражная пара {} УСПЕШНО закрыта.", pairData.getPairName());
+        log.info("📈 Общий доход (PnL): {} USDT", totalPnL);
+        log.info("💸 Общая комиссия: {} USDT", totalFees);
+        log.info("🟢 LONG: PnL = {}, комиссия = {}", longResult.getPnl(), longResult.getFees());
+        log.info("🔴 SHORT: PnL = {}, комиссия = {}", shortResult.getPnl(), shortResult.getFees());
     }
 
     private void logFailure(PairData pairData, TradeResult longResult, TradeResult shortResult) {
-        log.error("❌ ОШИБКА при закрытии арбитражной пары {}: Long={}, Short={}",
-                pairData.getPairName(),
-                longResult.getErrorMessage(), shortResult.getErrorMessage());
+        log.error("❌ Ошибка при закрытии арбитражной пары {}.", pairData.getPairName());
+        log.error("🟢 LONG позиция ошибка: {}", longResult.getErrorMessage());
+        log.error("🔴 SHORT позиция ошибка: {}", shortResult.getErrorMessage());
     }
 
     private BigDecimal calculateTotalPnlPercent(Position longPosition, Position shortPosition) {
@@ -434,10 +506,11 @@ public class TradingIntegrationService {
 
     private boolean positionsAreNull(Position longPosition, Position shortPosition, PairData pairData) {
         if (longPosition == null || shortPosition == null) {
-            log.error("❌ Ошибка расчета changes - позиции равны null для пары {}", pairData.getPairName());
+            log.error("❌ Ошибка: позиции равны null для пары '{}'. LONG позиция: {}, SHORT позиция: {}",
+                    pairData.getPairName(), longPosition, shortPosition);
             return true;
         }
-        log.debug("Получены позиции: LONG={}, SHORT={}", longPosition, shortPosition);
+        log.debug("Получены позиции для пары '{}': LONG={}, SHORT={}", pairData.getPairName(), longPosition, shortPosition);
         return false;
     }
 
