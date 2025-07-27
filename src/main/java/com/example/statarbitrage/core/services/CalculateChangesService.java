@@ -12,14 +12,14 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CalculateChangesService {
 
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
-    private static final RoundingMode DEFAULT_ROUNDING_MODE = RoundingMode.HALF_UP;
-    private static final int DEFAULT_SCALE = 2;
 
     private final TradingIntegrationService tradingIntegrationService;
 
@@ -66,10 +66,10 @@ public class CalculateChangesService {
     private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
 
-        BigDecimal netPnlUSDT = scale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()));
-//        BigDecimal netPnlPercent = scale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent())); //todo не то что на окх... странно
-        BigDecimal netPnlPercent = scale(calcPercent(longPosition, shortPosition));
-        BigDecimal totalFees = scale(longPosition.getOpeningFees().add(shortPosition.getOpeningFees()));
+        BigDecimal netPnlUSDT = safeScale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()));
+//        BigDecimal netPnlPercent = scale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent())); //не то что на окх...
+        BigDecimal netPnlPercent = safeScale(calcPercent(longPosition, shortPosition));
+        BigDecimal totalFees = safeScale(longPosition.getOpeningFees().add(shortPosition.getOpeningFees()));
 
         log.info("Нереализованный PnL в USDT: {}, в %: {}, комиссии: {}", netPnlUSDT, netPnlPercent, totalFees);
 
@@ -92,9 +92,9 @@ public class CalculateChangesService {
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromClosedPositions для пары {}", pairData.getPairName());
 
-        BigDecimal netPnlUSDT = scale(longPosition.getRealizedPnLUSDT().add(shortPosition.getRealizedPnLUSDT()));
-        BigDecimal netPnlPercent = scale(longPosition.getRealizedPnLPercent().add(shortPosition.getRealizedPnLPercent()));
-        BigDecimal totalFees = scale(
+        BigDecimal netPnlUSDT = safeScale(longPosition.getRealizedPnLUSDT().add(shortPosition.getRealizedPnLUSDT()));
+        BigDecimal netPnlPercent = safeScale(longPosition.getRealizedPnLPercent().add(shortPosition.getRealizedPnLPercent()));
+        BigDecimal totalFees = safeScale(
                 safeAdd(longPosition.getOpeningFees(), longPosition.getClosingFees())
                         .add(safeAdd(shortPosition.getOpeningFees(), shortPosition.getClosingFees())));
 
@@ -107,14 +107,14 @@ public class CalculateChangesService {
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
-        changesData.setLongAllocatedAmount(scale(longPosition.getAllocatedAmount()));
-        changesData.setShortAllocatedAmount(scale(shortPosition.getAllocatedAmount()));
+        changesData.setLongAllocatedAmount(safeScale(longPosition.getAllocatedAmount())); //todo сетим каждый вызов тк changesData создается каждый раз
+        changesData.setShortAllocatedAmount(safeScale(shortPosition.getAllocatedAmount()));
 
-        BigDecimal totalInvestmentUSDT = scale(longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount()));
+        BigDecimal totalInvestmentUSDT = safeScale(longPosition.getAllocatedAmount().add(shortPosition.getAllocatedAmount()));
         changesData.setTotalInvestmentUSDT(totalInvestmentUSDT);
 
-        changesData.setLongChanges(scale(longPosition.getUnrealizedPnLPercent()));
-        changesData.setShortChanges(scale(shortPosition.getUnrealizedPnLPercent()));
+        changesData.setLongChanges(safeScale(longPosition.getUnrealizedPnLPercent()));
+        changesData.setShortChanges(safeScale(shortPosition.getUnrealizedPnLPercent()));
 
         changesData.setProfitUSDTChanges(netPnlUSDT);
         changesData.setProfitPercentChanges(netPnlPercent);
@@ -127,10 +127,10 @@ public class CalculateChangesService {
     private ChangesData getStatistics(PairData pairData, ChangesData changesData) {
         BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
         BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
-        changesData.setZScoreChanges(scale(zScoreCurrent.subtract(zScoreEntry)));
+        changesData.setZScoreChanges(safeScale(zScoreCurrent.subtract(zScoreEntry)));
 
         long currentTimeInMinutes = calculateTimeInMinutes(pairData.getEntryTime());
-        ProfitExtremums profitExtremums = updateProfitExtremums(changesData, currentTimeInMinutes);
+        ProfitExtremums profitExtremums = updateProfitExtremums(pairData, changesData, currentTimeInMinutes);
 
         updateExtremumValues(pairData, changesData, changesData.getLongChanges(), changesData.getShortChanges(),
                 BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
@@ -149,26 +149,48 @@ public class CalculateChangesService {
         return (System.currentTimeMillis() - entryTime) / MILLISECONDS_IN_MINUTE;
     }
 
-    private ProfitExtremums updateProfitExtremums(ChangesData changesData, long currentTimeInMinutes) {
-        BigDecimal currentProfit = changesData.getProfitPercentChanges() != null ? changesData.getProfitPercentChanges() : BigDecimal.ZERO;
-        MaxProfitResult max = updateMaxProfit(currentProfit, changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMax(), currentTimeInMinutes);
-        MinProfitResult min = updateMinProfit(currentProfit, changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMin(), currentTimeInMinutes);
-        return new ProfitExtremums(max.maxProfit(), min.minProfit(), max.timeToMax(), min.timeToMin(), currentProfit);
+    private ProfitExtremums updateProfitExtremums(PairData pairData, ChangesData changesData, long currentTimeInMinutes) {
+        BigDecimal currentProfit = changesData.getProfitPercentChanges() != null
+                ? changesData.getProfitPercentChanges()
+                : BigDecimal.ZERO;
+
+        // Инициализируем max/min значениями из pairData или currentProfit при первом заходе
+        BigDecimal maxProfit = pairData.getMaxProfitChanges() != null
+                ? pairData.getMaxProfitChanges()
+                : currentProfit;
+
+        BigDecimal minProfit = pairData.getMinProfitChanges() != null
+                ? pairData.getMinProfitChanges()
+                : currentProfit;
+
+        long timeToMax = pairData.getTimeInMinutesSinceEntryToMax() > 0
+                ? pairData.getTimeInMinutesSinceEntryToMax()
+                : currentTimeInMinutes;
+
+        long timeToMin = pairData.getTimeInMinutesSinceEntryToMin() > 0
+                ? pairData.getTimeInMinutesSinceEntryToMin()
+                : currentTimeInMinutes;
+
+        // Обновление значений
+        if (currentProfit.compareTo(maxProfit) > 0) {
+            maxProfit = currentProfit;
+            timeToMax = currentTimeInMinutes;
+        }
+
+        if (currentProfit.compareTo(minProfit) < 0) {
+            minProfit = currentProfit;
+            timeToMin = currentTimeInMinutes;
+        }
+
+        return new ProfitExtremums(maxProfit, minProfit, timeToMax, timeToMin, currentProfit);
     }
 
-    private MaxProfitResult updateMaxProfit(BigDecimal current, BigDecimal max, long timeToMax, long now) {
-        return (max == null || current.compareTo(max) > 0) ? new MaxProfitResult(current, now) : new MaxProfitResult(max, timeToMax);
-    }
-
-    private MinProfitResult updateMinProfit(BigDecimal current, BigDecimal min, long timeToMin, long now) {
-        return (min == null || current.compareTo(min) < 0) ? new MinProfitResult(current, now) : new MinProfitResult(min, timeToMin);
-    }
 
     private void logFinalResults(PairData pairData, ChangesData changesData) {
         log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
         log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
         log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
-        log.info("📈 Max profit: {} %, Min profit: {} %", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges()); //todo постоянно перезаписываются и не сохраняют экстремумы!
+        log.info("📈 Max profit: {} %, Min profit: {} %", changesData.getMaxProfitChanges(), changesData.getMinProfitChanges());
     }
 
     private void updateExtremumValues(PairData pairData, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
@@ -195,16 +217,10 @@ public class CalculateChangesService {
         return (a != null ? a : BigDecimal.ZERO).add(b != null ? b : BigDecimal.ZERO);
     }
 
-    private BigDecimal scale(BigDecimal value) {
-        return value != null ? value.setScale(DEFAULT_SCALE, DEFAULT_ROUNDING_MODE) : null;
-    }
+//    private BigDecimal scale(BigDecimal value) {
+//        return value != null ? value.setScale(DEFAULT_SCALE, DEFAULT_ROUNDING_MODE) : null;
+//    }
 
     private record ProfitExtremums(BigDecimal maxProfit, BigDecimal minProfit, long timeToMax, long timeToMin, BigDecimal currentProfit) {
-    }
-
-    private record MaxProfitResult(BigDecimal maxProfit, long timeToMax) {
-    }
-
-    private record MinProfitResult(BigDecimal minProfit, long timeToMin) {
     }
 }
