@@ -10,6 +10,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -39,8 +40,8 @@ import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RealOkxTradingProvider implements TradingProvider {
-
     private final OkxPortfolioManager okxPortfolioManager;
     private final OkxClient okxClient;
     private final GeolocationService geolocationService;
@@ -83,11 +84,11 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String ACCOUNT_CONFIG_ENDPOINT = "/api/v5/account/config";
     private static final String SET_LEVERAGE_ENDPOINT = "/api/v5/account/set-leverage";
 
-    public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient, GeolocationService geolocationService) {
-        this.okxPortfolioManager = okxPortfolioManager;
-        this.okxClient = okxClient;
-        this.geolocationService = geolocationService;
-    }
+//    public RealOkxTradingProvider(OkxPortfolioManager okxPortfolioManager, OkxClient okxClient, GeolocationService geolocationService) {
+//        this.okxPortfolioManager = okxPortfolioManager;
+//        this.okxClient = okxClient;
+//        this.geolocationService = geolocationService;
+//    }
 
     @Override
     public Portfolio getPortfolio() {
@@ -447,7 +448,6 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     // Приватные методы для работы с OKX API
-
 
     private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
         log.info("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);

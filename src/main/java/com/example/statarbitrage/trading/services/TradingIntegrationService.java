@@ -2,10 +2,10 @@ package com.example.statarbitrage.trading.services;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
-import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TradingIntegrationService {
 
     private final TradingProviderFactory tradingProviderFactory;
@@ -28,18 +29,17 @@ public class TradingIntegrationService {
     // Хранилище связей между PairData и торговыми позициями
     private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
-    private final SettingsService settingsService;
     private final PositionSizeService positionSizeService;
     private final AdaptiveAmountService adaptiveAmountService;
     private final ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService;
 
-    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PositionSizeService positionSizeService, AdaptiveAmountService adaptiveAmountService, ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService) {
-        this.tradingProviderFactory = tradingProviderFactory;
-        this.settingsService = settingsService;
-        this.positionSizeService = positionSizeService;
-        this.adaptiveAmountService = adaptiveAmountService;
-        this.validateMinimumLotRequirementsService = validateMinimumLotRequirementsService;
-    }
+//    public TradingIntegrationService(TradingProviderFactory tradingProviderFactory, SettingsService settingsService, PositionSizeService positionSizeService, AdaptiveAmountService adaptiveAmountService, ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService) {
+//        this.tradingProviderFactory = tradingProviderFactory;
+//        this.settingsService = settingsService;
+//        this.positionSizeService = positionSizeService;
+//        this.adaptiveAmountService = adaptiveAmountService;
+//        this.validateMinimumLotRequirementsService = validateMinimumLotRequirementsService;
+//    }
 
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
@@ -94,8 +94,7 @@ public class TradingIntegrationService {
                 }
 
                 log.info("🔴 Открытие SHORT позиции: {} с размером {}", pairData.getShortTicker(), shortAmount);
-                TradeResult shortResult = provider.openShortPosition(
-                        pairData.getShortTicker(), shortAmount, leverage);
+                TradeResult shortResult = provider.openShortPosition(pairData.getShortTicker(), shortAmount, leverage);
                 log.info("Результат открытия SHORT позиции: {}", shortResult);
 
                 if (longResult.isSuccess() && shortResult.isSuccess()) {

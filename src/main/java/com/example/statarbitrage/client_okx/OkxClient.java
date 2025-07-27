@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -25,6 +26,7 @@ import java.util.stream.IntStream;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class OkxClient {
     // Оптимизированный HTTP клиент с пулом соединений и таймаутами
     private static final OkHttpClient client = new OkHttpClient.Builder()
@@ -141,6 +143,7 @@ public class OkxClient {
     }
 
     public JsonArray getTicker(String symbol) {
+
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/market/ticker?instId=" + symbol)
                 .build();
