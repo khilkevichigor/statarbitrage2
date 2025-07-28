@@ -17,7 +17,11 @@ public class BigDecimalUtil {
         }
     }
 
-    public static BigDecimal safeScale(BigDecimal value) {
-        return value != null ? value.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+    public static BigDecimal safeScale(BigDecimal value, int scale) {
+        return value != null ? value.setScale(scale, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+    }
+
+    public static BigDecimal safeAdd(BigDecimal a, BigDecimal b) {
+        return (a != null ? a : BigDecimal.ZERO).add(b != null ? b : BigDecimal.ZERO);
     }
 }

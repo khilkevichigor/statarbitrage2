@@ -133,7 +133,7 @@ public class UpdateTradeProcessor {
         log.info("Результат верификации закрытия позиций: {}", verificationResult);
 
         if (verificationResult.isPositionsClosed()) {
-            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}, PnL: {}", pairData.getPairName(), verificationResult.getTotalPnL());
+            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}, PnL: {} USDT ({} %)", pairData.getPairName(), verificationResult.getTotalPnLUSDT(), verificationResult.getTotalPnLPercent());
             PairData result = handleTradeError(pairData, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
             log.info("<== handleNoOpenPositions: КОНЕЦ (позиции закрыты) для пары {}", pairData.getPairName());
             return result;

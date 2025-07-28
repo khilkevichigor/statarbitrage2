@@ -147,7 +147,7 @@ public class TradingIntegrationService {
 
         if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
-            return buildClosedPositionInfo(BigDecimal.ZERO);
+            return buildClosedPositionInfo(BigDecimal.ZERO, BigDecimal.ZERO);
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
@@ -159,12 +159,13 @@ public class TradingIntegrationService {
         boolean longClosed = isClosed(longPosition);
         boolean shortClosed = isClosed(shortPosition);
 
-        if (longClosed && shortClosed) {
+        if (!areBothClosed(longPosition, shortPosition)) {
+            BigDecimal finalPnlUSDT = calculateTotalPnlUSDT(longPosition, shortPosition);
             BigDecimal finalPnlPercent = calculateTotalPnlPercent(longPosition, shortPosition);
             removePairFromLocalStorage(pairData);
-            log.info("Удалены закрытые позиции из реестра для пары {}. Итоговый PnL: {}%", pairData.getPairName(), finalPnlPercent);
+            log.info("Удалены закрытые позиции из реестра для пары {}. Итоговый PnL: {} USDT ({} %)", pairData.getPairName(), finalPnlUSDT, finalPnlPercent);
 
-            return buildClosedPositionInfo(finalPnlPercent);
+            return buildClosedPositionInfo(finalPnlUSDT, finalPnlPercent);
         }
 
         log.warn("Не все позиции закрыты для пары {}: LONG закрыта={}, SHORT закрыта={}", pairData.getPairName(), longClosed, shortClosed);
@@ -191,11 +192,12 @@ public class TradingIntegrationService {
 
         if (areBothOpen(longPosition, shortPosition)) {
             calculateUnrealizedPnL(longPosition, shortPosition);
-            BigDecimal totalPnL = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
+            BigDecimal totalPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
+            BigDecimal totalPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
 
-            log.info("Текущий PnL для открытых позиций пары {}: {}", pairData.getPairName(), totalPnL);
+            log.info("Текущий PnL для открытых позиций пары {}: {} USDT ({} %)", pairData.getPairName(), totalPnlUSDT, totalPnlPercent);
 
-            return buildOpenPositionInfo(longPosition, shortPosition, totalPnL);
+            return buildOpenPositionInfo(longPosition, shortPosition, totalPnlUSDT, totalPnlPercent);
         }
 
         log.warn("Не все позиции открыты для пары {}: LONG открыта={}, SHORT открыта={}",
@@ -443,6 +445,17 @@ public class TradingIntegrationService {
         log.error("🔴 SHORT позиция ошибка: {}", shortResult.getErrorMessage());
     }
 
+    private BigDecimal calculateTotalPnlUSDT(Position longPosition, Position shortPosition) {
+        BigDecimal pnl = BigDecimal.ZERO;
+        if (longPosition != null) {
+            pnl = pnl.add(longPosition.getRealizedPnLUSDT());
+        }
+        if (shortPosition != null) {
+            pnl = pnl.add(shortPosition.getRealizedPnLUSDT());
+        }
+        return pnl;
+    }
+
     private BigDecimal calculateTotalPnlPercent(Position longPosition, Position shortPosition) {
         BigDecimal pnl = BigDecimal.ZERO;
         if (longPosition != null) {
@@ -454,17 +467,19 @@ public class TradingIntegrationService {
         return pnl;
     }
 
-    private Positioninfo buildClosedPositionInfo(BigDecimal pnl) {
+    private Positioninfo buildClosedPositionInfo(BigDecimal pnlUSDT, BigDecimal pnlPercent) {
         return Positioninfo.builder()
                 .positionsClosed(true)
-                .totalPnL(pnl)
+                .totalPnLUSDT(pnlUSDT)
+                .totalPnLPercent(pnlPercent)
                 .build();
     }
 
     private Positioninfo buildOpenPositionInfo() {
         return Positioninfo.builder()
                 .positionsClosed(false)
-                .totalPnL(BigDecimal.ZERO)
+                .totalPnLUSDT(BigDecimal.ZERO)
+                .totalPnLPercent(BigDecimal.ZERO)
                 .build();
     }
 
@@ -476,18 +491,22 @@ public class TradingIntegrationService {
         return isOpen(longPos) && isOpen(shortPos);
     }
 
+    private boolean areBothClosed(Position longPos, Position shortPos) {
+        return isClosed(longPos) && isClosed(shortPos);
+    }
+
     private void calculateUnrealizedPnL(Position longPos, Position shortPos) {
-        // todo заменить на получение данных с OKX
         longPos.calculateUnrealizedPnL();
         shortPos.calculateUnrealizedPnL();
     }
 
-    private Positioninfo buildOpenPositionInfo(Position longPos, Position shortPos, BigDecimal totalPnL) {
+    private Positioninfo buildOpenPositionInfo(Position longPos, Position shortPos, BigDecimal totalPnLUSDT, BigDecimal totalPnLPercent) {
         return Positioninfo.builder()
                 .positionsClosed(false)
                 .longPosition(longPos)
                 .shortPosition(shortPos)
-                .totalPnL(totalPnL)
+                .totalPnLUSDT(totalPnLUSDT)
+                .totalPnLPercent(totalPnLPercent)
                 .build();
     }
 
@@ -496,14 +515,16 @@ public class TradingIntegrationService {
                 .positionsClosed(true)
                 .longPosition(longPos)
                 .shortPosition(shortPos)
-                .totalPnL(BigDecimal.ZERO)
+                .totalPnLUSDT(BigDecimal.ZERO)
+                .totalPnLPercent(BigDecimal.ZERO)
                 .build();
     }
 
     private Positioninfo buildClosedPositionInfo() {
         return Positioninfo.builder()
                 .positionsClosed(true)
-                .totalPnL(BigDecimal.ZERO)
+                .totalPnLUSDT(BigDecimal.ZERO)
+                .totalPnLPercent(BigDecimal.ZERO)
                 .build();
     }
 
