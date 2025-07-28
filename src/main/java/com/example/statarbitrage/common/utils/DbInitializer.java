@@ -28,7 +28,7 @@ public class DbInitializer {
                     .minWindowSize(100)
 
                     .useMinZFilter(true)
-                    .minZ(3.0)
+                    .minZ(3.5)
 
                     .useMinPValueFilter(true)
                     .minPValue(0.01)
