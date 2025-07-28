@@ -176,13 +176,13 @@ public class Position {
     /**
      * Расчет и установка реализованной прибыли/убытка (Net PnL) после закрытия позиции.
      *
-     * @param closedPnl   чистый доход от закрытия позиции (до вычета комиссий)
-     * @param closingFees комиссия, уплаченная при закрытии позиции
+     * @param closedPnlUSDT чистый доход от закрытия позиции (до вычета комиссий)
+     * @param closingFees   комиссия, уплаченная при закрытии позиции
      */
-    public void calculateAndSetRealizedPnL(BigDecimal closedPnl, BigDecimal closingFees) {
+    public void calculateAndSetRealizedPnL(BigDecimal closedPnlUSDT, BigDecimal closingFees) {
         // Проверка на валидность входных данных
-        if (entryPrice == null || closedPnl == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
-            log.warn("❌ Недостаточно данных для расчета PnL: entryPrice={}, closedPnl={}, size={}", entryPrice, closedPnl, size);
+        if (entryPrice == null || closedPnlUSDT == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
+            log.warn("❌ Недостаточно данных для расчета реализованного PnL: entryPrice={}, closedPnlUSDT={}, size={}", entryPrice, closedPnlUSDT, size);
             this.realizedPnLUSDT = BigDecimal.ZERO;
             this.realizedPnLPercent = BigDecimal.ZERO;
             return;
@@ -197,14 +197,14 @@ public class Position {
         BigDecimal totalFees = safeOpeningFees.add(safeClosingFees).subtract(safeFundingFees);
 
         // Итоговый реализованный доход
-        this.realizedPnLUSDT = closedPnl.subtract(totalFees);
+        this.realizedPnLUSDT = closedPnlUSDT.subtract(totalFees);
 
         // Сохраняем факт уплаты комиссии за закрытие
         this.closingFees = safeClosingFees;
 
         // Логгируем все детали
         log.info("📊 Расчет PnL:");
-        log.info("➡️ ClosedPnL (без комиссий): {}", closedPnl);
+        log.info("➡️ ClosedPnL (без комиссий): {}", closedPnlUSDT);
         log.info("➡️ OpeningFees: {}", safeOpeningFees);
         log.info("➡️ ClosingFees: {}", safeClosingFees);
         log.info("➡️ FundingFees: {}", safeFundingFees);

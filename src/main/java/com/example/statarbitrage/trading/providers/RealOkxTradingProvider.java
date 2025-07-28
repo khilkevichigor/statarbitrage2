@@ -229,7 +229,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // 2. Рассчитываем и сохраняем реализованный PnL
-            position.calculateAndSetRealizedPnL(closeOrderResult.getPnlPercent(), closeOrderResult.getFees());
+            position.calculateAndSetRealizedPnL(closeOrderResult.getPnlUSDT(), closeOrderResult.getFees());
 
             // 3. Обновляем статус и время последнего обновления
             position.setStatus(PositionStatus.CLOSED);
