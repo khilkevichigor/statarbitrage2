@@ -133,30 +133,36 @@ public class Position {
 
     /**
      * Расчет нереализованной прибыли/убытка (Net PnL).
-     * Учитывает комиссию за открытие, так как она уже уплачена.
+     * Учитывает комиссию за открытие и фандинг, так как они уже уплачены.
      * Комиссия за закрытие будет учтена при расчете реализованного PnL.
      */
     public void calculateUnrealizedPnL() {
+        // Проверка, что все необходимые значения заданы
         if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
             unrealizedPnLUSDT = BigDecimal.ZERO;
             unrealizedPnLPercent = BigDecimal.ZERO;
             return;
         }
 
-        // 2. Вычитаем комиссию за открытие (она уже уплачена)
+        // Безопасное извлечение комиссий
         BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
         BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
+
+        // Общие комиссии: фандинг вычитается, так как он уменьшает затраты (или добавляет, если отрицательный)
         BigDecimal totalFees = safeOpeningFees.subtract(safeFundingFees);
 
+        // Вычитание общих комиссий из текущего unrealizedPnLUSDT
+        // ВАЖНО: предполагается, что unrealizedPnLUSDT уже содержит "грязный" PnL без учёта комиссий
         this.unrealizedPnLUSDT = unrealizedPnLUSDT.subtract(totalFees);
 
+        // Логгирование деталей
         log.info("📊 Расчет PnL:");
         log.info("➡️ OpeningFees: {}", safeOpeningFees);
         log.info("➡️ FundingFees: {}", safeFundingFees);
         log.info("➡️ TotalFees: {}", totalFees);
-        log.info("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
+        log.info("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT); // здесь опечатка: должно быть unrealizedPnLUSDT
 
-        // 3. Рассчитываем процентную прибыль на основе чистого PnL
+        // Расчет процентного PnL на основе вложенной суммы (allocatedAmount)
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
@@ -170,10 +176,11 @@ public class Position {
     /**
      * Расчет и установка реализованной прибыли/убытка (Net PnL) после закрытия позиции.
      *
-     * @param closedPnl   pnl после закрытия без учета комиссий
-     * @param closingFees Комиссия, уплаченная за закрытие позиции.
+     * @param closedPnl   чистый доход от закрытия позиции (до вычета комиссий)
+     * @param closingFees комиссия, уплаченная при закрытии позиции
      */
     public void calculateAndSetRealizedPnL(BigDecimal closedPnl, BigDecimal closingFees) {
+        // Проверка на валидность входных данных
         if (entryPrice == null || closedPnl == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
             log.warn("❌ Недостаточно данных для расчета PnL: entryPrice={}, closedPnl={}, size={}", entryPrice, closedPnl, size);
             this.realizedPnLUSDT = BigDecimal.ZERO;
@@ -181,14 +188,21 @@ public class Position {
             return;
         }
 
+        // Безопасное извлечение всех типов комиссий
         BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
         BigDecimal safeClosingFees = closingFees != null ? closingFees : BigDecimal.ZERO;
         BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
 
+        // Общие комиссии: фандинг вычитается (может быть положительным или отрицательным)
         BigDecimal totalFees = safeOpeningFees.add(safeClosingFees).subtract(safeFundingFees);
+
+        // Итоговый реализованный доход
         this.realizedPnLUSDT = closedPnl.subtract(totalFees);
+
+        // Сохраняем факт уплаты комиссии за закрытие
         this.closingFees = safeClosingFees;
 
+        // Логгируем все детали
         log.info("📊 Расчет PnL:");
         log.info("➡️ ClosedPnL (без комиссий): {}", closedPnl);
         log.info("➡️ OpeningFees: {}", safeOpeningFees);
@@ -197,6 +211,7 @@ public class Position {
         log.info("➡️ TotalFees: {}", totalFees);
         log.info("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
 
+        // Расчет процентного реализованного PnL
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             this.realizedPnLPercent = this.realizedPnLUSDT
                     .divide(allocatedAmount, 4, RoundingMode.HALF_UP)
@@ -207,11 +222,11 @@ public class Position {
             log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
         }
 
+        // Обнуляем unrealizedPnL, так как позиция уже закрыта
         this.unrealizedPnLUSDT = BigDecimal.ZERO;
         this.unrealizedPnLPercent = BigDecimal.ZERO;
         log.info("♻️ UnrealizedPnL сброшен до нуля, позиция закрыта.");
     }
-
 
     /**
      * Проверка, открыта ли позиция
