@@ -1150,6 +1150,8 @@ public class RealOkxTradingProvider implements TradingProvider {
             String uTime = getJsonStringValue(okxPosition, "uTime");
             String ccy = getJsonStringValue(okxPosition, "ccy");
             String bePx = getJsonStringValue(okxPosition, "bePx");
+            String fee = getJsonStringValue(okxPosition, "fee");
+            String fundingFee = getJsonStringValue(okxPosition, "fundingFee");
 
             if ("N/A".equals(instId)) {
                 log.debug("⚠️ Пропускаем позицию с пустым instId");
@@ -1166,36 +1168,32 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.info("🔹 pos            : {} {} (размер позиции)", pos, posCcy);
             log.info("🔹 posCcy         : {} (валюта позиции)", posCcy);
             log.info("🔹 ccy            : {} (базовая валюта)", ccy);
-
-            BigDecimal scaledAvgPx = safeScale(avgPx);
-            BigDecimal scaledMarkPx = safeScale(markPx);
-            log.info("🔹 avgPx          : {} USDT (средняя цена входа)", scaledAvgPx);
-            log.info("🔹 markPx         : {} USDT (маркировочная цена){}",
-                    scaledMarkPx, scaledMarkPx != null && scaledMarkPx.compareTo(BigDecimal.ZERO) == 0 ? " ⚠️ [возможно неверная цена]" : "");
-
-            BigDecimal scaledUpl = safeScale(upl);
-            BigDecimal scaledUplRatio = safeScale(uplRatio);
-            log.info("🔹 upl            : {} USDT (нереализованный PnL)", scaledUpl);
-            log.info("🔹 uplRatio       : {} % (PnL в процентах){}",
-                    scaledUplRatio, scaledUplRatio != null && scaledUplRatio.compareTo(new BigDecimal("100")) > 0 ? " ⚠️ [выше 100%]" : "");
-
-            BigDecimal scaledRealizedPnl = safeScale(realizedPnlUSDT);
-            log.info("🔹 realizedPnl    : {} USDT (реализованный PnL){}",
-                    scaledRealizedPnl, scaledRealizedPnl != null && scaledRealizedPnl.compareTo(BigDecimal.ZERO) < 0 ? " ⚠️ [отрицательный доход]" : "");
-
-            BigDecimal scaledBePx = safeScale(bePx);
-            log.info("🔹 bePx           : {} USDT (цена безубыточности)", scaledBePx);
+            log.info("🔹 avgPx          : {} USDT (средняя цена входа)", avgPx);
+            log.info("🔹 markPx         : {} USDT (маркировочная цена)", markPx);
+            log.info("🔹 upl            : {} USDT (нереализованный PnL)", upl);
+            log.info("🔹 uplRatio       : {} % (PnL в процентах)", uplRatio);
+            log.info("🔹 realizedPnl    : {} USDT (реализованный PnL)", realizedPnlUSDT);
+            log.info("🔹 bePx           : {} USDT (цена безубыточности)", bePx);
             log.info("🔹 lever          : {}x (плечо)", lever);
-            log.info("🔹 margin         : {} USDT (используемая маржа)", safeScale(margin));
-            log.info("🔹 imr            : {} USDT (начальная маржа)", safeScale(imr));
-            log.info("🔹 mmr            : {} USDT (поддерживающая маржа)", safeScale(mmr));
-            log.info("🔹 notionalUsd    : {} USD (условная стоимость)", safeScale(notionalUsd));
-            log.info("🔹 interest       : {} (проценты)", safeScale(interest));
+            log.info("🔹 margin         : {} USDT (используемая маржа)", margin);
+            log.info("🔹 imr            : {} USDT (начальная маржа)", imr);
+            log.info("🔹 mmr            : {} USDT (поддерживающая маржа)", mmr);
+            log.info("🔹 notionalUsd    : {} USD (условная стоимость)", notionalUsd);
+            log.info("🔹 interest       : {} (проценты)", interest);
             log.info("🔹 tradeId        : {} (ID сделки)", tradeId);
             log.info("🔹 cTime          : {} (время открытия позиции)", cTime);
             log.info("🔹 uTime          : {} (время последнего обновления)", uTime);
+            log.info("🔹 fee            : {} USDT (все комиссии по позиции)", fee);
+            log.info("🔹 fundingFee     : {} USDT (фандинг комиссия)", fundingFee);
             log.info("📊 === КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ ===");
 
+            BigDecimal scaledAvgPx = safeScale(avgPx);
+            BigDecimal scaledMarkPx = safeScale(markPx);
+            BigDecimal scaledUpl = safeScale(upl);
+            BigDecimal scaledUplRatio = safeScale(uplRatio);
+            BigDecimal scaledRealizedPnl = safeScale(realizedPnlUSDT);
+            BigDecimal scaledFee = safeScale(fee);
+            BigDecimal scaledFundingFee = safeScale(fundingFee);
             // Ищем и обновляем внутреннюю позицию
             Position internalPosition = findPositionBySymbol(instId);
             if (internalPosition != null) {
@@ -1204,11 +1202,13 @@ public class RealOkxTradingProvider implements TradingProvider {
                 if (scaledUplRatio != null) internalPosition.setUnrealizedPnLPercent(scaledUplRatio);
                 if (scaledRealizedPnl != null) internalPosition.setRealizedPnLUSDT(scaledRealizedPnl);
                 if (scaledAvgPx != null) internalPosition.setEntryPrice(scaledAvgPx);
+                if (scaledFee != null) internalPosition.setOpeningFees(scaledFee);
+                if (scaledFundingFee != null) internalPosition.setFundingFees(scaledFundingFee);
                 if (!"N/A".equals(pos)) internalPosition.setSize(new BigDecimal(pos).abs());
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}",
-                        instId, scaledUpl, scaledUplRatio, scaledRealizedPnl, scaledMarkPx, pos);
+                log.info("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, комиссия={}, комиссия за фандинг={}",
+                        instId, scaledUpl, scaledUplRatio, scaledRealizedPnl, scaledMarkPx, pos, scaledFee, scaledFundingFee);
             } else {
                 log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
             }

@@ -97,6 +97,11 @@ public class Position {
     private BigDecimal openingFees;
 
     /**
+     * Комиссии за фандинг
+     */
+    private BigDecimal fundingFees;
+
+    /**
      * Комиссии за закрытие
      */
     private BigDecimal closingFees;
@@ -138,26 +143,27 @@ public class Position {
             return;
         }
 
-        BigDecimal priceDiff;
-        if (type == PositionType.LONG) {
-            priceDiff = currentPrice.subtract(entryPrice);
-        } else {
-            priceDiff = entryPrice.subtract(currentPrice);
-        }
-
-        // 1. Рассчитываем "грязную" прибыль/убыток (Gross PnL)
-        BigDecimal grossPnL = priceDiff.multiply(size);
-
         // 2. Вычитаем комиссию за открытие (она уже уплачена)
-        BigDecimal feesPaid = (this.openingFees != null) ? this.openingFees : BigDecimal.ZERO;
-        this.unrealizedPnLUSDT = grossPnL.subtract(feesPaid);
+        BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
+        BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
+        BigDecimal totalFees = safeOpeningFees.subtract(safeFundingFees);
+
+        this.unrealizedPnLUSDT = unrealizedPnLUSDT.subtract(totalFees);
+
+        log.info("📊 Расчет PnL:");
+        log.info("➡️ OpeningFees: {}", safeOpeningFees);
+        log.info("➡️ FundingFees: {}", safeFundingFees);
+        log.info("➡️ TotalFees: {}", totalFees);
+        log.info("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
 
         // 3. Рассчитываем процентную прибыль на основе чистого PnL
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
+            log.info("✅ UnrealizedPnL: {} % (на сумму вложений {})", this.unrealizedPnLPercent, allocatedAmount);
         } else {
             this.unrealizedPnLPercent = BigDecimal.ZERO;
+            log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
         }
     }
 
@@ -177,8 +183,9 @@ public class Position {
 
         BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
         BigDecimal safeClosingFees = closingFees != null ? closingFees : BigDecimal.ZERO;
+        BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
 
-        BigDecimal totalFees = safeOpeningFees.add(safeClosingFees);
+        BigDecimal totalFees = safeOpeningFees.add(safeClosingFees).subtract(safeFundingFees);
         this.realizedPnLUSDT = closedPnl.subtract(totalFees);
         this.closingFees = safeClosingFees;
 
@@ -186,6 +193,7 @@ public class Position {
         log.info("➡️ ClosedPnL (без комиссий): {}", closedPnl);
         log.info("➡️ OpeningFees: {}", safeOpeningFees);
         log.info("➡️ ClosingFees: {}", safeClosingFees);
+        log.info("➡️ FundingFees: {}", safeFundingFees);
         log.info("➡️ TotalFees: {}", totalFees);
         log.info("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
 

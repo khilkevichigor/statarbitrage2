@@ -109,8 +109,8 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges())).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges())).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(p -> safeScale(p.getLongChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        tradingPairsGrid.addColumn(p -> safeScale(p.getShortChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getLongPercentChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getShortPercentChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin())).setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax())).setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -132,8 +132,8 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges())).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges())).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        closedPairsGrid.addColumn(p -> safeScale(p.getLongChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        closedPairsGrid.addColumn(p -> safeScale(p.getShortChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getLongPercentChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getShortPercentChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin())).setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax())).setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -156,8 +156,8 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges())).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges())).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        errorPairsGrid.addColumn(p -> safeScale(p.getLongChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> safeScale(p.getShortChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getLongPercentChanges())).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getShortPercentChanges())).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMin())).setHeader("Min Long Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getTimeInMinutesSinceEntryToMax())).setHeader("Max Short Time (min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);

@@ -104,8 +104,8 @@ public class CalculateChangesService {
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
-        changesData.setLongChanges(safeScale(longPosition.getUnrealizedPnLPercent()));
-        changesData.setShortChanges(safeScale(shortPosition.getUnrealizedPnLPercent()));
+        changesData.setLongPercentChanges(safeScale(longPosition.getUnrealizedPnLPercent()));
+        changesData.setShortPercentChanges(safeScale(shortPosition.getUnrealizedPnLPercent()));
 
         changesData.setProfitUSDTChanges(netPnlUSDT);
         changesData.setProfitPercentChanges(netPnlPercent);
@@ -122,7 +122,7 @@ public class CalculateChangesService {
 
         ProfitExtremum profitExtremum = profitExtremumService.getProfitExtremums(pairData, changesData);
 
-        updateExtremumValues(pairData, changesData, changesData.getLongChanges(), changesData.getShortChanges(),
+        updateExtremumValues(pairData, changesData, changesData.getLongPercentChanges(), changesData.getShortPercentChanges(),
                 BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
 
         changesData.setMinProfitChanges(profitExtremum.minProfit());
@@ -136,8 +136,8 @@ public class CalculateChangesService {
     }
 
     private void logFinalResults(PairData pairData, ChangesData changesData) {
-        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongChanges());
-        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortChanges());
+        log.info("📊 LONG {}: Entry: {}, Current: {}, Changes: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongPercentChanges());
+        log.info("📉 SHORT {}: Entry: {}, Current: {}, Changes: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortPercentChanges());
         log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
         log.info("📈 Max profit: {} % ({} минут), Min profit: {} % ({} минут)", changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMax(), changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMin());
     }

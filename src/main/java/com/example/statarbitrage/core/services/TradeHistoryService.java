@@ -46,11 +46,11 @@ public class TradeHistoryService {
 
         tradeHistory.setMinLongPercent(pairData.getMinLong());
         tradeHistory.setMaxLongPercent(pairData.getMaxLong());
-        tradeHistory.setCurrentLongPercent(pairData.getLongChanges());
+        tradeHistory.setCurrentLongPercent(pairData.getLongPercentChanges());
 
         tradeHistory.setMinShortPercent(pairData.getMinShort());
         tradeHistory.setMaxShortPercent(pairData.getMaxShort());
-        tradeHistory.setCurrentShortPercent(pairData.getShortChanges());
+        tradeHistory.setCurrentShortPercent(pairData.getShortPercentChanges());
 
         tradeHistory.setMinZ(pairData.getMinZ());
         tradeHistory.setMaxZ(pairData.getMaxZ());

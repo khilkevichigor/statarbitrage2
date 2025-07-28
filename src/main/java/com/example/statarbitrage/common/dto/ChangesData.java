@@ -14,12 +14,12 @@ import java.math.BigDecimal;
 public class ChangesData {
     private BigDecimal minLong;
     private BigDecimal maxLong;
-    private BigDecimal longChanges;
+    private BigDecimal longPercentChanges;
     private BigDecimal longCurrentPrice;
 
     private BigDecimal minShort;
     private BigDecimal maxShort;
-    private BigDecimal shortChanges;
+    private BigDecimal shortPercentChanges;
     private BigDecimal shortCurrentPrice;
 
     private BigDecimal minZ;
