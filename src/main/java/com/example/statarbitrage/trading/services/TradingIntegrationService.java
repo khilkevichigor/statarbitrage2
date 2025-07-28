@@ -309,10 +309,11 @@ public class TradingIntegrationService {
         TradeResult result = provider.openLongPosition(pairData.getLongTicker(), amount, leverage);
 
         if (result.isSuccess()) {
-            log.info("✅ LONG позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {}, комиссии: {}",
+            log.info("✅ LONG позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
                     pairData.getLongTicker(),
                     result.getPositionId(),
-                    result.getPnl(),
+                    result.getPnlUSDT(),
+                    result.getPnlPercent(),
                     result.getFees());
         } else {
             log.warn("❌ Не удалось открыть LONG позицию по тикеру {}. Ошибка: {}", pairData.getLongTicker(), result.getErrorMessage());
@@ -326,10 +327,11 @@ public class TradingIntegrationService {
         TradeResult result = provider.openShortPosition(pairData.getShortTicker(), amount, leverage);
 
         if (result.isSuccess()) {
-            log.info("✅ SHORT позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {}, комиссии: {}",
+            log.info("✅ SHORT позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
                     pairData.getShortTicker(),
                     result.getPositionId(),
-                    result.getPnl(),
+                    result.getPnlUSDT(),
+                    result.getPnlPercent(),
                     result.getFees());
         } else {
             log.warn("❌ Не удалось открыть SHORT позицию по тикеру {}. Ошибка: {}", pairData.getShortTicker(), result.getErrorMessage());
@@ -413,7 +415,7 @@ public class TradingIntegrationService {
 
         if (result.isSuccess()) {
             log.info("✅ Позиция {} успешно закрыта. ID: {}, PnL: {}, Комиссия: {}",
-                    positionLabel, positionId, result.getPnl(), result.getFees());
+                    positionLabel, positionId, result.getPnlPercent(), result.getFees());
         } else {
             log.warn("❌ Не удалось закрыть {} позицию. ID: {}, Ошибка: {}",
                     positionLabel, positionId, result.getErrorMessage());
@@ -424,14 +426,15 @@ public class TradingIntegrationService {
 
 
     private void logSuccess(PairData pairData, TradeResult longResult, TradeResult shortResult) {
-        BigDecimal totalPnL = longResult.getPnl().add(shortResult.getPnl());
+        BigDecimal totalPnLUSDT = longResult.getPnlUSDT().add(shortResult.getPnlUSDT());
+        BigDecimal totalPnLPercent = longResult.getPnlPercent().add(shortResult.getPnlPercent());
         BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
 
         log.info("✅ Арбитражная пара {} УСПЕШНО закрыта.", pairData.getPairName());
-        log.info("📈 Общий доход (PnL): {} USDT", totalPnL);
+        log.info("📈 Общий доход (PnL): {} USDT ({} %)", totalPnLUSDT, totalPnLPercent);
         log.info("💸 Общая комиссия: {} USDT", totalFees);
-        log.info("🟢 LONG: PnL = {}, комиссия = {}", longResult.getPnl(), longResult.getFees());
-        log.info("🔴 SHORT: PnL = {}, комиссия = {}", shortResult.getPnl(), shortResult.getFees());
+        log.info("🟢 LONG: PnL = {} USDT ({} %), комиссия = {}", longResult.getPnlUSDT(), longResult.getPnlPercent(), longResult.getFees());
+        log.info("🔴 SHORT: PnL = {} USDT ({} %), комиссия = {}", shortResult.getPnlUSDT(), shortResult.getPnlPercent(), shortResult.getFees());
     }
 
     private void logFailure(PairData pairData, TradeResult longResult, TradeResult shortResult) {

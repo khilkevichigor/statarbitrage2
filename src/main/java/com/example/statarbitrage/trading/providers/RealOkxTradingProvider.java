@@ -303,7 +303,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // 2. Рассчитываем и сохраняем реализованный PnL
-            position.calculateAndSetRealizedPnL(closeOrderResult.getExecutionPrice(), closeOrderResult.getFees());
+            position.calculateAndSetRealizedPnL(closeOrderResult.getPnlPercent(), closeOrderResult.getFees());
 
             // 3. Обновляем статус и время последнего обновления
             position.setStatus(PositionStatus.CLOSED);
@@ -320,21 +320,23 @@ public class RealOkxTradingProvider implements TradingProvider {
                     positionId,
                     TradeOperationType.CLOSE_POSITION,
                     position.getSymbol(),
+                    position.getRealizedPnLUSDT(),
+                    position.getRealizedPnLPercent(),
                     closeOrderResult.getExecutedSize(),
                     closeOrderResult.getExecutionPrice(),
                     closeOrderResult.getFees(),
                     closeOrderResult.getExternalOrderId()
             );
-            finalResult.setPnl(position.getRealizedPnLUSDT());
             finalResult.setExternalOrderId(closeOrderResult.getExternalOrderId());
 
             tradeHistory.add(finalResult);
 
-            log.info("⚫ Закрыта позиция на OKX: {} {} | Цена: {} | PnL: {} | OrderID: {}",
+            log.info("⚫ Закрыта позиция на OKX: {} {} | Цена: {} | PnL: {} USDT ({} %) | OrderID: {}",
                     position.getSymbol(),
                     position.getDirectionString(),
                     finalResult.getExecutionPrice(),
-                    finalResult.getPnl(),
+                    finalResult.getPnlUSDT(),
+                    finalResult.getPnlPercent(),
                     finalResult.getExternalOrderId()
             );
 
@@ -764,16 +766,41 @@ public class RealOkxTradingProvider implements TradingProvider {
                     JsonObject orderInfo = data.get(0).getAsJsonObject();
                     log.info("Полная информация по ордеру {}: {}", orderId, orderInfo);
 
+                    /*
+                    avgPx
+                    Средняя цена заполнения. Если не заполнено ни одной, возвращается "".
+                     */
                     BigDecimal avgPx = new BigDecimal(orderInfo.get("avgPx").getAsString());
+
+                    /*
+                    fee
+                    Комиссия и возврат
+                    Для спот и маржи - это накопленная комиссия, взимаемая платформой. Она всегда отрицательна, например, -0,01.
+                    Для фьючерсов с экспирацией, бессрочных фьючерсов и опционов это накопленная комиссия и рибейт
+                     */
                     BigDecimal fee = new BigDecimal(orderInfo.get("fee").getAsString()).abs();
+
+                    /*
+                    accFillSz
+                    Накопленное количество заполнения
+                    Единица измерения - base_ccy для SPOT и MARGIN, например, для BTC-USDT единица измерения - BTC; для рыночных ордеров единица измерения - base_ccy, если tgtCcy - base_ccy или quote_ccy;
+                    Единица измерения - контракт для FUTURES/SWAP/OPTION.
+                     */
                     BigDecimal size = new BigDecimal(orderInfo.get("accFillSz").getAsString());
 
-                    log.info("✅ Детали ордера {} успешно извлечены: symbol={} | size={} | avgPx={} | fee={}",
-                            orderId, symbol, size, avgPx, fee);
+                    /*
+                    pnl
+                    Прибыль и убыток, применяется к ордерам, которые имеют сделку и нацелены на закрытие позиции.
+                    В других условиях всегда равен 0.
+                     */
+                    BigDecimal pnlUSDT = new BigDecimal(orderInfo.get("pnl").getAsString());
+
+                    log.info("✅ Детали ордера {} успешно извлечены: symbol={} | pnlUSDT={} | size={} | avgPx={} | fee={}",
+                            orderId, symbol, pnlUSDT, size, avgPx, fee);
 
                     // TODO: сверить запрошенный и исполненный объем, при несовпадении вернуть failure
 
-                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, size, avgPx, fee, orderId);
+                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId);
                     log.info("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
                     return result;
                 }

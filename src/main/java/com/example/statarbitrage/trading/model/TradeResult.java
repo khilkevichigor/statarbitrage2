@@ -60,7 +60,12 @@ public class TradeResult {
     /**
      * Прибыль/убыток (для операций закрытия)
      */
-    private BigDecimal pnl;
+    private BigDecimal pnlUSDT;
+
+    /**
+     * Прибыль/убыток (для операций закрытия)
+     */
+    private BigDecimal pnlPercent;
 
     /**
      * Время исполнения
@@ -86,13 +91,15 @@ public class TradeResult {
      * Создание успешного результата
      */
     public static TradeResult success(String positionId, TradeOperationType operationType,
-                                      String symbol, BigDecimal executedSize, BigDecimal executionPrice,
+                                      String symbol, BigDecimal pnlUSDT, BigDecimal pnlPercent, BigDecimal executedSize, BigDecimal executionPrice,
                                       BigDecimal fees, String externalOrderId) {
         return TradeResult.builder()
                 .success(true)
                 .positionId(positionId)
                 .operationType(operationType)
                 .symbol(symbol)
+                .pnlUSDT(pnlUSDT)
+                .pnlPercent(pnlPercent)
                 .executedSize(executedSize)
                 .executionPrice(executionPrice)
                 .fees(fees)

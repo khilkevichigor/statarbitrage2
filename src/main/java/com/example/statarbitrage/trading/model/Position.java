@@ -162,30 +162,20 @@ public class Position {
     /**
      * Расчет и установка реализованной прибыли/убытка (Net PnL) после закрытия позиции.
      *
-     * @param closingPrice Цена, по которой позиция была закрыта.
-     * @param closingFees  Комиссия, уплаченная за закрытие позиции.
+     * @param closedPnl   pnl после закрытия без учета комиссий
+     * @param closingFees Комиссия, уплаченная за закрытие позиции.
      */
-    public void calculateAndSetRealizedPnL(BigDecimal closingPrice, BigDecimal closingFees) {
-        if (entryPrice == null || closingPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
+    public void calculateAndSetRealizedPnL(BigDecimal closedPnl, BigDecimal closingFees) {
+        if (entryPrice == null || closedPnl == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
             this.realizedPnLUSDT = BigDecimal.ZERO;
             this.realizedPnLPercent = BigDecimal.ZERO;
             return;
         }
 
-        BigDecimal priceDiff;
-        if (type == PositionType.LONG) {
-            priceDiff = closingPrice.subtract(entryPrice);
-        } else {
-            priceDiff = entryPrice.subtract(closingPrice);
-        }
-
-        // 1. Рассчитываем "грязную" прибыль/убыток (Gross PnL)
-        BigDecimal grossPnL = priceDiff.multiply(size);
-
         // 2. Вычитаем все комиссии (за открытие и закрытие)
         BigDecimal totalFees = (this.openingFees != null ? this.openingFees : BigDecimal.ZERO)
                 .add(closingFees != null ? closingFees : BigDecimal.ZERO);
-        this.realizedPnLUSDT = grossPnL.subtract(totalFees);
+        this.realizedPnLUSDT = closedPnl.subtract(totalFees);
         this.closingFees = closingFees; // Сохраняем комиссию за закрытие
 
         // 3. Рассчитываем процентную прибыль

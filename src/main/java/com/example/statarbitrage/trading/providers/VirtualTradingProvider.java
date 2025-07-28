@@ -104,8 +104,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_LONG,
-                    symbol, positionSize, currentPrice, fees, null);
-            result.setPnl(BigDecimal.ZERO);
+                    symbol, BigDecimal.ZERO, BigDecimal.ZERO, positionSize, currentPrice, fees, null);
 
             tradeHistory.add(result);
 
@@ -177,8 +176,7 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.OPEN_SHORT,
-                    symbol, positionSize, currentPrice, fees, null);
-            result.setPnl(BigDecimal.ZERO);
+                    symbol, BigDecimal.ZERO, BigDecimal.ZERO, positionSize, currentPrice, fees, null);
 
             tradeHistory.add(result);
 
@@ -224,7 +222,7 @@ public class VirtualTradingProvider implements TradingProvider {
             BigDecimal totalFees = position.getOpeningFees().add(closingFees);
 
             // Финальный PnL с учетом комиссий
-            BigDecimal finalPnL = position.getUnrealizedPnLUSDT().subtract(closingFees);
+            BigDecimal finalPnlUSDT = position.getUnrealizedPnLUSDT().subtract(closingFees);
 
             // Закрываем позицию
             position.setStatus(PositionStatus.CLOSED);
@@ -232,20 +230,19 @@ public class VirtualTradingProvider implements TradingProvider {
 
             // Освобождаем средства и уведомляем портфолио
             portfolioManager.releaseReservedBalance(position.getAllocatedAmount());
-            portfolioManager.onPositionClosed(position, finalPnL, totalFees);
+            portfolioManager.onPositionClosed(position, finalPnlUSDT, totalFees);
 
             // Удаляем из активных позиций
             positions.remove(positionId);
 
             // Создаем результат
             TradeResult result = TradeResult.success(positionId, TradeOperationType.CLOSE_POSITION,
-                    position.getSymbol(), position.getSize(), currentPrice, closingFees, null);
-            result.setPnl(finalPnL);
+                    position.getSymbol(), finalPnlUSDT, BigDecimal.ZERO, position.getSize(), currentPrice, closingFees, null);
 
             tradeHistory.add(result);
 
             log.info("⚫ Закрыта позиция: {} {} | Цена: {} | PnL: {} | Комиссии: {}",
-                    position.getSymbol(), position.getDirectionString(), currentPrice, finalPnL, totalFees);
+                    position.getSymbol(), position.getDirectionString(), currentPrice, finalPnlUSDT, totalFees);
 
             return result;
 
