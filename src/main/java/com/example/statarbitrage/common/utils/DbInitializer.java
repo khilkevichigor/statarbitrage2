@@ -34,7 +34,7 @@ public class DbInitializer {
                     .minPValue(0.01)
 
                     .useMinAdfValueFilter(true)
-                    .minAdfValue(1.0)
+                    .minAdfValue(0.8)
 
                     .useMinCorrelationFilter(true)
                     .minCorrelation(0.8)
@@ -55,10 +55,10 @@ public class DbInitializer {
                     .virtualFeePctPerTrade(0.05)
 
                     .useExitTake(true)
-                    .exitTake(5.0)
+                    .exitTake(10.0)
 
                     .useExitStop(true)
-                    .exitStop(-5.0)
+                    .exitStop(-10.0)
 
                     .useExitZMin(false)
                     .exitZMin(0)
