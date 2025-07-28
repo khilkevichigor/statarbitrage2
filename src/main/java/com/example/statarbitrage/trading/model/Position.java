@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
  * Модель торговой позиции (универсальная для виртуальной и реальной торговли)
  * Включает расчет как нереализованной (для открытых позиций), так и реализованной (для закрытых) прибыли.
  */
+@Slf4j
 @Data
 @Builder
 @AllArgsConstructor
@@ -167,29 +169,41 @@ public class Position {
      */
     public void calculateAndSetRealizedPnL(BigDecimal closedPnl, BigDecimal closingFees) {
         if (entryPrice == null || closedPnl == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
+            log.warn("❌ Недостаточно данных для расчета PnL: entryPrice={}, closedPnl={}, size={}", entryPrice, closedPnl, size);
             this.realizedPnLUSDT = BigDecimal.ZERO;
             this.realizedPnLPercent = BigDecimal.ZERO;
             return;
         }
 
-        // 2. Вычитаем все комиссии (за открытие и закрытие)
-        BigDecimal totalFees = (this.openingFees != null ? this.openingFees : BigDecimal.ZERO)
-                .add(closingFees != null ? closingFees : BigDecimal.ZERO);
-        this.realizedPnLUSDT = closedPnl.subtract(totalFees);
-        this.closingFees = closingFees; // Сохраняем комиссию за закрытие
+        BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
+        BigDecimal safeClosingFees = closingFees != null ? closingFees : BigDecimal.ZERO;
 
-        // 3. Рассчитываем процентную прибыль
+        BigDecimal totalFees = safeOpeningFees.add(safeClosingFees);
+        this.realizedPnLUSDT = closedPnl.subtract(totalFees);
+        this.closingFees = safeClosingFees;
+
+        log.info("📊 Расчет PnL:");
+        log.info("➡️ ClosedPnL (без комиссий): {}", closedPnl);
+        log.info("➡️ OpeningFees: {}", safeOpeningFees);
+        log.info("➡️ ClosingFees: {}", safeClosingFees);
+        log.info("➡️ TotalFees: {}", totalFees);
+        log.info("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
+
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            this.realizedPnLPercent = this.realizedPnLUSDT.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+            this.realizedPnLPercent = this.realizedPnLUSDT
+                    .divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
+            log.info("✅ RealizedPnL: {} % (на сумму вложений {})", this.realizedPnLPercent, allocatedAmount);
         } else {
             this.realizedPnLPercent = BigDecimal.ZERO;
+            log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
         }
 
-        // 4. Сбрасываем нереализованный PnL, так как позиция закрыта
         this.unrealizedPnLUSDT = BigDecimal.ZERO;
         this.unrealizedPnLPercent = BigDecimal.ZERO;
+        log.info("♻️ UnrealizedPnL сброшен до нуля, позиция закрыта.");
     }
+
 
     /**
      * Проверка, открыта ли позиция
