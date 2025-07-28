@@ -112,80 +112,6 @@ public class RealOkxTradingProvider implements TradingProvider {
                 "long");
     }
 
-//    @Override
-//    public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-//        log.info("==> openLongPosition: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", symbol, amount, leverage);
-//
-//        try {
-//            // 🔍 Предторговая проверка
-//            if (!preTradeChecks(amount)) {
-//                return logAndFail("Предторговая проверка не пройдена.", TradeOperationType.OPEN_LONG, symbol, "Ошибка предторговой проверки");
-//            }
-//
-//            // 📐 Расчёт размера позиции
-//            BigDecimal positionSize = calculateAndAdjustPositionSize(symbol, amount, leverage);
-//            if (positionSize.compareTo(BigDecimal.ZERO) <= 0) {
-//                return logAndFail("Размер позиции после корректировки равен нулю или меньше.",
-//                        TradeOperationType.OPEN_LONG, symbol, "Размер позиции слишком мал");
-//            }
-//            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
-//
-//            // 💰 Получение цены
-//            BigDecimal currentPrice = getCurrentPrice(symbol);
-//            if (currentPrice == null) {
-//                return logAndFail("Не удалось получить текущую цену для " + symbol,
-//                        TradeOperationType.OPEN_LONG, symbol, "Не удалось получить цену");
-//            }
-//
-//            // 💹 Скорректированная сумма = размер * цена
-//            BigDecimal adjustedAmount = positionSize.multiply(currentPrice);
-//            log.info("📊 {} LONG: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
-//                    symbol, amount, adjustedAmount, positionSize, currentPrice);
-//
-//            // ✅ Валидация размера ордера
-//            String validationError = validateOrderSize(symbol, adjustedAmount, positionSize, currentPrice);
-//            if (validationError != null) {
-//                return logAndFail("Ошибка валидации размера ордера: " + validationError,
-//                        TradeOperationType.OPEN_LONG, symbol, validationError);
-//            }
-//
-//            // ⚙️ Установка плеча
-//            if (!setLeverage(symbol, leverage)) {
-//                log.warn("⚠️ Не удалось установить плечо {}, продолжаем с текущим плечом", leverage);
-//            }
-//
-//            // 📦 Размещение ордера
-//            TradeResult orderResult = placeOrder(symbol, "buy", "long", adjustedAmount, leverage);
-//            if (!orderResult.isSuccess()) {
-//                return logAndReturnError("Ошибка размещения ордера: " + orderResult.getErrorMessage(), orderResult);
-//            }
-//
-//            // 🧩 Создание позиции
-//            Position position = createPositionFromTradeResult(orderResult, PositionType.LONG, amount, leverage);
-//            positions.put(position.getPositionId(), position);
-//            okxPortfolioManager.onPositionOpened(position);
-//            log.info("Позиция создана и сохранена. ID: {}", position.getPositionId());
-//
-//            // 📜 История
-//            tradeHistory.add(orderResult);
-//            log.info("✅ Открыта LONG позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
-//                    symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
-//
-//            // 🧾 Логгирование данных позиции
-//            logRealPositionData(symbol, "OPEN_LONG");
-//
-//            // 🆔 Подмена ID
-//            orderResult.setPositionId(position.getPositionId());
-//
-//            log.info("<== openLongPosition: КОНЕЦ (Успех) для {}", symbol);
-//            return orderResult;
-//
-//        } catch (Exception e) {
-//            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при открытии LONG позиции {}", symbol, e);
-//            return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol, e.getMessage());
-//        }
-//    }
-
     private TradeResult logAndFail(String logMessage, TradeOperationType type, String symbol, String errorMessage) {
         log.error(logMessage);
         return TradeResult.failure(type, symbol, errorMessage);
@@ -814,49 +740,6 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
-
-//    private void cancelOrder(String orderId, String symbol) {
-//        try {
-//            // ЗАЩИТА: Проверяем геолокацию перед вызовом OKX API
-//            if (!geolocationService.isGeolocationAllowed()) {
-//                log.error("❌ БЛОКИРОВКА: Отмена ордера заблокирована из-за геолокации!");
-//                return;
-//            }
-//
-//            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
-//            String endpoint = "/api/v5/trade/cancel-order";
-//
-//            JsonObject cancelData = new JsonObject();
-//            cancelData.addProperty("instId", symbol);
-//            cancelData.addProperty("ordId", orderId);
-//
-//            RequestBody body = RequestBody.create(
-//                    cancelData.toString(),
-//                    MediaType.get("application/json")
-//            );
-//
-//            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
-//            String signature = generateSignature("POST", endpoint, cancelData.toString(), timestamp);
-//
-//            Request request = new Request.Builder()
-//                    .url(baseUrl + endpoint)
-//                    .post(body)
-//                    .addHeader("OK-ACCESS-KEY", apiKey)
-//                    .addHeader("OK-ACCESS-SIGN", signature)
-//                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
-//                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
-//                    .addHeader("Content-Type", "application/json")
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                String responseBody = response.body().string();
-//                log.info("Отмена ордера {}: {}", orderId, responseBody);
-//            }
-//        } catch (Exception e) {
-//            log.error("❌ Ошибка при отмене ордера {}: {}", orderId, e.getMessage());
-//        }
-//    }
-
     private boolean checkApiConnection() {
         try {
             if (!geolocationService.isGeolocationAllowed()) {
@@ -891,58 +774,6 @@ public class RealOkxTradingProvider implements TradingProvider {
             return false;
         }
     }
-
-
-//    private void updatePortfolioFromOkx() {
-//        try {
-//            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
-//            String endpoint = ACCOUNT_BALANCE_ENDPOINT;
-//
-//            String timestamp = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString();
-//            String signature = generateSignature("GET", endpoint, "", timestamp);
-//
-//            Request request = new Request.Builder()
-//                    .url(baseUrl + endpoint)
-//                    .addHeader("OK-ACCESS-KEY", apiKey)
-//                    .addHeader("OK-ACCESS-SIGN", signature)
-//                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
-//                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                String responseBody = response.body().string();
-//                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-//
-//                if ("0".equals(jsonResponse.get("code").getAsString())) {
-//                    JsonArray data = jsonResponse.getAsJsonArray("data");
-//                    if (data.size() > 0) {
-//                        JsonObject account = data.get(0).getAsJsonObject();
-//                        JsonArray details = account.getAsJsonArray("details");
-//
-//                        for (JsonElement detail : details) {
-//                            JsonObject currency = detail.getAsJsonObject();
-//                            String ccy = currency.get("ccy").getAsString();
-//
-//                            if ("USDT".equals(ccy)) {
-//                                String availEqStr = currency.get("availEq").getAsString();
-//                                String eqStr = currency.get("eq").getAsString();
-//
-//                                BigDecimal availableBalance = new BigDecimal(availEqStr);
-//                                BigDecimal totalBalance = new BigDecimal(eqStr);
-//
-//                                // Для обновления баланса нужно будет использовать другой подход
-//                                // Пока просто обновляем значения портфолио
-//                                okxPortfolioManager.updatePortfolioValue();
-//                                break;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("❌ Ошибка при обновлении портфолио с OKX: {}", e.getMessage());
-//        }
-//    }
 
     private void syncPositionsWithOkx() {
         syncPositionsWithOkxInternal(null);
@@ -1025,105 +856,6 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
-
-    /**
-     * Обновляет внутреннюю позицию данными с OKX
-     */
-//    @Deprecated
-//    private void updatePositionFromOkxDataOld(JsonObject okxPosition) {
-//        try {
-//            // Извлекаем основные поля позиции
-//            String instId = getJsonStringValue(okxPosition, "instId");
-//            String instType = getJsonStringValue(okxPosition, "instType");
-//            String mgnMode = getJsonStringValue(okxPosition, "mgnMode");
-//            String posId = getJsonStringValue(okxPosition, "posId");
-//            String posSide = getJsonStringValue(okxPosition, "posSide");
-//            String pos = getJsonStringValue(okxPosition, "pos"); // Размер позиции (со знаком)
-//            String posCcy = getJsonStringValue(okxPosition, "posCcy");
-//            String avgPx = getJsonStringValue(okxPosition, "avgPx"); // Средняя цена входа
-//            String markPx = getJsonStringValue(okxPosition, "markPx"); // Текущая марк-цена
-//            String upl = getJsonStringValue(okxPosition, "upl"); // Нереализованный PnL в USDT
-//            String uplRatio = getJsonStringValue(okxPosition, "uplRatio"); // Нереализованный PnL в %
-//            String realizedPnlUSDT = getJsonStringValue(okxPosition, "realizedPnl"); // Реализованный PnL
-//            String lever = getJsonStringValue(okxPosition, "lever"); // Плечо
-//            String margin = getJsonStringValue(okxPosition, "margin"); // Используемая маржа
-//            String imr = getJsonStringValue(okxPosition, "imr"); // Начальная маржа
-//            String mmr = getJsonStringValue(okxPosition, "mmr"); // Поддерживающая маржа
-//            String notionalUsd = getJsonStringValue(okxPosition, "notionalUsd"); // Условная стоимость в USD
-//            String interest = getJsonStringValue(okxPosition, "interest"); // Проценты
-//            String tradeId = getJsonStringValue(okxPosition, "tradeId");
-//            String cTime = getJsonStringValue(okxPosition, "cTime");
-//            String uTime = getJsonStringValue(okxPosition, "uTime");
-//            String ccy = getJsonStringValue(okxPosition, "ccy");
-//            String bePx = getJsonStringValue(okxPosition, "bePx"); // Точка безубыточности
-//
-//            if ("N/A".equals(instId)) {
-//                log.debug("⚠️ Пропускаем позицию с пустым instId");
-//                return;
-//            }
-//
-//            // ПОЛНЫЙ ЛОГ ВСЕХ ДАННЫХ ПОЗИЦИИ OKX
-//            log.info("📊 === ПОЛНАЯ ИНФОРМАЦИЯ О ПОЗИЦИИ OKX ===");
-//            log.info("📊 Инструмент: {} | Тип: {} | Режим маржи: {} | ID позиции: {}", instId, instType, mgnMode, posId);
-//            log.info("📊 Сторона: {} | Размер: {} {} | Валюта: {}", posSide, pos, posCcy, ccy);
-//            log.info("📊 Средняя цена входа: {} USDT | Марк-цена: {} USDT", avgPx, markPx);
-//            log.info("📊 💰 Нереализованный PnL: {} USDT ({} %)", upl, uplRatio);
-//            log.info("📊 💰 Реализованный PnL: {} USDT", realizedPnlUSDT);
-//            log.info("📊 Плечо: {}x | Маржа: {} USDT", lever, margin);
-//            log.info("📊 Начальная маржа: {} USDT | Поддерживающая маржа: {} USDT", imr, mmr);
-//            log.info("📊 Условная стоимость: {} USD | Точка безубыточности: {} USDT", notionalUsd, bePx);
-//            log.info("📊 Проценты: {} | ID сделки: {}", interest, tradeId);
-//            log.info("📊 Время создания: {} | Время обновления: {}", cTime, uTime);
-//            log.info("📊 === КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ ===");
-//
-//            // Ищем соответствующую внутреннюю позицию по символу
-//            Position internalPosition = findPositionBySymbol(instId);
-//            if (internalPosition != null) {
-//                // Обновляем позицию реальными данными с OKX
-//                if (!"N/A".equals(markPx)) {
-//                    internalPosition.setCurrentPrice(new BigDecimal(markPx)); //todo маркировочная цена? почему не средняя avgPx?
-//                }
-//
-//                // ВАЖНО: Устанавливаем PnL в USDT как на бирже OKX
-//                if (!"N/A".equals(upl)) {
-//                    BigDecimal pnlInUsdt = new BigDecimal(upl);
-//                    internalPosition.setUnrealizedPnLUSDT(pnlInUsdt);
-//                    log.info("💰 Установлен PnL в USDT для {}: {} USDT (как на бирже OKX)", instId, pnlInUsdt);
-//                }
-//
-//                // ВАЖНО: Устанавливаем PnL в % как на бирже OKX
-//                if (!"N/A".equals(uplRatio)) {
-//                    BigDecimal pnlInPercent = new BigDecimal(uplRatio);
-//                    internalPosition.setUnrealizedPnLPercent(pnlInPercent);
-//                    log.info("💰 Установлен PnL в % для {}: {} % (как на бирже OKX)", instId, pnlInPercent);
-//                }
-//
-//                // ВАЖНО: Устанавливаем PnL в USDT как на бирже OKX
-//                if (!"N/A".equals(realizedPnlUSDT)) {
-//                    BigDecimal realizedPnlInUsdt = new BigDecimal(realizedPnlUSDT);
-//                    internalPosition.setRealizedPnLUSDT(realizedPnlInUsdt);
-//                    log.info("💰 Установлен реализованный PnL в USDT для {}: {} USDT (как на бирже OKX)", instId, realizedPnlInUsdt);
-//                }
-//
-//                if (!"N/A".equals(avgPx)) {
-//                    internalPosition.setEntryPrice(new BigDecimal(avgPx));
-//                }
-//                if (!"N/A".equals(pos)) {
-//                    internalPosition.setSize(new BigDecimal(pos).abs()); // abs() для учета знака
-//                }
-//
-//                internalPosition.setLastUpdated(LocalDateTime.now());
-//
-//                log.info("✅ Обновлена позиция {} с реальными данными OKX: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}",
-//                        instId, upl, uplRatio, realizedPnlUSDT, markPx, pos);
-//            } else {
-//                log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("❌ Ошибка при обновлении позиции из данных OKX: {}", e.getMessage());
-//        }
-//    }
     private void updatePositionFromOkxData(JsonObject okxPosition) {
         try {
             // Извлекаем поля как строки
@@ -1285,52 +1017,6 @@ public class RealOkxTradingProvider implements TradingProvider {
     private BigDecimal calculateCost(BigDecimal size, BigDecimal ctVal, BigDecimal price, BigDecimal leverage) {
         return size.multiply(ctVal).multiply(price).divide(leverage, 2, RoundingMode.HALF_UP);
     }
-
-
-//    /**
-//     * Корректировка размера позиции согласно lot size OKX
-//     */
-//    private BigDecimal adjustPositionSizeToLotSize(String symbol, BigDecimal positionSize) {
-//        try {
-//            // Получаем информацию о торговом инструменте
-//            InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
-//            if (instrumentInfo == null) {
-//                log.warn("⚠️ Не удалось получить информацию о торговом инструменте {}", symbol);
-//                return positionSize;
-//            }
-//
-//            BigDecimal lotSize = instrumentInfo.getLotSize();
-//            BigDecimal minSize = instrumentInfo.getMinSize();
-//
-//            log.debug("🔍 Инструмент {}: lot size = {}, min size = {}, исходный размер = {}",
-//                    symbol, lotSize, minSize, positionSize);
-//
-//            // Проверяем минимальный размер
-//            if (positionSize.compareTo(minSize) < 0) {
-//                log.warn("⚠️ Размер позиции {} меньше минимального {}, устанавливаем минимальный",
-//                        positionSize, minSize);
-//                positionSize = minSize;
-//            }
-//
-//            // Корректируем размер до кратного lot size
-//            BigDecimal adjustedSize = positionSize.divide(lotSize, 0, RoundingMode.DOWN)
-//                    .multiply(lotSize);
-//
-//            // Если после корректировки размер стал меньше минимального, увеличиваем на один lot
-//            if (adjustedSize.compareTo(minSize) < 0) {
-//                adjustedSize = minSize;
-//            }
-//
-//            log.info("📏 Скорректированный размер позиции для {}: {} -> {}",
-//                    symbol, positionSize, adjustedSize);
-//
-//            return adjustedSize;
-//
-//        } catch (Exception e) {
-//            log.error("❌ Ошибка при корректировке размера позиции для {}: {}", symbol, e.getMessage());
-//            return positionSize; // Возвращаем исходный размер при ошибке
-//        }
-//    }
 
     /**
      * Получение информации о торговом инструменте
@@ -1655,15 +1341,6 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.error("❌ Ошибка при логировании реальных данных позиции для {}: {}", symbol, e.getMessage(), e);
         }
     }
-
-
-//    /**
-//     * Публичный метод для тестирования геолокации
-//     * Делегирует вызов GeolocationService
-//     */
-//    public String testGeolocation() {
-//        return geolocationService.forceCheckGeolocation();
-//    }
 
     /**
      * Генерация HMAC SHA256 подписи для OKX API
