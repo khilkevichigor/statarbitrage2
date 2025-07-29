@@ -6,8 +6,6 @@ import com.example.statarbitrage.common.utils.NumberFormatter;
 import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
-import com.example.statarbitrage.core.services.TradeHistoryService;
-import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import com.vaadin.flow.component.button.Button;
@@ -36,7 +34,6 @@ public class TradingPairsComponent extends VerticalLayout {
     private final PairDataService pairDataService;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
-    private final TradeHistoryService tradeHistoryService;
     private final ZScoreChartDialog zScoreChartDialog;
 
     private final Grid<PairData> selectedPairsGrid;
@@ -46,19 +43,17 @@ public class TradingPairsComponent extends VerticalLayout {
     private final VerticalLayout unrealizedProfitLayout;
 
     private Consumer<Void> uiUpdateCallback;
-    private TradingProviderFactory tradingProviderFactory;
 
-    public TradingPairsComponent(PairDataService pairDataService,
-                                 StartNewTradeProcessor startNewTradeProcessor,
-                                 UpdateTradeProcessor updateTradeProcessor,
-                                 TradeHistoryService tradeHistoryService,
-                                 ZScoreChartDialog zScoreChartDialog, TradingProviderFactory tradingProviderFactory) {
+    public TradingPairsComponent(
+            PairDataService pairDataService,
+            StartNewTradeProcessor startNewTradeProcessor,
+            UpdateTradeProcessor updateTradeProcessor,
+            ZScoreChartDialog zScoreChartDialog
+    ) {
         this.pairDataService = pairDataService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
-        this.tradeHistoryService = tradeHistoryService;
         this.zScoreChartDialog = zScoreChartDialog;
-        this.tradingProviderFactory = tradingProviderFactory;
 
         this.selectedPairsGrid = new Grid<>(PairData.class, false);
         this.tradingPairsGrid = new Grid<>(PairData.class, false);
