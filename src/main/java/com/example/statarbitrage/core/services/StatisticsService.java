@@ -21,24 +21,20 @@ public class StatisticsService {
     private final PairDataService pairDataService;
     private final TradeHistoryService tradeHistoryService;
 
-//    @EventListener(ApplicationReadyEvent.class) //postConstruct не сработает тк бд не готова еще //todo ПРОТЕСТИТЬ!!! сделать update в пропертях для БД
-//    @Transactional
-//    public void deleteUnfinishedTrades() { //очищаем чтобы бд была актуальной даже после стопа приложения с незавершенным трейдом //todo выпилить отсюда
-//        // todo переделать что бы менять статус на ERROR и сетить дескрипшн ERROR_AFTER_RESTART или
-//        // todo сделать метод синхронизации или запускать updateTradeProcessor что бы актуализиолвать пары
-//        int deleted = tradeHistoryRepository.deleteUnfinishedTrades();
-//        log.info("🧹 Удалено {} незавершённых трейдов", deleted);
-//    }
-
     public TradePairsStatisticsDto collectStatistics() {
-        BigDecimal unrealized = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDT = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+                .map(PairData::getProfitUSDTChanges)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal unrealizedProfitPercent = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(PairData::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal realized = Optional.ofNullable(tradeHistoryService.getSumRealizedProfit()).orElse(BigDecimal.ZERO);
 
-        BigDecimal combined = unrealized.add(realized);
+        BigDecimal combined = unrealizedProfitPercent.add(realized);
 
         return TradePairsStatisticsDto.builder()
 
@@ -75,7 +71,8 @@ public class StatisticsService {
                 .exitByManuallyToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_MANUALLY.getDescription()))
                 .exitByManuallyTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription()))
 
-                .sumProfitUnrealized(unrealized)
+                .sumProfitUnrealizedUSDT(unrealizedProfitUSDT)
+                .sumProfitUnrealizedPercent(unrealizedProfitPercent)
                 .sumProfitRealized(realized)
                 .sumProfitCombined(combined)
 

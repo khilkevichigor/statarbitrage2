@@ -46,7 +46,8 @@ public class TradePairsStatisticsDto {
     private long exitByManuallyToday;
     private long exitByManuallyTotal;
 
-    private BigDecimal sumProfitUnrealized;
+    private BigDecimal sumProfitUnrealizedUSDT;
+    private BigDecimal sumProfitUnrealizedPercent;
     private BigDecimal sumProfitRealized;
     private BigDecimal sumProfitCombined;
 }
