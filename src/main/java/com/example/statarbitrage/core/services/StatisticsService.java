@@ -51,8 +51,11 @@ public class StatisticsService {
                 .avgProfitToday(tradeHistoryRepository.getAvgProfitToday())
                 .avgProfitTotal(tradeHistoryRepository.getAvgProfitTotal())
 
-                .sumProfitToday(tradeHistoryRepository.getSumProfitToday())
-                .sumProfitTotal(tradeHistoryRepository.getSumProfitTotal())
+                .sumProfitUSDTToday(tradeHistoryRepository.getSumProfitUSDTToday())
+                .sumProfitUSDTTotal(tradeHistoryRepository.getSumProfitUSDTTotal())
+
+                .sumProfitPercentToday(tradeHistoryRepository.getSumProfitPercentToday())
+                .sumProfitPercentTotal(tradeHistoryRepository.getSumProfitPercentTotal())
 
                 .exitByStopToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_STOP.name()))
                 .exitByStopTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_STOP.name()))

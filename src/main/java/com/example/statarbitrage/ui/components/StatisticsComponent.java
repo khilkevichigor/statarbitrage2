@@ -48,10 +48,11 @@ public class StatisticsComponent extends VerticalLayout {
             TradePairsStatisticsDto stats = statisticsService.collectStatistics();
 
             List<StatisticRow> rows = List.of(
-                    new StatisticRow("Пары с ошибками", stats.getTradePairsWithErrorToday(), stats.getTradePairsWithErrorTotal()),
-                    new StatisticRow("Торгуемые пары", stats.getTradePairsToday(), stats.getTradePairsTotal()),
+                    new StatisticRow("Пар с ошибками", stats.getTradePairsWithErrorToday(), stats.getTradePairsWithErrorTotal()),
+                    new StatisticRow("Торгуемых пар", stats.getTradePairsToday(), stats.getTradePairsTotal()),
                     new StatisticRow("Avg Профит (%)", NumberFormatter.format(stats.getAvgProfitToday()), NumberFormatter.format(stats.getAvgProfitTotal())),
-                    new StatisticRow("Сумма Профита (%)", NumberFormatter.format(stats.getSumProfitToday()), NumberFormatter.format(stats.getSumProfitTotal())),
+                    new StatisticRow("Сумма Профита (USDT)", NumberFormatter.format(stats.getSumProfitUSDTToday()), NumberFormatter.format(stats.getSumProfitUSDTTotal())),
+                    new StatisticRow("Сумма Профита (%)", NumberFormatter.format(stats.getSumProfitPercentToday()), NumberFormatter.format(stats.getSumProfitPercentTotal())),
                     new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
                     new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
                     new StatisticRow("Выход: Z MIN", stats.getExitByZMinToday(), stats.getExitByZMinTotal()),

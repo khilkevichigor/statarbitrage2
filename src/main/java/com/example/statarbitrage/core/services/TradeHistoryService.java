@@ -42,6 +42,7 @@ public class TradeHistoryService {
         tradeHistory.setMaxProfitPercent(pairData.getMaxProfitChanges());
         tradeHistory.setMaxProfitMinutes(pairData.getTimeInMinutesSinceEntryToMax() + "min");
 
+        tradeHistory.setCurrentProfitUSDT(pairData.getProfitUSDTChanges());
         tradeHistory.setCurrentProfitPercent(pairData.getProfitPercentChanges());
 
         tradeHistory.setMinLongPercent(pairData.getMinLong());

@@ -37,16 +37,27 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "FROM TradeHistory t")
     Long getTradesTotal();
 
+    @Query("SELECT SUM(t.currentProfitUSDT) " +
+            "FROM TradeHistory t " +
+            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "AND t.exitReason IS NOT NULL")
+    BigDecimal getSumProfitUSDTToday();
+
+    @Query("SELECT SUM(t.currentProfitUSDT) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason IS NOT NULL")
+    BigDecimal getSumProfitUSDTTotal();
+
     @Query("SELECT SUM(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
             "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
             "AND t.exitReason IS NOT NULL")
-    BigDecimal getSumProfitToday();
+    BigDecimal getSumProfitPercentToday();
 
     @Query("SELECT SUM(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
             "WHERE t.exitReason IS NOT NULL")
-    BigDecimal getSumProfitTotal();
+    BigDecimal getSumProfitPercentTotal();
 
     @Query("SELECT AVG(t.currentProfitPercent) " +
             "FROM TradeHistory t " +

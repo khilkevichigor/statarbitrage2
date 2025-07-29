@@ -25,6 +25,7 @@ public class TradeHistory {
     private String maxProfitMinutes;
     private BigDecimal minProfitPercent;
     private BigDecimal maxProfitPercent;
+    private BigDecimal currentProfitUSDT;
     private BigDecimal currentProfitPercent;
 
     private BigDecimal minLongPercent;
