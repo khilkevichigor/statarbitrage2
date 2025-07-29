@@ -7,10 +7,10 @@ import java.math.RoundingMode;
 
 @Slf4j
 public class BigDecimalUtil {
-    public static BigDecimal safeScale(String str) {
+    public static BigDecimal safeScale(String str, int scale) {
         if (str == null || str.trim().isEmpty() || "N/A".equals(str)) return null;
         try {
-            return new BigDecimal(str).setScale(2, RoundingMode.HALF_UP);
+            return new BigDecimal(str).setScale(scale, RoundingMode.HALF_UP);
         } catch (NumberFormatException e) {
             log.warn("⚠️ Не удалось сконвертировать в BigDecimal: '{}'", str);
             return null;

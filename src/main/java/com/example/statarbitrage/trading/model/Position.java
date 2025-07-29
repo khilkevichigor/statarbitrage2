@@ -156,7 +156,7 @@ public class Position {
         this.unrealizedPnLUSDT = unrealizedPnLUSDT.subtract(totalFees);
 
         // Логгирование деталей
-        log.info("📊 Расчет PnL:");
+        log.info("📊 Расчет PnL {}:", symbol);
         log.info("➡️ OpeningFees: {}", safeOpeningFees);
         log.info("➡️ FundingFees: {}", safeFundingFees);
         log.info("➡️ TotalFees: {}", totalFees);
@@ -203,7 +203,7 @@ public class Position {
         this.closingFees = safeClosingFees;
 
         // Логгируем все детали
-        log.info("📊 Расчет PnL:");
+        log.info("📊 Расчет PnL {}:", symbol);
         log.info("➡️ ClosedPnL (без комиссий): {}", closedPnlUSDT);
         log.info("➡️ OpeningFees: {}", safeOpeningFees);
         log.info("➡️ ClosingFees: {}", safeClosingFees);
