@@ -59,10 +59,15 @@ public class StatisticsComponent extends VerticalLayout {
                     new StatisticRow("Выход: Z MAX", stats.getExitByZMaxToday(), stats.getExitByZMaxTotal()),
                     new StatisticRow("Выход: TIME", stats.getExitByTimeToday(), stats.getExitByTimeTotal()),
                     new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal()),
+
                     new StatisticRow("Профит нереализованный (USDT)", "", NumberFormatter.format(stats.getSumProfitUnrealizedPercent())),
                     new StatisticRow("Профит нереализованный (%)", "", NumberFormatter.format(stats.getSumProfitUnrealizedPercent())),
-                    new StatisticRow("Профит реализованный (%)", "", NumberFormatter.format(stats.getSumProfitRealized())),
-                    new StatisticRow("Профит общий (%)", "", NumberFormatter.format(stats.getSumProfitCombined()))
+
+                    new StatisticRow("Профит реализованный (USDT)", "", NumberFormatter.format(stats.getSumProfitRealizedPercent())),
+                    new StatisticRow("Профит реализованный (%)", "", NumberFormatter.format(stats.getSumProfitRealizedPercent())),
+
+                    new StatisticRow("Профит общий (USDT)", "", NumberFormatter.format(stats.getSumProfitCombinedUSDT())),
+                    new StatisticRow("Профит общий (%)", "", NumberFormatter.format(stats.getSumProfitCombinedPercent()))
             );
 
             statisticsGrid.setItems(rows);

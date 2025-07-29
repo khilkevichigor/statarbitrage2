@@ -32,9 +32,11 @@ public class StatisticsService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal realized = Optional.ofNullable(tradeHistoryService.getSumRealizedProfit()).orElse(BigDecimal.ZERO);
+        BigDecimal realizedProfitUSDT = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitUSDT()).orElse(BigDecimal.ZERO);
+        BigDecimal realizedProfitPercent = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitPercent()).orElse(BigDecimal.ZERO);
 
-        BigDecimal combined = unrealizedProfitPercent.add(realized);
+        BigDecimal combinedProfitUSDT = unrealizedProfitUSDT.add(realizedProfitUSDT);
+        BigDecimal combinedProfitPercent = unrealizedProfitPercent.add(realizedProfitPercent);
 
         return TradePairsStatisticsDto.builder()
 
@@ -73,8 +75,12 @@ public class StatisticsService {
 
                 .sumProfitUnrealizedUSDT(unrealizedProfitUSDT)
                 .sumProfitUnrealizedPercent(unrealizedProfitPercent)
-                .sumProfitRealized(realized)
-                .sumProfitCombined(combined)
+
+                .sumProfitRealizedUSDT(realizedProfitUSDT)
+                .sumProfitRealizedPercent(realizedProfitPercent)
+
+                .sumProfitCombinedUSDT(combinedProfitUSDT)
+                .sumProfitCombinedPercent(combinedProfitPercent)
 
                 .build();
     }

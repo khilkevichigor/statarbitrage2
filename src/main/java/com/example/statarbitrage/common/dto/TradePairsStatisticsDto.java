@@ -48,6 +48,10 @@ public class TradePairsStatisticsDto {
 
     private BigDecimal sumProfitUnrealizedUSDT;
     private BigDecimal sumProfitUnrealizedPercent;
-    private BigDecimal sumProfitRealized;
-    private BigDecimal sumProfitCombined;
+
+    private BigDecimal sumProfitRealizedUSDT;
+    private BigDecimal sumProfitRealizedPercent;
+
+    private BigDecimal sumProfitCombinedUSDT;
+    private BigDecimal sumProfitCombinedPercent;
 }
