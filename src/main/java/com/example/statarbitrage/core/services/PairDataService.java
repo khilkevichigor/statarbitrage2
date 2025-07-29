@@ -81,8 +81,12 @@ public class PairDataService {
         excludeExistingTradingPairsService.exclude(zScoreDataList);
     }
 
-    public BigDecimal getUnrealizedProfitTotal() {
-        return calculateUnrealizedProfitTotalService.getUnrealizedProfitTotal();
+    public BigDecimal getUnrealizedProfitPercentTotal() {
+        return calculateUnrealizedProfitTotalService.getUnrealizedProfitPercentTotal();
+    }
+
+    public BigDecimal getUnrealizedProfitUSDTTotal() {
+        return calculateUnrealizedProfitTotalService.getUnrealizedProfitUSDTTotal();
     }
 
     public void addEntryPoints(PairData pairData, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {

@@ -23,7 +23,6 @@ import com.vaadin.flow.spring.annotation.UIScope;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -268,13 +267,14 @@ public class TradingPairsComponent extends VerticalLayout {
     public void updateUnrealizedProfit() {
         try {
             unrealizedProfitLayout.removeAll();
-            BigDecimal unrealizedProfit = pairDataService.getUnrealizedProfitTotal();
-            String formatted = unrealizedProfit.setScale(2, RoundingMode.HALF_UP) + " %";
 
-            H2 profitInfo = new H2("💰 Нереализованный профит: " + formatted);
-            unrealizedProfitLayout.add(profitInfo);
+            BigDecimal usdtProfit = safeScale(pairDataService.getUnrealizedProfitUSDTTotal(), 2);
+            BigDecimal percentProfit = safeScale(pairDataService.getUnrealizedProfitPercentTotal(), 2);
+
+            String label = String.format("💰 Нереализованный профит: %s USDT (%s %%)", usdtProfit, percentProfit);
+            unrealizedProfitLayout.add(new H2(label));
         } catch (Exception e) {
-            log.error("Error updating unrealized profit", e);
+            log.error("❌ Ошибка при обновлении нереализованного профита", e);
         }
     }
 

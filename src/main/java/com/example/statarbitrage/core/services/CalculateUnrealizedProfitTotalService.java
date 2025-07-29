@@ -17,10 +17,18 @@ import java.util.Objects;
 public class CalculateUnrealizedProfitTotalService {
     private final PairDataRepository pairDataRepository;
 
-    public BigDecimal getUnrealizedProfitTotal() {
+    public BigDecimal getUnrealizedProfitPercentTotal() {
         List<PairData> tradingPairs = pairDataRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         return tradingPairs.stream()
                 .map(PairData::getProfitPercentChanges)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getUnrealizedProfitUSDTTotal() {
+        List<PairData> tradingPairs = pairDataRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        return tradingPairs.stream()
+                .map(PairData::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
