@@ -44,7 +44,12 @@ public class ZScoreService {
 
     private void filterIncompleteZScoreParams(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
-        log.info("🔍 Ожидаемое количество наблюдений: {}", expected);
+        double maxZScore = zScoreDataList.stream()
+                .map(ZScoreData::getLastZScoreParam)
+                .map(ZScoreParam::getZscore)
+                .max(Comparator.naturalOrder())
+                .orElse(0d);
+        log.info("🔍 Ожидаемое количество наблюдений по настройкам: {}, максимальный Z-скор: {}", expected, maxZScore);
 
         int before = zScoreDataList.size();
 

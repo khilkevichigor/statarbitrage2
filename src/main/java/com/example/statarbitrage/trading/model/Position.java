@@ -164,7 +164,7 @@ public class Position {
 
         // Расчет процентного PnL на основе вложенной суммы (allocatedAmount)
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+            this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 8, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
             log.info("✅ UnrealizedPnL: {} % (на сумму вложений {})", this.unrealizedPnLPercent, allocatedAmount);
         } else {

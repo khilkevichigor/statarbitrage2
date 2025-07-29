@@ -29,7 +29,7 @@ public class EntryPointService {
         // Время входа
         pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
 
-        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z = {}",
+        log.info("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z-скор = {}",
                 pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
                 pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
                 pairData.getZScoreEntry());
