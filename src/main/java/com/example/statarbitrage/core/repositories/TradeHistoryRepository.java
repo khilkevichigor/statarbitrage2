@@ -59,16 +59,27 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "WHERE t.exitReason IS NOT NULL")
     BigDecimal getSumProfitPercentTotal();
 
+    @Query("SELECT AVG(t.currentProfitUSDT) " +
+            "FROM TradeHistory t " +
+            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "AND t.exitReason IS NOT NULL")
+    BigDecimal getAvgProfitUSDTToday();
+
+    @Query("SELECT AVG(t.currentProfitUSDT) " +
+            "FROM TradeHistory t " +
+            "WHERE t.exitReason IS NOT NULL")
+    BigDecimal getAvgProfitUSDTTotal();
+
     @Query("SELECT AVG(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
             "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
             "AND t.exitReason IS NOT NULL")
-    BigDecimal getAvgProfitToday();
+    BigDecimal getAvgProfitPercentToday();
 
     @Query("SELECT AVG(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
             "WHERE t.exitReason IS NOT NULL")
-    BigDecimal getAvgProfitTotal();
+    BigDecimal getAvgProfitPercentTotal();
 
     @Query("SELECT COUNT(*) " +
             "FROM PairData p " +
