@@ -85,7 +85,7 @@ public class TradeHistoryService {
     }
 
     public BigDecimal getSumRealizedProfitUSDT() {
-        return tradeHistoryRepository.getSumRealizedProfitPercent();
+        return tradeHistoryRepository.getSumRealizedProfitUSDT();
     }
 
     public BigDecimal getSumRealizedProfitPercent() {
