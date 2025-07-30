@@ -31,6 +31,9 @@ public class UpdateTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
 
+    //todo сделать чекбокс на UI "закрыться в + при первой же возможности (минимальный профит)"
+    //todo сделать кнопку "закрыть все позиции"
+    //todo сделать кнопку "усреднить"
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
         validateRequest(request);

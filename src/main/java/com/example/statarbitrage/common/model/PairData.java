@@ -102,7 +102,10 @@ public class PairData {
 
     private BigDecimal zScoreChanges;
 
+    private BigDecimal longUSDTChanges;
     private BigDecimal longPercentChanges;
+
+    private BigDecimal shortUSDTChanges;
     private BigDecimal shortPercentChanges;
 
     private BigDecimal profitUSDTChanges;

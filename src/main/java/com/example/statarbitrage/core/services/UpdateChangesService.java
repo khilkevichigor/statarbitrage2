@@ -13,11 +13,13 @@ public class UpdateChangesService {
     public void update(PairData pairData, ChangesData changes) {
         pairData.setMinLong(changes.getMinLong());
         pairData.setMaxLong(changes.getMaxLong());
+        pairData.setLongUSDTChanges(changes.getLongUSDTChanges());
         pairData.setLongPercentChanges(changes.getLongPercentChanges());
         pairData.setLongTickerCurrentPrice(changes.getLongCurrentPrice().doubleValue());
 
         pairData.setMinShort(changes.getMinShort());
         pairData.setMaxShort(changes.getMaxShort());
+        pairData.setShortUSDTChanges(changes.getShortUSDTChanges());
         pairData.setShortPercentChanges(changes.getShortPercentChanges());
         pairData.setShortTickerCurrentPrice(changes.getShortCurrentPrice().doubleValue());
 

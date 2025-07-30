@@ -95,7 +95,10 @@ public class CalculateChangesService {
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
+        changesData.setLongUSDTChanges(safeScale(isPositionsClosed ? longPosition.getRealizedPnLUSDT() : longPosition.getUnrealizedPnLUSDT(), 8));
         changesData.setLongPercentChanges(safeScale(isPositionsClosed ? longPosition.getRealizedPnLPercent() : longPosition.getUnrealizedPnLPercent(), 8));
+
+        changesData.setShortUSDTChanges(safeScale(isPositionsClosed ? shortPosition.getRealizedPnLUSDT() : shortPosition.getUnrealizedPnLUSDT(), 8));
         changesData.setShortPercentChanges(safeScale(isPositionsClosed ? shortPosition.getRealizedPnLPercent() : shortPosition.getUnrealizedPnLPercent(), 8));
 
         changesData.setProfitUSDTChanges(pnlUSDT);
