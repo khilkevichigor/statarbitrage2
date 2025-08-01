@@ -292,7 +292,7 @@ public class OkxPortfolioManager {
                         uPnLStr = uPnLElement.getAsString();
                         log.debug("💰 uPnL (нереализованная прибыль): {}", uPnLStr);
                     } else {
-                        log.warn("⚠️ Поле 'uPnL' отсутствует или null для USDT, используем 0"); //todo подумать что делать с этим!
+                        log.debug("⚠️ Поле 'uPnL' отсутствует или null для USDT, используем 0"); //todo подумать что делать с этим!
                     }
 
                     totalBalance = new BigDecimal(eqStr);
