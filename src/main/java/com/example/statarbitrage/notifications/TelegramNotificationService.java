@@ -36,7 +36,7 @@ public class TelegramNotificationService implements NotificationService {
                 SendAsTextEvent.builder()
                         .chatId(String.valueOf(botConfig.getOwnerChatId()))
                         .text(String.format(
-                                "📉 Закрыта пара *%s*\nПрофит: `%.2f` USDT (`%.2f%%`)\nПричина %s\n%s",
+                                "📉 Закрыта пара *%s*\nПрофит: %.2f USDT (%.2f%%)\nПричина %s\n%s",
                                 pairData.getPairName(),
                                 pairData.getProfitUSDTChanges(),
                                 pairData.getProfitPercentChanges(),
