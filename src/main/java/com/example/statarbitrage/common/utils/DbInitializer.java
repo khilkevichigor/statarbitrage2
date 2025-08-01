@@ -55,10 +55,10 @@ public class DbInitializer {
                     .virtualFeePctPerTrade(0.05)
 
                     .useExitTake(true)
-                    .exitTake(10.0)
+                    .exitTake(5.0)
 
                     .useExitStop(true)
-                    .exitStop(-10.0)
+                    .exitStop(-5.0)
 
                     .useExitZMin(false)
                     .exitZMin(0)
