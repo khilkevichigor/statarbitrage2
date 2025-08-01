@@ -33,9 +33,9 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
 
+    //todo сделать колонку isVirtual в PairData что бы проще было слать/не слать смс в телегу, чистить пары в бд, определять что реально а что нет что бы не терять стату по реальному профиту
     //todo Position в бд а не в мапу
     //todo сделать анализатор - будет следить за одной парой с построением тренда профита что бы можно было видеть поведение - как ходит профит от z-скор на долгосрок
-    //todo уведомления в телегу
     //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
     //todo добавить колонку "время жизни"
     //todo сделать колонку максимальная просадка по профиту USDT (%)
