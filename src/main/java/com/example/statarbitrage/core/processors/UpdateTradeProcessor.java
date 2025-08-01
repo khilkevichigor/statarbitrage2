@@ -33,6 +33,8 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
 
+    //todo Position в бд а не в мапу
+    //todo сделать анализатор - будет следить за одной парой с построением тренда профита что бы можно было видеть поведение - как ходит профит от z-скор на долгосрок
     //todo уведомления в телегу
     //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
     //todo добавить колонку "время жизни"
