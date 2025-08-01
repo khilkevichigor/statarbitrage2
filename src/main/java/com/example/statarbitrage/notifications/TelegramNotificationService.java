@@ -21,8 +21,9 @@ public class TelegramNotificationService implements NotificationService {
                 SendAsTextEvent.builder()
                         .chatId(String.valueOf(botConfig.getOwnerChatId()))
                         .text(String.format(
-                                "📉 Начата пара *%s*",
-                                pairData.getPairName()
+                                "📉 Начата пара *%s*\n%s",
+                                pairData.getPairName(),
+                                pairData.getUuid()
                         ))
                         .enableMarkdown(true)
                         .build()
@@ -35,11 +36,12 @@ public class TelegramNotificationService implements NotificationService {
                 SendAsTextEvent.builder()
                         .chatId(String.valueOf(botConfig.getOwnerChatId()))
                         .text(String.format(
-                                "📉 Закрыта пара *%s*\nПрофит: `%.2f` USDT (`%.2f%%`). Причина %s",
+                                "📉 Закрыта пара *%s*\nПрофит: `%.2f` USDT (`%.2f%%`)\nПричина %s\n%s",
                                 pairData.getPairName(),
                                 pairData.getProfitUSDTChanges(),
                                 pairData.getProfitPercentChanges(),
-                                pairData.getExitReason()
+                                pairData.getExitReason(),
+                                pairData.getUuid()
                         ))
                         .enableMarkdown(true)
                         .build()
