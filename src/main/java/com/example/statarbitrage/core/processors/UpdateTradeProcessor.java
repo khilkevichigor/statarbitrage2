@@ -31,6 +31,8 @@ public class UpdateTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
 
+    //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
+    //todo добавить колонку "время жизни"
     //todo сделать колонку максимальная просадка по профиту USDT (%)
     //todo сделать колонку максимальная просадка по Z-скор
     //todo сделать чекбокс на UI "закрыться в + при первой же возможности (минимальный профит)"

@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
 
@@ -76,17 +77,68 @@ public class CalculateChangesService {
         return getProfitAndStatistics(pairData, changesData, totalRealizedPnlUSDT, totalRealizedPnlPercent, true, longPosition, shortPosition);
     }
 
+//    private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
+//        log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
+//
+//        //Расчеты pnl с учетом комиссий в Position, здесь берем для отображения в логах/UI
+//
+//        BigDecimal totalUnrealizedPnlUSDT = safeScale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()), 8);
+//        BigDecimal totalUnrealizedPnlPercent = safeScale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent()), 8);
+//        BigDecimal totalFees = safeScale(
+//                longPosition.getOpeningFees().add(longPosition.getFundingFees())
+//                        .add(shortPosition.getOpeningFees()).add(shortPosition.getFundingFees()),
+//                8);
+//
+//        log.info("Нереализованный PnL: {} USDT ({} %), комиссии: {} (уже учтены)", totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, totalFees);
+//
+//        return getProfitAndStatistics(pairData, changesData, totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, false, longPosition, shortPosition);
+//    }
+
     private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
 
-        BigDecimal totalUnrealizedPnlUSDT = safeScale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()), 8);
-        BigDecimal totalUnrealizedPnlPercent = safeScale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent()), 8);
-        BigDecimal totalFees = safeScale(
-                longPosition.getOpeningFees().add(longPosition.getFundingFees())
-                        .add(shortPosition.getOpeningFees()).add(shortPosition.getFundingFees()),
-                8);
+        // Суммарный USDT-профит (уже с учетом комиссий)
+        BigDecimal totalUnrealizedPnlUSDT = safeScale(
+                safe(longPosition.getUnrealizedPnLUSDT()).add(safe(shortPosition.getUnrealizedPnLUSDT())),
+                8
+        );
 
-        log.info("Нереализованный PnL: {} USDT ({} %), комиссии: {}", totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, totalFees);
+        // Взвешенный процентный профит: (P1 * A1 + P2 * A2) / (A1 + A2)
+        BigDecimal longAlloc = safe(longPosition.getAllocatedAmount());
+        BigDecimal shortAlloc = safe(shortPosition.getAllocatedAmount());
+        BigDecimal totalAlloc = longAlloc.add(shortAlloc);
+
+        BigDecimal totalUnrealizedPnlPercent;
+        if (totalAlloc.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal weightedSum = safe(longPosition.getUnrealizedPnLPercent()).multiply(longAlloc)
+                    .add(safe(shortPosition.getUnrealizedPnLPercent()).multiply(shortAlloc));
+            totalUnrealizedPnlPercent = safeScale(weightedSum.divide(totalAlloc, 8, RoundingMode.HALF_UP), 8);
+        } else {
+            totalUnrealizedPnlPercent = BigDecimal.ZERO;
+            log.warn("⚠️ allocatedAmount у обеих позиций ноль. Устанавливаем PnL % = 0");
+        }
+
+        // Расчет общих комиссий
+        BigDecimal totalFees = safeScale(
+                safe(longPosition.getOpeningFees()).add(safe(longPosition.getFundingFees()))
+                        .add(safe(shortPosition.getOpeningFees())).add(safe(shortPosition.getFundingFees())),
+                8
+        );
+
+        // Логирование деталей
+        log.info("📊 Итог по паре {}:", pairData.getPairName());
+        log.info("➡️ Нереализованный PnL: {} USDT ({} %) с учетом комиссий", totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent);
+        log.info("➡️ Лонг: allocated = {}, unrealizedPnL = {} USDT ({} %), openingFee = {}, fundingFee = {}",
+                longAlloc,
+                longPosition.getUnrealizedPnLUSDT(), longPosition.getUnrealizedPnLPercent(),
+                longPosition.getOpeningFees(), longPosition.getFundingFees()
+        );
+        log.info("➡️ Шорт: allocated = {}, unrealizedPnL = {} USDT ({} %), openingFee = {}, fundingFee = {}",
+                shortAlloc,
+                shortPosition.getUnrealizedPnLUSDT(), shortPosition.getUnrealizedPnLPercent(),
+                shortPosition.getOpeningFees(), shortPosition.getFundingFees()
+        );
+        log.info("➡️ Суммарные комиссии по паре {}: {}", pairData.getPairName(), totalFees);
 
         return getProfitAndStatistics(pairData, changesData, totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, false, longPosition, shortPosition);
     }
@@ -155,4 +207,9 @@ public class CalculateChangesService {
     private BigDecimal updateMax(BigDecimal currentMax, BigDecimal newVal) {
         return (currentMax == null || newVal.compareTo(currentMax) > 0) ? newVal : currentMax;
     }
+
+    private BigDecimal safe(BigDecimal val) {
+        return val != null ? val : BigDecimal.ZERO;
+    }
+
 }
