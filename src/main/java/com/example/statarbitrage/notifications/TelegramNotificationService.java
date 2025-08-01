@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class TelegramNotificationService implements NotificationService {
                 SendAsTextEvent.builder()
                         .chatId(String.valueOf(botConfig.getOwnerChatId()))
                         .text(String.format(
-                                "📉 Начата пара *%s*\n%s",
+                                "Пара открыта\n*%s*\n%s",
                                 pairData.getPairName(),
                                 pairData.getUuid()
                         ))
@@ -36,7 +38,8 @@ public class TelegramNotificationService implements NotificationService {
                 SendAsTextEvent.builder()
                         .chatId(String.valueOf(botConfig.getOwnerChatId()))
                         .text(String.format(
-                                "📉 Закрыта пара *%s*\nПрофит: %.2f USDT (%.2f%%)\nПричина %s\n%s",
+                                "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
+                                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? "🟢" : "🔴",
                                 pairData.getPairName(),
                                 pairData.getProfitUSDTChanges(),
                                 pairData.getProfitPercentChanges(),
