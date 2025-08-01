@@ -7,6 +7,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.notifications.NotificationService;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.TradeResult;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
@@ -31,6 +32,7 @@ public class StartNewTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final TradeHistoryService tradeHistoryService;
     private final StartNewTradeValidationService startNewTradeValidationService;
+    private final NotificationService notificationService;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest request) {
@@ -111,6 +113,8 @@ public class StartNewTradeProcessor {
         pairDataService.save(pairData);
 
         tradeHistoryService.updateTradeLog(pairData, settings);
+
+        notificationService.notifyOpen(pairData);
 
         return pairData;
     }

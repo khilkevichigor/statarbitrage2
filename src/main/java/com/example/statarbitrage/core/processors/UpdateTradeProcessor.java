@@ -7,6 +7,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.services.*;
+import com.example.statarbitrage.notifications.NotificationService;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.Positioninfo;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
@@ -30,6 +31,7 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
+    private final NotificationService notificationService;
 
     //todo уведомления в телегу
     //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
@@ -123,6 +125,7 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
         finalizeClosedTrade(pairData, settings);
+        notificationService.notifyClose(pairData);
         return pairData;
     }
 
@@ -167,6 +170,7 @@ public class UpdateTradeProcessor {
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
         finalizeClosedTrade(pairData, settings);
+        notificationService.notifyClose(pairData);
         return pairData;
     }
 

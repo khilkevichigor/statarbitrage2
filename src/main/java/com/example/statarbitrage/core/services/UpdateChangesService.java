@@ -31,8 +31,8 @@ public class UpdateChangesService {
 
         pairData.setMinProfitChanges(changes.getMinProfitChanges());
         pairData.setMaxProfitChanges(changes.getMaxProfitChanges());
-        pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
         pairData.setProfitUSDTChanges(changes.getProfitUSDTChanges());
+        pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
 
         pairData.setTimeInMinutesSinceEntryToMin(changes.getTimeInMinutesSinceEntryToMin());
         pairData.setTimeInMinutesSinceEntryToMax(changes.getTimeInMinutesSinceEntryToMax());
