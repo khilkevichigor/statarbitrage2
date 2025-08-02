@@ -118,7 +118,7 @@ public class PairData {
     private BigDecimal maxProfitChanges;
 
     private long entryTime;
-    private long updatedTime;
+    private long updatedTime; //todo
 
     private BigDecimal maxZ;
     private BigDecimal minZ;
@@ -130,7 +130,9 @@ public class PairData {
     private BigDecimal minCorr;
 
     private String exitReason;
-    private long timestamp;
+    private long timestamp; //todo
+
+    private boolean isVirtual;
 
     public PairData(String longTicker, String shortTicker) {
         this.longTicker = longTicker;

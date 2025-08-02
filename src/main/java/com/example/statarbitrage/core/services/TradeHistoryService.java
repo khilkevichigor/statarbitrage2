@@ -31,6 +31,9 @@ public class TradeHistoryService {
         Optional<TradeHistory> optional = tradeHistoryRepository.findLatestByUuid(pairDataUuid);
 
         TradeHistory tradeHistory = optional.orElseGet(TradeHistory::new);
+
+        tradeHistory.setVirtual(pairData.isVirtual());
+
         tradeHistory.setLongTicker(longTicker);
         tradeHistory.setShortTicker(shortTicker);
         tradeHistory.setPairUuid(pairDataUuid);

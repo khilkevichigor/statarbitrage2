@@ -53,4 +53,6 @@ public class TradeHistory {
     private String exitReason;
     private String entryTime;
     private String timestamp;
+
+    private boolean isVirtual;
 }

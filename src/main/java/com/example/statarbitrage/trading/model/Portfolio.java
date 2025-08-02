@@ -94,6 +94,8 @@ public class Portfolio {
      */
     private LocalDateTime createdAt;
 
+    private boolean isVirtual;
+
     // Расчетные методы
 
     /**

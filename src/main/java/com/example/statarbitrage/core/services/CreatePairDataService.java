@@ -5,6 +5,8 @@ import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.CandlesUtil;
+import com.example.statarbitrage.trading.interfaces.TradingProvider;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class CreatePairDataService {
 
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
+    private final TradingProviderFactory tradingProviderFactory;
 
     /**
      * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
@@ -66,6 +69,9 @@ public class CreatePairDataService {
         pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
 
         updateZScoreDataCurrentService.updateCurrent(pairData, zScoreData);
+
+        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        pairData.setVirtual(provider.getProviderType().isVirtual());
 
         return pairData;
     }
