@@ -34,15 +34,16 @@ public class UpdateTradeProcessor {
     private final NotificationService notificationService;
 
     // +/- todo сделать колонку isVirtual в PairData. Проверь таблицу portfolio - нужно читать virtual/не virtual что бы тащить стату через TradeHistoryRepository (или JOIN)
+    // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
     //todo Position в бд а не в мапу
     //todo сделать анализатор - будет следить за одной парой с построением тренда профита что бы можно было видеть поведение - как ходит профит от z-скор на долгосрок
     //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
     //todo добавить колонку "время жизни"
     //todo сделать колонку максимальная просадка по профиту USDT (%)
-    // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
     //todo сделать чекбокс на UI "закрыться в + при первой же возможности (минимальный профит)"
     //todo сделать кнопку "закрыть все позиции"
     //todo сделать кнопку "усреднить"
+
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
         validateRequest(request);
