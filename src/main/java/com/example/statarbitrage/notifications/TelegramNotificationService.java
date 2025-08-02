@@ -14,40 +14,85 @@ import java.math.BigDecimal;
 @Service
 @RequiredArgsConstructor
 public class TelegramNotificationService implements NotificationService {
+    private static final String EMOJI_GREEN = "🟢";
+    private static final String EMOJI_RED = "🔴";
+
     private final EventSendService eventSendService;
     private final BotConfig botConfig;
 
+//    @Override
+//    public void notifyOpen(PairData pairData) {
+//        eventSendService.sendTelegramMessageAsTextEvent(
+//                SendAsTextEvent.builder()
+//                        .chatId(String.valueOf(botConfig.getOwnerChatId()))
+//                        .text(String.format(
+//                                "Пара открыта\n*%s*\n%s",
+//                                pairData.getPairName(),
+//                                pairData.getUuid()
+//                        ))
+//                        .enableMarkdown(true)
+//                        .build()
+//        );
+//    }
+//
+//    @Override
+//    public void notifyClose(PairData pairData) {
+//        eventSendService.sendTelegramMessageAsTextEvent(
+//                SendAsTextEvent.builder()
+//                        .chatId(String.valueOf(botConfig.getOwnerChatId()))
+//                        .text(String.format(
+//                                "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
+//                                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? "🟢" : "🔴",
+//                                pairData.getPairName(),
+//                                pairData.getProfitUSDTChanges(),
+//                                pairData.getProfitPercentChanges(),
+//                                pairData.getExitReason(),
+//                                pairData.getUuid()
+//                        ))
+//                        .enableMarkdown(true)
+//                        .build()
+//        );
+//    }
+
     @Override
     public void notifyOpen(PairData pairData) {
+        String message = formatOpenMessage(pairData);
+        sendNotification(message);
+    }
+
+    @Override
+    public void notifyClose(PairData pairData) {
+        String message = formatCloseMessage(pairData);
+        sendNotification(message);
+    }
+
+    private void sendNotification(String text) {
         eventSendService.sendTelegramMessageAsTextEvent(
                 SendAsTextEvent.builder()
                         .chatId(String.valueOf(botConfig.getOwnerChatId()))
-                        .text(String.format(
-                                "Пара открыта\n*%s*\n%s",
-                                pairData.getPairName(),
-                                pairData.getUuid()
-                        ))
+                        .text(text)
                         .enableMarkdown(true)
                         .build()
         );
     }
 
-    @Override
-    public void notifyClose(PairData pairData) {
-        eventSendService.sendTelegramMessageAsTextEvent(
-                SendAsTextEvent.builder()
-                        .chatId(String.valueOf(botConfig.getOwnerChatId()))
-                        .text(String.format(
-                                "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
-                                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? "🟢" : "🔴",
-                                pairData.getPairName(),
-                                pairData.getProfitUSDTChanges(),
-                                pairData.getProfitPercentChanges(),
-                                pairData.getExitReason(),
-                                pairData.getUuid()
-                        ))
-                        .enableMarkdown(true)
-                        .build()
+    private String formatOpenMessage(PairData pairData) {
+        return String.format(
+                "Пара открыта\n*%s*\n%s",
+                pairData.getPairName(),
+                pairData.getUuid()
+        );
+    }
+
+    private String formatCloseMessage(PairData pairData) {
+        return String.format(
+                "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
+                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
+                pairData.getPairName(),
+                pairData.getProfitUSDTChanges(),
+                pairData.getProfitPercentChanges(),
+                pairData.getExitReason(),
+                pairData.getUuid()
         );
     }
 }
