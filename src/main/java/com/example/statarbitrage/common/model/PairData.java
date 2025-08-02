@@ -29,6 +29,8 @@ import java.util.UUID;
 @Slf4j
 public class PairData {
 
+    //todo подумать что бы сделать поля Settings, Changes, ZScoreData а то каша
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -118,7 +120,7 @@ public class PairData {
     private BigDecimal maxProfitChanges;
 
     private long entryTime;
-    private long updatedTime; //todo
+    private long updatedTime; //todo чек
 
     private BigDecimal maxZ;
     private BigDecimal minZ;
@@ -130,9 +132,11 @@ public class PairData {
     private BigDecimal minCorr;
 
     private String exitReason;
-    private long timestamp; //todo
+    private long timestamp; //todo чек
 
     private boolean isVirtual;
+
+    //todo может сюда еще сетить либо целый Settings либо поля что бы PairData была полностью информативная
 
     public PairData(String longTicker, String shortTicker) {
         this.longTicker = longTicker;

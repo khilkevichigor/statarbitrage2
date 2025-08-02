@@ -21,6 +21,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Position {
 
+    //todo подумать что бы сделать энтити и хранить в бд а не в мапе
+
     /**
      * Уникальный идентификатор позиции
      */

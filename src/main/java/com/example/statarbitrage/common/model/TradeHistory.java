@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
+/**
+ * Это сущность содеожит специфическую инфу о трейдах которой нет в PairData
+ */
 @Entity
 @Data
 @NoArgsConstructor

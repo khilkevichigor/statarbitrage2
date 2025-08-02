@@ -15,6 +15,8 @@ import java.util.Optional;
 @Repository
 public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long> {
 
+    //todo по хорошему здесь иметь только save, update, getById - чисто что бы получать сущность иначе каша и непонятка
+
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE " +

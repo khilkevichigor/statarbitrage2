@@ -94,7 +94,7 @@ public class Portfolio {
      */
     private LocalDateTime createdAt;
 
-    private boolean isVirtual;
+    private boolean isVirtual; //todo доделать
 
     // Расчетные методы
 
