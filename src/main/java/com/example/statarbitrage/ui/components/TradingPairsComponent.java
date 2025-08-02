@@ -104,20 +104,17 @@ public class TradingPairsComponent extends VerticalLayout {
 
         tradingPairsGrid.addColumn(this::getProfitCommon).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMin())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        tradingPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMax())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMinProfit())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMaxProfit())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(this::getProfitLong).setHeader("Профит Long").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(this::getProfitShort).setHeader("Профит Short").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-//        tradingPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges(), 2)).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        tradingPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges(), 2)).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
-//        tradingPairsGrid.addColumn(p -> safeScale(p.getLongPercentChanges(), 2)).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        tradingPairsGrid.addColumn(p -> safeScale(p.getShortPercentChanges(), 2)).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreEntry())).setHeader("Z-скор (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreCurrent())).setHeader("Z-скор (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getMaxZ(), 2)).setHeader("Z-скор (Max)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> safeScale(p.getMinZ(), 2)).setHeader("Z-скор (Min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueEntry())).setHeader("Pvalue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent())).setHeader("Pvalue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueEntry())).setHeader("AdfValue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -134,20 +131,17 @@ public class TradingPairsComponent extends VerticalLayout {
 
         closedPairsGrid.addColumn(this::getProfitCommon).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        closedPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMin())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        closedPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMax())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMinProfit())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMaxProfit())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         closedPairsGrid.addColumn(this::getProfitLong).setHeader("Профит Long").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(this::getProfitShort).setHeader("Профит Short").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-//        closedPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges(), 2)).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        closedPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges(), 2)).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
-//        closedPairsGrid.addColumn(p -> safeScale(p.getLongPercentChanges(), 2)).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        closedPairsGrid.addColumn(p -> safeScale(p.getShortPercentChanges(), 2)).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreEntry())).setHeader("Z-скор (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreCurrent())).setHeader("Z-скор (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getMaxZ(), 2)).setHeader("Z-скор (Max)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> safeScale(p.getMinZ(), 2)).setHeader("Z-скор (Min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueEntry())).setHeader("Pvalue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent())).setHeader("Pvalue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueEntry())).setHeader("AdfValue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -165,20 +159,17 @@ public class TradingPairsComponent extends VerticalLayout {
 
         errorPairsGrid.addColumn(this::getProfitCommon).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        errorPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMin())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMax())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMinProfit())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> String.valueOf(p.getTimeInMinutesSinceEntryToMaxProfit())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         errorPairsGrid.addColumn(this::getProfitLong).setHeader("Профит Long").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(this::getProfitShort).setHeader("Профит Short").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-//        errorPairsGrid.addColumn(p -> safeScale(p.getProfitUSDTChanges(), 2)).setHeader("Профит (USDT)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        errorPairsGrid.addColumn(p -> safeScale(p.getProfitPercentChanges(), 2)).setHeader("Профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
-//        errorPairsGrid.addColumn(p -> safeScale(p.getLongPercentChanges(), 2)).setHeader("Long (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        errorPairsGrid.addColumn(p -> safeScale(p.getShortPercentChanges(), 2)).setHeader("Short (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreEntry())).setHeader("Z-скор (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreCurrent())).setHeader("Z-скор (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getMaxZ(), 2)).setHeader("Z-скор (Max)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> safeScale(p.getMinZ(), 2)).setHeader("Z-скор (Min)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueEntry())).setHeader("Pvalue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent())).setHeader("Pvalue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueEntry())).setHeader("AdfValue (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);

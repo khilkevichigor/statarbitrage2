@@ -23,7 +23,7 @@ public class UpdateChangesService {
         pairData.setShortPercentChanges(changes.getShortPercentChanges());
         pairData.setShortTickerCurrentPrice(changes.getShortCurrentPrice().doubleValue());
 
-        changes.setMinZ(changes.getMinZ());
+        pairData.setMinZ(changes.getMinZ());
         pairData.setMaxZ(changes.getMaxZ());
 
         pairData.setMinCorr(changes.getMinCorr());
@@ -34,8 +34,8 @@ public class UpdateChangesService {
         pairData.setProfitUSDTChanges(changes.getProfitUSDTChanges());
         pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
 
-        pairData.setTimeInMinutesSinceEntryToMin(changes.getTimeInMinutesSinceEntryToMin());
-        pairData.setTimeInMinutesSinceEntryToMax(changes.getTimeInMinutesSinceEntryToMax());
+        pairData.setTimeInMinutesSinceEntryToMinProfit(changes.getTimeInMinutesSinceEntryToMinProfit());
+        pairData.setTimeInMinutesSinceEntryToMaxProfit(changes.getTimeInMinutesSinceEntryToMaxProfit());
 
         pairData.setZScoreChanges(changes.getZScoreChanges());
     }

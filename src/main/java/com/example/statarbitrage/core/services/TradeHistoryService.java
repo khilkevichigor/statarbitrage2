@@ -37,10 +37,10 @@ public class TradeHistoryService {
 
         // мапим поля
         tradeHistory.setMinProfitPercent(pairData.getMinProfitChanges());
-        tradeHistory.setMinProfitMinutes(pairData.getTimeInMinutesSinceEntryToMin() + "min");
+        tradeHistory.setMinProfitMinutes(pairData.getTimeInMinutesSinceEntryToMinProfit() + "min");
 
         tradeHistory.setMaxProfitPercent(pairData.getMaxProfitChanges());
-        tradeHistory.setMaxProfitMinutes(pairData.getTimeInMinutesSinceEntryToMax() + "min");
+        tradeHistory.setMaxProfitMinutes(pairData.getTimeInMinutesSinceEntryToMaxProfit() + "min");
 
         tradeHistory.setCurrentProfitUSDT(pairData.getProfitUSDTChanges());
         tradeHistory.setCurrentProfitPercent(pairData.getProfitPercentChanges());

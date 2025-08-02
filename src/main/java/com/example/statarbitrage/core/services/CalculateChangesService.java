@@ -77,23 +77,6 @@ public class CalculateChangesService {
         return getProfitAndStatistics(pairData, changesData, totalRealizedPnlUSDT, totalRealizedPnlPercent, true, longPosition, shortPosition);
     }
 
-//    private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
-//        log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
-//
-//        //Расчеты pnl с учетом комиссий в Position, здесь берем для отображения в логах/UI
-//
-//        BigDecimal totalUnrealizedPnlUSDT = safeScale(longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT()), 8);
-//        BigDecimal totalUnrealizedPnlPercent = safeScale(longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent()), 8);
-//        BigDecimal totalFees = safeScale(
-//                longPosition.getOpeningFees().add(longPosition.getFundingFees())
-//                        .add(shortPosition.getOpeningFees()).add(shortPosition.getFundingFees()),
-//                8);
-//
-//        log.info("Нереализованный PnL: {} USDT ({} %), комиссии: {} (уже учтены)", totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, totalFees);
-//
-//        return getProfitAndStatistics(pairData, changesData, totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, false, longPosition, shortPosition);
-//    }
-
     private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.info("--> getFromOpenPositions для пары {}", pairData.getPairName());
 
@@ -173,8 +156,8 @@ public class CalculateChangesService {
 
         changesData.setMinProfitChanges(profitExtremum.minProfit());
         changesData.setMaxProfitChanges(profitExtremum.maxProfit());
-        changesData.setTimeInMinutesSinceEntryToMax(profitExtremum.timeToMax());
-        changesData.setTimeInMinutesSinceEntryToMin(profitExtremum.timeToMin());
+        changesData.setTimeInMinutesSinceEntryToMaxProfit(profitExtremum.timeToMax());
+        changesData.setTimeInMinutesSinceEntryToMinProfit(profitExtremum.timeToMin());
 
         logFinalResults(pairData, changesData);
 
@@ -185,7 +168,7 @@ public class CalculateChangesService {
         log.info("📊 ЛОНГ {}: вход: {}, тек.: {}, изм.: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongPercentChanges());
         log.info("📉 ШОРТ {}: вход: {}, тек.: {}, изм.: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortPercentChanges());
         log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
-        log.info("📈 Max профит: {} % ({} минут), Min профит: {} % ({} минут)", changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMax(), changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMin());
+        log.info("📈 Max профит: {} % ({} минут), Min профит: {} % ({} минут)", changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMaxProfit(), changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMinProfit());
     }
 
     private void updateExtremumValues(PairData pairData, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,

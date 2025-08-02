@@ -32,12 +32,12 @@ public class ProfitExtremumService {
                 ? pairData.getMinProfitChanges()
                 : currentProfit;
 
-        long timeToMax = pairData.getTimeInMinutesSinceEntryToMax() > 0
-                ? pairData.getTimeInMinutesSinceEntryToMax()
+        long timeToMax = pairData.getTimeInMinutesSinceEntryToMaxProfit() > 0
+                ? pairData.getTimeInMinutesSinceEntryToMaxProfit()
                 : currentTimeInMinutes;
 
-        long timeToMin = pairData.getTimeInMinutesSinceEntryToMin() > 0
-                ? pairData.getTimeInMinutesSinceEntryToMin()
+        long timeToMin = pairData.getTimeInMinutesSinceEntryToMinProfit() > 0
+                ? pairData.getTimeInMinutesSinceEntryToMinProfit()
                 : currentTimeInMinutes;
 
         // Обновление значений
