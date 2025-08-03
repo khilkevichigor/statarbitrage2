@@ -54,6 +54,7 @@ public class PairDataService {
     }
 
     public void save(PairData pairData) {
+        pairData.setUpdatedTime(System.currentTimeMillis()); //перед сохранением обновляем время
         pairDataRepository.save(pairData);
     }
 

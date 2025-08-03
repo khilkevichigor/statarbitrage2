@@ -6,6 +6,7 @@ import com.example.statarbitrage.common.utils.NumberFormatter;
 import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
+import com.example.statarbitrage.formatters.TimeFormatterUtil;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import com.vaadin.flow.component.button.Button;
@@ -95,6 +96,8 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Корр.").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
+        selectedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getTimestamp())).setHeader("Дата/время").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createSelectedPairsChartActionButtons)).setHeader("Чарт");
         selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createSelectedPairsStartTradingActionButtons)).setHeader("Торговать");
     }
@@ -122,6 +125,9 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry())).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        tradingPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getEntryTime())).setHeader("Начало трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> TimeFormatterUtil.formatDurationFromMillis(p.getUpdatedTime() - p.getEntryTime())).setHeader("Продолжительность трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsChartActionButtons)).setHeader("Чарт");
         tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsCloseActionButtons)).setHeader("Действие");
@@ -151,6 +157,10 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry())).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
+        closedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getEntryTime())).setHeader("Начало трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getUpdatedTime())).setHeader("Конец трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> TimeFormatterUtil.formatDurationFromMillis(p.getUpdatedTime() - p.getEntryTime())).setHeader("Продолжительность трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         closedPairsGrid.addColumn(PairData::getExitReason).setHeader("Причина выхода").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(new ComponentRenderer<>(this::createClosedPairsActionButtons)).setHeader("Чарт");
     }
@@ -178,6 +188,11 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry())).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        errorPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getEntryTime())).setHeader("Начало трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getUpdatedTime())).setHeader("Конец трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> TimeFormatterUtil.formatDurationFromMillis(p.getUpdatedTime() - p.getEntryTime())).setHeader("Продолжительность трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
 
         errorPairsGrid.addColumn(PairData::getExitReason).setHeader("Причина выхода").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(PairData::getErrorDescription).setHeader("Ошибка").setSortable(true).setAutoWidth(true).setFlexGrow(0);

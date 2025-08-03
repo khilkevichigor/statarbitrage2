@@ -119,8 +119,9 @@ public class PairData {
     private BigDecimal minProfitChanges;
     private BigDecimal maxProfitChanges;
 
-    private long entryTime;
-    private long updatedTime; //todo чек
+    private long timestamp; //время создания PairData (fetch)
+    private long entryTime; //время начала трейда
+    private long updatedTime; //время обновления пары
 
     private BigDecimal maxZ;
     private BigDecimal minZ;
@@ -132,7 +133,6 @@ public class PairData {
     private BigDecimal minCorr;
 
     private String exitReason;
-    private long timestamp; //todo чек
 
     private boolean isVirtual;
 

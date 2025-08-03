@@ -67,6 +67,7 @@ public class CreatePairDataService {
         pairData.setStatus(TradeStatus.SELECTED);
         pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedCandles));
         pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
+        pairData.setTimestamp(System.currentTimeMillis()); //создание и обноаление
 
         updateZScoreDataCurrentService.updateCurrent(pairData, zScoreData);
 
