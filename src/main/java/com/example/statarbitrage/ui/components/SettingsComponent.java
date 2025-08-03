@@ -169,7 +169,7 @@ public class SettingsComponent extends VerticalLayout {
         NumberField minRSquaredField = new NumberField("Min R-Squared");
         NumberField minWindowSizeField = new NumberField("Min windowSize");
         NumberField minPValueField = new NumberField("Min pValue");
-        NumberField minAdfValueField = new NumberField("Min adfValue");
+        NumberField maxAdfValueField = new NumberField("Max adfValue");
         NumberField minCorrelationField = new NumberField("Min corr");
         NumberField minVolumeField = new NumberField("Min Vol (млн $)");
         NumberField checkIntervalField = new NumberField("Обновление (мин)");
@@ -178,7 +178,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinZFilterCheckbox = new Checkbox("Использовать Min Z фильтр");
         Checkbox useMinRSquaredFilterCheckbox = new Checkbox("Использовать Min R-Squared фильтр");
         Checkbox useMinPValueFilterCheckbox = new Checkbox("Использовать Min pValue фильтр");
-        Checkbox useMinAdfValueFilterCheckbox = new Checkbox("Использовать Min adfValue фильтр");
+        Checkbox useMaxAdfValueFilterCheckbox = new Checkbox("Использовать Max adfValue фильтр");
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
 
@@ -210,7 +210,7 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(minRSquaredField, 0.1, 0.5);
         setNumberFieldProperties(minWindowSizeField, 1, 1);
         setNumberFieldProperties(minPValueField, 0.001, 0.0);
-        setNumberFieldProperties(minAdfValueField, 0.001, 0.0);
+        setNumberFieldProperties(maxAdfValueField, 0.001, 0.0);
         setNumberFieldProperties(minCorrelationField, 0.01, -1.0);
         setNumberFieldProperties(minVolumeField, 1, 0.0);
         setNumberFieldProperties(checkIntervalField, 1, 1);
@@ -228,9 +228,9 @@ public class SettingsComponent extends VerticalLayout {
 
         // Create sections
         add(createAnalysisSection(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
-                minPValueField, minAdfValueField, minCorrelationField, minVolumeField,
+                minPValueField, maxAdfValueField, minCorrelationField, minVolumeField,
                 checkIntervalField, usePairsField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
-                useMinPValueFilterCheckbox, useMinAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
+                useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
                 useMinVolumeFilterCheckbox));
 
         add(createCapitalSection(
@@ -245,7 +245,7 @@ public class SettingsComponent extends VerticalLayout {
 
         // Bind fields to settings object
         bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
-                minPValueField, minAdfValueField, checkIntervalField, minCorrelationField,
+                minPValueField, maxAdfValueField, checkIntervalField, minCorrelationField,
                 minVolumeField, usePairsField,
                 maxShortMarginSize,
                 maxLongMarginSize,
@@ -253,7 +253,7 @@ public class SettingsComponent extends VerticalLayout {
                 exitTakeField, exitStopField,
                 exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField,
                 useMinZFilterCheckbox, useMinRSquaredFilterCheckbox, useMinPValueFilterCheckbox,
-                useMinAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox, useMinVolumeFilterCheckbox,
+                useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox, useMinVolumeFilterCheckbox,
                 useExitTakeCheckbox, useExitStopCheckbox, useExitZMinCheckbox, useExitZMaxCheckbox,
                 useExitZMaxPercentCheckbox, useExitTimeHoursCheckbox);
 
@@ -386,7 +386,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private void bindFields(TextField timeframeField, NumberField candleLimitField,
                             NumberField minZField, NumberField minRSquaredField, NumberField minWindowSizeField,
-                            NumberField minPValueField, NumberField minAdfValueField,
+                            NumberField maxPValueField, NumberField maxAdfValueField,
                             NumberField checkIntervalField, NumberField minCorrelationField,
                             NumberField minVolumeField, NumberField usePairsField,
                             NumberField maxShortMarginSizeField,
@@ -396,7 +396,7 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField exitZMinField, NumberField exitZMaxField,
                             NumberField exitZMaxPercentField, NumberField exitTimeHoursField,
                             Checkbox useMinZFilterCheckbox, Checkbox useMinRSquaredFilterCheckbox,
-                            Checkbox useMinPValueFilterCheckbox, Checkbox useMinAdfValueFilterCheckbox,
+                            Checkbox useMinPValueFilterCheckbox, Checkbox useMaxAdfValueFilterCheckbox,
                             Checkbox useMinCorrelationFilterCheckbox, Checkbox useMinVolumeFilterCheckbox,
                             Checkbox useExitTakeCheckbox, Checkbox useExitStopCheckbox,
                             Checkbox useExitZMinCheckbox, Checkbox useExitZMaxCheckbox,
@@ -413,8 +413,8 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minZField).bind(Settings::getMinZ, Settings::setMinZ);
         settingsBinder.forField(minRSquaredField).bind(Settings::getMinRSquared, Settings::setMinRSquared);
         settingsBinder.forField(minWindowSizeField).bind(Settings::getMinWindowSize, Settings::setMinWindowSize);
-        settingsBinder.forField(minPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
-        settingsBinder.forField(minAdfValueField).bind(Settings::getMinAdfValue, Settings::setMinAdfValue);
+        settingsBinder.forField(maxPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
+        settingsBinder.forField(maxAdfValueField).bind(Settings::getMaxAdfValue, Settings::setMaxAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
         settingsBinder.forField(maxShortMarginSizeField).bind(Settings::getMaxShortMarginSize, Settings::setMaxShortMarginSize);
         settingsBinder.forField(maxLongMarginSizeField).bind(Settings::getMaxLongMarginSize, Settings::setMaxLongMarginSize);
@@ -437,7 +437,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(useMinZFilterCheckbox).bind(Settings::isUseMinZFilter, Settings::setUseMinZFilter);
         settingsBinder.forField(useMinRSquaredFilterCheckbox).bind(Settings::isUseMinRSquaredFilter, Settings::setUseMinRSquaredFilter);
         settingsBinder.forField(useMinPValueFilterCheckbox).bind(Settings::isUseMinPValueFilter, Settings::setUseMinPValueFilter);
-        settingsBinder.forField(useMinAdfValueFilterCheckbox).bind(Settings::isUseMinAdfValueFilter, Settings::setUseMinAdfValueFilter);
+        settingsBinder.forField(useMaxAdfValueFilterCheckbox).bind(Settings::isUseMaxAdfValueFilter, Settings::setUseMaxAdfValueFilter);
         settingsBinder.forField(useMinCorrelationFilterCheckbox).bind(Settings::isUseMinCorrelationFilter, Settings::setUseMinCorrelationFilter);
         settingsBinder.forField(useMinVolumeFilterCheckbox).bind(Settings::isUseMinVolumeFilter, Settings::setUseMinVolumeFilter);
 

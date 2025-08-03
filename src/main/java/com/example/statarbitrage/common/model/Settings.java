@@ -25,7 +25,7 @@ public class Settings {
     private double minZ;
     private double minWindowSize;
     private double minPValue;
-    private double minAdfValue;
+    private double maxAdfValue;
     private double minRSquared;
     private double minCorrelation;
     private double minVolume;
@@ -58,7 +58,7 @@ public class Settings {
     @Builder.Default
     private boolean useMinPValueFilter = true;
     @Builder.Default
-    private boolean useMinAdfValueFilter = true;
+    private boolean useMaxAdfValueFilter = true;
     @Builder.Default
     private boolean useMinCorrelationFilter = true;
     @Builder.Default

@@ -143,7 +143,7 @@ public class ZScoreService {
 
             // Фильтрация по adfValue
             boolean isIncompleteByAdfValue = false;
-            if (settings.isUseMinAdfValueFilter()) {
+            if (settings.isUseMaxAdfValueFilter()) {
                 Double adfValue = null;
                 if (params != null && !params.isEmpty()) {
                     // Для старого формата используем adfpvalue из последнего параметра
@@ -153,12 +153,12 @@ public class ZScoreService {
                     adfValue = data.getCointegration_pvalue(); //todo проверить это одно и то же???
                 }
 
-                if (adfValue != null && adfValue > settings.getMinAdfValue()) {
+                if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
                     isIncompleteByAdfValue = true;
                     if (pairData != null) {
                         pairDataService.delete(pairData);
                         log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MinAdfValue={}",
-                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMinAdfValue());
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMaxAdfValue());
                     }
                 }
             }
@@ -346,7 +346,7 @@ public class ZScoreService {
 
             double zVal, pValue, adf, corr;
 
-            if (params != null && !params.isEmpty()) { //todo params=null
+            if (params != null && !params.isEmpty()) {
                 // Используем старый формат с детальными параметрами
                 ZScoreParam last = params.get(params.size() - 1);
                 zVal = last.getZscore();
@@ -372,7 +372,7 @@ public class ZScoreService {
             if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
 
             // 3. adfValue <= minAdfValue
-            if (settings.isUseMinAdfValueFilter() && adf > settings.getMinAdfValue()) continue;
+            if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;
 
             // 4. corr >= minCorr
             if (settings.isUseMinCorrelationFilter() && corr < settings.getMinCorrelation()) continue;

@@ -1,5 +1,7 @@
 package com.example.statarbitrage.common.dto;
 
+import com.example.statarbitrage.common.dto.cointegration.CointegrationDetails;
+import com.example.statarbitrage.common.dto.cointegration.DataQuality;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,10 +27,14 @@ public class ZScoreData {
     private Double correlation;
     private Double correlation_pvalue;
     private Double cointegration_pvalue;
-    private Map<String, Object> cointegration_details;
+    private Map<String, Object> cointegration_details; //todo уже есть ниже!
     private Double latest_zscore;
     private Integer total_observations;
     private Double avg_r_squared;
+
+    private Boolean isCointegrated;
+    private DataQuality dataQuality;
+    private CointegrationDetails cointegrationDetails;
 
     public ZScoreParam getLastZScoreParam() {
         if (zscoreParams == null || zscoreParams.isEmpty()) {

@@ -191,6 +191,9 @@ public class PythonRestClient {
         zScoreData.setTotal_observations(result.getTotal_observations());
 
         //todo здесь сетить все поля из PairAnalysisResult
+        zScoreData.setIsCointegrated(result.getIs_cointegrated());
+        zScoreData.setDataQuality(result.getData_quality());
+        zScoreData.setCointegrationDetails(result.getCointegration_details());
 
         // Конвертируем zscore_history в zscoreParams если есть
         if (result.getZscore_history() != null && !result.getZscore_history().isEmpty()) {
