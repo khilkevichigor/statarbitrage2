@@ -96,7 +96,8 @@ public class PythonRestClient {
     private <T> T sendRequestWithRestTemplate(String endpoint, Object requestBody, TypeReference<T> responseType) {
         try {
             String json = objectMapper.writeValueAsString(requestBody);
-            log.info("📤 Отправляю запрос в {}", baseUrl + endpoint);
+            String url = baseUrl + endpoint;
+            log.info("📤 Отправляю POST-запрос в {} с телом:\n{}", url, json);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -113,6 +114,7 @@ public class PythonRestClient {
             );
 
             log.debug("📥 Ответ от {}: статус={}", baseUrl + endpoint, response.getStatusCode());
+            log.info("📄 Тело ответа от {}:\n{}", url, response.getBody()); //todo для начала посмотрим что приходит прежде чем сетить все поля
 
             if (response.getStatusCode() != HttpStatus.OK) {
                 log.error("❌ Ошибка от API коинтеграции: {} - {}", response.getStatusCode(), response.getBody());
@@ -187,6 +189,8 @@ public class PythonRestClient {
         zScoreData.setCointegration_pvalue(result.getCointegration_pvalue());
         zScoreData.setLatest_zscore(result.getLatest_zscore());
         zScoreData.setTotal_observations(result.getTotal_observations());
+
+        //todo здесь сетить все поля из PairAnalysisResult
 
         // Конвертируем zscore_history в zscoreParams если есть
         if (result.getZscore_history() != null && !result.getZscore_history().isEmpty()) {
