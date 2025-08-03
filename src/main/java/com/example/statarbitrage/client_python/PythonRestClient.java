@@ -97,7 +97,7 @@ public class PythonRestClient {
         try {
             String json = objectMapper.writeValueAsString(requestBody);
             String url = baseUrl + endpoint;
-            log.info("📤 Отправляю POST-запрос в {} с телом:\n{}", url, json);
+            log.info("📤 Отправляю запрос в {}", url);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -114,7 +114,6 @@ public class PythonRestClient {
             );
 
             log.debug("📥 Ответ от {}: статус={}", baseUrl + endpoint, response.getStatusCode());
-            log.info("📄 Тело ответа от {}:\n{}", url, response.getBody()); //todo для начала посмотрим что приходит прежде чем сетить все поля
 
             if (response.getStatusCode() != HttpStatus.OK) {
                 log.error("❌ Ошибка от API коинтеграции: {} - {}", response.getStatusCode(), response.getBody());

@@ -3,9 +3,12 @@ package com.example.statarbitrage.core.processors;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
+import com.example.statarbitrage.common.dto.cointegration.CointegrationDetails;
+import com.example.statarbitrage.common.dto.cointegration.DataQuality;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
+import com.example.statarbitrage.common.utils.FormatUtil;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.notifications.NotificationService;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
@@ -64,7 +67,7 @@ public class UpdateTradeProcessor {
         }
 
         final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
-        logPairInfo(zScoreData);
+        logPairInfo(zScoreData, settings);
 
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
         pairDataService.addChanges(pairData); // обновляем профит до проверки стратегии выхода
@@ -114,11 +117,48 @@ public class UpdateTradeProcessor {
         return zScoreService.calculateZScoreData(settings, candlesMap);
     }
 
-    private void logPairInfo(ZScoreData zScoreData) {
+    private void logPairInfo(ZScoreData zScoreData, Settings settings) {
         final ZScoreParam latest = zScoreData.getLastZScoreParam();
-        log.info(String.format("Наша пара: long=%s short=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
+        log.info(String.format("Наша пара: long=%s short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+                        zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
+                        zScoreData.getIsCointegrated(),
+                        latest.getPvalue(),
+                        latest.getAdfpvalue(),
+                        latest.getZscore(),
+                        latest.getCorrelation()
+                )
+        );
+
+        DataQuality dataQuality = zScoreData.getDataQuality();
+        if (dataQuality != null) {
+            log.info(String.format("- data quality: avgAdf=%.2f | avgR=%.2f | stablePeriods=%d",
+                            dataQuality.getAvg_adf_pvalue(),
+                            dataQuality.getAvg_r_squared(),
+                            dataQuality.getStable_periods()
+                    )
+            );
+        }
+
+        CointegrationDetails details = zScoreData.getCointegrationDetails();
+        if (details != null) {
+            log.info(String.format(
+                    "- cointegration details: traceStat=%.2f | criticalValue95=%.2f | eigenSize=%d | vectorSize=%d | errors=%s",
+                    details.getTrace_statistic() != null ? details.getTrace_statistic() : 0.0,
+                    details.getCritical_value_95() != null ? details.getCritical_value_95() : 0.0,
+                    details.getEigenvalues() != null ? details.getEigenvalues().size() : 0,
+                    details.getCointegrating_vector() != null ? details.getCointegrating_vector().size() : 0,
+                    details.getError() != null ? details.getError() : "N/A"
+            ));
+        }
+
+        log.info("🧪 Проверка: pValue={}, ADF={}, R²={}, stablePeriods={}",
+                FormatUtil.color(zScoreData.getCointegration_pvalue(), settings.getMinPValue()),
+                FormatUtil.color(zScoreData.getDataQuality().getAvg_adf_pvalue(), settings.getMaxAdfValue()),
+                FormatUtil.color(zScoreData.getDataQuality().getAvg_r_squared(), settings.getMinRSquared()),
+                zScoreData.getDataQuality().getStable_periods()
+        );
+
+
     }
 
     private PairData handleManualClose(PairData pairData, Settings settings) {
