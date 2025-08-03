@@ -95,7 +95,8 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Корр.").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createSelectedPairsActionButtons)).setHeader("Действие");
+        selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createSelectedPairsChartActionButtons)).setHeader("Чарт");
+        selectedPairsGrid.addColumn(new ComponentRenderer<>(this::createSelectedPairsStartTradingActionButtons)).setHeader("Торговать");
     }
 
     private void setupTradingPairsGrid() {
@@ -122,7 +123,8 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry())).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsActionButtons)).setHeader("Действие");
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsChartActionButtons)).setHeader("Чарт");
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsCloseActionButtons)).setHeader("Действие");
     }
 
     private void setupClosedPairsGrid() {
@@ -349,7 +351,7 @@ public class TradingPairsComponent extends VerticalLayout {
     /**
      * Создает кнопки действий для Selected Pairs Grid
      */
-    private HorizontalLayout createSelectedPairsActionButtons(PairData pair) {
+    private HorizontalLayout createSelectedPairsChartActionButtons(PairData pair) {
         HorizontalLayout buttonsLayout = new HorizontalLayout();
         buttonsLayout.setSpacing(true);
         buttonsLayout.setPadding(false);
@@ -358,16 +360,36 @@ public class TradingPairsComponent extends VerticalLayout {
         Button chartButton = createChartButton(pair);
 
         // Кнопка Торговать
+//        Button tradeButton = createStartTradingButton(pair);
+
+//        buttonsLayout.add(chartButton, tradeButton);
+        buttonsLayout.add(chartButton);
+        return buttonsLayout;
+    }
+
+    /**
+     * Создает кнопки действий для Selected Pairs Grid
+     */
+    private HorizontalLayout createSelectedPairsStartTradingActionButtons(PairData pair) {
+        HorizontalLayout buttonsLayout = new HorizontalLayout();
+        buttonsLayout.setSpacing(true);
+        buttonsLayout.setPadding(false);
+
+        // Кнопка Chart
+//        Button chartButton = createChartButton(pair);
+
+        // Кнопка Торговать
         Button tradeButton = createStartTradingButton(pair);
 
-        buttonsLayout.add(chartButton, tradeButton);
+//        buttonsLayout.add(chartButton, tradeButton);
+        buttonsLayout.add(tradeButton);
         return buttonsLayout;
     }
 
     /**
      * Создает кнопки действий для Trading Pairs Grid
      */
-    private HorizontalLayout createTradingPairsActionButtons(PairData pair) {
+    private HorizontalLayout createTradingPairsChartActionButtons(PairData pair) {
         HorizontalLayout buttonsLayout = new HorizontalLayout();
         buttonsLayout.setSpacing(true);
         buttonsLayout.setPadding(false);
@@ -376,9 +398,25 @@ public class TradingPairsComponent extends VerticalLayout {
         Button chartButton = createChartButton(pair);
 
         // Кнопка Закрыть
+//        Button closeButton = createStopTradingButton(pair);
+
+//        buttonsLayout.add(chartButton, closeButton);
+        buttonsLayout.add(chartButton);
+        return buttonsLayout;
+    }
+
+    /**
+     * Создает кнопки действий для Trading Pairs Grid
+     */
+    private HorizontalLayout createTradingPairsCloseActionButtons(PairData pair) {
+        HorizontalLayout buttonsLayout = new HorizontalLayout();
+        buttonsLayout.setSpacing(true);
+        buttonsLayout.setPadding(false);
+
+        // Кнопка Закрыть
         Button closeButton = createStopTradingButton(pair);
 
-        buttonsLayout.add(chartButton, closeButton);
+        buttonsLayout.add(closeButton);
         return buttonsLayout;
     }
 
