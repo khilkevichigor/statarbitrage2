@@ -36,7 +36,7 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
 
-    //todo в updateTrade() добавить быстрый чек коинтеграции и отображать на UI в виде зеленого, желтого, красного флага (гуд, ухудшилась, ушла)
+    //todo в updateTrade() добавить быстрый чек коинтеграции и отображать на UI в виде зеленого, желтого, красного флага (гуд, ухудшилась, ушла) - добавил лог с галочками и предупреждениями
     // +/- todo сделать колонку isVirtual в PairData. Проверь таблицу portfolio - нужно читать virtual/не virtual что бы тащить стату через TradeHistoryRepository (или JOIN)
     // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
     //todo Position в бд а не в мапу - может и не надо
@@ -157,8 +157,6 @@ public class UpdateTradeProcessor {
                 FormatUtil.color(zScoreData.getDataQuality().getAvg_r_squared(), settings.getMinRSquared()),
                 zScoreData.getDataQuality().getStable_periods()
         );
-
-
     }
 
     private PairData handleManualClose(PairData pairData, Settings settings) {
