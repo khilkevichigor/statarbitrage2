@@ -10,6 +10,7 @@ import com.example.statarbitrage.formatters.TimeFormatterUtil;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -129,8 +130,9 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getEntryTime())).setHeader("Начало трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> TimeFormatterUtil.formatDurationFromMillis(p.getUpdatedTime() - p.getEntryTime())).setHeader("Продолжительность трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsChartActionButtons)).setHeader("Чарт");
-        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsCloseActionButtons)).setHeader("Действие");
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createCloseAtBreakevenCheckbox)).setHeader("Закрыть в БУ").setSortable(true).setAutoWidth(true);
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsChartActionButtons)).setHeader("Чарт").setSortable(true).setAutoWidth(true);
+        tradingPairsGrid.addColumn(new ComponentRenderer<>(this::createTradingPairsCloseActionButtons)).setHeader("Действие").setSortable(true).setAutoWidth(true);
     }
 
     private void setupClosedPairsGrid() {
@@ -162,7 +164,7 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.addColumn(p -> TimeFormatterUtil.formatDurationFromMillis(p.getUpdatedTime() - p.getEntryTime())).setHeader("Продолжительность трейда").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         closedPairsGrid.addColumn(PairData::getExitReason).setHeader("Причина выхода").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        closedPairsGrid.addColumn(new ComponentRenderer<>(this::createClosedPairsActionButtons)).setHeader("Чарт");
+        closedPairsGrid.addColumn(new ComponentRenderer<>(this::createClosedPairsActionButtons)).setHeader("Чарт").setSortable(true).setAutoWidth(true);
     }
 
     private void setupErrorPairsGrid() {
@@ -196,7 +198,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
         errorPairsGrid.addColumn(PairData::getExitReason).setHeader("Причина выхода").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(PairData::getErrorDescription).setHeader("Ошибка").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        errorPairsGrid.addColumn(new ComponentRenderer<>(this::createErrorPairsActionButtons)).setHeader("Чарт");
+        errorPairsGrid.addColumn(new ComponentRenderer<>(this::createErrorPairsActionButtons)).setHeader("Чарт").setSortable(true).setAutoWidth(true);
     }
 
     //1.23 USDT (3.45 %)
@@ -325,7 +327,7 @@ public class TradingPairsComponent extends VerticalLayout {
             BigDecimal usdtProfit = safeScale(pairDataService.getUnrealizedProfitUSDTTotal(), 2);
             BigDecimal percentProfit = safeScale(pairDataService.getUnrealizedProfitPercentTotal(), 2);
 
-            String label = String.format("💰 Нереализованный профит: %s USDT (%s %%)", usdtProfit, percentProfit);
+            String label = String.format("💰 Нереализованный профит: %s$/%s%%", usdtProfit, percentProfit);
             unrealizedProfitLayout.add(new H2(label));
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении нереализованного профита", e);
@@ -444,6 +446,18 @@ public class TradingPairsComponent extends VerticalLayout {
 
     private Button createErrorPairsActionButtons(PairData pair) {
         return createChartButton(pair);
+    }
+
+    private Checkbox createCloseAtBreakevenCheckbox(PairData pairData) {
+        Checkbox checkbox = new Checkbox(pairData.isCloseAtBreakeven());
+        checkbox.addValueChangeListener(event -> {
+            pairData.setCloseAtBreakeven(event.getValue());
+            pairDataService.save(pairData);
+            Notification.show(String.format("Для пары %s закрытие в БУ %s",
+                    pairData.getPairName(),
+                    event.getValue() ? "включено" : "отключено"));
+        });
+        return checkbox;
     }
 
     /**

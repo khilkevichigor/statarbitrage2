@@ -134,6 +134,8 @@ public class PairData {
 
     private String exitReason;
 
+    private boolean closeAtBreakeven;
+
     //todo может сюда еще сетить либо целый Settings либо поля что бы PairData была полностью информативная
 
     public PairData(String longTicker, String shortTicker) {

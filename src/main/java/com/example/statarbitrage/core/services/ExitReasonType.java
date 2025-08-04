@@ -11,6 +11,7 @@ public enum ExitReasonType {
     EXIT_REASON_BY_Z_MIN("Выход по Z min"),
     EXIT_REASON_BY_Z_MAX("Выход по Z max"),
     EXIT_REASON_BY_TIME("Выход по времени"),
+    EXIT_REASON_BY_BREAKEVEN("Выход по безубытку"),
     EXIT_REASON_MANUALLY("Выход в ручную");
 
     private final String description;

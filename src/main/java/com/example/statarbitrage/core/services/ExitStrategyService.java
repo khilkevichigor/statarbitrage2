@@ -13,6 +13,7 @@ public class ExitStrategyService {
 
     /**
      * Определяет причину выхода из сделки на основе текущих параметров и настроек.
+     *
      * @return Название причины выхода или {@code null}, если оснований для выхода нет.
      */
     public String getExitReason(PairData pairData, Settings settings) {
@@ -49,6 +50,11 @@ public class ExitStrategyService {
             return ExitReasonType.EXIT_REASON_BY_TIME.name();
         }
 
+        if (isCloseAtBreakevenTriggered(pairData)) {
+            log.info("Выход по безубытку: profit = {}%", profit);
+            return ExitReasonType.EXIT_REASON_BY_BREAKEVEN.name();
+        }
+
         return null;
     }
 
@@ -78,5 +84,9 @@ public class ExitStrategyService {
         }
         long hoursHeld = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
         return hoursHeld >= settings.getExitTimeHours();
+    }
+
+    private boolean isCloseAtBreakevenTriggered(PairData pairData) {
+        return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() > 0;
     }
 }
