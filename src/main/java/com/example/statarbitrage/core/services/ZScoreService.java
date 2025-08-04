@@ -157,7 +157,7 @@ public class ZScoreService {
                     isIncompleteByAdfValue = true;
                     if (pairData != null) {
                         pairDataService.delete(pairData);
-                        log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MinAdfValue={}",
+                        log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
                                 data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMaxAdfValue());
                     }
                 }
@@ -371,7 +371,7 @@ public class ZScoreService {
             // 2. pValue <= minPValue
             if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
 
-            // 3. adfValue <= minAdfValue
+            // 3. adfValue > maxAdfValue
             if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;
 
             // 4. corr >= minCorr

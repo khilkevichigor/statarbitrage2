@@ -263,11 +263,11 @@ public class SettingsComponent extends VerticalLayout {
     private Details createAnalysisSection(TextField timeframeField, NumberField candleLimitField,
                                           NumberField minZField, NumberField minRSquaredField,
                                           NumberField minWindowSizeField, NumberField minPValueField,
-                                          NumberField minAdfValueField, NumberField minCorrelationField,
+                                          NumberField maxAdfValueField, NumberField minCorrelationField,
                                           NumberField minVolumeField, NumberField checkIntervalField,
                                           NumberField usePairsField, Checkbox useMinZFilterCheckbox,
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
-                                          Checkbox useMinAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
+                                          Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
                                           Checkbox useMinVolumeFilterCheckbox) {
 
         FormLayout analysisForm = createFormLayout();
@@ -276,14 +276,14 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout minZLayout = createFilterLayout(useMinZFilterCheckbox, minZField);
         HorizontalLayout minRSquaredLayout = createFilterLayout(useMinRSquaredFilterCheckbox, minRSquaredField);
         HorizontalLayout minPValueLayout = createFilterLayout(useMinPValueFilterCheckbox, minPValueField);
-        HorizontalLayout minAdfValueLayout = createFilterLayout(useMinAdfValueFilterCheckbox, minAdfValueField);
+        HorizontalLayout maxAdfValueLayout = createFilterLayout(useMaxAdfValueFilterCheckbox, maxAdfValueField);
         HorizontalLayout minCorrelationLayout = createFilterLayout(useMinCorrelationFilterCheckbox, minCorrelationField);
         HorizontalLayout minVolumeLayout = createFilterLayout(useMinVolumeFilterCheckbox, minVolumeField);
 
         analysisForm.add(
                 timeframeField, candleLimitField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
-                minAdfValueLayout, minCorrelationLayout, minVolumeLayout, usePairsField
+                maxAdfValueLayout, minCorrelationLayout, minVolumeLayout, usePairsField
         );
 
         Details analysisSection = createDetailsCard("🔍 Анализ и фильтры",
