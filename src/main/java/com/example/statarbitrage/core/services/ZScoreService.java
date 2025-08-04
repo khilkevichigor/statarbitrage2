@@ -371,7 +371,7 @@ public class ZScoreService {
             // 2. pValue <= minPValue
             if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
 
-            // 3. adfValue > maxAdfValue
+            // 3. adfValue <= maxAdfValue
             if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;
 
             // 4. corr >= minCorr
