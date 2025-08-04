@@ -88,11 +88,25 @@ public class TelegramNotificationService implements NotificationService {
         return String.format(
                 "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
                 pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
-                pairData.getPairName(),
+                escapeMarkdown(pairData.getPairName()),
                 pairData.getProfitUSDTChanges(),
                 pairData.getProfitPercentChanges(),
                 pairData.getExitReason(),
                 pairData.getUuid()
         );
     }
+
+    public static String escapeMarkdown(String text) {
+        if (text == null) return "";
+        return text
+                .replace("_", "\\_")
+                .replace("*", "\\*")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("~", "\\~")
+                .replace("`", "\\`");
+    }
+
 }
