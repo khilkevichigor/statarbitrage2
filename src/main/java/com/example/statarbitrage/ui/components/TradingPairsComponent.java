@@ -204,7 +204,7 @@ public class TradingPairsComponent extends VerticalLayout {
         BigDecimal profitUSDT = safeScale(pair.getProfitUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(pair.getProfitPercentChanges(), 2);
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
     }
@@ -213,7 +213,7 @@ public class TradingPairsComponent extends VerticalLayout {
         BigDecimal profitUSDT = safeScale(pair.getLongUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(pair.getLongPercentChanges(), 2);
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
     }
@@ -222,7 +222,7 @@ public class TradingPairsComponent extends VerticalLayout {
         BigDecimal profitUSDT = safeScale(pair.getShortUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(pair.getShortPercentChanges(), 2);
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
     }

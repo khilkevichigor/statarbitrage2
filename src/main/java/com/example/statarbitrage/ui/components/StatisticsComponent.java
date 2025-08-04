@@ -53,12 +53,7 @@ public class StatisticsComponent extends VerticalLayout {
                     new StatisticRow("Торгуемых пар", stats.getTradePairsToday(), stats.getTradePairsTotal()),
 
                     new StatisticRow("Avg Профит", getAvgProfitToday(stats), getAvgProfitTotal(stats)),
-//                    new StatisticRow("Avg Профит (USDT)", NumberFormatter.format(stats.getAvgProfitUSDTToday()), NumberFormatter.format(stats.getAvgProfitUSDTTotal())),
-//                    new StatisticRow("Avg Профит (%)", NumberFormatter.format(stats.getAvgProfitPercentToday()), NumberFormatter.format(stats.getAvgProfitPercentTotal())),
-
                     new StatisticRow("Сумма Профита", getSumProfitToday(stats), getSumProfitTotal(stats)),
-//                    new StatisticRow("Сумма Профита (USDT)", NumberFormatter.format(stats.getSumProfitUSDTToday()), NumberFormatter.format(stats.getSumProfitUSDTTotal())),
-//                    new StatisticRow("Сумма Профита (%)", NumberFormatter.format(stats.getSumProfitPercentToday()), NumberFormatter.format(stats.getSumProfitPercentTotal())),
 
                     new StatisticRow("Выход: STOP", stats.getExitByStopToday(), stats.getExitByStopTotal()),
                     new StatisticRow("Выход: TAKE", stats.getExitByTakeToday(), stats.getExitByTakeTotal()),
@@ -68,16 +63,8 @@ public class StatisticsComponent extends VerticalLayout {
                     new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal()),
 
                     new StatisticRow("Профит нереализованный", "", getSumProfitUnrealizedTotal(stats)),
-//                    new StatisticRow("Профит нереализованный (USDT)", "", NumberFormatter.format(stats.getSumProfitUnrealizedUSDT())),
-//                    new StatisticRow("Профит нереализованный (%)", "", NumberFormatter.format(stats.getSumProfitUnrealizedPercent())),
-
                     new StatisticRow("Профит реализованный", "", getSumProfitRealizedTotal(stats)),
-//                    new StatisticRow("Профит реализованный (USDT)", "", NumberFormatter.format(stats.getSumProfitRealizedUSDT())),
-//                    new StatisticRow("Профит реализованный (%)", "", NumberFormatter.format(stats.getSumProfitRealizedPercent())),
-
                     new StatisticRow("Профит общий", "", getSumProfitCombinedTotal(stats))
-//                    new StatisticRow("Профит общий (USDT)", "", NumberFormatter.format(stats.getSumProfitCombinedUSDT())),
-//                    new StatisticRow("Профит общий (%)", "", NumberFormatter.format(stats.getSumProfitCombinedPercent()))
             );
 
             statisticsGrid.setItems(rows);
@@ -90,7 +77,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal avgUsd = stats.getAvgProfitUSDTToday() != null ? stats.getAvgProfitUSDTToday() : BigDecimal.ZERO;
         BigDecimal avgPercent = stats.getAvgProfitPercentToday() != null ? stats.getAvgProfitPercentToday() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 avgUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 avgPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
@@ -99,7 +86,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal avgUsd = stats.getAvgProfitUSDTTotal() != null ? stats.getAvgProfitUSDTTotal() : BigDecimal.ZERO;
         BigDecimal avgPercent = stats.getAvgProfitPercentTotal() != null ? stats.getAvgProfitPercentTotal() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 avgUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 avgPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
@@ -108,7 +95,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal sumUsd = stats.getSumProfitUSDTToday() != null ? stats.getSumProfitUSDTToday() : BigDecimal.ZERO;
         BigDecimal sumPercent = stats.getSumProfitPercentToday() != null ? stats.getSumProfitPercentToday() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
@@ -117,7 +104,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal sumUsd = stats.getSumProfitUSDTTotal() != null ? stats.getSumProfitUSDTTotal() : BigDecimal.ZERO;
         BigDecimal sumPercent = stats.getSumProfitPercentTotal() != null ? stats.getSumProfitPercentTotal() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
@@ -126,7 +113,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal sumUsd = stats.getSumProfitUnrealizedUSDT() != null ? stats.getSumProfitUnrealizedUSDT() : BigDecimal.ZERO;
         BigDecimal sumPercent = stats.getSumProfitUnrealizedPercent() != null ? stats.getSumProfitUnrealizedPercent() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
@@ -135,7 +122,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal sumUsd = stats.getSumProfitRealizedUSDT() != null ? stats.getSumProfitRealizedUSDT() : BigDecimal.ZERO;
         BigDecimal sumPercent = stats.getSumProfitRealizedPercent() != null ? stats.getSumProfitRealizedPercent() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
@@ -144,7 +131,7 @@ public class StatisticsComponent extends VerticalLayout {
         BigDecimal sumUsd = stats.getSumProfitCombinedUSDT() != null ? stats.getSumProfitCombinedUSDT() : BigDecimal.ZERO;
         BigDecimal sumPercent = stats.getSumProfitCombinedPercent() != null ? stats.getSumProfitCombinedPercent() : BigDecimal.ZERO;
 
-        return String.format("%s USDT (%s %%)",
+        return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
