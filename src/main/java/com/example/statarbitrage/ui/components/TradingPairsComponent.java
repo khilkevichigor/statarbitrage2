@@ -508,4 +508,21 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.setVisible(true);
         unrealizedProfitLayout.setVisible(true);
     }
+
+    public void closeAllTrades() {
+        try {
+            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            for (PairData pairData : tradingPairs) {
+                updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+                        .pairData(pairData)
+                        .closeManually(true)
+                        .build());
+            }
+            Notification.show(String.format("Закрыто %d пар", tradingPairs.size()));
+            notifyUIUpdate();
+        } catch (Exception e) {
+            log.error("❌ Ошибка при закрытии всех пар", e);
+            Notification.show("Ошибка при закрытии всех пар: " + e.getMessage());
+        }
+    }
 }

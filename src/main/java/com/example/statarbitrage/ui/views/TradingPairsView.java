@@ -7,7 +7,9 @@ import com.example.statarbitrage.ui.services.UIUpdateService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -38,7 +40,16 @@ public class TradingPairsView extends VerticalLayout implements UIUpdateable {
     }
 
     private void initializeLayout() {
-        add(new H2("Торгуемые пары"));
+        H2 heading = new H2("Торгуемые пары");
+        Button closeAllButton = new Button("Закрыть все");
+        closeAllButton.getStyle().set("margin-left", "auto");
+        closeAllButton.addClickListener(e -> tradingPairsComponent.closeAllTrades());
+
+        HorizontalLayout header = new HorizontalLayout(heading, closeAllButton);
+        header.setWidthFull();
+        header.setAlignItems(Alignment.BASELINE);
+
+        add(header);
 
         // Показываем только активные торгуемые пары
         tradingPairsComponent.showOnlyTradingPairs();
