@@ -5,7 +5,6 @@ import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.TradingProviderSwitchResult;
 import com.example.statarbitrage.trading.providers.Real3CommasTradingProvider;
 import com.example.statarbitrage.trading.providers.RealOkxTradingProvider;
-import com.example.statarbitrage.trading.providers.VirtualTradingProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class TradingProviderFactory {
 
-    private final VirtualTradingProvider virtualTradingProvider;
     private final Real3CommasTradingProvider real3CommasTradingProvider;
     private final RealOkxTradingProvider realOkxTradingProvider;
 
@@ -24,15 +22,14 @@ public class TradingProviderFactory {
     private TradingProvider currentProvider;
     private TradingProviderType currentProviderType;
 
-    public TradingProviderFactory(VirtualTradingProvider virtualTradingProvider,
-                                  Real3CommasTradingProvider real3CommasTradingProvider,
-                                  RealOkxTradingProvider realOkxTradingProvider) {
-        this.virtualTradingProvider = virtualTradingProvider;
+    public TradingProviderFactory(
+            Real3CommasTradingProvider real3CommasTradingProvider,
+            RealOkxTradingProvider realOkxTradingProvider) {
         this.real3CommasTradingProvider = real3CommasTradingProvider;
         this.realOkxTradingProvider = realOkxTradingProvider;
 
-        // По умолчанию используем виртуальную торговлю
-        switchToProvider(TradingProviderType.VIRTUAL);
+        // По умолчанию используем okx
+        switchToProvider(TradingProviderType.REAL_OKX);
     }
 
     /**
@@ -64,9 +61,7 @@ public class TradingProviderFactory {
             // Проверяем подключение
             if (!newProvider.isConnected()) {
                 log.warn("⚠️ Провайдер {} не подключен", providerType.getDisplayName());
-                if (providerType.isReal()) {
-                    return createConnectionErrorResult(providerType);
-                }
+                return createConnectionErrorResult(providerType);
             }
 
             this.currentProvider = newProvider;
@@ -101,9 +96,7 @@ public class TradingProviderFactory {
             // Проверяем подключение
             if (!newProvider.isConnected()) {
                 log.warn("⚠️ Провайдер {} не подключен", providerType.getDisplayName());
-                if (providerType.isReal()) {
-                    return false; // Для реальной торговли требуется подключение
-                }
+                return false; // Для реальной торговли требуется подключение
             }
 
             this.currentProvider = newProvider;
@@ -144,30 +137,10 @@ public class TradingProviderFactory {
         return TradingProviderType.values();
     }
 
-    /**
-     * Безопасное переключение с fallback на виртуальную торговлю
-     */
-    public void safeSwitchToProvider(TradingProviderType providerType) {
-        if (!switchToProvider(providerType)) {
-            log.warn("⚠️ Не удалось переключиться на {}, возвращаемся к виртуальной торговле",
-                    providerType.getDisplayName());
-            switchToProvider(TradingProviderType.VIRTUAL);
-        }
-    }
-
     private TradingProvider createProvider(TradingProviderType providerType) {
         return switch (providerType) {
-            case VIRTUAL -> virtualTradingProvider;
             case REAL_3COMMAS -> real3CommasTradingProvider;
             case REAL_OKX -> realOkxTradingProvider;
-            case REAL_BINANCE -> {
-                log.warn("⚠️ Провайдер Binance пока не реализован");
-                yield null;
-            }
-            case REAL_BYBIT -> {
-                log.warn("⚠️ Провайдер Bybit пока не реализован");
-                yield null;
-            }
         };
     }
 
@@ -177,18 +150,6 @@ public class TradingProviderFactory {
                     TradingProviderSwitchResult.SwitchErrorType.PROVIDER_NOT_IMPLEMENTED,
                     "3Commas провайдер не реализован",
                     "Режим 3Commas API пока не доступен",
-                    "Используйте виртуальную торговлю или OKX API"
-            );
-            case REAL_BINANCE -> TradingProviderSwitchResult.failure(
-                    TradingProviderSwitchResult.SwitchErrorType.PROVIDER_NOT_IMPLEMENTED,
-                    "Binance провайдер не реализован",
-                    "Режим Binance API пока не доступен",
-                    "Используйте виртуальную торговлю или OKX API"
-            );
-            case REAL_BYBIT -> TradingProviderSwitchResult.failure(
-                    TradingProviderSwitchResult.SwitchErrorType.PROVIDER_NOT_IMPLEMENTED,
-                    "Bybit провайдер не реализован",
-                    "Режим Bybit API пока не доступен",
                     "Используйте виртуальную торговлю или OKX API"
             );
             default -> TradingProviderSwitchResult.failure(

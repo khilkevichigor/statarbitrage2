@@ -37,7 +37,6 @@ public class UpdateTradeProcessor {
     private final NotificationService notificationService;
 
     //todo в updateTrade() добавить быстрый чек коинтеграции и отображать на UI в виде зеленого, желтого, красного флага (гуд, ухудшилась, ушла) - добавил лог с галочками и предупреждениями
-    // +/- todo сделать колонку isVirtual в PairData. Проверь таблицу portfolio - нужно читать virtual/не virtual что бы тащить стату через TradeHistoryRepository (или JOIN)
     // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
     //todo Position в бд а не в мапу - может и не надо
     //todo экспорт закрытых сделок в csv
@@ -50,6 +49,7 @@ public class UpdateTradeProcessor {
     //todo сделать общую кнопку "закрыть все позиции"
     //todo сделать кнопку к паре "усреднить" (если коинтеграция еще не ушла, ну или самому смотреть и усреднять как посчитаешь)
     // + todo добавить колонку "время жизни"
+    // + todo сделать колонку isVirtual в PairData. Проверь таблицу portfolio - нужно читать virtual/не virtual что бы тащить стату через TradeHistoryRepository (или JOIN). Выпилил Virtual торговлю
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {

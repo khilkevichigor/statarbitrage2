@@ -32,8 +32,6 @@ public class TradeHistoryService {
 
         TradeHistory tradeHistory = optional.orElseGet(TradeHistory::new);
 
-        tradeHistory.setVirtual(pairData.isVirtual());
-
         tradeHistory.setLongTicker(longTicker);
         tradeHistory.setShortTicker(shortTicker);
         tradeHistory.setPairUuid(pairDataUuid);

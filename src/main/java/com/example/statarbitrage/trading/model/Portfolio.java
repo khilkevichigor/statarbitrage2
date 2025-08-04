@@ -1,6 +1,5 @@
 package com.example.statarbitrage.trading.model;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,70 +12,55 @@ import java.time.LocalDateTime;
 /**
  * Модель портфолио для единого управления депо
  */
-@Entity
-@Table(name = "portfolio")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Portfolio {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     /**
      * Общий баланс портфолио (включая позиции)
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal totalBalance;
 
     /**
      * Доступный баланс для новых позиций
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal availableBalance;
 
     /**
      * Зарезервированный баланс в открытых позициях
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal reservedBalance;
 
     /**
      * Начальный баланс (для расчета общего ROI)
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal initialBalance;
 
     /**
      * Общая нереализованная прибыль/убыток
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal unrealizedPnL;
 
     /**
      * Общая реализованная прибыль/убыток
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal realizedPnL;
 
     /**
      * Накопленные комиссии
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal totalFeesAccrued;
 
     /**
      * Максимальная просадка (%)
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal maxDrawdown;
 
     /**
      * Максимальный баланс в истории
      */
-    @Column(precision = 19, scale = 8)
     private BigDecimal highWaterMark;
 
     /**
@@ -93,8 +77,6 @@ public class Portfolio {
      * Время создания портфолио
      */
     private LocalDateTime createdAt;
-
-    private boolean isVirtual; //todo доделать
 
     // Расчетные методы
 
@@ -162,16 +144,5 @@ public class Portfolio {
                 maxDrawdown = currentDrawdown;
             }
         }
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        lastUpdated = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
     }
 }

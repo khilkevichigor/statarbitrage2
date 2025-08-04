@@ -51,9 +51,6 @@ public class DbInitializer {
                     .maxShortMarginSize(5.0)
                     .leverage(5.0)
 
-                    .initialVirtualBalance(10_000.0)
-                    .virtualFeePctPerTrade(0.05)
-
                     .useExitTake(true)
                     .exitTake(5.0)
 

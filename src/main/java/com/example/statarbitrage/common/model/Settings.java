@@ -32,11 +32,9 @@ public class Settings {
 
     private double checkInterval;
 
-    private double initialVirtualBalance;
     private double maxLongMarginSize;
     private double maxShortMarginSize;
     private double leverage;
-    private double virtualFeePctPerTrade;
 
     private double exitTake;
     private double exitStop;
