@@ -82,7 +82,9 @@ public class TelegramNotificationService implements NotificationService {
 
     private String formatOpenMessage(PairData pairData) {
         return String.format(
-                "Пара открыта\n*%s*\n%s",
+                "Пара открыта\n" +
+                        "%s\n" +
+                        "%s",
                 pairData.getPairName(),
                 pairData.getUuid()
         );
@@ -90,9 +92,13 @@ public class TelegramNotificationService implements NotificationService {
 
     private String formatCloseMessage(PairData pairData) {
         return String.format(
-                "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
+                "%s Пара закрыта\n" +
+                        "%s\n" +
+                        "%.2f USDT (%.2f%%)\n" +
+                        "%s\n" +
+                        "%s",
                 pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
-                escapeMarkdown(pairData.getPairName()),
+                pairData.getPairName(),
                 pairData.getProfitUSDTChanges(),
                 pairData.getProfitPercentChanges(),
                 pairData.getExitReason(),
