@@ -87,6 +87,6 @@ public class ExitStrategyService {
     }
 
     private boolean isCloseAtBreakevenTriggered(PairData pairData) {
-        return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() > 0;
+        return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() > 1; //1% чтобы гарантировать БУ
     }
 }
