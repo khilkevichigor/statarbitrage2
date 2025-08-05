@@ -67,13 +67,17 @@ public class TelegramNotificationService implements NotificationService {
     }
 
     private void sendNotification(String text) {
-        eventSendService.sendTelegramMessageAsTextEvent(
-                SendAsTextEvent.builder()
-                        .chatId(String.valueOf(botConfig.getOwnerChatId()))
-                        .text(text)
-                        .enableMarkdown(true)
-                        .build()
-        );
+        SendAsTextEvent event = SendAsTextEvent.builder()
+                .chatId(String.valueOf(botConfig.getOwnerChatId()))
+                .text(text)
+                .enableMarkdown(true)
+                .build();
+        log.info("Отправка сообщения в телеграм {}", event.toString());
+        try {
+            eventSendService.sendTelegramMessageAsTextEvent(event);
+        } catch (Exception e) {
+            log.error("Ошибка отправки сообщения в телеграм {}", e.getMessage(), e);
+        }
     }
 
     private String formatOpenMessage(PairData pairData) {
