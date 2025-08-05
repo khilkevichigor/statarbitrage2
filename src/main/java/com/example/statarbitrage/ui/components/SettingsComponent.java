@@ -193,6 +193,7 @@ public class SettingsComponent extends VerticalLayout {
         NumberField exitZMaxField = new NumberField("Exit Макс Z");
         NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
         NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
+        NumberField exitBreakEvenPercentField = new NumberField("Профит для БУ (%)");
 
         // Create exit strategy checkboxes
         Checkbox useExitTakeCheckbox = new Checkbox("Использовать Exit Тейк");
@@ -201,6 +202,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useExitZMaxCheckbox = new Checkbox("Использовать Exit Макс Z");
         Checkbox useExitZMaxPercentCheckbox = new Checkbox("Использовать Exit Макс Z (%)");
         Checkbox useExitTimeHoursCheckbox = new Checkbox("Использовать Exit Таймаут");
+        Checkbox useExitBreakEvenPercentCheckbox = new Checkbox("Использовать уровень профита для БУ");
 
         NumberField usePairsField = new NumberField("Кол-во пар");
 
@@ -239,23 +241,59 @@ public class SettingsComponent extends VerticalLayout {
                 leverageField
         ));
 
-        add(createExitStrategySection(exitTakeField, exitStopField, exitZMinField, exitZMaxField,
-                exitZMaxPercentField, exitTimeHoursField, useExitTakeCheckbox, useExitStopCheckbox,
-                useExitZMinCheckbox, useExitZMaxCheckbox, useExitZMaxPercentCheckbox, useExitTimeHoursCheckbox));
+        add(createExitStrategySection(
+                exitTakeField,
+                exitStopField,
+                exitZMinField,
+                exitZMaxField,
+                exitZMaxPercentField,
+                exitTimeHoursField,
+                exitBreakEvenPercentField,
+                useExitTakeCheckbox,
+                useExitStopCheckbox,
+                useExitZMinCheckbox,
+                useExitZMaxCheckbox,
+                useExitZMaxPercentCheckbox,
+                useExitTimeHoursCheckbox,
+                useExitBreakEvenPercentCheckbox
+        ));
 
         // Bind fields to settings object
-        bindFields(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
-                minPValueField, maxAdfValueField, checkIntervalField, minCorrelationField,
-                minVolumeField, usePairsField,
+        bindFields(
+                timeframeField,
+                candleLimitField,
+                minZField,
+                minRSquaredField,
+                minWindowSizeField,
+                minPValueField,
+                maxAdfValueField,
+                checkIntervalField,
+                minCorrelationField,
+                minVolumeField,
+                usePairsField,
                 maxShortMarginSize,
                 maxLongMarginSize,
                 leverageField,
-                exitTakeField, exitStopField,
-                exitZMinField, exitZMaxField, exitZMaxPercentField, exitTimeHoursField,
-                useMinZFilterCheckbox, useMinRSquaredFilterCheckbox, useMinPValueFilterCheckbox,
-                useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox, useMinVolumeFilterCheckbox,
-                useExitTakeCheckbox, useExitStopCheckbox, useExitZMinCheckbox, useExitZMaxCheckbox,
-                useExitZMaxPercentCheckbox, useExitTimeHoursCheckbox);
+                exitTakeField,
+                exitStopField,
+                exitZMinField,
+                exitZMaxField,
+                exitZMaxPercentField,
+                exitTimeHoursField,
+                exitBreakEvenPercentField,
+                useMinZFilterCheckbox,
+                useMinRSquaredFilterCheckbox,
+                useMinPValueFilterCheckbox,
+                useMaxAdfValueFilterCheckbox,
+                useMinCorrelationFilterCheckbox,
+                useMinVolumeFilterCheckbox,
+                useExitTakeCheckbox,
+                useExitStopCheckbox,
+                useExitZMinCheckbox,
+                useExitZMaxCheckbox,
+                useExitZMaxPercentCheckbox,
+                useExitTimeHoursCheckbox,
+                useExitBreakEvenPercentCheckbox);
 
         settingsBinder.readBean(currentSettings);
     }
@@ -304,12 +342,22 @@ public class SettingsComponent extends VerticalLayout {
                 "Настройки депозита и управления рисками", capitalForm);
     }
 
-    private Details createExitStrategySection(NumberField exitTakeField, NumberField exitStopField,
-                                              NumberField exitZMinField, NumberField exitZMaxField, NumberField exitZMaxPercentField,
-                                              NumberField exitTimeHoursField, Checkbox useExitTakeCheckbox,
-                                              Checkbox useExitStopCheckbox, Checkbox useExitZMinCheckbox,
-                                              Checkbox useExitZMaxCheckbox, Checkbox useExitZMaxPercentCheckbox,
-                                              Checkbox useExitTimeHoursCheckbox) {
+    private Details createExitStrategySection(
+            NumberField exitTakeField,
+            NumberField exitStopField,
+            NumberField exitZMinField,
+            NumberField exitZMaxField,
+            NumberField exitZMaxPercentField,
+            NumberField exitTimeHoursField,
+            NumberField exitBreakEvenPercentField,
+            Checkbox useExitTakeCheckbox,
+            Checkbox useExitStopCheckbox,
+            Checkbox useExitZMinCheckbox,
+            Checkbox useExitZMaxCheckbox,
+            Checkbox useExitZMaxPercentCheckbox,
+            Checkbox useExitTimeHoursCheckbox,
+            Checkbox useExitBreakEvenPercentCheckbox
+    ) {
 
         FormLayout exitForm = createFormLayout();
 
@@ -320,11 +368,16 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout exitZMaxLayout = createFilterLayout(useExitZMaxCheckbox, exitZMaxField);
         HorizontalLayout exitZMaxPercentLayout = createFilterLayout(useExitZMaxPercentCheckbox, exitZMaxPercentField);
         HorizontalLayout exitTimeHoursLayout = createFilterLayout(useExitTimeHoursCheckbox, exitTimeHoursField);
+        HorizontalLayout exitBreakEvenPercentLayout = createFilterLayout(useExitBreakEvenPercentCheckbox, exitBreakEvenPercentField);
 
         exitForm.add(
-                exitTakeLayout, exitStopLayout,
-                exitZMinLayout, exitZMaxLayout,
-                exitZMaxPercentLayout, exitTimeHoursLayout
+                exitTakeLayout,
+                exitStopLayout,
+                exitZMinLayout,
+                exitZMaxLayout,
+                exitZMaxPercentLayout,
+                exitTimeHoursLayout,
+                exitBreakEvenPercentLayout
         );
 
         return createDetailsCard("🚪 Стратегии выхода",
@@ -384,23 +437,40 @@ public class SettingsComponent extends VerticalLayout {
         field.setStepButtonsVisible(true);
     }
 
-    private void bindFields(TextField timeframeField, NumberField candleLimitField,
-                            NumberField minZField, NumberField minRSquaredField, NumberField minWindowSizeField,
-                            NumberField maxPValueField, NumberField maxAdfValueField,
-                            NumberField checkIntervalField, NumberField minCorrelationField,
-                            NumberField minVolumeField, NumberField usePairsField,
+    private void bindFields(TextField timeframeField,
+                            NumberField candleLimitField,
+                            NumberField minZField,
+                            NumberField minRSquaredField,
+                            NumberField minWindowSizeField,
+                            NumberField maxPValueField,
+                            NumberField maxAdfValueField,
+                            NumberField checkIntervalField,
+                            NumberField minCorrelationField,
+                            NumberField minVolumeField,
+                            NumberField usePairsField,
                             NumberField maxShortMarginSizeField,
                             NumberField maxLongMarginSizeField,
                             NumberField leverageField,
-                            NumberField exitTakeField, NumberField exitStopField,
-                            NumberField exitZMinField, NumberField exitZMaxField,
-                            NumberField exitZMaxPercentField, NumberField exitTimeHoursField,
-                            Checkbox useMinZFilterCheckbox, Checkbox useMinRSquaredFilterCheckbox,
-                            Checkbox useMinPValueFilterCheckbox, Checkbox useMaxAdfValueFilterCheckbox,
-                            Checkbox useMinCorrelationFilterCheckbox, Checkbox useMinVolumeFilterCheckbox,
-                            Checkbox useExitTakeCheckbox, Checkbox useExitStopCheckbox,
-                            Checkbox useExitZMinCheckbox, Checkbox useExitZMaxCheckbox,
-                            Checkbox useExitZMaxPercentCheckbox, Checkbox useExitTimeHoursCheckbox) {
+                            NumberField exitTakeField,
+                            NumberField exitStopField,
+                            NumberField exitZMinField,
+                            NumberField exitZMaxField,
+                            NumberField exitZMaxPercentField,
+                            NumberField exitTimeHoursField,
+                            NumberField exitBreakEvenPercentField,
+                            Checkbox useMinZFilterCheckbox,
+                            Checkbox useMinRSquaredFilterCheckbox,
+                            Checkbox useMinPValueFilterCheckbox,
+                            Checkbox useMaxAdfValueFilterCheckbox,
+                            Checkbox useMinCorrelationFilterCheckbox,
+                            Checkbox useMinVolumeFilterCheckbox,
+                            Checkbox useExitTakeCheckbox,
+                            Checkbox useExitStopCheckbox,
+                            Checkbox useExitZMinCheckbox,
+                            Checkbox useExitZMaxCheckbox,
+                            Checkbox useExitZMaxPercentCheckbox,
+                            Checkbox useExitTimeHoursCheckbox,
+                            Checkbox useExitBreakEvenPercentCheckbox) {
 
         settingsBinder.forField(timeframeField)
                 .withValidator(new StringLengthValidator("Таймфрейм не может быть пустым", 1, null))
@@ -429,6 +499,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(exitZMaxField).bind(Settings::getExitZMax, Settings::setExitZMax);
         settingsBinder.forField(exitZMaxPercentField).bind(Settings::getExitZMaxPercent, Settings::setExitZMaxPercent);
         settingsBinder.forField(exitTimeHoursField).bind(Settings::getExitTimeHours, Settings::setExitTimeHours);
+        settingsBinder.forField(exitBreakEvenPercentField).bind(Settings::getExitBreakEvenPercent, Settings::setExitBreakEvenPercent);
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
         settingsBinder.forField(usePairsField).bind(Settings::getUsePairs, Settings::setUsePairs);
@@ -448,6 +519,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(useExitZMaxCheckbox).bind(Settings::isUseExitZMax, Settings::setUseExitZMax);
         settingsBinder.forField(useExitZMaxPercentCheckbox).bind(Settings::isUseExitZMaxPercent, Settings::setUseExitZMaxPercent);
         settingsBinder.forField(useExitTimeHoursCheckbox).bind(Settings::isUseExitTimeHours, Settings::setUseExitTimeHours);
+        settingsBinder.forField(useExitBreakEvenPercentCheckbox).bind(Settings::isUseExitBreakEvenPercent, Settings::setUseExitBreakEvenPercent);
     }
 
     private void setupValidation() {

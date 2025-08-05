@@ -50,7 +50,7 @@ public class ExitStrategyService {
             return ExitReasonType.EXIT_REASON_BY_TIME.name();
         }
 
-        if (isCloseAtBreakevenTriggered(pairData)) {
+        if (isCloseAtBreakevenTriggered(pairData, settings)) {
             log.info("Выход по безубытку: profit = {}%", profit);
             return ExitReasonType.EXIT_REASON_BY_BREAKEVEN.name();
         }
@@ -86,7 +86,10 @@ public class ExitStrategyService {
         return hoursHeld >= settings.getExitTimeHours();
     }
 
-    private boolean isCloseAtBreakevenTriggered(PairData pairData) {
-        return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() > 1; //1% чтобы гарантировать БУ
+    private boolean isCloseAtBreakevenTriggered(PairData pairData, Settings settings) {
+        if (!settings.isUseExitBreakEvenPercent()) {
+            return false;
+        }
+        return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() >= settings.getExitBreakEvenPercent(); //1% чтобы гарантировать БУ
     }
 }

@@ -42,6 +42,7 @@ public class Settings {
     private double exitZMax;
     private double exitZMaxPercent;
     private double exitTimeHours;
+    private double exitBreakEvenPercent; //% профита для закрытия по БУ
 
     private double usePairs;
 
@@ -75,6 +76,8 @@ public class Settings {
     private boolean useExitZMaxPercent = true;
     @Builder.Default
     private boolean useExitTimeHours = true;
+    @Builder.Default
+    private boolean useExitBreakEvenPercent = true;
 
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

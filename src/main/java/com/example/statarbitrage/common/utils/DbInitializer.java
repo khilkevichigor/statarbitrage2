@@ -69,6 +69,9 @@ public class DbInitializer {
                     .useExitTimeHours(false)
                     .exitTimeHours(3)
 
+                    .useExitBreakEvenPercent(true)
+                    .exitBreakEvenPercent(1)
+
                     .usePairs(1.0)
 
                     .build()
