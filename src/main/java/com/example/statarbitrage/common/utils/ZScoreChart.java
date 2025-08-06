@@ -1,5 +1,6 @@
 package com.example.statarbitrage.common.utils;
 
+import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import lombok.extern.slf4j.Slf4j;
@@ -103,6 +104,7 @@ public final class ZScoreChart {
                 .xAxisTitle("Time").yAxisTitle("Z-Score")
                 .build();
 
+
         chart.getStyler().setLegendVisible(false);
         chart.getStyler().setDatePattern("HH:mm");
         chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
@@ -110,6 +112,23 @@ public final class ZScoreChart {
         XYSeries zSeries = chart.addSeries("Z-Score", timeAxis, zScores);
         zSeries.setLineColor(Color.MAGENTA);
         zSeries.setMarker(new None());
+
+        // Добавляем график профита
+        List<ProfitHistoryItem> profitHistory = pairData.getProfitHistory();
+        if (profitHistory != null && !profitHistory.isEmpty()) {
+            log.info("Добавляем на график историю профита: {} точек", profitHistory.size());
+            List<Date> profitTimeAxis = profitHistory.stream().map(p -> new Date(p.getTimestamp())).collect(Collectors.toList());
+            List<Double> profitValues = profitHistory.stream().map(ProfitHistoryItem::getProfitPercent).collect(Collectors.toList());
+
+            XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
+            profitSeries.setYAxisGroup(1);
+            profitSeries.setLineColor(Color.GREEN);
+            profitSeries.setMarker(new None());
+
+            chart.setYAxisGroupTitle(1, "Profit %");
+        } else {
+            log.warn("История профита пуста для пары {}, график профита не будет добавлен.", pairData.getPairName());
+        }
 
         // Горизонтальные уровни
         addHorizontalLine(chart, timeAxis, 3.0, Color.BLUE);

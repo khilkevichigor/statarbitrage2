@@ -1,6 +1,7 @@
 package com.example.statarbitrage.common.model;
 
 import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.utils.ZScoreChart;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -61,9 +62,15 @@ public class PairData {
     @Column(columnDefinition = "TEXT")
     private String zScoreHistoryJson;
 
+    @Column(columnDefinition = "TEXT")
+    private String profitHistoryJson;
+
     // Временный список для работы с историей Z-Score (не сохраняется в БД)
     @Transient
     private List<ZScoreParam> zScoreHistory;
+
+    @Transient
+    private List<com.example.statarbitrage.common.dto.ProfitHistoryItem> profitHistory;
 
     private String longTicker;
     private String shortTicker;
@@ -305,6 +312,65 @@ public class PairData {
         } catch (Exception e) {
             log.error("Ошибка десериализации истории Z-Score для пары {}/{}", longTicker, shortTicker, e);
             this.zScoreHistory = new ArrayList<>();
+        }
+    }
+
+    /**
+     * Добавить новую точку в историю профита
+     *
+     * @param profitHistoryItem новая точка данных
+     */
+    public void addProfitHistoryPoint(ProfitHistoryItem profitHistoryItem) {
+        if (profitHistory == null) {
+            profitHistory = new ArrayList<>();
+        }
+
+        // Проверяем, нет ли уже точки с таким же timestamp (избегаем дубликатов)
+        boolean exists = profitHistory.stream()
+                .anyMatch(existing -> existing.getTimestamp() == profitHistoryItem.getTimestamp());
+
+        if (!exists) {
+            profitHistory.add(profitHistoryItem);
+            saveProfitHistoryToJson();
+        }
+    }
+
+    /**
+     * Получить историю профита
+     *
+     * @return список ProfitHistoryItem
+     */
+    public List<ProfitHistoryItem> getProfitHistory() {
+        if (profitHistory == null && profitHistoryJson != null && !profitHistoryJson.isEmpty()) {
+            loadProfitHistoryFromJson();
+        }
+        return profitHistory != null ? profitHistory : new ArrayList<>();
+    }
+
+    /**
+     * Сериализация истории профита в JSON для сохранения в БД
+     */
+    private void saveProfitHistoryToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.profitHistoryJson = mapper.writeValueAsString(profitHistory);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации истории профита для пары {}", pairName, e);
+        }
+    }
+
+    /**
+     * Десериализация истории профита из JSON при загрузке из БД
+     */
+    private void loadProfitHistoryFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<List<com.example.statarbitrage.common.dto.ProfitHistoryItem>> typeRef = new TypeReference<>() {
+            };
+            this.profitHistory = mapper.readValue(profitHistoryJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации истории профита для пары {}", pairName, e);
+            this.profitHistory = new ArrayList<>();
         }
     }
 
