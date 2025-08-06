@@ -97,7 +97,7 @@ public class PythonRestClient {
         try {
             String json = objectMapper.writeValueAsString(requestBody);
             String url = baseUrl + endpoint;
-            log.info("📤 Отправляю запрос в {}", url);
+            log.debug("📤 Отправляю запрос в {}", url);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

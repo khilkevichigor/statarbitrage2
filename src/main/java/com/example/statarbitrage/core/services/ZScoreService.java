@@ -279,7 +279,7 @@ public class ZScoreService {
             throw new IllegalArgumentException("Тикеры в объекте 'best' не инициализированы");
         }
 
-        log.info("🔍 Подготовка парного анализа для: {} (undervalued) / {} (overvalued)", undervalued, overvalued);
+        log.debug("🔍 Подготовка парного анализа для: {} (undervalued) / {} (overvalued)", undervalued, overvalued);
 
         // Создаём новую карту только с нужными тикерами в правильном порядке
         Map<String, List<Candle>> filteredCandlesMap = new LinkedHashMap<>();
@@ -296,7 +296,7 @@ public class ZScoreService {
         filteredCandlesMap.put(undervalued, candlesMap.get(undervalued));
         filteredCandlesMap.put(overvalued, candlesMap.get(overvalued));
 
-        log.info("📊 Отфильтрованная мапа свечей содержит тикеров: {{}} {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
+        log.debug("📊 Отфильтрованная мапа свечей содержит тикеров: {{}} {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
 
         // Передаём отфильтрованные данные в Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(filteredCandlesMap, settings, true);
@@ -315,25 +315,25 @@ public class ZScoreService {
         if (params != null && !params.isEmpty()) {
             // Используем старый формат с детальными параметрами
             int size = params.size();
-            log.info("🧪 Последние 5 Z-параметров для {}/{}:", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
-            log.info(String.format("%-5s %-8s %-10s %-10s %-20s", "N", "Z", "ADF", "Corr", "Timestamp"));
+            log.debug("🧪 Последние 5 Z-параметров для {}/{}:", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
+            log.debug(String.format("%-5s %-8s %-10s %-10s %-20s", "N", "Z", "ADF", "Corr", "Timestamp"));
 
             for (int i = Math.max(0, size - 5); i < size; i++) {
                 ZScoreParam p = params.get(i);
-                log.info(String.format(
+                log.debug(String.format(
                         "%-5d %-8.2f %-10.4f %-10.2f %-20s",
                         i + 1, p.getZscore(), p.getAdfpvalue(), p.getCorrelation(), p.getTimestamp()
                 ));
             }
         } else {
             // Используем новый формат с агрегированными данными
-            log.info("🧪 Статистика для {}/{}:", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
-            log.info("  Latest Z-Score: {}", zScoreData.getLatest_zscore());
-            log.info("  Correlation: {}", zScoreData.getCorrelation());
-            log.info("  Correlation P-Value: {}", zScoreData.getCorrelation_pvalue());
-            log.info("  Cointegration P-Value: {}", zScoreData.getCointegration_pvalue());
-            log.info("  Total Observations: {}", zScoreData.getTotal_observations());
-            log.info("  Avg R-Squared: {}", zScoreData.getAvg_r_squared());
+            log.debug("🧪 Статистика для {}/{}:", zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker());
+            log.debug("  Latest Z-Score: {}", zScoreData.getLatest_zscore());
+            log.debug("  Correlation: {}", zScoreData.getCorrelation());
+            log.debug("  Correlation P-Value: {}", zScoreData.getCorrelation_pvalue());
+            log.debug("  Cointegration P-Value: {}", zScoreData.getCointegration_pvalue());
+            log.debug("  Total Observations: {}", zScoreData.getTotal_observations());
+            log.debug("  Avg R-Squared: {}", zScoreData.getAvg_r_squared());
         }
     }
 

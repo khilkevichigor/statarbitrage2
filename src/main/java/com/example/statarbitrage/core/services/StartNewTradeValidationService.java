@@ -31,7 +31,7 @@ public class StartNewTradeValidationService {
 
     public boolean validateAutoTrading(PairData pairData, boolean checkAutoTrading) {
         if (!checkAutoTrading) {
-            log.info("🔧 Ручной запуск трейда - проверка автотрейдинга пропущена для пары {}", pairData.getPairName());
+            log.debug("🔧 Ручной запуск трейда - проверка автотрейдинга пропущена для пары {}", pairData.getPairName());
             return true;
         }
 

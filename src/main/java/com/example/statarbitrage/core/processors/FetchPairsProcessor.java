@@ -32,7 +32,7 @@ public class FetchPairsProcessor {
         }
 
         long start = System.currentTimeMillis();
-        log.info("🚀 Начало поиска торговых пар...");
+        log.debug("🚀 Начало поиска торговых пар...");
 
         Settings settings = settingsService.getSettings();
         List<String> usedTickers = getUsedTickers();
@@ -56,9 +56,9 @@ public class FetchPairsProcessor {
 
         List<PairData> pairs = createPairs(zScoreDataList, candlesMap);
 
-        log.info("✅ Создано {} пар", pairs.size());
-        pairs.forEach(p -> log.info("📈 {}", p.getPairName()));
-        log.info("🕒 Время выполнения: {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
+        log.debug("✅ Создано {} пар", pairs.size());
+        pairs.forEach(p -> log.debug("📈 {}", p.getPairName()));
+        log.debug("🕒 Время выполнения: {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
 
         return pairs;
     }
@@ -76,7 +76,7 @@ public class FetchPairsProcessor {
     private Map<String, List<Candle>> getCandles(Settings settings, List<String> tradingTickers) {
         long start = System.currentTimeMillis();
         Map<String, List<Candle>> map = candlesService.getApplicableCandlesMap(settings, tradingTickers);
-        log.info("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
+        log.debug("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
         return map;
     }
 
@@ -93,7 +93,7 @@ public class FetchPairsProcessor {
         int index = 1;
         for (ZScoreData data : dataList) {
             ZScoreParam param = data.getLastZScoreParam();
-            log.info(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+            log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                     index++, data.getUndervaluedTicker(), data.getOvervaluedTicker(),
                     param.getPvalue(), param.getAdfpvalue(), param.getZscore(), param.getCorrelation()));
         }

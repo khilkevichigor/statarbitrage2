@@ -127,7 +127,7 @@ public class MainView extends VerticalLayout implements UIUpdateable {
 
                 // Выполняем операции с базой данных в background потоке
                 int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
-                log.info("Deleted all {} pairs from database", deleteAllByStatus);
+                log.debug("Deleted all {} pairs from database", deleteAllByStatus);
                 List<PairData> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 
                 // Обновляем UI в UI потоке

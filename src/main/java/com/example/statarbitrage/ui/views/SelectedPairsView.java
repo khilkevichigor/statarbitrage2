@@ -105,7 +105,7 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
                 }));
 
                 int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
-                log.info("Deleted all {} pairs from database", deleteAllByStatus);
+                log.debug("Deleted all {} pairs from database", deleteAllByStatus);
                 List<PairData> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 
                 getUI().ifPresent(ui -> ui.access(() -> {

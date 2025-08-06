@@ -99,7 +99,7 @@ public class UpdateTradeProcessor {
             return null;
         }
 
-        log.info("🚀 Начинаем обновление трейда для {}/{}", freshPairData.getLongTicker(), freshPairData.getShortTicker());
+        log.debug("🚀 Начинаем обновление трейда для {}/{}", freshPairData.getLongTicker(), freshPairData.getShortTicker());
         return freshPairData;
     }
 
@@ -182,21 +182,21 @@ public class UpdateTradeProcessor {
     }
 
     private PairData handleNoOpenPositions(PairData pairData) {
-        log.info("==> handleNoOpenPositions: НАЧАЛО для пары {}", pairData.getPairName());
-        log.info("ℹ️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", pairData.getPairName());
+        log.debug("==> handleNoOpenPositions: НАЧАЛО для пары {}", pairData.getPairName());
+        log.debug("ℹ️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", pairData.getPairName());
 
         final Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
-        log.info("Результат верификации закрытия позиций: {}", verificationResult);
+        log.debug("Результат верификации закрытия позиций: {}", verificationResult);
 
         if (verificationResult.isPositionsClosed()) {
-            log.info("✅ Подтверждено: позиции закрыты на бирже для пары {}, PnL: {} USDT ({} %)", pairData.getPairName(), verificationResult.getTotalPnLUSDT(), verificationResult.getTotalPnLPercent());
+            log.debug("✅ Подтверждено: позиции закрыты на бирже для пары {}, PnL: {} USDT ({} %)", pairData.getPairName(), verificationResult.getTotalPnLUSDT(), verificationResult.getTotalPnLPercent());
             PairData result = handleTradeError(pairData, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
-            log.info("<== handleNoOpenPositions: КОНЕЦ (позиции закрыты) для пары {}", pairData.getPairName());
+            log.debug("<== handleNoOpenPositions: КОНЕЦ (позиции закрыты) для пары {}", pairData.getPairName());
             return result;
         } else {
             log.warn("⚠️ Позиции НЕ найдены на бирже для пары {}. Это может быть ошибка синхронизации.", pairData.getPairName());
             PairData result = handleTradeError(pairData, UpdateTradeErrorType.POSITIONS_NOT_FOUND);
-            log.info("<== handleNoOpenPositions: КОНЕЦ (позиции не найдены) для пары {}", pairData.getPairName());
+            log.debug("<== handleNoOpenPositions: КОНЕЦ (позиции не найдены) для пары {}", pairData.getPairName());
             return result;
         }
     }

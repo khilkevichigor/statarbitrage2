@@ -76,7 +76,7 @@ public class TradeAndSimulationScheduler {
 
     private boolean canStartUpdateTrades() {
         if (maintainPairsRunning.get()) {
-            log.info("⏸️ Обновление трейдов пропущено - выполняется поддержание пар");
+            log.debug("⏸️ Обновление трейдов пропущено - выполняется поддержание пар");
             return false;
         }
 
@@ -89,7 +89,7 @@ public class TradeAndSimulationScheduler {
     }
 
     private List<PairData> executeUpdateTrades() {
-        log.info("🔄 Шедуллер обновления трейдов запущен...");
+        log.debug("🔄 Шедуллер обновления трейдов запущен...");
 
         List<PairData> tradingPairs = getTradingPairs();
         if (tradingPairs.isEmpty()) {
@@ -145,7 +145,7 @@ public class TradeAndSimulationScheduler {
 
     private void logUpdateTradesCompletion(long startTime, int tradesCount) {
         long duration = System.currentTimeMillis() - startTime;
-        log.info("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов",
+        log.debug("⏱️ Шедуллер обновления трейдов закончил работу за {} сек. Обновлено {} трейдов",
                 duration / 1000.0, tradesCount);
     }
 
@@ -167,7 +167,7 @@ public class TradeAndSimulationScheduler {
             return true;
         }
 
-        log.info("⏳ Поддержание пар ждет завершения обновления трейдов...");
+        log.debug("⏳ Поддержание пар ждет завершения обновления трейдов...");
 
         int waitTime = 0;
         final int maxWaitTime = 60_000; // 60 секунд
@@ -193,7 +193,7 @@ public class TradeAndSimulationScheduler {
     }
 
     private int executeMaintainPairs() {
-        log.info("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
+        log.debug("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
 
         Settings settings = loadSettings();
         if (settings == null || !settings.isAutoTradingEnabled()) {
@@ -230,7 +230,7 @@ public class TradeAndSimulationScheduler {
     }
 
     private int createAndStartNewPairs(int missingPairs) {
-        log.info("🆕 Не хватает {} пар — начинаем подбор", missingPairs);
+        log.debug("🆕 Не хватает {} пар — начинаем подбор", missingPairs);
 
         cleanupOldSelectedPairs();
 
@@ -295,6 +295,6 @@ public class TradeAndSimulationScheduler {
 
     private void logMaintainPairsCompletion(long startTime, int newPairsCount) {
         long duration = System.currentTimeMillis() - startTime;
-        log.info("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар", duration / 1000.0, newPairsCount);
+        log.debug("⏱️ Шедуллер поддержания кол-ва трейдов закончил работу за {} сек. Запущено {} новых пар", duration / 1000.0, newPairsCount);
     }
 }

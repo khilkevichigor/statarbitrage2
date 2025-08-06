@@ -164,7 +164,7 @@ public class OkxClient {
         // Используем 5 потоков для соблюдения лимитов OKX API
         int threadCount = 5;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        log.info("🔽 Запускаем загрузку свечей в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
+        log.debug("🔽 Запускаем загрузку свечей в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
         Map<String, List<Candle>> candlesMap = Collections.synchronizedMap(new LinkedHashMap<>()); //важен порядок чтобы скрипт не менял свечи и знак z
         if (isSorted) {
             swapTickers = swapTickers.stream().sorted().toList();
@@ -178,13 +178,13 @@ public class OkxClient {
                     .mapToObj(i -> tickersFinal.subList(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, tickersFinal.size())))
                     .toList();
 
-            log.info("🔄 Обрабатываем {} батчей по {} символов", batches.size(), BATCH_SIZE);
+            log.debug("🔄 Обрабатываем {} батчей по {} символов", batches.size(), BATCH_SIZE);
 
             for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
                 List<String> batch = batches.get(batchIndex);
                 final String timeframeFinal = timeframe;
                 final int candleLimitFinal = candleLimit;
-                log.info("🔄 Обрабатываем батч {}/{} ({} символов)", batchIndex + 1, batches.size(), batch.size());
+                log.debug("🔄 Обрабатываем батч {}/{} ({} символов)", batchIndex + 1, batches.size(), batch.size());
 
                 List<CompletableFuture<Void>> batchFutures = batch.stream()
                         .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -217,7 +217,7 @@ public class OkxClient {
             executor.shutdown();
         }
         long endTime = System.currentTimeMillis();
-        log.info("✅ Собрали свечи для {} монет с таймфреймом {} в {} потоков за {}с", candlesMap.size(), settings.getTimeframe(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.debug("✅ Собрали свечи для {} монет с таймфреймом {} в {} потоков за {}с", candlesMap.size(), settings.getTimeframe(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
         return candlesMap;
     }
 
@@ -227,7 +227,7 @@ public class OkxClient {
         // Используем 5 потоков для соблюдения лимитов OKX API
         int threadCount = 5;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        log.info("🔍 Запускаем валидацию тикеров в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
+        log.debug("🔍 Запускаем валидацию тикеров в {} потоков для {} тикеров (батчами по {})", threadCount, swapTickers.size(), BATCH_SIZE);
         List<String> result = Collections.synchronizedList(new ArrayList<>());
         int volumeAverageCount = 2; // можно сделать настраиваемым
         int candleLimit = (int) limit;
@@ -238,11 +238,11 @@ public class OkxClient {
                     .mapToObj(i -> validationTickersFinal.subList(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, validationTickersFinal.size())))
                     .toList();
 
-            log.info("🔄 Обрабатываем {} батчей по {} символов для валидации", batches.size(), BATCH_SIZE);
+            log.debug("🔄 Обрабатываем {} батчей по {} символов для валидации", batches.size(), BATCH_SIZE);
 
             for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
                 List<String> batch = batches.get(batchIndex);
-                log.info("🔄 Валидируем батч {}/{} ({} символов)", batchIndex + 1, batches.size(), batch.size());
+                log.debug("🔄 Валидируем батч {}/{} ({} символов)", batchIndex + 1, batches.size(), batch.size());
 
                 List<CompletableFuture<Void>> batchFutures = batch.stream()
                         .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -290,8 +290,8 @@ public class OkxClient {
         }
 
         long endTime = System.currentTimeMillis();
-        log.info("Всего откинули {} тикера с низким volume", count.intValue());
-        log.info("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.debug("Всего откинули {} тикера с низким volume", count.intValue());
+        log.debug("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
 
         return isSorted ? result.stream().sorted().toList() : result;
     }

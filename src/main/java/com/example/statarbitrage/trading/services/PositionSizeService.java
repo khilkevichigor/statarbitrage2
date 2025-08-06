@@ -25,12 +25,12 @@ public class PositionSizeService {
         BigDecimal maxLong = BigDecimal.valueOf(settings.getMaxLongMarginSize());
         BigDecimal totalAllocation = maxShort.add(maxLong);
 
-        log.info("💰 Расчет размера позиций: общая аллокация {} USDT (без учета плеча)", totalAllocation);
+        log.debug("💰 Расчет размера позиций: общая аллокация {} USDT (без учета плеча)", totalAllocation);
 
         BigDecimal availableBalance = portfolio.getAvailableBalance();
         BigDecimal resultSize = totalAllocation.min(availableBalance);
 
-        log.info("💰 Итоговый размер позиций: {} USDT (ограничен балансом: {} USDT)", resultSize, availableBalance);
+        log.debug("💰 Итоговый размер позиций: {} USDT (ограничен балансом: {} USDT)", resultSize, availableBalance);
         return resultSize;
     }
 

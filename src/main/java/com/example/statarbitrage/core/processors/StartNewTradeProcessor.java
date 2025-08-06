@@ -41,7 +41,7 @@ public class StartNewTradeProcessor {
         final PairData pairData = request.getPairData();
         final Settings settings = settingsService.getSettings();
 
-        log.info("🚀 Начинаем новый трейд для {}", pairData.getPairName());
+        log.debug("🚀 Начинаем новый трейд для {}", pairData.getPairName());
 
         // 1. Предварительная валидация
         Optional<PairData> preValidationError = preValidate(pairData, settings);
@@ -88,7 +88,7 @@ public class StartNewTradeProcessor {
 
     private void logTradeInfo(ZScoreData zScoreData) {
         ZScoreParam latest = zScoreData.getLastZScoreParam();
-        log.info(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+        log.debug(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
                 latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
     }
