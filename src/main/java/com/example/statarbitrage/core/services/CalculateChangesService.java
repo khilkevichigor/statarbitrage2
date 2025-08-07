@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeGet;
 import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
 
 @Slf4j
@@ -82,19 +83,19 @@ public class CalculateChangesService {
 
         // Суммарный USDT-профит (уже с учетом комиссий)
         BigDecimal totalUnrealizedPnlUSDT = safeScale(
-                safe(longPosition.getUnrealizedPnLUSDT()).add(safe(shortPosition.getUnrealizedPnLUSDT())),
+                safeGet(longPosition.getUnrealizedPnLUSDT()).add(safeGet(shortPosition.getUnrealizedPnLUSDT())),
                 8
         );
 
         // Взвешенный процентный профит: (P1 * A1 + P2 * A2) / (A1 + A2)
-        BigDecimal longAlloc = safe(longPosition.getAllocatedAmount());
-        BigDecimal shortAlloc = safe(shortPosition.getAllocatedAmount());
+        BigDecimal longAlloc = safeGet(longPosition.getAllocatedAmount());
+        BigDecimal shortAlloc = safeGet(shortPosition.getAllocatedAmount());
         BigDecimal totalAlloc = longAlloc.add(shortAlloc);
 
         BigDecimal totalUnrealizedPnlPercent;
         if (totalAlloc.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal weightedSum = safe(longPosition.getUnrealizedPnLPercent()).multiply(longAlloc)
-                    .add(safe(shortPosition.getUnrealizedPnLPercent()).multiply(shortAlloc));
+            BigDecimal weightedSum = safeGet(longPosition.getUnrealizedPnLPercent()).multiply(longAlloc)
+                    .add(safeGet(shortPosition.getUnrealizedPnLPercent()).multiply(shortAlloc));
             totalUnrealizedPnlPercent = safeScale(weightedSum.divide(totalAlloc, 8, RoundingMode.HALF_UP), 8);
         } else {
             totalUnrealizedPnlPercent = BigDecimal.ZERO;
@@ -103,8 +104,8 @@ public class CalculateChangesService {
 
         // Расчет общих комиссий
         BigDecimal totalFees = safeScale(
-                safe(longPosition.getOpeningFees()).add(safe(longPosition.getFundingFees()))
-                        .add(safe(shortPosition.getOpeningFees())).add(safe(shortPosition.getFundingFees())),
+                safeGet(longPosition.getOpeningFees()).add(safeGet(longPosition.getFundingFees()))
+                        .add(safeGet(shortPosition.getOpeningFees())).add(safeGet(shortPosition.getFundingFees())),
                 8
         );
 
@@ -189,10 +190,6 @@ public class CalculateChangesService {
 
     private BigDecimal updateMax(BigDecimal currentMax, BigDecimal newVal) {
         return (currentMax == null || newVal.compareTo(currentMax) > 0) ? newVal : currentMax;
-    }
-
-    private BigDecimal safe(BigDecimal val) {
-        return val != null ? val : BigDecimal.ZERO;
     }
 
 }

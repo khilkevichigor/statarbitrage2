@@ -35,6 +35,7 @@ public class UpdateTradeProcessor {
     private final TradingIntegrationService tradingIntegrationService;
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
+    private final CloseByStopService closeByStopService;
 
     //todo сделать быструю проверку профита и только потом коинтеграции что бы минимизировать убыток
 
@@ -65,6 +66,10 @@ public class UpdateTradeProcessor {
         if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);
         }
+
+//        if(closeByStopService.isShouldCloseByStop(pairData, settings)){
+//            //todo
+//        }
 
         final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
         logPairInfo(zScoreData, settings);

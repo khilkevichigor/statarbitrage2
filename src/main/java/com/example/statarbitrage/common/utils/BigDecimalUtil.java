@@ -24,4 +24,8 @@ public class BigDecimalUtil {
     public static BigDecimal safeAdd(BigDecimal a, BigDecimal b) {
         return (a != null ? a : BigDecimal.ZERO).add(b != null ? b : BigDecimal.ZERO);
     }
+
+    public static BigDecimal safeGet(BigDecimal val) {
+        return val != null ? val : BigDecimal.ZERO;
+    }
 }
