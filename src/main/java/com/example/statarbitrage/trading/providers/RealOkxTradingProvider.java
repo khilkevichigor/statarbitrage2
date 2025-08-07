@@ -813,7 +813,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 if (tickers == null) {
                     log.debug("🔄 Синхронизация позиций с OKX: {}", responseBody);
                 } else {
-                    log.info("🔄 Синхронизация позиций с OKX для тикеров {}: {}", tickers, responseBody);
+                    log.debug("🔄 Синхронизация позиций с OKX для тикеров {}: {}", tickers, responseBody);
                 }
 
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
@@ -829,17 +829,17 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (tickers == null) {
-                    log.info("📊 Получено {} позиций с OKX для синхронизации", data.size());
+                    log.debug("📊 Получено {} позиций с OKX для синхронизации", data.size());
                     for (JsonElement positionElement : data) {
                         updatePositionFromOkxData(positionElement.getAsJsonObject());
                     }
                 } else {
-                    log.info("📊 Получено {} позиций с OKX, фильтруем по тикерам {}", data.size(), tickers);
+                    log.debug("📊 Получено {} позиций с OKX, фильтруем по тикерам {}", data.size(), tickers);
                     for (JsonElement positionElement : data) {
                         JsonObject okxPosition = positionElement.getAsJsonObject();
                         String instId = getJsonStringValue(okxPosition, "instId");
                         if (tickers.contains(instId)) {
-                            log.info("🎯 Обновляем позицию для тикера {}", instId);
+                            log.debug("🎯 Обновляем позицию для тикера {}", instId);
                             updatePositionFromOkxData(okxPosition);
                         } else {
                             log.debug("⏭️ Пропускаем позицию для тикера {} (не в списке для обновления)", instId);
@@ -891,33 +891,33 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // ЛОГИРОВАНИЕ ВСЕХ ПОЛЕЙ С РУССКИМИ ПОДПИСЯМИ И ПОДОЗРИТЕЛЬНЫМИ ЗНАЧЕНИЯМИ
-            log.info("📊 === ПОЛНАЯ ИНФОРМАЦИЯ О ПОЗИЦИИ OKX ===");
-            log.info("🔹 instId         : {} (ID инструмента)", instId);
-            log.info("🔹 instType       : {} (тип инструмента)", instType);
-            log.info("🔹 mgnMode        : {} (режим маржи)", mgnMode);
-            log.info("🔹 posId          : {} (ID позиции)", posId);
-            log.info("🔹 posSide        : {} (направление позиции: long/short)", posSide);
-            log.info("🔹 pos            : {} {} (размер позиции)", pos, posCcy);
-            log.info("🔹 posCcy         : {} (валюта позиции)", posCcy);
-            log.info("🔹 ccy            : {} (базовая валюта)", ccy);
-            log.info("🔹 avgPx          : {} USDT (средняя цена входа)", avgPx);
-            log.info("🔹 markPx         : {} USDT (маркировочная цена)", markPx);
-            log.info("🔹 upl            : {} USDT (нереализованный PnL)", upl);
-            log.info("🔹 uplRatio       : {} % (PnL в процентах)", uplRatio); //это какие-то сырые данные, не то что отображается на бирже!
-            log.info("🔹 realizedPnl    : {} USDT (реализованный PnL)", realizedPnlUSDT);
-            log.info("🔹 bePx           : {} USDT (цена безубыточности)", bePx);
-            log.info("🔹 lever          : {}x (плечо)", lever);
-            log.info("🔹 margin         : {} USDT (используемая маржа)", margin);
-            log.info("🔹 imr            : {} USDT (начальная маржа)", imr);
-            log.info("🔹 mmr            : {} USDT (поддерживающая маржа)", mmr);
-            log.info("🔹 notionalUsd    : {} USD (условная стоимость)", notionalUsd);
-            log.info("🔹 interest       : {} (проценты)", interest);
-            log.info("🔹 tradeId        : {} (ID сделки)", tradeId);
-            log.info("🔹 cTime          : {} (время открытия позиции)", cTime);
-            log.info("🔹 uTime          : {} (время последнего обновления)", uTime);
-            log.info("🔹 fee            : {} USDT (все комиссии по позиции)", fee);
-            log.info("🔹 fundingFee     : {} USDT (фандинг комиссия)", fundingFee);
-            log.info("📊 === КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ ===");
+            log.debug("📊 === ПОЛНАЯ ИНФОРМАЦИЯ О ПОЗИЦИИ OKX ===");
+            log.debug("🔹 instId         : {} (ID инструмента)", instId);
+            log.debug("🔹 instType       : {} (тип инструмента)", instType);
+            log.debug("🔹 mgnMode        : {} (режим маржи)", mgnMode);
+            log.debug("🔹 posId          : {} (ID позиции)", posId);
+            log.debug("🔹 posSide        : {} (направление позиции: long/short)", posSide);
+            log.debug("🔹 pos            : {} {} (размер позиции)", pos, posCcy);
+            log.debug("🔹 posCcy         : {} (валюта позиции)", posCcy);
+            log.debug("🔹 ccy            : {} (базовая валюта)", ccy);
+            log.debug("🔹 avgPx          : {} USDT (средняя цена входа)", avgPx);
+            log.debug("🔹 markPx         : {} USDT (маркировочная цена)", markPx);
+            log.debug("🔹 upl            : {} USDT (нереализованный PnL)", upl);
+            log.debug("🔹 uplRatio       : {} % (PnL в процентах)", uplRatio); //это какие-то сырые данные, не то что отображается на бирже!
+            log.debug("🔹 realizedPnl    : {} USDT (реализованный PnL)", realizedPnlUSDT);
+            log.debug("🔹 bePx           : {} USDT (цена безубыточности)", bePx);
+            log.debug("🔹 lever          : {}x (плечо)", lever);
+            log.debug("🔹 margin         : {} USDT (используемая маржа)", margin);
+            log.debug("🔹 imr            : {} USDT (начальная маржа)", imr);
+            log.debug("🔹 mmr            : {} USDT (поддерживающая маржа)", mmr);
+            log.debug("🔹 notionalUsd    : {} USD (условная стоимость)", notionalUsd);
+            log.debug("🔹 interest       : {} (проценты)", interest);
+            log.debug("🔹 tradeId        : {} (ID сделки)", tradeId);
+            log.debug("🔹 cTime          : {} (время открытия позиции)", cTime);
+            log.debug("🔹 uTime          : {} (время последнего обновления)", uTime);
+            log.debug("🔹 fee            : {} USDT (все комиссии по позиции)", fee);
+            log.debug("🔹 fundingFee     : {} USDT (фандинг комиссия)", fundingFee);
+            log.debug("📊 === КОНЕЦ ИНФОРМАЦИИ О ПОЗИЦИИ ===");
 
             BigDecimal scaledAvgPx = safeScale(avgPx, 8);
             BigDecimal scaledMarkPx = safeScale(markPx, 8);
@@ -942,7 +942,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, комиссия={}, комиссия за фандинг={}",
+                log.debug("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, комиссия={}, комиссия за фандинг={}",
                         instId, scaledUpl, internalPosition.getUnrealizedPnLPercent(), scaledRealizedPnl, scaledMarkPx, pos, scaledFee, scaledFundingFee);
             } else {
                 log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);

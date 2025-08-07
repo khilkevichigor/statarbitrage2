@@ -21,7 +21,7 @@ public class ZScoreService {
     private final PythonRestClient pythonRestClient;
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
-        log.info("🔍 Проверка ZScore данных:");
+        log.debug("🔍 Проверка ZScore данных:");
         for (ZScoreData z : rawZScoreList) {
             List<ZScoreParam> params = z.getZscoreParams();
             int size = params != null ? params.size() : 0;
@@ -38,7 +38,7 @@ public class ZScoreService {
                     "📊 Пара: %s / %s | Наблюдений: %d | Последний Z: %.2f",
                     longTicker, shortTicker, observations, lastZ
             );
-            log.info(msg);
+            log.debug(msg);
         }
     }
 

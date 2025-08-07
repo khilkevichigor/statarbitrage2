@@ -210,7 +210,7 @@ public class TradingIntegrationService {
      * Получение актуальной информации по позициям для пары
      */
     public Positioninfo getPositionInfo(PairData pairData) {
-        log.info("Запрос информации о позициях для пары {}", pairData.getPairName());
+        log.debug("Запрос информации о позициях для пары {}", pairData.getPairName());
 
         String longPositionId = pairToLongPositionMap.get(pairData.getId());
         String shortPositionId = pairToShortPositionMap.get(pairData.getId());
@@ -235,7 +235,7 @@ public class TradingIntegrationService {
         log.debug("Статус позиций для пары {}: ЛОНГ закрыта={}, ШОРТ закрыта={}", pairData.getPairName(), isClosed(longPosition), isClosed(shortPosition));
 
         if (bothClosed) {
-            log.info("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
+            log.debug("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
             return buildPositionInfo(true, longPosition, shortPosition);
         }
 
@@ -247,7 +247,7 @@ public class TradingIntegrationService {
     }
 
     public void removePairFromLocalStorage(PairData pairData) {
-        log.info("Удаляем сохранённые ID позиций из локального реестра для пары {}", pairData.getPairName());
+        log.debug("Удаляем сохранённые ID позиций из локального реестра для пары {}", pairData.getPairName());
         pairToLongPositionMap.remove(pairData.getId());
         pairToShortPositionMap.remove(pairData.getId());
     }
@@ -372,7 +372,7 @@ public class TradingIntegrationService {
         pairToLongPositionMap.put(pairData.getId(), longResult.getPositionId());
         pairToShortPositionMap.put(pairData.getId(), shortResult.getPositionId());
 
-        log.info("💾 Сохранены ID открытых позиций для пары {}: ЛОНГ = {}, ШОРТ = {}",
+        log.debug("💾 Сохранены ID открытых позиций для пары {}: ЛОНГ = {}, ШОРТ = {}",
                 pairData.getPairName(),
                 longResult.getPositionId(),
                 shortResult.getPositionId());
@@ -404,7 +404,7 @@ public class TradingIntegrationService {
                     pairData.getPairName(), longId, shortId);
             return true;
         }
-        log.info("✅ Найдены ID позиций: ЛОНГ = {}, ШОРТ = {} для пары {}", longId, shortId, pairData.getPairName());
+        log.debug("✅ Найдены ID позиций: ЛОНГ = {}, ШОРТ = {} для пары {}", longId, shortId, pairData.getPairName());
         return false;
     }
 
@@ -412,11 +412,11 @@ public class TradingIntegrationService {
         String emoji = type.equalsIgnoreCase("LONG") ? "🔴" : "🟢";
         String positionLabel = type.equalsIgnoreCase("LONG") ? "лонг" : "шорт";
 
-        log.info("{} Закрытие {} позиции. ID: {}", emoji, positionLabel.toUpperCase(), positionId);
+        log.debug("{} Закрытие {} позиции. ID: {}", emoji, positionLabel.toUpperCase(), positionId);
         TradeResult result = provider.closePosition(positionId);
 
         if (result.isSuccess()) {
-            log.info("✅ Позиция {} успешно закрыта. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
+            log.debug("✅ Позиция {} успешно закрыта. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
                     positionLabel, positionId, result.getPnlUSDT(), result.getPnlPercent(), result.getFees());
         } else {
             log.warn("❌ Не удалось закрыть {} позицию. ID: {}, Ошибка: {}",

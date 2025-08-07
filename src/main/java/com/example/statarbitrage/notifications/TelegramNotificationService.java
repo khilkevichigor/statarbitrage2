@@ -70,7 +70,7 @@ public class TelegramNotificationService implements NotificationService {
         SendAsTextEvent event = SendAsTextEvent.builder()
                 .chatId(String.valueOf(botConfig.getOwnerChatId()))
                 .text(text)
-                .enableMarkdown(true)
+                .enableMarkdown(false)
                 .build();
         log.info("Отправка сообщения в телеграм {}", event.toString());
         try {

@@ -136,7 +136,7 @@ public class SettingsComponent extends VerticalLayout {
                 Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
 
                 if (event.getValue()) {
-                    log.info("🚀 UI: Запускаем maintainPairs() асинхронно");
+                    log.debug("🚀 UI: Запускаем maintainPairs() асинхронно");
                     // Запускаем maintainPairs() асинхронно, чтобы не блокировать UI
                     CompletableFuture.runAsync(() -> {
                         try {
@@ -149,7 +149,7 @@ public class SettingsComponent extends VerticalLayout {
 
                 // Уведомляем об изменении состояния автотрейдинга
                 if (autoTradingChangeCallback != null) {
-                    log.info("🔄 SettingsComponent: Вызываем autoTradingChangeCallback для autoTrading={}", event.getValue());
+                    log.debug("🔄 SettingsComponent: Вызываем autoTradingChangeCallback для autoTrading={}", event.getValue());
                     autoTradingChangeCallback.run();
                 } else {
                     log.warn("⚠️ SettingsComponent: autoTradingChangeCallback не установлен!");

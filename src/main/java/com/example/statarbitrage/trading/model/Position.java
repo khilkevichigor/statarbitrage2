@@ -158,17 +158,17 @@ public class Position {
         this.unrealizedPnLUSDT = unrealizedPnLUSDT.subtract(totalFees);
 
         // Логгирование деталей
-        log.info("📊 Расчет PnL {}:", symbol);
-        log.info("➡️ OpeningFees: {}", safeOpeningFees);
-        log.info("➡️ FundingFees: {}", safeFundingFees);
-        log.info("➡️ TotalFees: {}", totalFees);
-        log.info("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT); // здесь опечатка: должно быть unrealizedPnLUSDT
+        log.debug("📊 Расчет PnL {}:", symbol);
+        log.debug("➡️ OpeningFees: {}", safeOpeningFees);
+        log.debug("➡️ FundingFees: {}", safeFundingFees);
+        log.debug("➡️ TotalFees: {}", totalFees);
+        log.debug("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT); // здесь опечатка: должно быть unrealizedPnLUSDT
 
         // Расчет процентного PnL на основе вложенной суммы (allocatedAmount)
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 8, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
-            log.info("✅ UnrealizedPnL: {} % (на сумму вложений {})", this.unrealizedPnLPercent, allocatedAmount);
+            log.debug("✅ UnrealizedPnL: {} % (на сумму вложений {})", this.unrealizedPnLPercent, allocatedAmount);
         } else {
             this.unrealizedPnLPercent = BigDecimal.ZERO;
             log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
@@ -205,20 +205,20 @@ public class Position {
         this.closingFees = safeClosingFees;
 
         // Логгируем все детали
-        log.info("📊 Расчет PnL {}:", symbol);
-        log.info("➡️ ClosedPnL (без комиссий): {}", closedPnlUSDT);
-        log.info("➡️ OpeningFees: {}", safeOpeningFees);
-        log.info("➡️ ClosingFees: {}", safeClosingFees);
-        log.info("➡️ FundingFees: {}", safeFundingFees);
-        log.info("➡️ TotalFees: {}", totalFees);
-        log.info("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
+        log.debug("📊 Расчет PnL {}:", symbol);
+        log.debug("➡️ ClosedPnL (без комиссий): {}", closedPnlUSDT);
+        log.debug("➡️ OpeningFees: {}", safeOpeningFees);
+        log.debug("➡️ ClosingFees: {}", safeClosingFees);
+        log.debug("➡️ FundingFees: {}", safeFundingFees);
+        log.debug("➡️ TotalFees: {}", totalFees);
+        log.debug("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
 
         // Расчет процентного реализованного PnL
         if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             this.realizedPnLPercent = this.realizedPnLUSDT
                     .divide(allocatedAmount, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
-            log.info("✅ RealizedPnL: {} % (на сумму вложений {})", this.realizedPnLPercent, allocatedAmount);
+            log.debug("✅ RealizedPnL: {} % (на сумму вложений {})", this.realizedPnLPercent, allocatedAmount);
         } else {
             this.realizedPnLPercent = BigDecimal.ZERO;
             log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
