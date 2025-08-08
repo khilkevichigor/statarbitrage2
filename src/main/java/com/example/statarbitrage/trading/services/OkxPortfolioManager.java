@@ -103,7 +103,7 @@ public class OkxPortfolioManager {
 
     public void onPositionOpened(Position position) {
         // Для OKX данные о позициях обновляются автоматически
-        log.info("📈 OKX: Открыта позиция {}", position.getSymbol());
+        log.debug("📈 OKX: Открыта позиция {}", position.getSymbol());
         invalidateCache();
     }
 

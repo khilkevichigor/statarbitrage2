@@ -101,7 +101,7 @@ public class StartNewTradeProcessor {
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        log.info("✅ Успешно открыта арбитражная пара: {}", pairData.getPairName());
+        log.debug("✅ Успешно открыта арбитражная пара: {}", pairData.getPairName());
 
         pairData.setStatus(TradeStatus.TRADING);
 

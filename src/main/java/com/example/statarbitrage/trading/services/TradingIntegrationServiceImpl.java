@@ -203,7 +203,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             BigDecimal totalPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
             BigDecimal totalPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
 
-            log.info("Текущий PnL для открытых позиций пары {}: {} USDT ({} %)", pairData.getPairName(), totalPnlUSDT, totalPnlPercent);
+            log.debug("Текущий PnL для открытых позиций пары {}: {} USDT ({} %)", pairData.getPairName(), totalPnlUSDT, totalPnlPercent);
 
             return buildOpenPositionInfo(longPosition, shortPosition, totalPnlUSDT, totalPnlPercent);
         }
@@ -322,7 +322,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     }
 
     private TradeResult openLong(TradingProvider provider, PairData pairData, BigDecimal amount, BigDecimal leverage) {
-        log.info("🟢 Открытие ЛОНГ позиции по тикеру {}. Сумма: {}, плечо: {}", pairData.getLongTicker(), amount, leverage);
+        log.debug("🟢 Открытие ЛОНГ позиции по тикеру {}. Сумма: {}, плечо: {}", pairData.getLongTicker(), amount, leverage);
         TradeResult result = provider.openLongPosition(pairData.getLongTicker(), amount, leverage);
 
         if (result.isSuccess()) {
@@ -340,7 +340,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     }
 
     private TradeResult openShort(TradingProvider provider, PairData pairData, BigDecimal amount, BigDecimal leverage) {
-        log.info("🔴 Открытие ШОРТ позиции по тикеру {}. Сумма: {}, плечо: {}", pairData.getShortTicker(), amount, leverage);
+        log.debug("🔴 Открытие ШОРТ позиции по тикеру {}. Сумма: {}, плечо: {}", pairData.getShortTicker(), amount, leverage);
         TradeResult result = provider.openShortPosition(pairData.getShortTicker(), amount, leverage);
 
         if (result.isSuccess()) {

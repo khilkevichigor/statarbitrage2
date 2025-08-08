@@ -45,7 +45,7 @@ public class PairDataService {
             }
         }
 
-        log.info("✅ Успешно сохранено {}/{} пар", savedPairs.size(), pairs.size());
+        log.debug("✅ Успешно сохранено {}/{} пар", savedPairs.size(), pairs.size());
 
         return pairs;
     }

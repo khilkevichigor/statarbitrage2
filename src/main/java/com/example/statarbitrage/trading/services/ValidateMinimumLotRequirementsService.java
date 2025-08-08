@@ -36,7 +36,7 @@ public class ValidateMinimumLotRequirementsService {
                 return false;
             }
 
-            log.info("✅ Пара {} прошла проверку минимальных лотов", pairData.getPairName());
+            log.debug("✅ Пара {} прошла проверку минимальных лотов", pairData.getPairName());
             return true;
 
         } catch (Exception e) {

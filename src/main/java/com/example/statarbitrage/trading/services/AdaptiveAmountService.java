@@ -53,7 +53,7 @@ public class AdaptiveAmountService {
                 }
             }
 
-            log.info("🎯 Оптимальное распределение: LONG = {}, SHORT = {}, ожидаемая разность после корректировки: {}",
+            log.debug("🎯 Оптимальное распределение: LONG = {}, SHORT = {}, ожидаемая разность после корректировки: {}",
                     bestLongAmount, bestShortAmount, minDifference);
 
             return new BigDecimal[]{bestLongAmount, bestShortAmount};
