@@ -38,7 +38,7 @@ public class TradeAndSimulationScheduler {
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
     private final EventSendService eventSendService;
-    private final TradingIntegrationService tradingIntegrationService;
+    private final TradingIntegrationService tradingIntegrationServiceImpl;
 
     @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
     public void updateTrades() {
@@ -114,7 +114,7 @@ public class TradeAndSimulationScheduler {
 
     private void updatePositionsPrices() {
         try {
-            tradingIntegrationService.updateAllPositions();
+            tradingIntegrationServiceImpl.updateAllPositions();
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
         }

@@ -20,14 +20,14 @@ import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
 @RequiredArgsConstructor
 public class CloseByStopService {
 
-    private final TradingIntegrationService tradingIntegrationService;
+    private final TradingIntegrationService tradingIntegrationServiceImpl;
 
     public boolean isShouldCloseByStop(PairData pairData, Settings settings) {
         if (!settings.isUseExitStop()) {
             return false;
         }
 
-        Positioninfo positionsInfo = tradingIntegrationService.getPositionInfo(pairData);
+        Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(pairData);
 
         log.debug("--> getFromPositions: НАЧАЛО для пары {}", pairData.getPairName());
         Position longPosition = positionsInfo.getLongPosition();

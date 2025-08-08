@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 /**
  * Результат торговой операции
  */
@@ -22,6 +24,8 @@ public class ArbitragePairTradeInfo {
     private TradeResult longTradeResult;
 
     private TradeResult shortTradeResult;
+
+    private BigDecimal portfolioBalanceBeforeTradeUSDT; //баланс до
 
 
 }

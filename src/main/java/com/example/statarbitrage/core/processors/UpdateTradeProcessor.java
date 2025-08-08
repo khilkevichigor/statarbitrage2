@@ -32,7 +32,7 @@ public class UpdateTradeProcessor {
     private final SettingsService settingsService;
     private final TradeHistoryService tradeHistoryService;
     private final ZScoreService zScoreService;
-    private final TradingIntegrationService tradingIntegrationService;
+    private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
@@ -109,7 +109,7 @@ public class UpdateTradeProcessor {
     }
 
     private boolean arePositionsClosed(PairData pairData) {
-        final Positioninfo openPositionsInfo = tradingIntegrationService.getOpenPositionsInfo(pairData);
+        final Positioninfo openPositionsInfo = tradingIntegrationServiceImpl.getOpenPositionsInfo(pairData);
         if (openPositionsInfo.isPositionsClosed()) {
             log.error("❌ Позиции уже закрыты для пары {}.", pairData.getPairName());
             return true;
@@ -165,7 +165,7 @@ public class UpdateTradeProcessor {
     }
 
     private PairData handleManualClose(PairData pairData, Settings settings) {
-        final ArbitragePairTradeInfo closeInfo = tradingIntegrationService.closeArbitragePair(pairData);
+        final ArbitragePairTradeInfo closeInfo = tradingIntegrationServiceImpl.closeArbitragePair(pairData);
         if (closeInfo == null || !closeInfo.isSuccess()) {
             return handleTradeError(pairData, UpdateTradeErrorType.MANUAL_CLOSE_FAILED);
         }
@@ -182,7 +182,7 @@ public class UpdateTradeProcessor {
     private void finalizeClosedTrade(PairData pairData, Settings settings) {
         pairDataService.addChanges(pairData);
         pairDataService.updatePortfolioBalanceAfterTradeUSDT(pairData); //баланс после
-        tradingIntegrationService.removePairFromLocalStorage(pairData);
+        tradingIntegrationServiceImpl.removePairFromLocalStorage(pairData);
         pairDataService.save(pairData);
         tradeHistoryService.updateTradeLog(pairData, settings);
     }
@@ -191,7 +191,7 @@ public class UpdateTradeProcessor {
         log.debug("==> handleNoOpenPositions: НАЧАЛО для пары {}", pairData.getPairName());
         log.debug("ℹ️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", pairData.getPairName());
 
-        final Positioninfo verificationResult = tradingIntegrationService.verifyPositionsClosed(pairData);
+        final Positioninfo verificationResult = tradingIntegrationServiceImpl.verifyPositionsClosed(pairData);
         log.debug("Результат верификации закрытия позиций: {}", verificationResult);
 
         if (verificationResult.isPositionsClosed()) {
@@ -210,7 +210,7 @@ public class UpdateTradeProcessor {
     private PairData handleAutoClose(PairData pairData, Settings settings, String exitReason) {
         log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}", exitReason, pairData.getPairName());
 
-        final ArbitragePairTradeInfo closeResult = tradingIntegrationService.closeArbitragePair(pairData);
+        final ArbitragePairTradeInfo closeResult = tradingIntegrationServiceImpl.closeArbitragePair(pairData);
         if (closeResult == null || !closeResult.isSuccess()) {
             pairData.setExitReason(exitReason);
             return handleTradeError(pairData, UpdateTradeErrorType.AUTO_CLOSE_FAILED);

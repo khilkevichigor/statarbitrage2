@@ -16,7 +16,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class StartNewTradeValidationService {
     private final SettingsService settingsService;
-    private final TradingIntegrationService tradingIntegrationService;
+    private final TradingIntegrationService tradingIntegrationServiceImpl;
 
     public void validateRequest(StartNewTradeRequest request) {
         if (request == null || request.getPairData() == null) {
@@ -66,7 +66,7 @@ public class StartNewTradeValidationService {
     }
 
     public boolean validateBalance(PairData pairData, Settings settings) {
-        if (!tradingIntegrationService.canOpenNewPair(settings)) {
+        if (!tradingIntegrationServiceImpl.canOpenNewPair(settings)) {
             log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}", pairData.getPairName());
             return false;
         }

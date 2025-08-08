@@ -21,14 +21,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PairDataService {
     private final PairDataRepository pairDataRepository;
-    private final CalculateChangesService calculateChangesService;
+    private final CalculateChangesService calculateChangesServiceImpl;
     private final EntryPointService entryPointService;
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
     private final ExcludeExistingTradingPairsService excludeExistingTradingPairsService;
     private final UpdateChangesService updateChangesService;
     private final CreatePairDataService createPairDataService;
     private final CalculateUnrealizedProfitTotalService calculateUnrealizedProfitTotalService;
-    private final PortfolioService portfolioService;
+    private final PortfolioService portfolioServiceImpl;
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> pairs = createPairDataService.createPairs(top, candlesMap);
@@ -96,15 +96,15 @@ public class PairDataService {
     }
 
     public void addChanges(PairData pairData) {
-        ChangesData changes = calculateChangesService.getChanges(pairData);
+        ChangesData changes = calculateChangesServiceImpl.getChanges(pairData);
         updateChangesService.update(pairData, changes);
     }
 
     public void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData) {
-        portfolioService.updatePortfolioBalanceBeforeTradeUSDT(pairData);
+        portfolioServiceImpl.updatePortfolioBalanceBeforeTradeUSDT(pairData);
     }
 
     public void updatePortfolioBalanceAfterTradeUSDT(PairData pairData) {
-        portfolioService.updatePortfolioBalanceAfterTradeUSDT(pairData);
+        portfolioServiceImpl.updatePortfolioBalanceAfterTradeUSDT(pairData);
     }
 }

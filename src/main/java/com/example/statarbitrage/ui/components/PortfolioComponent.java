@@ -32,7 +32,7 @@ import java.math.RoundingMode;
 @UIScope
 public class PortfolioComponent extends VerticalLayout {
 
-    private final TradingIntegrationService tradingIntegrationService;
+    private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final SettingsService settingsService;
 
     // UI элементы
@@ -50,8 +50,8 @@ public class PortfolioComponent extends VerticalLayout {
     // Флаг для предотвращения рекурсии
     private boolean isUpdatingComboBox = false;
 
-    public PortfolioComponent(TradingIntegrationService tradingIntegrationService, SettingsService settingsService) {
-        this.tradingIntegrationService = tradingIntegrationService;
+    public PortfolioComponent(TradingIntegrationService tradingIntegrationServiceImpl, SettingsService settingsService) {
+        this.tradingIntegrationServiceImpl = tradingIntegrationServiceImpl;
         this.settingsService = settingsService;
         initializeComponent();
         createPortfolioCards();
@@ -102,7 +102,7 @@ public class PortfolioComponent extends VerticalLayout {
         tradingModeComboBox = new ComboBox<>();
         tradingModeComboBox.setItems(TradingProviderType.values());
         tradingModeComboBox.setItemLabelGenerator(TradingProviderType::getDisplayName);
-        tradingModeComboBox.setValue(tradingIntegrationService.getCurrentTradingMode());
+        tradingModeComboBox.setValue(tradingIntegrationServiceImpl.getCurrentTradingMode());
         tradingModeComboBox.setWidth("250px");
 
         tradingModeComboBox.addValueChangeListener(event -> {
@@ -243,7 +243,7 @@ public class PortfolioComponent extends VerticalLayout {
      */
     public void updatePortfolioInfo() {
         try {
-            Portfolio portfolio = tradingIntegrationService.getPortfolioInfo();
+            Portfolio portfolio = tradingIntegrationServiceImpl.getPortfolioInfo();
 
             if (portfolio != null) {
                 updateUI(portfolio);
@@ -407,7 +407,7 @@ public class PortfolioComponent extends VerticalLayout {
             log.info("Переключение режима торговли с {} на {}", oldMode, newMode);
 
             // Используем метод с детальной информацией об ошибках
-            TradingProviderSwitchResult result = tradingIntegrationService.switchTradingModeWithDetails(newMode);
+            TradingProviderSwitchResult result = tradingIntegrationServiceImpl.switchTradingModeWithDetails(newMode);
 
             if (result.isSuccess()) {
                 // Успешное переключение

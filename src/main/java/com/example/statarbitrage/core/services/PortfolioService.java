@@ -1,26 +1,16 @@
 package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.model.PairData;
-import com.example.statarbitrage.trading.interfaces.TradingProvider;
-import com.example.statarbitrage.trading.services.TradingProviderFactory;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-@Slf4j
+import java.math.BigDecimal;
+
 @Service
-@RequiredArgsConstructor
-public class PortfolioService {
+public interface PortfolioService {
 
-    private final TradingProviderFactory tradingProviderFactory;
+    void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData);
 
-    public void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData) {
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        pairData.setPortfolioBeforeTradeUSDT(provider.getPortfolio().getAvailableBalance());
-    }
+    void updatePortfolioBalanceAfterTradeUSDT(PairData pairData);
 
-    public void updatePortfolioBalanceAfterTradeUSDT(PairData pairData) {
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        pairData.setPortfolioAfterTradeUSDT(provider.getPortfolio().getAvailableBalance());
-    }
+    BigDecimal getBalanceUSDT(PairData pairData);
 }
