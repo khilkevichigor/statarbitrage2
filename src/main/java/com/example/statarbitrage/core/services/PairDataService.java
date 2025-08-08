@@ -28,6 +28,7 @@ public class PairDataService {
     private final UpdateChangesService updateChangesService;
     private final CreatePairDataService createPairDataService;
     private final CalculateUnrealizedProfitTotalService calculateUnrealizedProfitTotalService;
+    private final PortfolioService portfolioService;
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> pairs = createPairDataService.createPairs(top, candlesMap);
@@ -97,5 +98,13 @@ public class PairDataService {
     public void addChanges(PairData pairData) {
         ChangesData changes = calculateChangesService.getChanges(pairData);
         updateChangesService.update(pairData, changes);
+    }
+
+    public void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData) {
+        portfolioService.updatePortfolioBalanceBeforeTradeUSDT(pairData);
+    }
+
+    public void updatePortfolioBalanceAfterTradeUSDT(PairData pairData) {
+        portfolioService.updatePortfolioBalanceAfterTradeUSDT(pairData);
     }
 }

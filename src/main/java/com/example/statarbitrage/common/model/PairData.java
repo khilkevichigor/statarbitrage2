@@ -117,7 +117,9 @@ public class PairData {
     private BigDecimal shortUSDTChanges;
     private BigDecimal shortPercentChanges;
 
-    private BigDecimal profitUSDTChanges;
+    private BigDecimal portfolioBeforeTradeUSDT; //баланс до трейда пары
+    private BigDecimal profitUSDTChanges; //профит
+    private BigDecimal portfolioAfterTradeUSDT;//баланс после трейда пары
     private BigDecimal profitPercentChanges;
 
     private long timeInMinutesSinceEntryToMinProfit;

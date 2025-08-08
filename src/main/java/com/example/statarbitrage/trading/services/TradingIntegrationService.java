@@ -2,6 +2,7 @@ package com.example.statarbitrage.trading.services;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.*;
@@ -32,6 +33,7 @@ public class TradingIntegrationService {
     private final PositionSizeService positionSizeService;
     private final AdaptiveAmountService adaptiveAmountService;
     private final ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService;
+    private final PairDataService pairDataService;
 
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
@@ -65,6 +67,8 @@ public class TradingIntegrationService {
 
                 BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
                 log.debug("Используемое кредитное плечо: {}", leverage);
+
+                pairDataService.updatePortfolioBalanceBeforeTradeUSDT(pairData); //баланс до
 
                 TradeResult longResult = openLong(provider, pairData, longAmount, leverage);
                 if (!longResult.isSuccess()) {

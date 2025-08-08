@@ -181,6 +181,7 @@ public class UpdateTradeProcessor {
 
     private void finalizeClosedTrade(PairData pairData, Settings settings) {
         pairDataService.addChanges(pairData);
+        pairDataService.updatePortfolioBalanceAfterTradeUSDT(pairData); //баланс после
         tradingIntegrationService.removePairFromLocalStorage(pairData);
         pairDataService.save(pairData);
         tradeHistoryService.updateTradeLog(pairData, settings);
