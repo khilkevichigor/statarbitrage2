@@ -17,6 +17,11 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final TradingProviderFactory tradingProviderFactory;
 
     @Override
+    public void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData) {
+        pairData.setPortfolioBeforeTradeUSDT(getBalanceUSDT());
+    }
+
+    @Override
     public void updatePortfolioBalanceAfterTradeUSDT(PairData pairData) {
         pairData.setPortfolioAfterTradeUSDT(getBalanceUSDT());
     }

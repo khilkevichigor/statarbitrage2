@@ -62,6 +62,8 @@ public class UpdateTradeProcessor {
             return request.getPairData();
         }
 
+        pairDataService.updatePortfolioBalanceBeforeTradeUSDT(pairData);
+
         final Settings settings = settingsService.getSettings();
 
         if (arePositionsClosed(pairData)) {

@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 @Service
 public interface PortfolioService {
 
+    void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData);
+
     void updatePortfolioBalanceAfterTradeUSDT(PairData pairData);
 
     BigDecimal getBalanceUSDT();
