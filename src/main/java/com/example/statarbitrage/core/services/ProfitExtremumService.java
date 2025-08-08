@@ -19,38 +19,38 @@ public class ProfitExtremumService {
     public ProfitExtremum getProfitExtremums(PairData pairData, ChangesData changesData) {
         long currentTimeInMinutes = (System.currentTimeMillis() - pairData.getEntryTime()) / MILLISECONDS_IN_MINUTE;
 
-        BigDecimal currentProfit = changesData.getProfitPercentChanges() != null
+        BigDecimal currentProfitPercent = changesData.getProfitPercentChanges() != null
                 ? changesData.getProfitPercentChanges()
                 : BigDecimal.ZERO;
 
-        // Инициализируем max/min значениями из pairData или currentProfit при первом заходе
-        BigDecimal maxProfit = pairData.getMaxProfitChanges() != null
-                ? pairData.getMaxProfitChanges()
-                : currentProfit;
+        // Инициализируем max/min значениями из pairData или currentProfitPercent при первом заходе
+        BigDecimal maxProfit = pairData.getMaxProfitPercentChanges() != null
+                ? pairData.getMaxProfitPercentChanges()
+                : currentProfitPercent;
 
-        BigDecimal minProfit = pairData.getMinProfitChanges() != null
-                ? pairData.getMinProfitChanges()
-                : currentProfit;
+        BigDecimal minProfit = pairData.getMinProfitPercentChanges() != null
+                ? pairData.getMinProfitPercentChanges()
+                : currentProfitPercent;
 
-        long timeToMax = pairData.getTimeInMinutesSinceEntryToMaxProfit() > 0
-                ? pairData.getTimeInMinutesSinceEntryToMaxProfit()
+        long timeToMax = pairData.getMinutesToMaxProfitPercent() > 0
+                ? pairData.getMinutesToMaxProfitPercent()
                 : currentTimeInMinutes;
 
-        long timeToMin = pairData.getTimeInMinutesSinceEntryToMinProfit() > 0
-                ? pairData.getTimeInMinutesSinceEntryToMinProfit()
+        long timeToMin = pairData.getMinutesToMinProfitPercent() > 0
+                ? pairData.getMinutesToMinProfitPercent()
                 : currentTimeInMinutes;
 
         // Обновление значений
-        if (currentProfit.compareTo(maxProfit) > 0) {
-            maxProfit = currentProfit;
+        if (currentProfitPercent.compareTo(maxProfit) > 0) {
+            maxProfit = currentProfitPercent;
             timeToMax = currentTimeInMinutes;
         }
 
-        if (currentProfit.compareTo(minProfit) < 0) {
-            minProfit = currentProfit;
+        if (currentProfitPercent.compareTo(minProfit) < 0) {
+            minProfit = currentProfitPercent;
             timeToMin = currentTimeInMinutes;
         }
 
-        return new ProfitExtremum(maxProfit, minProfit, timeToMax, timeToMin, currentProfit);
+        return new ProfitExtremum(maxProfit, minProfit, timeToMax, timeToMin, currentProfitPercent);
     }
 }

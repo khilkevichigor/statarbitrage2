@@ -122,11 +122,11 @@ public class PairData {
     private BigDecimal portfolioAfterTradeUSDT;//баланс после трейда пары
     private BigDecimal profitPercentChanges;
 
-    private long timeInMinutesSinceEntryToMinProfit;
-    private long timeInMinutesSinceEntryToMaxProfit;
+    private long minutesToMinProfitPercent;
+    private long minutesToMaxProfitPercent;
 
-    private BigDecimal minProfitChanges;
-    private BigDecimal maxProfitChanges;
+    private BigDecimal minProfitPercentChanges;
+    private BigDecimal maxProfitPercentChanges;
 
     private long timestamp; //время создания PairData (fetch)
     private long entryTime; //время начала трейда

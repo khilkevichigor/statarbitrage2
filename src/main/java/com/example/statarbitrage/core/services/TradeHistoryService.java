@@ -37,11 +37,11 @@ public class TradeHistoryService {
         tradeHistory.setPairUuid(pairDataUuid);
 
         // мапим поля
-        tradeHistory.setMinProfitPercent(pairData.getMinProfitChanges());
-        tradeHistory.setMinProfitMinutes(pairData.getTimeInMinutesSinceEntryToMinProfit() + "min");
+        tradeHistory.setMinProfitPercent(pairData.getMinProfitPercentChanges());
+        tradeHistory.setMinProfitMinutes(pairData.getMinutesToMinProfitPercent() + "min");
 
-        tradeHistory.setMaxProfitPercent(pairData.getMaxProfitChanges());
-        tradeHistory.setMaxProfitMinutes(pairData.getTimeInMinutesSinceEntryToMaxProfit() + "min");
+        tradeHistory.setMaxProfitPercent(pairData.getMaxProfitPercentChanges());
+        tradeHistory.setMaxProfitMinutes(pairData.getMinutesToMaxProfitPercent() + "min");
 
         tradeHistory.setCurrentProfitUSDT(pairData.getProfitUSDTChanges());
         tradeHistory.setCurrentProfitPercent(pairData.getProfitPercentChanges());

@@ -29,13 +29,13 @@ public class UpdateChangesService {
         pairData.setMinCorr(changes.getMinCorr());
         pairData.setMaxCorr(changes.getMaxCorr());
 
-        pairData.setMinProfitChanges(changes.getMinProfitChanges());
-        pairData.setMaxProfitChanges(changes.getMaxProfitChanges());
+        pairData.setMinProfitPercentChanges(changes.getMinProfitChanges());
+        pairData.setMaxProfitPercentChanges(changes.getMaxProfitChanges());
         pairData.setProfitUSDTChanges(changes.getProfitUSDTChanges());
         pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
 
-        pairData.setTimeInMinutesSinceEntryToMinProfit(changes.getTimeInMinutesSinceEntryToMinProfit());
-        pairData.setTimeInMinutesSinceEntryToMaxProfit(changes.getTimeInMinutesSinceEntryToMaxProfit());
+        pairData.setMinutesToMinProfitPercent(changes.getTimeInMinutesSinceEntryToMinProfit());
+        pairData.setMinutesToMaxProfitPercent(changes.getTimeInMinutesSinceEntryToMaxProfit());
 
         pairData.setZScoreChanges(changes.getZScoreChanges());
     }
