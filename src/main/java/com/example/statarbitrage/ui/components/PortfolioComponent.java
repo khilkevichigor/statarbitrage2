@@ -351,7 +351,7 @@ public class PortfolioComponent extends VerticalLayout {
     public void updateTradingModeAvailability() {
         try {
             boolean isAutoTradingEnabled = settingsService.getSettings().isAutoTradingEnabled();
-            log.info("🔄 PortfolioComponent: updateTradingModeAvailability() вызван - autoTrading={}", isAutoTradingEnabled);
+            log.debug("🔄 PortfolioComponent: updateTradingModeAvailability() вызван - autoTrading={}", isAutoTradingEnabled);
 
             if (isAutoTradingEnabled) {
                 // Блокируем комбобокс и меняем стиль

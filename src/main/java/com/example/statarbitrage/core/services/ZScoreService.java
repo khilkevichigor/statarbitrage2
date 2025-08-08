@@ -167,7 +167,7 @@ public class ZScoreService {
         });
 
         int after = zScoreDataList.size();
-        log.info("✅ После фильтрации осталось {} из {} пар", after, before);
+        log.debug("✅ После фильтрации осталось {} из {} пар", after, before);
     }
 
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
@@ -233,7 +233,6 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
-            log.warn("⚠️ Отобрано 0 пар!");
             return Collections.emptyList();
         }
 

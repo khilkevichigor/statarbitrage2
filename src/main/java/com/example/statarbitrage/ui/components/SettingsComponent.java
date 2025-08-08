@@ -152,7 +152,7 @@ public class SettingsComponent extends VerticalLayout {
                     log.debug("🔄 SettingsComponent: Вызываем autoTradingChangeCallback для autoTrading={}", event.getValue());
                     autoTradingChangeCallback.run();
                 } else {
-                    log.warn("⚠️ SettingsComponent: autoTradingChangeCallback не установлен!");
+                    log.debug("⚠️ SettingsComponent: autoTradingChangeCallback не установлен!");
                 }
             } catch (Exception e) {
                 log.error("❌ Ошибка при изменении режима автотрейдинга", e);

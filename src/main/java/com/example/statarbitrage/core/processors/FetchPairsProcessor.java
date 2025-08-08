@@ -48,7 +48,6 @@ public class FetchPairsProcessor {
 
         List<ZScoreData> zScoreDataList = computeZScorePairs(settings, candlesMap, count);
         if (zScoreDataList.isEmpty()) {
-            log.warn("⚠️ Подходящих пар не найдено");
             return Collections.emptyList();
         }
 

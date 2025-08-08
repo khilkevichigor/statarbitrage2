@@ -44,7 +44,7 @@ public class UpdateTradeProcessor {
     //todo в updateTrade() добавить быстрый чек коинтеграции и отображать на UI в виде зеленого, желтого, красного флага (гуд, ухудшилась, ушла) - добавил лог с галочками и предупреждениями
     //todo Position в бд а не в мапу - может и не надо
     //todo экспорт закрытых сделок в csv
-    //todo сделать анализатор - будет следить за одной парой с построением з-скора и горизонталкой точки входа (если чарт уйдет далеко и вертикалка исчезнет)
+    //todo сделать анализатор - будет следить за одной парой с построением з-скора и горизонталкой точки входа (если чарт уйдет далеко и вертикалка исчезнет) - отдельная вкладка и таблица как для ТРЕЙДИНГ пар
     // что бы можно было видеть поведение - как ходит z-скор на долгосрок
     //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
     //todo сделать колонку максимальная просадка по профиту USDT (%)
@@ -62,7 +62,7 @@ public class UpdateTradeProcessor {
             return request.getPairData();
         }
 
-        pairDataService.updatePortfolioBalanceBeforeTradeUSDT(pairData);
+//        pairDataService.updatePortfolioBalanceBeforeTradeUSDT(pairData); //todo тут ненужно тк делаем на StartTrade
 
         final Settings settings = settingsService.getSettings();
 

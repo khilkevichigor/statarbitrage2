@@ -240,6 +240,8 @@ public class TradeAndSimulationScheduler {
             return 0;
         }
 
+        log.info("Отобрано {} пар", newPairs.size());
+
         int startedCount = startNewTrades(newPairs);
 
         if (startedCount > 0) {
