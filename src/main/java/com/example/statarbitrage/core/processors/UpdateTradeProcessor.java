@@ -49,7 +49,6 @@ public class UpdateTradeProcessor {
 
         final Positioninfo openPositionsInfo = tradingIntegrationServiceImpl.getOpenPositionsInfo(pairData);
 
-        //todo ну хз! если закроем по стопу тут - потом не найдет позиции и тп... шляпа какая то!
         // Быстрая проверка стоп-лосса
         if (openPositionsInfo.getTotalPnLPercent() != null &&
                 openPositionsInfo.getTotalPnLPercent().doubleValue() <= settings.getExitStop()) {
