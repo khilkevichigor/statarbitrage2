@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -91,18 +93,27 @@ public class TelegramNotificationService implements NotificationService {
     }
 
     private String formatCloseMessage(PairData pairData) {
+        BigDecimal delta = pairData.getPortfolioAfterTradeUSDT()
+                .subtract(pairData.getPortfolioBeforeTradeUSDT());
+
+        String deltaString = delta.compareTo(BigDecimal.ZERO) >= 0
+                ? "+" + safeScale(delta, 2)
+                : "-" + safeScale(delta, 2);
         return String.format(
-                "%s Пара закрыта\n" +
-                        "%s\n" +
-                        "%.2f USDT (%.2f%%)\n" +
-                        "было: %.2f $, стало: %.2f $\n" +
-                        "%s\n" +
-                        "%s",
+                """
+                        %s Пара закрыта
+                        %s
+                        %.2f USDT (%.2f%%)
+                        было: %.2f $, стало: %.2f $
+                        дельта: %s $
+                        %s
+                        %s""",
                 pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
                 pairData.getPairName(),
                 pairData.getProfitUSDTChanges(),
                 pairData.getProfitPercentChanges(),
                 pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
+                deltaString,
                 pairData.getExitReason(),
                 pairData.getUuid()
         );
