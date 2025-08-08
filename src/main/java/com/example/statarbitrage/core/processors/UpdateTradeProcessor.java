@@ -47,19 +47,7 @@ public class UpdateTradeProcessor {
 
         final Settings settings = settingsService.getSettings();
 
-        final Positioninfo openPositionsInfo = tradingIntegrationServiceImpl.getOpenPositionsInfo(pairData);
-
-        // Быстрая проверка стоп-лосса
-        if (openPositionsInfo.getTotalPnLPercent() != null &&
-                openPositionsInfo.getTotalPnLPercent().doubleValue() <= settings.getExitStop()) {
-            log.warn("‼️ Быстрое закрытие по стоп-лоссу для пары {}! Профит: {}%, Стоп: {}%",
-                    pairData.getPairName(),
-                    String.format("%.2f", openPositionsInfo.getTotalPnLPercent()),
-                    String.format("%.2f", settings.getExitStop()));
-            return handleStopLossClose(pairData, settings);
-        }
-
-        if (openPositionsInfo.isPositionsClosed()) {
+        if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);
         }
 
@@ -100,6 +88,14 @@ public class UpdateTradeProcessor {
         return freshPairData;
     }
 
+    private boolean arePositionsClosed(PairData pairData) {
+        final Positioninfo openPositionsInfo = tradingIntegrationServiceImpl.getOpenPositionsInfo(pairData);
+        if (openPositionsInfo.isPositionsClosed()) {
+            log.error("❌ Позиции уже закрыты для пары {}.", pairData.getPairName());
+            return true;
+        }
+        return false;
+    }
 
     private ZScoreData calculateZScoreData(PairData pairData, Settings settings) {
         final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
@@ -201,25 +197,6 @@ public class UpdateTradeProcessor {
         }
 
         log.info("✅ Успешно закрыта арбитражная пара: {}", pairData.getPairName());
-
-        pairData.setStatus(TradeStatus.CLOSED);
-        pairData.setExitReason(exitReason);
-        finalizeClosedTrade(pairData, settings);
-        notificationService.notifyClose(pairData);
-        return pairData;
-    }
-
-    private PairData handleStopLossClose(PairData pairData, Settings settings) {
-        final String exitReason = ExitReasonType.EXIT_REASON_BY_STOP.getDescription();
-        log.info("🚪 Закрытие по стоп-лоссу для пары {}", pairData.getPairName());
-
-        final ArbitragePairTradeInfo closeResult = tradingIntegrationServiceImpl.closeArbitragePair(pairData);
-        if (closeResult == null || !closeResult.isSuccess()) {
-            pairData.setExitReason(exitReason);
-            return handleTradeError(pairData, UpdateTradeErrorType.AUTO_CLOSE_FAILED);
-        }
-
-        log.info("✅ Успешно закрыта арбитражная пара по стоп-лоссу: {}", pairData.getPairName());
 
         pairData.setStatus(TradeStatus.CLOSED);
         pairData.setExitReason(exitReason);
