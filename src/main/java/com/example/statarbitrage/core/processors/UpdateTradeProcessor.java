@@ -35,23 +35,6 @@ public class UpdateTradeProcessor {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
-    private final CloseByStopService closeByStopService;
-
-    //todo сделать быструю проверку профита и только потом коинтеграции что бы минимизировать убыток
-    //todo выводить стату по среднему времени timeToMin/Max для анализа и подстройки Settings
-
-    //todo через телегу получить трейдинг пары, закрыть все, перевести в бу, вкл/откл автотрейдинг
-    //todo в updateTrade() добавить быстрый чек коинтеграции и отображать на UI в виде зеленого, желтого, красного флага (гуд, ухудшилась, ушла) - добавил лог с галочками и предупреждениями
-    //todo Position в бд а не в мапу - может и не надо
-    //todo экспорт закрытых сделок в csv
-    //todo сделать анализатор - будет следить за одной парой с построением з-скора и горизонталкой точки входа (если чарт уйдет далеко и вертикалка исчезнет)
-    // что бы можно было видеть поведение - как ходит z-скор на долгосрок
-    //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
-    //todo сделать колонку максимальная просадка по профиту USDT (%)
-    //todo сделать кнопку к паре "усреднить" (если коинтеграция еще не ушла, ну или самому смотреть и усреднять как посчитаешь)
-    // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
-    // +/- todo добавить чарт профита под чарт z-скор (не работает)
-    // + todo добавить колонку "время жизни"
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
@@ -67,10 +50,6 @@ public class UpdateTradeProcessor {
         if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);
         }
-
-//        if(closeByStopService.isShouldCloseByStop(pairData, settings)){
-//            //todo
-//        }
 
         final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
         logPairInfo(zScoreData, settings);
