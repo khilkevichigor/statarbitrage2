@@ -95,12 +95,14 @@ public class TelegramNotificationService implements NotificationService {
                 "%s Пара закрыта\n" +
                         "%s\n" +
                         "%.2f USDT (%.2f%%)\n" +
+                        "было: %.2f $, стало: %.2f $\n" +
                         "%s\n" +
                         "%s",
                 pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
                 pairData.getPairName(),
                 pairData.getProfitUSDTChanges(),
                 pairData.getProfitPercentChanges(),
+                pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
                 pairData.getExitReason(),
                 pairData.getUuid()
         );

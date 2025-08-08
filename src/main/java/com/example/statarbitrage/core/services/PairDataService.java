@@ -100,10 +100,6 @@ public class PairDataService {
         updateChangesService.update(pairData, changes);
     }
 
-    public void updatePortfolioBalanceBeforeTradeUSDT(PairData pairData) {
-        portfolioServiceImpl.updatePortfolioBalanceBeforeTradeUSDT(pairData);
-    }
-
     public void updatePortfolioBalanceAfterTradeUSDT(PairData pairData) {
         portfolioServiceImpl.updatePortfolioBalanceAfterTradeUSDT(pairData);
     }

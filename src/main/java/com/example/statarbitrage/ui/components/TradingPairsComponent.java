@@ -113,8 +113,6 @@ public class TradingPairsComponent extends VerticalLayout {
 
         tradingPairsGrid.addColumn(this::getTimeToMinProfit).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(this::getTimeToMaxProfit).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        tradingPairsGrid.addColumn(p -> String.valueOf(p.getMinutesToMinProfitPercent())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        tradingPairsGrid.addColumn(p -> String.valueOf(p.getMinutesToMaxProfitPercent())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(this::getProfitLong).setHeader("Профит Long").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(this::getProfitShort).setHeader("Профит Short").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -149,8 +147,6 @@ public class TradingPairsComponent extends VerticalLayout {
 
         closedPairsGrid.addColumn(this::getTimeToMinProfit).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(this::getTimeToMaxProfit).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        closedPairsGrid.addColumn(p -> String.valueOf(p.getMinutesToMinProfitPercent())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        closedPairsGrid.addColumn(p -> String.valueOf(p.getMinutesToMaxProfitPercent())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         closedPairsGrid.addColumn(this::getProfitLong).setHeader("Профит Long").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(this::getProfitShort).setHeader("Профит Short").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -185,8 +181,6 @@ public class TradingPairsComponent extends VerticalLayout {
 
         errorPairsGrid.addColumn(this::getTimeToMinProfit).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(this::getTimeToMaxProfit).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        errorPairsGrid.addColumn(p -> String.valueOf(p.getMinutesToMinProfitPercent())).setHeader("Минут до min профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-//        errorPairsGrid.addColumn(p -> String.valueOf(p.getMinutesToMaxProfitPercent())).setHeader("Минут до max профит").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         errorPairsGrid.addColumn(this::getProfitLong).setHeader("Профит Long").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(this::getProfitShort).setHeader("Профит Short").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -243,7 +237,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     // -3.4%/1min
     private String getTimeToMinProfit(PairData pair) {
-        BigDecimal minProfitChanges = pair.getMinProfitPercentChanges();
+        BigDecimal minProfitChanges = safeScale(pair.getMinProfitPercentChanges(), 2);
         long minutesToMinProfitPercent = pair.getMinutesToMinProfitPercent();
 
         return String.format("%s%%/%smin",
@@ -252,7 +246,7 @@ public class TradingPairsComponent extends VerticalLayout {
     }
 
     private String getTimeToMaxProfit(PairData pair) {
-        BigDecimal maxProfitChanges = pair.getMaxProfitPercentChanges();
+        BigDecimal maxProfitChanges = safeScale(pair.getMaxProfitPercentChanges(), 2);
         long minutesToMaxProfitPercent = pair.getMinutesToMaxProfitPercent();
 
         return String.format("%s%%/%smin",

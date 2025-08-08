@@ -69,7 +69,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
                 log.debug("Используемое кредитное плечо: {}", leverage);
 
-                BigDecimal balanceUSDT = portfolioService.getBalanceUSDT(pairData);//баланс до
+                BigDecimal balanceUSDT = portfolioService.getBalanceUSDT();//баланс до
 
                 TradeResult longResult = openLong(provider, pairData, longAmount, leverage);
                 if (!longResult.isSuccess()) {

@@ -105,6 +105,8 @@ public class StartNewTradeProcessor {
 
         pairData.setStatus(TradeStatus.TRADING);
 
+        pairData.setPortfolioBeforeTradeUSDT(openResult.getPortfolioBalanceBeforeTradeUSDT()); // баланс ДО
+
         TradeResult longTrade = openResult.getLongTradeResult();
         TradeResult shortTrade = openResult.getShortTradeResult();
 
