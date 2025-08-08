@@ -85,12 +85,6 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT COUNT(*) " +
             "FROM PairData p " +
-            "WHERE p.exitReason = :reason " +
-            "AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
-    Long getByExitReasonForToday(@Param("reason") String reason);
-
-    @Query("SELECT COUNT(*) " +
-            "FROM PairData p " +
             "WHERE p.status = :status " +
             "AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
     Long getByStatusForToday(@Param("status") TradeStatus status);
@@ -99,6 +93,12 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "FROM PairData p " +
             "WHERE p.status = :status")
     Long getByStatusTotal(@Param("status") TradeStatus status);
+
+    @Query("SELECT COUNT(*) " +
+            "FROM PairData p " +
+            "WHERE p.exitReason = :reason " +
+            "AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
+    Long getByExitReasonForToday(@Param("reason") String reason);
 
     @Query("SELECT COUNT(*) " +
             "FROM PairData p " +
