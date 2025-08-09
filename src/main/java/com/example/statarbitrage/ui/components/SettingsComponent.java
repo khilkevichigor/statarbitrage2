@@ -18,6 +18,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
@@ -183,7 +184,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
         
         // Minimum lot blacklist field
-        TextField minimumLotBlacklistField = new TextField("Блэклист мин. лота");
+        TextArea minimumLotBlacklistField = new TextArea("Блэклист мин. лота");
         minimumLotBlacklistField.setPlaceholder("Тикеры через запятую (ETH-USDT-SWAP,BTC-USDT-SWAP)");
         minimumLotBlacklistField.setHelperText("Тикеры с высокими требованиями к минимальному лоту");
 
@@ -309,7 +310,7 @@ public class SettingsComponent extends VerticalLayout {
                                           NumberField minWindowSizeField, NumberField minPValueField,
                                           NumberField maxAdfValueField, NumberField minCorrelationField,
                                           NumberField minVolumeField, NumberField checkIntervalField,
-                                          NumberField usePairsField, TextField minimumLotBlacklistField, 
+                                          NumberField usePairsField, TextArea minimumLotBlacklistField,
                                           Checkbox useMinZFilterCheckbox,
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
@@ -456,7 +457,7 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField minCorrelationField,
                             NumberField minVolumeField,
                             NumberField usePairsField,
-                            TextField minimumLotBlacklistField,
+                            TextArea minimumLotBlacklistField,
                             NumberField maxShortMarginSizeField,
                             NumberField maxLongMarginSizeField,
                             NumberField leverageField,
