@@ -84,30 +84,28 @@ public class TradingProviderFactory {
     /**
      * Переключиться на другой провайдер торговли
      */
-    public boolean switchToProvider(TradingProviderType providerType) {
+    public void switchToProvider(TradingProviderType providerType) {
         try {
             TradingProvider newProvider = createProvider(providerType);
 
             if (newProvider == null) {
                 log.error("❌ Не удалось создать провайдер типа: {}", providerType);
-                return false;
+                return;
             }
 
             // Проверяем подключение
             if (!newProvider.isConnected()) {
                 log.warn("⚠️ Провайдер {} не подключен", providerType.getDisplayName());
-                return false; // Для реальной торговли требуется подключение
+                return; // Для реальной торговли требуется подключение
             }
 
             this.currentProvider = newProvider;
             this.currentProviderType = providerType;
 
             log.info("✅ Переключились на провайдер: {}", providerType.getDisplayName());
-            return true;
 
         } catch (Exception e) {
             log.error("❌ Ошибка при переключении на провайдер {}: {}", providerType, e.getMessage());
-            return false;
         }
     }
 
