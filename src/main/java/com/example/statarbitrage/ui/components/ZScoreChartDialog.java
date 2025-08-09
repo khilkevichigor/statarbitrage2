@@ -189,7 +189,7 @@ public class ZScoreChartDialog extends Dialog {
         }
 
         try {
-            log.info("📊 Показываем Z-Score чарт для пары: {}", pairData.getPairName());
+            log.debug("📊 Показываем Z-Score чарт для пары: {}", pairData.getPairName());
 
             // Сохраняем текущие данные пары
             this.currentPairData = pairData;
@@ -398,7 +398,7 @@ public class ZScoreChartDialog extends Dialog {
             return pairData.getZScoreChartImage();
         }
 
-        log.info("📊 Генерируем расширенный чарт с EMA: {}, StochRSI: {}, Profit: {}", showEma, showStochRsi, showProfit);
+        log.debug("📊 Генерируем расширенный чарт с EMA: {}, StochRSI: {}, Profit: {}", showEma, showStochRsi, showProfit);
 
         try {
             Settings settings = settingsService.getSettings();

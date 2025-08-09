@@ -495,7 +495,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
         chartButton.addClickListener(event -> {
             try {
-                log.info("📊 Открываем Z-Score чарт для пары: {}", pair.getPairName());
+                log.debug("📊 Открываем Z-Score чарт для пары: {}", pair.getPairName());
                 zScoreChartDialog.showChart(pair);
             } catch (Exception e) {
                 log.error("❌ Ошибка при показе чарта для пары: {}", pair.getPairName(), e);

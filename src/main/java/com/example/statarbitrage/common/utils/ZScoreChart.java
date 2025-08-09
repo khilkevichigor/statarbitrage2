@@ -30,7 +30,7 @@ public final class ZScoreChart {
      * @return BufferedImage с Z-Score графиком
      */
     public static BufferedImage createBufferedImage(PairData pairData) {
-        log.info("Создание BufferedImage Z-Score графика для пары: {}", pairData.getPairName());
+        log.debug("Создание BufferedImage Z-Score графика для пары: {}", pairData.getPairName());
 
         XYChart chart = buildZScoreChart(pairData);
 
@@ -49,7 +49,7 @@ public final class ZScoreChart {
      * @return BufferedImage с расширенным графиком
      */
     public static BufferedImage createEnhancedBufferedImage(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
-        log.info("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {})",
+        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {})",
                 pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit);
 
         XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit);
@@ -85,10 +85,10 @@ public final class ZScoreChart {
                     .map(ZScoreParam::getZscore)
                     .collect(Collectors.toList());
 
-            log.info("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
+            log.debug("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
         }
 
-        log.info("Временной диапазон графика от: {} - до: {}",
+        log.debug("Временной диапазон графика от: {} - до: {}",
                 new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
         log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
 
@@ -129,9 +129,9 @@ public final class ZScoreChart {
         long historyStart = timestamps.get(0);
         long historyEnd = timestamps.get(timestamps.size() - 1);
 
-        log.info("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
+        log.debug("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
                 new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
-        log.info("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
+        log.debug("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
 
         // Проверяем попадает ли время входа в диапазон истории
         boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
@@ -157,14 +157,15 @@ public final class ZScoreChart {
                 entryLine.setMarker(new None());
                 entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                // Точка входа
-                XYSeries entryPoint = chart.addSeries("Entry Point",
-                        Collections.singletonList(timeAxis.get(index)),
-                        Collections.singletonList(zScores.get(index)));
-                entryPoint.setMarkerColor(Color.BLUE.darker());
-                entryPoint.setLineColor(Color.BLUE.darker());
-                entryPoint.setMarker(SeriesMarkers.CIRCLE);
-                entryPoint.setLineStyle(new BasicStroke(0f));
+                // Горизонтальная линия входа
+                double entryZScore = pairData.getZScoreEntry();
+                List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+                List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
+
+                XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score", horizontalLineX, horizontalLineY);
+                entryHorizontalLine.setLineColor(Color.BLUE);
+                entryHorizontalLine.setMarker(new None());
+                entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
                 log.info("✅ Линия входа добавлена на графике в позиции {}", index);
             }
@@ -197,14 +198,15 @@ public final class ZScoreChart {
             entryLine.setMarker(new None());
             entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-            // Точка входа
-            XYSeries entryPoint = chart.addSeries("Entry Point (approx)",
-                    Collections.singletonList(timeAxis.get(index)),
-                    Collections.singletonList(zScores.get(index)));
-            entryPoint.setMarkerColor(Color.ORANGE.darker());
-            entryPoint.setLineColor(Color.ORANGE.darker());
-            entryPoint.setMarker(SeriesMarkers.CIRCLE);
-            entryPoint.setLineStyle(new BasicStroke(0f));
+            // Горизонтальная линия входа (приблизительная)
+            double entryZScore = pairData.getZScoreEntry();
+            List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+            List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
+
+            XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score (approx)", horizontalLineX, horizontalLineY);
+            entryHorizontalLine.setLineColor(Color.ORANGE);
+            entryHorizontalLine.setMarker(new None());
+            entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
             log.info("✅ Приблизительная линия входа добавлена на графике");
         } else {
@@ -325,14 +327,15 @@ public final class ZScoreChart {
                 entryLine.setMarker(new None());
                 entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                // Точка входа
-                XYSeries entryPoint = chart.addSeries("Entry Point",
-                        Collections.singletonList(timeAxis.get(index)),
-                        Collections.singletonList(zScores.get(index)));
-                entryPoint.setMarkerColor(Color.BLUE.darker());
-                entryPoint.setLineColor(Color.BLUE.darker());
-                entryPoint.setMarker(SeriesMarkers.CIRCLE);
-                entryPoint.setLineStyle(new BasicStroke(0f));
+                // Горизонтальная линия входа
+                double entryZScore = pairData.getZScoreEntry();
+                List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+                List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
+
+                XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score", horizontalLineX, horizontalLineY);
+                entryHorizontalLine.setLineColor(Color.BLUE);
+                entryHorizontalLine.setMarker(new None());
+                entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
                 log.info("✅ Линия входа добавлена на графике в позиции {}", index);
             }
@@ -365,14 +368,15 @@ public final class ZScoreChart {
             entryLine.setMarker(new None());
             entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-            // Точка входа
-            XYSeries entryPoint = chart.addSeries("Entry Point (approx)",
-                    Collections.singletonList(timeAxis.get(index)),
-                    Collections.singletonList(zScores.get(index)));
-            entryPoint.setMarkerColor(Color.ORANGE.darker());
-            entryPoint.setLineColor(Color.ORANGE.darker());
-            entryPoint.setMarker(SeriesMarkers.CIRCLE);
-            entryPoint.setLineStyle(new BasicStroke(0f));
+            // Горизонтальная линия входа (приблизительная)
+            double entryZScore = pairData.getZScoreEntry();
+            List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+            List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
+
+            XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score (approx)", horizontalLineX, horizontalLineY);
+            entryHorizontalLine.setLineColor(Color.ORANGE);
+            entryHorizontalLine.setMarker(new None());
+            entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
             log.info("✅ Приблизительная линия входа добавлена на графике");
         } else {
@@ -662,7 +666,7 @@ public final class ZScoreChart {
         XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
         profitSeries.setYAxisGroup(1);
         profitSeries.setLineColor(Color.GREEN);
-        
+
         // Для малого количества точек показываем маркеры
         if (profitValues.size() <= 2) {
             log.info("📊 Малое количество точек профита ({}), включаем маркеры", profitValues.size());
