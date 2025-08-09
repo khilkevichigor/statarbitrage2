@@ -50,7 +50,7 @@ public class StatisticsComponent extends VerticalLayout {
 
             List<StatisticRow> rows = List.of(
                     new StatisticRow("Пар с ошибками", stats.getTradePairsWithErrorToday(), stats.getTradePairsWithErrorTotal()),
-                    new StatisticRow("Торгуемых пар", stats.getTradePairsToday(), stats.getTradePairsTotal()),
+                    new StatisticRow("Отторгованных пар", stats.getTradePairsToday(), stats.getTradePairsTotal()),
 
                     new StatisticRow("Avg Профит с пары", getAvgProfitToday(stats), getAvgProfitTotal(stats)),
                     new StatisticRow("Сумма Профита", getSumProfitToday(stats), getSumProfitTotal(stats)),
