@@ -22,40 +22,6 @@ public class TelegramNotificationService implements NotificationService {
     private final EventSendService eventSendService;
     private final BotConfig botConfig;
 
-//    @Override
-//    public void notifyOpen(PairData pairData) {
-//        eventSendService.sendTelegramMessageAsTextEvent(
-//                SendAsTextEvent.builder()
-//                        .chatId(String.valueOf(botConfig.getOwnerChatId()))
-//                        .text(String.format(
-//                                "Пара открыта\n*%s*\n%s",
-//                                pairData.getPairName(),
-//                                pairData.getUuid()
-//                        ))
-//                        .enableMarkdown(true)
-//                        .build()
-//        );
-//    }
-//
-//    @Override
-//    public void notifyClose(PairData pairData) {
-//        eventSendService.sendTelegramMessageAsTextEvent(
-//                SendAsTextEvent.builder()
-//                        .chatId(String.valueOf(botConfig.getOwnerChatId()))
-//                        .text(String.format(
-//                                "%s Пара закрыта\n*%s*\n%.2f USDT (%.2f%%)\n%s\n%s",
-//                                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? "🟢" : "🔴",
-//                                pairData.getPairName(),
-//                                pairData.getProfitUSDTChanges(),
-//                                pairData.getProfitPercentChanges(),
-//                                pairData.getExitReason(),
-//                                pairData.getUuid()
-//                        ))
-//                        .enableMarkdown(true)
-//                        .build()
-//        );
-//    }
-
     @Override
     public void notifyOpen(PairData pairData) {
         String message = formatOpenMessage(pairData);
@@ -98,7 +64,7 @@ public class TelegramNotificationService implements NotificationService {
 
         String deltaString = delta.compareTo(BigDecimal.ZERO) >= 0
                 ? "+" + safeScale(delta, 2)
-                : "-" + safeScale(delta, 2);
+                : safeScale(delta, 2).toPlainString();
         return String.format(
                 """
                         %s Пара закрыта
@@ -118,18 +84,4 @@ public class TelegramNotificationService implements NotificationService {
                 pairData.getUuid()
         );
     }
-
-    public static String escapeMarkdown(String text) {
-        if (text == null) return "";
-        return text
-                .replace("_", "\\_")
-                .replace("*", "\\*")
-                .replace("[", "\\[")
-                .replace("]", "\\]")
-                .replace("(", "\\(")
-                .replace(")", "\\)")
-                .replace("~", "\\~")
-                .replace("`", "\\`");
-    }
-
 }
