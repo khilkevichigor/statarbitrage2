@@ -37,7 +37,7 @@ public class UpdateTradeProcessor {
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
 
-    //todo Position в бд а не в мапу - чтобы не терять трейды при перезапуске
+    // 1) todo Position в бд а не в мапу - чтобы не терять трейды при перезапуске
 
     //todo сделать быструю проверку профита и только потом коинтеграции что бы минимизировать убыток
     //todo выводить стату по среднему времени timeToMin/Max для анализа и подстройки Settings
