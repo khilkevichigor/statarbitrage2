@@ -55,6 +55,7 @@ public class UpdateTradeProcessor {
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
+        log.info("🧰 Обновление трейда");
         validateRequest(request);
 
         final PairData pairData = loadFreshPairData(request.getPairData());
