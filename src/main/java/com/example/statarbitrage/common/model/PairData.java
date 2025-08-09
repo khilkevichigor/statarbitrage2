@@ -70,7 +70,7 @@ public class PairData {
     private List<ZScoreParam> zScoreHistory;
 
     @Transient
-    private List<com.example.statarbitrage.common.dto.ProfitHistoryItem> profitHistory;
+    private List<ProfitHistoryItem> profitHistory;
 
     private String longTicker;
     private String shortTicker;
