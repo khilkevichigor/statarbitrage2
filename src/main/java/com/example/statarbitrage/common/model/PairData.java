@@ -323,6 +323,9 @@ public class PairData {
      * @param profitHistoryItem новая точка данных
      */
     public void addProfitHistoryPoint(ProfitHistoryItem profitHistoryItem) {
+        // Гарантируем, что история загружена из JSON
+        getProfitHistory();
+
         if (profitHistory == null) {
             profitHistory = new ArrayList<>();
         }
