@@ -29,6 +29,13 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Override
     public BigDecimal getBalanceUSDT() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        return provider.getPortfolio().getAvailableBalance();
+        BigDecimal totalBalance = provider.getPortfolio().getTotalBalance();
+        BigDecimal availableBalance = provider.getPortfolio().getAvailableBalance();
+        
+        log.info("💰 Портфолио: общий баланс = {} USDT, доступный баланс = {} USDT", 
+                totalBalance, availableBalance);
+        
+        // Возвращаем общий баланс (eq) для совпадения с UI
+        return totalBalance;
     }
 }
