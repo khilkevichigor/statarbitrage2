@@ -55,15 +55,13 @@ public class UpdateTradeProcessor {
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
-        log.info("🧰 Обновление трейда");
         validateRequest(request);
 
         final PairData pairData = loadFreshPairData(request.getPairData());
         if (pairData == null) {
             return request.getPairData();
         }
-
-//        pairDataService.updatePortfolioBalanceBeforeTradeUSDT(pairData); //todo тут ненужно тк делаем на StartTrade
+        log.info("🧰 Обновление пары {}", pairData.getPairName());
 
         final Settings settings = settingsService.getSettings();
 
