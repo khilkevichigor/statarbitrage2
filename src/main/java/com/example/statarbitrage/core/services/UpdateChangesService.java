@@ -1,6 +1,7 @@
 package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ChangesData;
+import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.model.PairData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,16 @@ public class UpdateChangesService {
         pairData.setMaxProfitPercentChanges(changes.getMaxProfitChanges());
         pairData.setProfitUSDTChanges(changes.getProfitUSDTChanges());
         pairData.setProfitPercentChanges(changes.getProfitPercentChanges());
+
+        // Добавляем новую точку в историю профита ПОСЛЕ обновления значения
+        if (changes.getProfitPercentChanges() != null) {
+            log.debug("📊 Добавляем точку профита в историю: {}% на время {}",
+                    changes.getProfitPercentChanges(), System.currentTimeMillis());
+            pairData.addProfitHistoryPoint(ProfitHistoryItem.builder()
+                    .timestamp(System.currentTimeMillis())
+                    .profitPercent(changes.getProfitPercentChanges().doubleValue())
+                    .build());
+        }
 
         pairData.setMinutesToMinProfitPercent(changes.getTimeInMinutesSinceEntryToMinProfit());
         pairData.setMinutesToMaxProfitPercent(changes.getTimeInMinutesSinceEntryToMaxProfit());

@@ -45,13 +45,14 @@ public final class ZScoreChart {
      * @param showEma      показывать EMA
      * @param emaPeriod    период для EMA
      * @param showStochRsi показывать StochRSI
+     * @param showProfit   показывать график профита
      * @return BufferedImage с расширенным графиком
      */
-    public static BufferedImage createEnhancedBufferedImage(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi) {
-        log.info("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {})",
-                pairData.getPairName(), showEma, emaPeriod, showStochRsi);
+    public static BufferedImage createEnhancedBufferedImage(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
+        log.info("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {})",
+                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit);
 
-        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi);
+        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit);
 
         // Возвращаем BufferedImage для UI
         return BitmapEncoder.getBufferedImage(chart);
@@ -113,22 +114,6 @@ public final class ZScoreChart {
         zSeries.setLineColor(Color.MAGENTA);
         zSeries.setMarker(new None());
 
-        // Добавляем график профита
-        List<ProfitHistoryItem> profitHistory = pairData.getProfitHistory();
-        if (profitHistory != null && !profitHistory.isEmpty()) {
-            log.info("Добавляем на график историю профита: {} точек", profitHistory.size());
-            List<Date> profitTimeAxis = profitHistory.stream().map(p -> new Date(p.getTimestamp())).collect(Collectors.toList());
-            List<Double> profitValues = profitHistory.stream().map(ProfitHistoryItem::getProfitPercent).collect(Collectors.toList());
-
-            XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
-            profitSeries.setYAxisGroup(1);
-            profitSeries.setLineColor(Color.GREEN);
-            profitSeries.setMarker(new None());
-
-            chart.setYAxisGroupTitle(1, "Profit %");
-        } else {
-            log.warn("История профита пуста для пары {}, график профита не будет добавлен.", pairData.getPairName());
-        }
 
         // Горизонтальные уровни
         addHorizontalLine(chart, timeAxis, 3.0, Color.BLUE);
@@ -247,11 +232,162 @@ public final class ZScoreChart {
     }
 
     /**
+     * Создает базовый XYChart с Z-Score данными без дополнительных индикаторов
+     */
+    private static XYChart buildBasicZScoreChart(PairData pairData) {
+        // Получаем реальную историю Z-Score из PairData
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+
+        List<Long> timestamps;
+        List<Double> zScores;
+
+        if (history.isEmpty()) {
+            // Fallback: если истории нет, создаем минимальную точку с текущими данными
+            log.warn("⚠️ История Z-Score пуста для пары {}, создаем минимальные данные", pairData.getPairName());
+            timestamps = Collections.singletonList(System.currentTimeMillis());
+            zScores = Collections.singletonList(pairData.getZScoreCurrent());
+        } else {
+            // Используем реальную историю
+            timestamps = history.stream()
+                    .map(ZScoreParam::getTimestamp)
+                    .collect(Collectors.toList());
+            zScores = history.stream()
+                    .map(ZScoreParam::getZscore)
+                    .collect(Collectors.toList());
+
+            log.info("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
+        }
+
+        log.info("Временной диапазон графика от: {} - до: {}",
+                new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
+        log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
+
+        if (timestamps.size() != zScores.size()) {
+            log.warn("⚠️ Неверные входные данные для построения Z-графика");
+            throw new IllegalArgumentException("Timestamps and zScores lists must have the same size");
+        }
+
+        List<Date> timeAxis = timestamps.stream().map(Date::new).collect(Collectors.toList());
+
+        XYChart chart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Z-Score LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+                .xAxisTitle("Time").yAxisTitle("Z-Score")
+                .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setDatePattern("HH:mm");
+        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+
+        XYSeries zSeries = chart.addSeries("Z-Score", timeAxis, zScores);
+        zSeries.setLineColor(Color.MAGENTA);
+        zSeries.setMarker(new None());
+
+        // Горизонтальные уровни
+        addHorizontalLine(chart, timeAxis, 3.0, Color.BLUE);
+        addHorizontalLine(chart, timeAxis, 2.0, Color.RED);
+        addHorizontalLine(chart, timeAxis, 1.0, Color.GRAY);
+        addHorizontalLine(chart, timeAxis, 0.0, Color.BLACK);
+        addHorizontalLine(chart, timeAxis, -1.0, Color.GRAY);
+        addHorizontalLine(chart, timeAxis, -2.0, Color.RED);
+        addHorizontalLine(chart, timeAxis, -3.0, Color.BLUE);
+
+        // Вертикальная линия входа - используем entryTime (время создания трейда)
+        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        long historyStart = timestamps.get(0);
+        long historyEnd = timestamps.get(timestamps.size() - 1);
+
+        log.info("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
+                new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
+        log.info("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
+
+        // Проверяем попадает ли время входа в диапазон истории
+        boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+
+        if (inRange) {
+            log.info("Время входа попадает в диапазон истории - рисуем точную линию входа");
+
+            OptionalInt indexOpt = findClosestIndex(timestamps, entryTimestamp);
+
+            // Рисуем линию и точку только если timestamp попадает в текущее окно данных
+            if (indexOpt.isPresent()) {
+                int index = indexOpt.getAsInt();
+
+                Date entryDate = new Date(entryTimestamp);
+                List<Date> lineX = Arrays.asList(entryDate, entryDate);
+
+                double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
+                double maxY = zScores.stream().max(Double::compareTo).orElse(2.0);
+                List<Double> lineY = Arrays.asList(minY, maxY);
+
+                XYSeries entryLine = chart.addSeries("Entry", lineX, lineY);
+                entryLine.setLineColor(Color.BLUE);
+                entryLine.setMarker(new None());
+                entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+                // Точка входа
+                XYSeries entryPoint = chart.addSeries("Entry Point",
+                        Collections.singletonList(timeAxis.get(index)),
+                        Collections.singletonList(zScores.get(index)));
+                entryPoint.setMarkerColor(Color.BLUE.darker());
+                entryPoint.setLineColor(Color.BLUE.darker());
+                entryPoint.setMarker(SeriesMarkers.CIRCLE);
+                entryPoint.setLineStyle(new BasicStroke(0f));
+
+                log.info("✅ Линия входа добавлена на графике в позиции {}", index);
+            }
+        } else if (entryTimestamp > 0) {
+            log.warn("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
+
+            // Показываем линию входа на ближайшей границе
+            Date entryDate;
+            int index;
+
+            if (entryTimestamp < historyStart) {
+                // Время входа раньше истории - показываем в начале
+                entryDate = new Date(historyStart);
+                index = 0;
+                log.info("Показываем линию входа в начале графика");
+            } else {
+                // Время входа позже истории - показываем в конце
+                entryDate = new Date(historyEnd);
+                index = timestamps.size() - 1;
+                log.info("Показываем линию входа в конце графика");
+            }
+
+            List<Date> lineX = Arrays.asList(entryDate, entryDate);
+            double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
+            double maxY = zScores.stream().max(Double::compareTo).orElse(2.0);
+            List<Double> lineY = Arrays.asList(minY, maxY);
+
+            XYSeries entryLine = chart.addSeries("Entry (approx)", lineX, lineY);
+            entryLine.setLineColor(Color.ORANGE);
+            entryLine.setMarker(new None());
+            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+            // Точка входа
+            XYSeries entryPoint = chart.addSeries("Entry Point (approx)",
+                    Collections.singletonList(timeAxis.get(index)),
+                    Collections.singletonList(zScores.get(index)));
+            entryPoint.setMarkerColor(Color.ORANGE.darker());
+            entryPoint.setLineColor(Color.ORANGE.darker());
+            entryPoint.setMarker(SeriesMarkers.CIRCLE);
+            entryPoint.setLineStyle(new BasicStroke(0f));
+
+            log.info("✅ Приблизительная линия входа добавлена на графике");
+        } else {
+            log.warn("⚠️ Время входа не задано (0) - линия входа не будет показана");
+        }
+
+        return chart;
+    }
+
+    /**
      * Создает расширенный XYChart с Z-Score данными и дополнительными индикаторами
      */
-    private static XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi) {
-        // Сначала создаем базовый чарт
-        XYChart chart = buildZScoreChart(pairData);
+    private static XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
+        // Сначала создаем базовый чарт без профита
+        XYChart chart = buildBasicZScoreChart(pairData);
 
         // Получаем историю Z-Score для расчета индикаторов
         List<ZScoreParam> history = pairData.getZScoreHistory();
@@ -277,6 +413,11 @@ public final class ZScoreChart {
         // Добавляем StochRSI если требуется
         if (showStochRsi && zScores.size() >= 14) {
             addStochRsiToChart(chart, timeAxis, zScores);
+        }
+
+        // Добавляем график профита если требуется
+        if (showProfit) {
+            addProfitToChart(chart, pairData);
         }
 
         return chart;
@@ -464,5 +605,68 @@ public final class ZScoreChart {
         }
 
         return rsiValues;
+    }
+
+    /**
+     * Добавляет график профита на чарт с момента входа в позицию
+     */
+    private static void addProfitToChart(XYChart chart, PairData pairData) {
+        List<ProfitHistoryItem> profitHistory = pairData.getProfitHistory();
+        if (profitHistory == null || profitHistory.isEmpty()) {
+            log.warn("📊 История профита пуста для пары {}, график профита не будет добавлен.", pairData.getPairName());
+            return;
+        }
+
+        // Отладочная информация о данных профита
+        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        log.info("📊 Анализ данных профита для пары {}:", pairData.getPairName());
+        log.info("📊 Entry timestamp: {} ({})", entryTimestamp, new Date(entryTimestamp));
+        log.info("📊 Всего данных профита: {}", profitHistory.size());
+
+        // Показываем первые и последние элементы профита
+        if (!profitHistory.isEmpty()) {
+            ProfitHistoryItem first = profitHistory.get(0);
+            ProfitHistoryItem last = profitHistory.get(profitHistory.size() - 1);
+            log.info("📊 Первая запись профита: {} ({})", first.getTimestamp(), new Date(first.getTimestamp()));
+            log.info("📊 Последняя запись профита: {} ({})", last.getTimestamp(), new Date(last.getTimestamp()));
+        }
+
+        // Фильтруем данные профита с момента входа
+        List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
+                .filter(item -> item.getTimestamp() >= entryTimestamp)
+                .collect(Collectors.toList());
+
+        if (filteredProfitHistory.isEmpty()) {
+            log.warn("📊 Нет данных профита с момента входа для пары {}", pairData.getPairName());
+            log.warn("📊 Entry time: {}, но все данные профита старше этого времени", new Date(entryTimestamp));
+
+            // В качестве fallback показываем все данные профита
+            log.info("📊 Fallback: показываем все данные профита ({} точек)", profitHistory.size());
+            filteredProfitHistory = profitHistory;
+        }
+
+        log.info("📊 Добавляем на график историю профита: {} точек из {} общих",
+                filteredProfitHistory.size(), profitHistory.size());
+
+        List<Date> profitTimeAxis = filteredProfitHistory.stream()
+                .map(p -> new Date(p.getTimestamp()))
+                .collect(Collectors.toList());
+        List<Double> profitValues = filteredProfitHistory.stream()
+                .map(ProfitHistoryItem::getProfitPercent)
+                .collect(Collectors.toList());
+
+        log.info("📊 Диапазон значений профита: от {} до {}",
+                profitValues.stream().min(Double::compareTo).orElse(0.0),
+                profitValues.stream().max(Double::compareTo).orElse(0.0));
+
+        XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
+        profitSeries.setYAxisGroup(1);
+        profitSeries.setLineColor(Color.GREEN);
+        profitSeries.setMarker(new None());
+        profitSeries.setLineStyle(new BasicStroke(2.0f));
+
+        chart.setYAxisGroupTitle(1, "Profit %");
+
+        log.info("✅ График профита успешно добавлен на чарт");
     }
 }

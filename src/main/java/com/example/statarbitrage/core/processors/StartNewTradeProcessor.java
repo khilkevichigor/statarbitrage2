@@ -97,7 +97,7 @@ public class StartNewTradeProcessor {
         ArbitragePairTradeInfo openResult = tradingIntegrationServiceImpl.openArbitragePair(pairData, settings);
 
         if (openResult == null || !openResult.isSuccess()) {
-            log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pairData.getPairName());
+            log.debug("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pairData.getPairName());
             return handleTradeError(pairData, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
@@ -122,7 +122,7 @@ public class StartNewTradeProcessor {
     }
 
     private PairData handleTradeError(PairData pairData, StartTradeErrorType errorType) {
-        log.error("❌ Ошибка: {} для пары {}", errorType.getDescription(), pairData.getPairName());
+        log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), pairData.getPairName());
         pairData.setStatus(TradeStatus.ERROR);
         pairData.setErrorDescription(errorType.getDescription());
         pairDataService.save(pairData);

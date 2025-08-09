@@ -62,7 +62,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                         pairData.getLongTicker(), longAmount, pairData.getShortTicker(), shortAmount);
 
                 if (!validateMinimumLotRequirementsService.validate(provider, pairData, longAmount, shortAmount)) {
-                    log.warn("Пропуск пары {}: минимальные лоты не соответствуют требованиям", pairData.getPairName());
+                    log.debug("Пропуск пары {}: минимальные лоты не соответствуют требованиям", pairData.getPairName());
                     return buildFailure();
                 }
 

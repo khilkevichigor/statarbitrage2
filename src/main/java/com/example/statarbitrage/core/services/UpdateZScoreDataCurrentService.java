@@ -1,6 +1,5 @@
 package com.example.statarbitrage.core.services;
 
-import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -35,12 +34,5 @@ public class UpdateZScoreDataCurrentService {
             pairData.addZScorePoint(latestParam);
         }
 
-        // Добавляем новую точку в историю профита
-        if (pairData.getProfitPercentChanges() != null) {
-            pairData.addProfitHistoryPoint(ProfitHistoryItem.builder()
-                    .timestamp(latestParam.getTimestamp())
-                    .profitPercent(pairData.getProfitPercentChanges().doubleValue())
-                    .build());
-        }
     }
 }

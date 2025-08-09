@@ -41,6 +41,7 @@ public class ZScoreChartDialog extends Dialog {
     private Div detailsPanel;
     private Checkbox showEmaCheckbox;
     private Checkbox showStochRsiCheckbox;
+    private Checkbox showProfitCheckbox;
     private PairData currentPairData;
 
     public ZScoreChartDialog(SettingsService settingsService) {
@@ -99,6 +100,10 @@ public class ZScoreChartDialog extends Dialog {
         showStochRsiCheckbox = new Checkbox("Отобразить StochRSI");
         showStochRsiCheckbox.setValue(false);
         showStochRsiCheckbox.addValueChangeListener(e -> refreshChart());
+
+        showProfitCheckbox = new Checkbox("Показать профит");
+        showProfitCheckbox.setValue(false);
+        showProfitCheckbox.addValueChangeListener(e -> refreshChart());
     }
 
     /**
@@ -125,9 +130,10 @@ public class ZScoreChartDialog extends Dialog {
                 // Получаем настройки для индикаторов
                 boolean showEma = showEmaCheckbox.getValue();
                 boolean showStochRsi = showStochRsiCheckbox.getValue();
+                boolean showProfit = showProfitCheckbox.getValue();
 
                 // Генерируем новый чарт с выбранными индикаторами
-                BufferedImage chartBufferedImage = generateEnhancedChart(currentPairData, showEma, showStochRsi);
+                BufferedImage chartBufferedImage = generateEnhancedChart(currentPairData, showEma, showStochRsi, showProfit);
 
                 if (chartBufferedImage != null) {
                     StreamResource chartResource = createStreamResource(chartBufferedImage);
@@ -165,7 +171,7 @@ public class ZScoreChartDialog extends Dialog {
         indicatorsLabel.getStyle().set("font-weight", "bold");
         indicatorsLabel.getStyle().set("margin-right", "1rem");
 
-        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox);
+        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox);
 
         content.add(header, indicatorsPanel, chartImage, detailsPanel);
         add(content);
@@ -194,6 +200,7 @@ public class ZScoreChartDialog extends Dialog {
             // Сбрасываем состояние чекбоксов
             showEmaCheckbox.setValue(false);
             showStochRsiCheckbox.setValue(false);
+            showProfitCheckbox.setValue(false);
 
             // Генерируем и показываем базовый чарт
             BufferedImage chartBufferedImage = pairData.getZScoreChartImage();
@@ -385,20 +392,20 @@ public class ZScoreChartDialog extends Dialog {
     /**
      * Генерирует расширенный чарт с дополнительными индикаторами
      */
-    private BufferedImage generateEnhancedChart(PairData pairData, boolean showEma, boolean showStochRsi) {
-        if (!showEma && !showStochRsi) {
+    private BufferedImage generateEnhancedChart(PairData pairData, boolean showEma, boolean showStochRsi, boolean showProfit) {
+        if (!showEma && !showStochRsi && !showProfit) {
             // Если ничего дополнительного не нужно показывать, возвращаем базовый чарт
             return pairData.getZScoreChartImage();
         }
 
-        log.info("📊 Генерируем расширенный чарт с EMA: {}, StochRSI: {}", showEma, showStochRsi);
+        log.info("📊 Генерируем расширенный чарт с EMA: {}, StochRSI: {}, Profit: {}", showEma, showStochRsi, showProfit);
 
         try {
             Settings settings = settingsService.getSettings();
             int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
             // Используем новый API для создания расширенного чарта
-            return ZScoreChart.createEnhancedBufferedImage(pairData, showEma, emaPeriod, showStochRsi);
+            return ZScoreChart.createEnhancedBufferedImage(pairData, showEma, emaPeriod, showStochRsi, showProfit);
         } catch (Exception e) {
             log.error("❌ Ошибка при создании расширенного чарта", e);
             return pairData.getZScoreChartImage();

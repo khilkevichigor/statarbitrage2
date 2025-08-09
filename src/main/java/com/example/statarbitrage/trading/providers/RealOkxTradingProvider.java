@@ -398,7 +398,7 @@ public class RealOkxTradingProvider implements TradingProvider {
         try {
             // Проверка геолокации
             if (!geolocationService.isGeolocationAllowed()) {
-                log.error("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
+                log.debug("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
                 return TradeResult.failure(tradeOperationType, symbol, "Геолокация не разрешена");
             }
             log.debug("Проверка геолокации пройдена.");
