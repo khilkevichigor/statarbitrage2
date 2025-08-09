@@ -103,9 +103,9 @@ public class TelegramNotificationService implements NotificationService {
                 """
                         %s Пара закрыта
                         %s
-                        %.2f USDT (%.2f%%)
-                        было: %.2f $, стало: %.2f $
-                        дельта: %s $
+                        Профит: %.2f USDT (%.2f%%)
+                        Баланс: было %.2f $, стало: %.2f $
+                        Дельта баланса: %s $
                         %s
                         %s""",
                 pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
