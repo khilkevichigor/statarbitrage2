@@ -181,6 +181,11 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMaxAdfValueFilterCheckbox = new Checkbox("Использовать Max adfValue фильтр");
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
+        
+        // Minimum lot blacklist field
+        TextField minimumLotBlacklistField = new TextField("Блэклист мин. лота");
+        minimumLotBlacklistField.setPlaceholder("Тикеры через запятую (ETH-USDT-SWAP,BTC-USDT-SWAP)");
+        minimumLotBlacklistField.setHelperText("Тикеры с высокими требованиями к минимальному лоту");
 
         NumberField maxShortMarginSize = new NumberField("Размер риска шорт ($)");
         NumberField maxLongMarginSize = new NumberField("Размер риска лонг ($)");
@@ -231,7 +236,7 @@ public class SettingsComponent extends VerticalLayout {
         // Create sections
         add(createAnalysisSection(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, maxAdfValueField, minCorrelationField, minVolumeField,
-                checkIntervalField, usePairsField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
+                checkIntervalField, usePairsField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
                 useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
                 useMinVolumeFilterCheckbox));
 
@@ -271,6 +276,7 @@ public class SettingsComponent extends VerticalLayout {
                 minCorrelationField,
                 minVolumeField,
                 usePairsField,
+                minimumLotBlacklistField,
                 maxShortMarginSize,
                 maxLongMarginSize,
                 leverageField,
@@ -303,7 +309,8 @@ public class SettingsComponent extends VerticalLayout {
                                           NumberField minWindowSizeField, NumberField minPValueField,
                                           NumberField maxAdfValueField, NumberField minCorrelationField,
                                           NumberField minVolumeField, NumberField checkIntervalField,
-                                          NumberField usePairsField, Checkbox useMinZFilterCheckbox,
+                                          NumberField usePairsField, TextField minimumLotBlacklistField, 
+                                          Checkbox useMinZFilterCheckbox,
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
                                           Checkbox useMinVolumeFilterCheckbox) {
@@ -321,7 +328,8 @@ public class SettingsComponent extends VerticalLayout {
         analysisForm.add(
                 timeframeField, candleLimitField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
-                maxAdfValueLayout, minCorrelationLayout, minVolumeLayout, usePairsField
+                maxAdfValueLayout, minCorrelationLayout, minVolumeLayout, usePairsField,
+                minimumLotBlacklistField
         );
 
         Details analysisSection = createDetailsCard("🔍 Анализ и фильтры",
@@ -448,6 +456,7 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField minCorrelationField,
                             NumberField minVolumeField,
                             NumberField usePairsField,
+                            TextField minimumLotBlacklistField,
                             NumberField maxShortMarginSizeField,
                             NumberField maxLongMarginSizeField,
                             NumberField leverageField,
@@ -503,6 +512,9 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
         settingsBinder.forField(usePairsField).bind(Settings::getUsePairs, Settings::setUsePairs);
+        
+        // Bind minimum lot blacklist field
+        settingsBinder.forField(minimumLotBlacklistField).bind(Settings::getMinimumLotBlacklist, Settings::setMinimumLotBlacklist);
 
         // Bind filter checkboxes
         settingsBinder.forField(useMinZFilterCheckbox).bind(Settings::isUseMinZFilter, Settings::setUseMinZFilter);

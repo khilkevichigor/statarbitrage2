@@ -662,8 +662,17 @@ public final class ZScoreChart {
         XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
         profitSeries.setYAxisGroup(1);
         profitSeries.setLineColor(Color.GREEN);
-        profitSeries.setMarker(new None());
-        profitSeries.setLineStyle(new BasicStroke(2.0f));
+        
+        // Для малого количества точек показываем маркеры
+        if (profitValues.size() <= 2) {
+            log.info("📊 Малое количество точек профита ({}), включаем маркеры", profitValues.size());
+            profitSeries.setMarker(SeriesMarkers.CIRCLE);
+            profitSeries.setMarkerColor(Color.GREEN.darker());
+            profitSeries.setLineStyle(new BasicStroke(3.0f)); // Толще линия
+        } else {
+            profitSeries.setMarker(new None());
+            profitSeries.setLineStyle(new BasicStroke(2.0f));
+        }
 
         chart.setYAxisGroupTitle(1, "Profit %");
 

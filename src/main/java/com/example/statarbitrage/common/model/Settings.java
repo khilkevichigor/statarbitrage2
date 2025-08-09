@@ -79,6 +79,11 @@ public class Settings {
     @Builder.Default
     private boolean useExitBreakEvenPercent = true;
 
+    // Блэклист тикеров с высокими требованиями к минимальному лоту
+    @Column(length = 1000)
+    @Builder.Default
+    private String minimumLotBlacklist = "ETH-USDT-SWAP,BTC-USDT-SWAP";
+
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
     }

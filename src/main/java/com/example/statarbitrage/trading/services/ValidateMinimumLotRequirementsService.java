@@ -1,6 +1,8 @@
 package com.example.statarbitrage.trading.services;
 
 import com.example.statarbitrage.common.model.PairData;
+import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,17 +10,26 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ValidateMinimumLotRequirementsService {
 
+    private final SettingsService settingsService;
+
     /**
      * Проверка пары на соответствие требованиям минимального лота.
      * Возвращает false, если минимальный лот для любой позиции превышает желаемую сумму более чем в 3 раза.
      */
     public boolean validate(TradingProvider provider, PairData pairData, BigDecimal longAmount, BigDecimal shortAmount) {
+        // Проверка блэклиста ДО основной валидации
+        if (isInBlacklist(pairData.getLongTicker()) || isInBlacklist(pairData.getShortTicker())) {
+            log.warn("❌ БЛОКИРОВКА: Пара {} заблокирована из-за тикеров в блэклисте минимальных лотов", 
+                    pairData.getPairName());
+            return false;
+        }
         try {
             BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
             BigDecimal shortPrice = provider.getCurrentPrice(pairData.getShortTicker());
@@ -68,6 +79,10 @@ public class ValidateMinimumLotRequirementsService {
             if (excessRatio.compareTo(BigDecimal.valueOf(3)) > 0) {
                 log.warn("❌ БЛОКИРОВКА: {} минимальный лот требует сумму {} вместо желаемой {} (превышение в {} раз)",
                         symbol, adjustedAmount, desiredAmount, excessRatio);
+                
+                // Автоматически добавляем в блэклист при превышении лимита
+                addToBlacklist(symbol);
+                
                 return false;
             }
 
@@ -78,6 +93,59 @@ public class ValidateMinimumLotRequirementsService {
         } catch (Exception e) {
             log.error("❌ Ошибка при проверке минимального лота для {}: {}", symbol, e.getMessage(), e);
             return true;
+        }
+    }
+
+    /**
+     * Проверяет, находится ли тикер в блэклисте минимальных лотов
+     */
+    private boolean isInBlacklist(String ticker) {
+        try {
+            Settings settings = settingsService.getSettings();
+            String blacklist = settings.getMinimumLotBlacklist();
+            
+            if (blacklist == null || blacklist.trim().isEmpty()) {
+                return false;
+            }
+            
+            return Arrays.stream(blacklist.split(","))
+                    .map(String::trim)
+                    .map(String::toUpperCase)
+                    .anyMatch(ticker.toUpperCase()::equals);
+                    
+        } catch (Exception e) {
+            log.error("❌ Ошибка при проверке блэклиста для тикера {}: {}", ticker, e.getMessage(), e);
+            return false; // При ошибке не блокируем торговлю
+        }
+    }
+
+    /**
+     * Автоматически добавляет тикер в блэклист минимальных лотов
+     */
+    private void addToBlacklist(String ticker) {
+        try {
+            Settings settings = settingsService.getSettings();
+            String currentBlacklist = settings.getMinimumLotBlacklist();
+            
+            // Проверяем, не находится ли уже в блэклисте
+            if (isInBlacklist(ticker)) {
+                return;
+            }
+            
+            String newBlacklist;
+            if (currentBlacklist == null || currentBlacklist.trim().isEmpty()) {
+                newBlacklist = ticker.toUpperCase();
+            } else {
+                newBlacklist = currentBlacklist + "," + ticker.toUpperCase();
+            }
+            
+            settings.setMinimumLotBlacklist(newBlacklist);
+            settingsService.save(settings);
+            
+            log.warn("🚫 АВТОБЛОКИРОВКА: Тикер {} автоматически добавлен в блэклист минимальных лотов", ticker);
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при добавлении тикера {} в блэклист: {}", ticker, e.getMessage(), e);
         }
     }
 }
