@@ -4,6 +4,7 @@ import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ChangesData;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.model.PairData;
+import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.core.repositories.PairDataRepository;
 import com.example.statarbitrage.trading.model.TradeResult;
@@ -31,6 +32,7 @@ public class PairDataService {
     private final CreatePairDataService createPairDataService;
     private final CalculateUnrealizedProfitTotalService calculateUnrealizedProfitTotalService;
     private final PortfolioService portfolioServiceImpl;
+    private final UpdateSettingsParamService updateSettingsParamService;
 
     public List<PairData> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
         List<PairData> pairs = createPairDataService.createPairs(top, candlesMap);
@@ -116,5 +118,9 @@ public class PairDataService {
 
     public void updatePortfolioBalanceAfterTradeUSDT(PairData pairData) {
         portfolioServiceImpl.updatePortfolioBalanceAfterTradeUSDT(pairData);
+    }
+
+    public void updateSettingsParam(PairData pairData, Settings settings) {
+        updateSettingsParamService.updateSettingsParam(pairData, settings);
     }
 }

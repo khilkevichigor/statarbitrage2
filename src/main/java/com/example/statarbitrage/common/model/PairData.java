@@ -154,6 +154,42 @@ public class PairData {
     private boolean closeAtBreakeven;
 
     //todo может сюда еще сетить либо целый Settings либо поля что бы PairData была полностью информативная
+    private String settingsTimeframe;
+    private double settingsCandleLimit;
+    private double settingsMinZ;
+    private double settingsMinWindowSize;
+    private double settingsMinPValue;
+    private double settingsMaxAdfValue;
+    private double settingsMinRSquared;
+    private double settingsMinCorrelation;
+    private double settingsMinVolume;
+    private double settingsCheckInterval;
+    private double settingsMaxLongMarginSize;
+    private double settingsMaxShortMarginSize;
+    private double settingsLeverage;
+    private double settingsExitTake;
+    private double settingsExitStop;
+    private double settingsExitZMin;
+    private double settingsExitZMax;
+    private double settingsExitZMaxPercent;
+    private double settingsExitTimeHours;
+    private double settingsExitBreakEvenPercent;
+    private double settingsUsePairs;
+    private boolean settingsAutoTradingEnabled;
+    private boolean settingsUseMinZFilter;
+    private boolean settingsUseMinRSquaredFilter;
+    private boolean settingsUseMinPValueFilter;
+    private boolean settingsUseMaxAdfValueFilter;
+    private boolean settingsUseMinCorrelationFilter;
+    private boolean settingsUseMinVolumeFilter;
+    private boolean settingsUseExitTake;
+    private boolean settingsUseExitStop;
+    private boolean settingsUseExitZMin;
+    private boolean settingsUseExitZMax;
+    private boolean settingsUseExitZMaxPercent;
+    private boolean settingsUseExitTimeHours;
+    private boolean settingsUseExitBreakEvenPercent;
+    private String settingsMinimumLotBlacklist;
 
     public PairData(String longTicker, String shortTicker) {
         this.longTicker = longTicker;

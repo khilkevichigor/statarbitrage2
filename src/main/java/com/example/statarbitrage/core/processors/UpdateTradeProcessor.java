@@ -36,6 +36,7 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
+    private final UpdateSettingsParamService updateSettingsParamService;
 
 
     //todo сделать быструю проверку профита и только потом коинтеграции что бы минимизировать убыток
@@ -68,6 +69,9 @@ public class UpdateTradeProcessor {
         log.info("🧰 Обновление пары {}", pairData.getPairName());
 
         final Settings settings = settingsService.getSettings();
+
+        //todo здесь сетить настройки в пару для дальнейшей аналитики чатЖПТ
+        pairDataService.updateSettingsParam(pairData, settings);
 
         if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);
