@@ -36,7 +36,6 @@ public class UpdateTradeProcessor {
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
-    private final UpdateSettingsParamService updateSettingsParamService;
     private final CsvExportService csvExportService;
 
 
