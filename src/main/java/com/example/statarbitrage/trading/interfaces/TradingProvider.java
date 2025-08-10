@@ -83,4 +83,9 @@ public interface TradingProvider {
      * Получение истории операций
      */
     List<TradeResult> getTradeHistory(int limit);
+
+    /**
+     * Загрузка существующих позиций в провайдер
+     */
+    void loadPositions(List<Position> positions);
 }

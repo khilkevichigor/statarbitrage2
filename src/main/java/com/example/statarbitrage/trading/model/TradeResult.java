@@ -88,11 +88,16 @@ public class TradeResult {
     private String externalOrderId;
 
     /**
+     * Позиция, которая была создана или изменена
+     */
+    private Position position;
+
+    /**
      * Создание успешного результата
      */
     public static TradeResult success(String positionId, TradeOperationType operationType,
                                       String symbol, BigDecimal pnlUSDT, BigDecimal pnlPercent, BigDecimal executedSize, BigDecimal executionPrice,
-                                      BigDecimal fees, String externalOrderId) {
+                                      BigDecimal fees, String externalOrderId, Position position) {
         return TradeResult.builder()
                 .success(true)
                 .positionId(positionId)
@@ -105,6 +110,7 @@ public class TradeResult {
                 .fees(fees)
                 .executionTime(LocalDateTime.now())
                 .externalOrderId(externalOrderId)
+                .position(position)
                 .build();
     }
 

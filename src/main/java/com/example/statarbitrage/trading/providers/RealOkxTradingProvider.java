@@ -198,8 +198,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             // 🧾 Логгирование данных позиции
             logRealPositionData(symbol, operationType.name());
 
-            // 🆔 Подмена ID
+            // 🆔 Подмена ID и добавление позиции в результат
             orderResult.setPositionId(position.getPositionId());
+            orderResult.setPosition(position);
 
             log.debug("<== {}: КОНЕЦ (Успех) для {}", operationType.name(), symbol);
             return orderResult;
@@ -251,7 +252,8 @@ public class RealOkxTradingProvider implements TradingProvider {
                     closeOrderResult.getExecutedSize(),
                     closeOrderResult.getExecutionPrice(),
                     closeOrderResult.getFees(),
-                    closeOrderResult.getExternalOrderId()
+                    closeOrderResult.getExternalOrderId(),
+                    position
             );
             finalResult.setExternalOrderId(closeOrderResult.getExternalOrderId());
 
@@ -387,6 +389,15 @@ public class RealOkxTradingProvider implements TradingProvider {
                 .sorted((a, b) -> b.getExecutionTime().compareTo(a.getExecutionTime()))
                 .limit(limit)
                 .toList();
+    }
+
+    @Override
+    public void loadPositions(List<Position> positionsToLoad) {
+        positions.clear();
+        for (Position position : positionsToLoad) {
+            positions.put(position.getPositionId(), position);
+        }
+        log.info("Загружено {} позиций в RealOkxTradingProvider", positions.size());
     }
 
     // Приватные методы для работы с OKX API
@@ -726,7 +737,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                     // TODO: сверить запрошенный и исполненный объем, при несовпадении вернуть failure
 
-                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId);
+                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId, null);
                     log.debug("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
                     return result;
                 }

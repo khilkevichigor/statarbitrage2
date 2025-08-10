@@ -98,4 +98,9 @@ public class Real3CommasTradingProvider implements TradingProvider {
     public List<TradeResult> getTradeHistory(int limit) {
         return Collections.emptyList();
     }
+
+    @Override
+    public void loadPositions(List<Position> positions) {
+        // Stub implementation
+    }
 }

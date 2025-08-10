@@ -6,38 +6,37 @@ import com.example.statarbitrage.core.services.PortfolioService;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.*;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
-/**
- * Сервис для интеграции новой торговой системы с существующей системой статарбитража
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TradingIntegrationServiceImpl implements TradingIntegrationService {
 
     private final TradingProviderFactory tradingProviderFactory;
-
-    // Синхронизация открытия позиций для избежания конфликтов SQLite
-    private final Object openPositionLock = new Object();
-
-    // Хранилище связей между PairData и торговыми позициями
-    private final ConcurrentHashMap<Long, String> pairToLongPositionMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, String> pairToShortPositionMap = new ConcurrentHashMap<>();
+    private final PositionRepository positionRepository;
     private final PositionSizeService positionSizeService;
     private final AdaptiveAmountService adaptiveAmountService;
     private final ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService;
     private final PortfolioService portfolioService;
 
-    /**
-     * Открытие пары позиций для статарбитража - СИНХРОННО
-     */
+    private final Object openPositionLock = new Object();
+
+    @PostConstruct
+    public void loadOpenPositions() {
+        log.info("Загрузка открытых позиций из базы данных...");
+        List<Position> openPositions = positionRepository.findAllByStatus(PositionStatus.OPEN);
+        tradingProviderFactory.getCurrentProvider().loadPositions(openPositions);
+        log.info("Загружено {} открытых позиций.", openPositions.size());
+    }
+
     @Override
     public ArbitragePairTradeInfo openArbitragePair(PairData pairData, Settings settings) {
         log.debug("=== Начало открытия арбитражной пары: {}", pairData.getPairName());
@@ -69,7 +68,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 BigDecimal leverage = BigDecimal.valueOf(settings.getLeverage());
                 log.debug("Используемое кредитное плечо: {}", leverage);
 
-                BigDecimal balanceUSDT = portfolioService.getBalanceUSDT();//баланс до
+                BigDecimal balanceUSDT = portfolioService.getBalanceUSDT();
 
                 TradeResult longResult = openLong(provider, pairData, longAmount, leverage);
                 if (!longResult.isSuccess()) {
@@ -79,8 +78,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
                 TradeResult shortResult = openShort(provider, pairData, shortAmount, leverage);
                 if (shortResult.isSuccess()) {
-                    savePositionIds(pairData, longResult, shortResult);
-                    log.debug("Успешно открыты позиции для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
+                    savePositions(pairData, longResult, shortResult);
+                    log.debug("Успешно открыты и сохранены позиции для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
                             pairData.getPairName(), longResult.getPositionId(), shortResult.getPositionId());
                     return buildSuccess(longResult, shortResult, balanceUSDT, pairData);
                 } else {
@@ -98,19 +97,16 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
     }
 
-    /**
-     * Закрытие пары позиций - СИНХРОННО
-     */
     @Override
     public ArbitragePairTradeInfo closeArbitragePair(PairData pairData) {
         log.info("=== Начало закрытия арбитражной пары: {}", pairData.getPairName());
 
         synchronized (openPositionLock) {
             try {
-                String longPositionId = pairToLongPositionMap.get(pairData.getId());
-                String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+                Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
+                Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
 
-                if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+                if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
                     log.warn("Не найдены ID позиций для пары {}. Закрытие невозможно.", pairData.getPairName());
                     return buildFailure();
                 }
@@ -120,8 +116,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
                 log.info("Начинаем закрытие позиций для пары {}", pairData.getPairName());
 
-                TradeResult longResult = closePosition(provider, longPositionId, "LONG");
-                TradeResult shortResult = closePosition(provider, shortPositionId, "SHORT");
+                TradeResult longResult = closePosition(provider, longPositionOpt.get());
+                TradeResult shortResult = closePosition(provider, shortPositionOpt.get());
 
                 if (longResult.isSuccess() && shortResult.isSuccess()) {
                     logSuccess(pairData, longResult, shortResult);
@@ -144,15 +140,12 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
     }
 
-    /**
-     * Проверка что позиции действительно закрыты на бирже с получением PnL
-     */
     @Override
     public Positioninfo verifyPositionsClosed(PairData pairData) {
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+        Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
 
-        if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+        if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
             return buildClosedPositionInfo(BigDecimal.ZERO, BigDecimal.ZERO);
         }
@@ -160,17 +153,17 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         provider.updatePositionPrices();
 
-        Position longPosition = provider.getPosition(longPositionId);
-        Position shortPosition = provider.getPosition(shortPositionId);
+        Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
+        Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
 
         boolean longClosed = isClosed(longPosition);
         boolean shortClosed = isClosed(shortPosition);
 
-        if (!areBothClosed(longPosition, shortPosition)) {
+        if (longClosed && shortClosed) {
             BigDecimal finalPnlUSDT = calculateTotalPnlUSDT(longPosition, shortPosition);
             BigDecimal finalPnlPercent = calculateTotalPnlPercent(longPosition, shortPosition);
             removePairFromLocalStorage(pairData);
-            log.debug("Удалены закрытые позиции из реестра для пары {}. Итоговый PnL: {} USDT ({} %)", pairData.getPairName(), finalPnlUSDT, finalPnlPercent);
+            log.debug("Удалены закрытые позиции из репозитория для пары {}. Итоговый PnL: {} USDT ({} %)", pairData.getPairName(), finalPnlUSDT, finalPnlPercent);
 
             return buildClosedPositionInfo(finalPnlUSDT, finalPnlPercent);
         }
@@ -179,15 +172,12 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         return buildOpenPositionInfo();
     }
 
-    /**
-     * Получение актуальной информации по открытым позициям для обновления changes
-     */
     @Override
     public Positioninfo getOpenPositionsInfo(PairData pairData) {
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+        Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
 
-        if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+        if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
             return buildClosedPositionInfo();
         }
@@ -195,8 +185,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         provider.updatePositionPrices();
 
-        Position longPosition = provider.getPosition(longPositionId);
-        Position shortPosition = provider.getPosition(shortPositionId);
+        Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
+        Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
 
         if (areBothOpen(longPosition, shortPosition)) {
             calculateUnrealizedPnL(longPosition, shortPosition);
@@ -214,17 +204,14 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         return buildPartiallyClosedInfo(longPosition, shortPosition);
     }
 
-    /**
-     * Получение актуальной информации по позициям для пары
-     */
     @Override
     public Positioninfo getPositionInfo(PairData pairData) {
         log.debug("Запрос информации о позициях для пары {}", pairData.getPairName());
 
-        String longPositionId = pairToLongPositionMap.get(pairData.getId());
-        String shortPositionId = pairToShortPositionMap.get(pairData.getId());
+        Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
 
-        if (positionsMissingInMap(longPositionId, shortPositionId, pairData)) {
+        if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}", pairData.getPairName());
             return Positioninfo.builder().build();
         }
@@ -232,8 +219,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         log.debug("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
 
-        Position longPosition = provider.getPosition(longPositionId);
-        Position shortPosition = provider.getPosition(shortPositionId);
+        Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
+        Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
 
         if (positionsAreNull(longPosition, shortPosition, pairData)) {
             log.error("Позиции равны null для пары {}", pairData.getPairName());
@@ -257,38 +244,29 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public void removePairFromLocalStorage(PairData pairData) {
-        log.debug("Удаляем сохранённые ID позиций из локального реестра для пары {}", pairData.getPairName());
-        pairToLongPositionMap.remove(pairData.getId());
-        pairToShortPositionMap.remove(pairData.getId());
+        log.debug("Удаляем сохранённые ID позиций из репозитория для пары {}", pairData.getPairName());
+        positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG).ifPresent(positionRepository::delete);
+        positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT).ifPresent(positionRepository::delete);
     }
 
-    /**
-     * Обновление цен и PnL для всех активных пар - СИНХРОННО
-     */
     @Override
     public void updateAllPositions() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         try {
             log.debug("🔄 Обновление цен по всем открытым позициям...");
-            provider.updatePositionPrices(); // Полностью синхронно
+            provider.updatePositionPrices();
             log.debug("✅ Обновление цен завершено успешно.");
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении цен по позициям: {}", e.getMessage(), e);
         }
     }
 
-    /**
-     * Получение информации о портфолио
-     */
     @Override
     public Portfolio getPortfolioInfo() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         return provider.getPortfolio();
     }
 
-    /**
-     * Проверка, достаточно ли средств для новой пары
-     */
     @Override
     public boolean canOpenNewPair(Settings settings) {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
@@ -296,18 +274,12 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         return provider.hasAvailableBalance(requiredAmount);
     }
 
-    /**
-     * Переключение режима торговли с детальной информацией
-     */
     @Override
     public TradingProviderSwitchResult switchTradingModeWithDetails(TradingProviderType providerType) {
         log.info("🔄 Переключение режима торговли на: {}", providerType.getDisplayName());
         return tradingProviderFactory.switchToProviderWithDetails(providerType);
     }
 
-    /**
-     * Получение текущего режима торговли
-     */
     @Override
     public TradingProviderType getCurrentTradingMode() {
         return tradingProviderFactory.getCurrentProviderType();
@@ -383,14 +355,19 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
     }
 
-    private void savePositionIds(PairData pairData, TradeResult longResult, TradeResult shortResult) {
-        pairToLongPositionMap.put(pairData.getId(), longResult.getPositionId());
-        pairToShortPositionMap.put(pairData.getId(), shortResult.getPositionId());
+    private void savePositions(PairData pairData, TradeResult longResult, TradeResult shortResult) {
+        Position longPosition = longResult.getPosition();
+        longPosition.setPairDataId(pairData.getId());
+        positionRepository.save(longPosition);
 
-        log.debug("💾 Сохранены ID открытых позиций для пары {}: ЛОНГ = {}, ШОРТ = {}",
+        Position shortPosition = shortResult.getPosition();
+        shortPosition.setPairDataId(pairData.getId());
+        positionRepository.save(shortPosition);
+
+        log.debug("💾 Сохранены позиции в БД для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
                 pairData.getPairName(),
-                longResult.getPositionId(),
-                shortResult.getPositionId());
+                longPosition.getPositionId(),
+                shortPosition.getPositionId());
     }
 
     private ArbitragePairTradeInfo buildSuccess(TradeResult longResult, TradeResult shortResult, BigDecimal balanceUSDT, PairData pairData) {
@@ -415,34 +392,25 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 .build();
     }
 
-    private boolean positionsMissingInMap(String longId, String shortId, PairData pairData) {
-        if (longId == null || shortId == null) {
-            log.warn("⚠️ Не найдены ID позиций в локальном хранилище для пары {}. ЛОНГ: {}, ШОРТ: {}",
-                    pairData.getPairName(), longId, shortId);
-            return true;
-        }
-        log.debug("✅ Найдены ID позиций: ЛОНГ = {}, ШОРТ = {} для пары {}", longId, shortId, pairData.getPairName());
-        return false;
-    }
+    private TradeResult closePosition(TradingProvider provider, Position position) {
+        String positionLabel = position.getType() == PositionType.LONG ? "лонг" : "шорт";
+        String emoji = position.getType() == PositionType.LONG ? "🔴" : "🟢";
 
-    private TradeResult closePosition(TradingProvider provider, String positionId, String type) {
-        String emoji = type.equalsIgnoreCase("LONG") ? "🔴" : "🟢";
-        String positionLabel = type.equalsIgnoreCase("LONG") ? "лонг" : "шорт";
-
-        log.debug("{} Закрытие {} позиции. ID: {}", emoji, positionLabel.toUpperCase(), positionId);
-        TradeResult result = provider.closePosition(positionId);
+        log.debug("{} Закрытие {} позиции. ID: {}", emoji, positionLabel.toUpperCase(), position.getPositionId());
+        TradeResult result = provider.closePosition(position.getPositionId());
 
         if (result.isSuccess()) {
-            log.debug("✅ Позиция {} успешно закрыта. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
-                    positionLabel, positionId, result.getPnlUSDT(), result.getPnlPercent(), result.getFees());
+            position.setStatus(PositionStatus.CLOSED);
+            positionRepository.save(position);
+            log.debug("✅ Позиция {} успешно закрыта и обновлена в БД. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
+                    positionLabel, position.getPositionId(), result.getPnlUSDT(), result.getPnlPercent(), result.getFees());
         } else {
             log.warn("❌ Не удалось закрыть {} позицию. ID: {}, Ошибка: {}",
-                    positionLabel, positionId, result.getErrorMessage());
+                    positionLabel, position.getPositionId(), result.getErrorMessage());
         }
 
         return result;
     }
-
 
     private void logSuccess(PairData pairData, TradeResult longResult, TradeResult shortResult) {
         BigDecimal totalPnLUSDT = longResult.getPnlUSDT().add(shortResult.getPnlUSDT());
@@ -464,10 +432,10 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     private BigDecimal calculateTotalPnlUSDT(Position longPosition, Position shortPosition) {
         BigDecimal pnl = BigDecimal.ZERO;
-        if (longPosition != null) {
+        if (longPosition != null && longPosition.getRealizedPnLUSDT() != null) {
             pnl = pnl.add(longPosition.getRealizedPnLUSDT());
         }
-        if (shortPosition != null) {
+        if (shortPosition != null && shortPosition.getRealizedPnLUSDT() != null) {
             pnl = pnl.add(shortPosition.getRealizedPnLUSDT());
         }
         return pnl;
@@ -475,10 +443,10 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     private BigDecimal calculateTotalPnlPercent(Position longPosition, Position shortPosition) {
         BigDecimal pnl = BigDecimal.ZERO;
-        if (longPosition != null) {
+        if (longPosition != null && longPosition.getRealizedPnLPercent() != null) {
             pnl = pnl.add(longPosition.getRealizedPnLPercent());
         }
-        if (shortPosition != null) {
+        if (shortPosition != null && shortPosition.getRealizedPnLPercent() != null) {
             pnl = pnl.add(shortPosition.getRealizedPnLPercent());
         }
         return pnl;
@@ -508,13 +476,9 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         return isOpen(longPos) && isOpen(shortPos);
     }
 
-    private boolean areBothClosed(Position longPos, Position shortPos) {
-        return isClosed(longPos) && isClosed(shortPos);
-    }
-
     private void calculateUnrealizedPnL(Position longPos, Position shortPos) {
-        longPos.calculateUnrealizedPnL();
-        shortPos.calculateUnrealizedPnL();
+        if (longPos != null) longPos.calculateUnrealizedPnL();
+        if (shortPos != null) shortPos.calculateUnrealizedPnL();
     }
 
     private Positioninfo buildOpenPositionInfo(Position longPos, Position shortPos, BigDecimal totalPnLUSDT, BigDecimal totalPnLPercent) {
