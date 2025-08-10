@@ -52,12 +52,21 @@ public class TradePairsStatisticsDto {
     private long exitByManuallyToday;
     private long exitByManuallyTotal;
 
-    private BigDecimal sumProfitUnrealizedUSDT;
-    private BigDecimal sumProfitUnrealizedPercent;
+    private BigDecimal sumProfitUnrealizedUSDTToday;
+    private BigDecimal sumProfitUnrealizedUSDTTotal;
 
-    private BigDecimal sumProfitRealizedUSDT;
-    private BigDecimal sumProfitRealizedPercent;
+    private BigDecimal sumProfitUnrealizedPercentToday;
+    private BigDecimal sumProfitUnrealizedPercentTotal;
 
-    private BigDecimal sumProfitCombinedUSDT;
-    private BigDecimal sumProfitCombinedPercent;
+    private BigDecimal sumProfitRealizedUSDTToday;
+    private BigDecimal sumProfitRealizedUSDTTotal;
+
+    private BigDecimal sumProfitRealizedPercentToday;
+    private BigDecimal sumProfitRealizedPercentTotal;
+
+    private BigDecimal sumProfitCombinedUSDTToday;
+    private BigDecimal sumProfitCombinedUSDTTotal;
+
+    private BigDecimal sumProfitCombinedPercentToday;
+    private BigDecimal sumProfitCombinedPercentTotal;
 }

@@ -13,6 +13,15 @@ import java.util.List;
 
 @Repository
 public interface PairDataRepository extends JpaRepository<PairData, Long> {
+    @Query("SELECT p " +
+            "FROM PairData p " +
+            "WHERE p.status = :status " +
+            "AND p.entryTime >= :startOfDay " +
+            "ORDER BY p.entryTime DESC")
+    List<PairData> findAllByStatusOrderByEntryTimeTodayDesc(
+            @Param("status") TradeStatus status,
+            @Param("startOfDay") Long startOfDay);
+
     // 1. Сортировка по entryTime (от новых к старым)
     @Query("SELECT p " +
             "FROM PairData p " +

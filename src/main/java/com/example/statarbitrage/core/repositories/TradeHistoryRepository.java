@@ -107,11 +107,24 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT SUM(p.profitUSDTChanges) " +
             "FROM PairData p " +
+            "WHERE p.status = 'CLOSED' " +
+            "AND p.entryTime >= :startOfDay")
+    BigDecimal getSumRealizedProfitUSDTToday(@Param("startOfDay") Long startOfDay);
+
+    @Query("SELECT SUM(p.profitUSDTChanges) " +
+            "FROM PairData p " +
             "WHERE p.status = 'CLOSED'")
-    BigDecimal getSumRealizedProfitUSDT();
+    BigDecimal getSumRealizedProfitUSDTTotal();
+
+    @Query("SELECT SUM(p.profitPercentChanges) " +
+            "FROM PairData p " +
+            "WHERE p.status = 'CLOSED' " +
+            "AND p.entryTime >= :startOfDay")
+    BigDecimal getSumRealizedProfitPercentToday(@Param("startOfDay") Long startOfDay);
+
 
     @Query("SELECT SUM(p.profitPercentChanges) " +
             "FROM PairData p " +
             "WHERE p.status = 'CLOSED'")
-    BigDecimal getSumRealizedProfitPercent();
+    BigDecimal getSumRealizedProfitPercentTotal();
 }

@@ -63,9 +63,9 @@ public class StatisticsComponent extends VerticalLayout {
                     new StatisticRow("Выход: BREAKEVEN", stats.getExitByBreakevenToday(), stats.getExitByBreakevenTotal()),
                     new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal()),
 
-                    new StatisticRow("Профит нереализованный", "", getSumProfitUnrealizedTotal(stats)),
-                    new StatisticRow("Профит реализованный", "", getSumProfitRealizedTotal(stats)),
-                    new StatisticRow("Профит общий", "", getSumProfitCombinedTotal(stats))
+                    new StatisticRow("Профит нереализованный", getSumProfitUnrealizedToday(stats), getSumProfitUnrealizedTotal(stats)),
+                    new StatisticRow("Профит реализованный", getSumProfitRealizedToday(stats), getSumProfitRealizedTotal(stats)),
+                    new StatisticRow("Профит общий", getSumProfitCombinedToday(stats), getSumProfitCombinedTotal(stats))
             );
 
             statisticsGrid.setItems(rows);
@@ -110,9 +110,27 @@ public class StatisticsComponent extends VerticalLayout {
                 sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
 
+    private String getSumProfitUnrealizedToday(TradePairsStatisticsDto stats) {
+        BigDecimal sumUsd = stats.getSumProfitUnrealizedUSDTToday() != null ? stats.getSumProfitUnrealizedUSDTToday() : BigDecimal.ZERO;
+        BigDecimal sumPercent = stats.getSumProfitUnrealizedPercentToday() != null ? stats.getSumProfitUnrealizedPercentToday() : BigDecimal.ZERO;
+
+        return String.format("%s$/%s%%",
+                sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
+    }
+
     private String getSumProfitUnrealizedTotal(TradePairsStatisticsDto stats) {
-        BigDecimal sumUsd = stats.getSumProfitUnrealizedUSDT() != null ? stats.getSumProfitUnrealizedUSDT() : BigDecimal.ZERO;
-        BigDecimal sumPercent = stats.getSumProfitUnrealizedPercent() != null ? stats.getSumProfitUnrealizedPercent() : BigDecimal.ZERO;
+        BigDecimal sumUsd = stats.getSumProfitUnrealizedUSDTTotal() != null ? stats.getSumProfitUnrealizedUSDTTotal() : BigDecimal.ZERO;
+        BigDecimal sumPercent = stats.getSumProfitUnrealizedPercentTotal() != null ? stats.getSumProfitUnrealizedPercentTotal() : BigDecimal.ZERO;
+
+        return String.format("%s$/%s%%",
+                sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private String getSumProfitRealizedToday(TradePairsStatisticsDto stats) {
+        BigDecimal sumUsd = stats.getSumProfitRealizedUSDTToday() != null ? stats.getSumProfitRealizedUSDTToday() : BigDecimal.ZERO;
+        BigDecimal sumPercent = stats.getSumProfitRealizedPercentToday() != null ? stats.getSumProfitRealizedPercentToday() : BigDecimal.ZERO;
 
         return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
@@ -120,8 +138,17 @@ public class StatisticsComponent extends VerticalLayout {
     }
 
     private String getSumProfitRealizedTotal(TradePairsStatisticsDto stats) {
-        BigDecimal sumUsd = stats.getSumProfitRealizedUSDT() != null ? stats.getSumProfitRealizedUSDT() : BigDecimal.ZERO;
-        BigDecimal sumPercent = stats.getSumProfitRealizedPercent() != null ? stats.getSumProfitRealizedPercent() : BigDecimal.ZERO;
+        BigDecimal sumUsd = stats.getSumProfitRealizedUSDTTotal() != null ? stats.getSumProfitRealizedUSDTTotal() : BigDecimal.ZERO;
+        BigDecimal sumPercent = stats.getSumProfitRealizedPercentTotal() != null ? stats.getSumProfitRealizedPercentTotal() : BigDecimal.ZERO;
+
+        return String.format("%s$/%s%%",
+                sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                sumPercent.setScale(2, RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private String getSumProfitCombinedToday(TradePairsStatisticsDto stats) {
+        BigDecimal sumUsd = stats.getSumProfitCombinedUSDTToday() != null ? stats.getSumProfitCombinedUSDTToday() : BigDecimal.ZERO;
+        BigDecimal sumPercent = stats.getSumProfitCombinedPercentToday() != null ? stats.getSumProfitCombinedPercentToday() : BigDecimal.ZERO;
 
         return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),
@@ -129,8 +156,8 @@ public class StatisticsComponent extends VerticalLayout {
     }
 
     private String getSumProfitCombinedTotal(TradePairsStatisticsDto stats) {
-        BigDecimal sumUsd = stats.getSumProfitCombinedUSDT() != null ? stats.getSumProfitCombinedUSDT() : BigDecimal.ZERO;
-        BigDecimal sumPercent = stats.getSumProfitCombinedPercent() != null ? stats.getSumProfitCombinedPercent() : BigDecimal.ZERO;
+        BigDecimal sumUsd = stats.getSumProfitCombinedUSDTTotal() != null ? stats.getSumProfitCombinedUSDTTotal() : BigDecimal.ZERO;
+        BigDecimal sumPercent = stats.getSumProfitCombinedPercentTotal() != null ? stats.getSumProfitCombinedPercentTotal() : BigDecimal.ZERO;
 
         return String.format("%s$/%s%%",
                 sumUsd.setScale(2, RoundingMode.HALF_UP).toPlainString(),

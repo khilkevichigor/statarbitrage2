@@ -22,21 +22,37 @@ public class StatisticsService {
     private final TradeHistoryService tradeHistoryService;
 
     public TradePairsStatisticsDto collectStatistics() {
-        BigDecimal unrealizedProfitUSDT = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDTToday = pairDataService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
                 .map(PairData::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitPercent = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDTTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+                .map(PairData::getProfitUSDTChanges)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal unrealizedProfitPercentToday = pairDataService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
                 .map(PairData::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal realizedProfitUSDT = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitUSDT()).orElse(BigDecimal.ZERO);
-        BigDecimal realizedProfitPercent = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitPercent()).orElse(BigDecimal.ZERO);
+        BigDecimal unrealizedProfitPercentTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+                .map(PairData::getProfitPercentChanges)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal combinedProfitUSDT = unrealizedProfitUSDT.add(realizedProfitUSDT);
-        BigDecimal combinedProfitPercent = unrealizedProfitPercent.add(realizedProfitPercent);
+        BigDecimal realizedProfitUSDTToday = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitUSDTToday()).orElse(BigDecimal.ZERO);
+        BigDecimal realizedProfitUSDTTotal = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitUSDTTotal()).orElse(BigDecimal.ZERO);
+
+        BigDecimal realizedProfitPercentToday = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitPercentToday()).orElse(BigDecimal.ZERO);
+        BigDecimal realizedProfitPercentTotal = Optional.ofNullable(tradeHistoryService.getSumRealizedProfitPercentTotal()).orElse(BigDecimal.ZERO);
+
+        BigDecimal combinedProfitUSDTToday = unrealizedProfitUSDTToday.add(realizedProfitUSDTToday);
+        BigDecimal combinedProfitUSDTTotal = unrealizedProfitUSDTTotal.add(realizedProfitUSDTTotal);
+
+        BigDecimal combinedProfitPercentToday = unrealizedProfitPercentToday.add(realizedProfitPercentToday);
+        BigDecimal combinedProfitPercentTotal = unrealizedProfitPercentTotal.add(realizedProfitPercentTotal);
 
         return TradePairsStatisticsDto.builder()
 
@@ -79,14 +95,24 @@ public class StatisticsService {
                 .exitByManuallyToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_MANUALLY.name()))
                 .exitByManuallyTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name()))
 
-                .sumProfitUnrealizedUSDT(unrealizedProfitUSDT)
-                .sumProfitUnrealizedPercent(unrealizedProfitPercent)
 
-                .sumProfitRealizedUSDT(realizedProfitUSDT)
-                .sumProfitRealizedPercent(realizedProfitPercent)
+                .sumProfitUnrealizedUSDTToday(unrealizedProfitUSDTToday)
+                .sumProfitUnrealizedUSDTTotal(unrealizedProfitUSDTTotal)
 
-                .sumProfitCombinedUSDT(combinedProfitUSDT)
-                .sumProfitCombinedPercent(combinedProfitPercent)
+                .sumProfitUnrealizedPercentToday(unrealizedProfitPercentToday)
+                .sumProfitUnrealizedPercentTotal(unrealizedProfitPercentTotal)
+
+                .sumProfitRealizedUSDTToday(realizedProfitUSDTToday)
+                .sumProfitRealizedUSDTTotal(realizedProfitUSDTTotal)
+
+                .sumProfitRealizedPercentToday(realizedProfitPercentToday)
+                .sumProfitRealizedPercentTotal(realizedProfitPercentTotal)
+
+                .sumProfitCombinedUSDTToday(combinedProfitUSDTToday)
+                .sumProfitCombinedUSDTTotal(combinedProfitUSDTTotal)
+
+                .sumProfitCombinedPercentToday(combinedProfitPercentToday)
+                .sumProfitCombinedPercentTotal(combinedProfitPercentTotal)
 
                 .build();
     }

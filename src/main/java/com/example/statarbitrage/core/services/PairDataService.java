@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +63,14 @@ public class PairDataService {
 
     public PairData findById(Long id) {
         return pairDataRepository.findById(id).orElse(null);
+    }
+
+    public List<PairData> findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus status) {
+        long startOfDay = LocalDate.now()
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
+        return pairDataRepository.findAllByStatusOrderByEntryTimeTodayDesc(status, startOfDay);
     }
 
     public List<PairData> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
