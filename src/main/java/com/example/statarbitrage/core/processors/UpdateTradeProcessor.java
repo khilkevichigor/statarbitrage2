@@ -37,6 +37,7 @@ public class UpdateTradeProcessor {
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
     private final UpdateSettingsParamService updateSettingsParamService;
+    private final CsvExportService csvExportService;
 
 
     //todo сделать быструю проверку профита и только потом коинтеграции что бы минимизировать убыток
@@ -186,6 +187,7 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
         finalizeClosedTrade(pairData, settings);
         notificationService.notifyClose(pairData);
+        csvExportService.appendPairDataToCsv(pairData);
         return pairData;
     }
 
@@ -232,6 +234,7 @@ public class UpdateTradeProcessor {
         pairData.setExitReason(exitReason);
         finalizeClosedTrade(pairData, settings);
         notificationService.notifyClose(pairData);
+        csvExportService.appendPairDataToCsv(pairData);
         return pairData;
     }
 
