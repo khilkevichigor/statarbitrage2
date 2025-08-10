@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static com.example.statarbitrage.common.utils.BigDecimalUtil.safeScale;
+
 @Entity
 @Table(name = "pair_data", indexes = {
         @Index(name = "idx_pairdata_uuid", columnList = "uuid", unique = true)
@@ -127,6 +129,12 @@ public class PairData {
 
     private BigDecimal minProfitPercentChanges;
     private BigDecimal maxProfitPercentChanges;
+
+    private String timeToMinProfit;
+    private String timeToMaxProfit;
+    private String profitLong;
+    private String profitShort;
+    private String profitCommon;
 
     private long timestamp; //время создания PairData (fetch)
     private long entryTime; //время начала трейда
@@ -428,5 +436,60 @@ public class PairData {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public String getTimeToMinProfit() {
+        BigDecimal minProfitChanges = safeScale(this.getMinProfitPercentChanges(), 2);
+        long minutesToMinProfitPercent = this.getMinutesToMinProfitPercent();
+
+        String value = String.format("%s%%/%smin",
+                minProfitChanges != null ? minProfitChanges.toPlainString() : "N/A",
+                minutesToMinProfitPercent);
+        this.timeToMinProfit = value;
+        return value;
+    }
+
+    public String getTimeToMaxProfit() {
+        BigDecimal maxProfitChanges = safeScale(this.getMaxProfitPercentChanges(), 2);
+        long minutesToMaxProfitPercent = this.getMinutesToMaxProfitPercent();
+
+        String value = String.format("%s%%/%smin",
+                maxProfitChanges != null ? maxProfitChanges.toPlainString() : "N/A",
+                minutesToMaxProfitPercent);
+        this.timeToMaxProfit = value;
+        return value;
+    }
+
+    public String getProfitCommon() {
+        BigDecimal profitUSDT = safeScale(this.getProfitUSDTChanges(), 2);
+        BigDecimal profitPercent = safeScale(this.getProfitPercentChanges(), 2);
+
+        String value = String.format("%s$/%s%%",
+                profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
+                profitPercent != null ? profitPercent.toPlainString() : "N/A");
+        this.profitCommon = value;
+        return value;
+    }
+
+    public String getProfitLong() {
+        BigDecimal profitUSDT = safeScale(this.getLongUSDTChanges(), 2);
+        BigDecimal profitPercent = safeScale(this.getLongPercentChanges(), 2);
+
+        String value = String.format("%s$/%s%%",
+                profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
+                profitPercent != null ? profitPercent.toPlainString() : "N/A");
+        this.profitLong = value;
+        return value;
+    }
+
+    public String getProfitShort() {
+        BigDecimal profitUSDT = safeScale(this.getShortUSDTChanges(), 2);
+        BigDecimal profitPercent = safeScale(this.getShortPercentChanges(), 2);
+
+        String value = String.format("%s$/%s%%",
+                profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
+                profitPercent != null ? profitPercent.toPlainString() : "N/A");
+        this.profitShort = value;
+        return value;
     }
 }
