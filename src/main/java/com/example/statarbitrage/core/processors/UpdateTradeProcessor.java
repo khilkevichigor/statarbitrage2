@@ -37,12 +37,11 @@ public class UpdateTradeProcessor {
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
 
-    // 1) todo Position в бд а не в мапу - чтобы не терять трейды при перезапуске
-    // 2) todo если закрылись с убытком (стоп или еще что) то следующая пара должна быть другой а не то что только что принесло убыток
 
     //todo сделать быструю проверку профита и только потом коинтеграции что бы минимизировать убыток
     //todo выводить стату по среднему времени timeToMin/Max для анализа и подстройки Settings
 
+    //todo если закрылись с убытком (стоп или еще что) то следующая пара должна быть другой а не то что только что принесло убыток
     //todo через телегу получить трейдинг пары, закрыть все, перевести в бу, вкл/откл автотрейдинг
     //todo в updateTrade() добавить быстрый чек коинтеграции и отображать на UI в виде зеленого, желтого, красного флага (гуд, ухудшилась, ушла) - добавил лог с галочками и предупреждениями
     //todo экспорт закрытых сделок в csv
@@ -51,9 +50,12 @@ public class UpdateTradeProcessor {
     //todo добавить проверку в updateTrade() или отдельно - "если есть открытые позиции а пар нету!"
     //todo сделать колонку максимальная просадка по профиту USDT (%)
     //todo сделать кнопку к паре "усреднить" (если коинтеграция еще не ушла, ну или самому смотреть и усреднять как посчитаешь)
+
     // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
     // +/- todo добавить чарт профита под чарт z-скор (не работает)
+
     // + todo добавить колонку "время жизни"
+    // + todo Position в бд а не в мапу - чтобы не терять трейды при перезапуске
 
     @Transactional
     public PairData updateTrade(UpdateTradeRequest request) {
@@ -177,7 +179,7 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}", pairData.getPairName());
 
         pairData.setStatus(TradeStatus.CLOSED);
-        pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
+        pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
         finalizeClosedTrade(pairData, settings);
         notificationService.notifyClose(pairData);
         return pairData;

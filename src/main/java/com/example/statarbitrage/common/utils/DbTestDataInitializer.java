@@ -58,7 +58,7 @@ public class DbTestDataInitializer {
         pairData.setMaxProfitPercentChanges(BigDecimal.valueOf(randomBetween(0, 60)).setScale(2, BigDecimal.ROUND_HALF_UP));
 
         pairData.setStatus(TradeStatus.CLOSED);
-        pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.getDescription());
+        pairData.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
 
         return pairData;
     }
