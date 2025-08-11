@@ -474,7 +474,17 @@ public class PairData {
         this.version = version;
     }
 
-    public String getTimeToMinProfit() {
+    public void setMinProfitPercentChanges(BigDecimal minProfitPercentChanges) {
+        this.minProfitPercentChanges = minProfitPercentChanges;
+        obtainTimeToMinProfit();
+    }
+
+    public void setMinutesToMinProfitPercent(long minutesToMinProfitPercent) {
+        this.minutesToMinProfitPercent = minutesToMinProfitPercent;
+        obtainTimeToMinProfit();
+    }
+
+    public String obtainTimeToMinProfit() {
         BigDecimal minProfitChanges = safeScale(this.getMinProfitPercentChanges(), 2);
         long minutesToMinProfitPercent = this.getMinutesToMinProfitPercent();
 
@@ -485,7 +495,16 @@ public class PairData {
         return value;
     }
 
-    public String getTimeToMaxProfit() {
+    public void setMaxProfitPercentChanges(BigDecimal maxProfitPercentChanges) {
+        this.maxProfitPercentChanges = maxProfitPercentChanges;
+        obtainTimeToMaxProfit();
+    }
+    public void setMinutesToMaxProfitPercent(long minutesToMaxProfitPercent) {
+        this.minutesToMaxProfitPercent = minutesToMaxProfitPercent;
+        obtainTimeToMaxProfit();
+    }
+
+    public String obtainTimeToMaxProfit() {
         BigDecimal maxProfitChanges = safeScale(this.getMaxProfitPercentChanges(), 2);
         long minutesToMaxProfitPercent = this.getMinutesToMaxProfitPercent();
 
@@ -496,7 +515,17 @@ public class PairData {
         return value;
     }
 
-    public String getProfitCommon() {
+    public void setProfitUSDTChanges(BigDecimal profitUSDTChanges) {
+     this.profitUSDTChanges = profitUSDTChanges;
+        obtainProfitCommon();
+    }
+
+    public void setProfitPercentChanges(BigDecimal profitPercentChanges) {
+        this.profitPercentChanges = profitPercentChanges;
+        obtainProfitCommon();
+    }
+
+    public String obtainProfitCommon() {
         BigDecimal profitUSDT = safeScale(this.getProfitUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(this.getProfitPercentChanges(), 2);
 
@@ -507,7 +536,17 @@ public class PairData {
         return value;
     }
 
-    public String getProfitLong() {
+    public void setLongUSDTChanges(BigDecimal longUSDTChanges) {
+        this.longUSDTChanges = longUSDTChanges;
+        obtainProfitLong();
+    }
+
+    public void setLongPercentChanges(BigDecimal longPercentChanges) {
+        this.longPercentChanges = longPercentChanges;
+        obtainProfitLong();
+    }
+
+    public String obtainProfitLong() {
         BigDecimal profitUSDT = safeScale(this.getLongUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(this.getLongPercentChanges(), 2);
 
@@ -518,7 +557,17 @@ public class PairData {
         return value;
     }
 
-    public String getProfitShort() {
+    public void setShortUSDTChanges(BigDecimal shortUSDTChanges) {
+        this.shortUSDTChanges = shortUSDTChanges;
+        obtainProfitShort();
+    }
+
+    public void setShortPercentChanges(BigDecimal shortPercentChanges) {
+        this.shortPercentChanges = shortPercentChanges;
+        obtainProfitShort();
+    }
+
+    public String obtainProfitShort() {
         BigDecimal profitUSDT = safeScale(this.getShortUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(this.getShortPercentChanges(), 2);
 
