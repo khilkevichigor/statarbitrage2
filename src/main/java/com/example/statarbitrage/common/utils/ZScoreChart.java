@@ -621,36 +621,21 @@ public final class ZScoreChart {
             return;
         }
 
-        // Отладочная информация о данных профита
         long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
-        log.debug("📊 Анализ данных профита для пары {}:", pairData.getPairName());
-        log.debug("📊 Entry timestamp: {} ({})", entryTimestamp, new Date(entryTimestamp));
-        log.debug("📊 Всего данных профита: {}", profitHistory.size());
 
-        // Показываем первые и последние элементы профита
-        if (!profitHistory.isEmpty()) {
-            ProfitHistoryItem first = profitHistory.get(0);
-            ProfitHistoryItem last = profitHistory.get(profitHistory.size() - 1);
-            log.debug("📊 Первая запись профита: {} ({})", first.getTimestamp(), new Date(first.getTimestamp()));
-            log.debug("📊 Последняя запись профита: {} ({})", last.getTimestamp(), new Date(last.getTimestamp()));
-        }
-
-        // Фильтруем данные профита с момента входа
         List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
                 .filter(item -> item.getTimestamp() >= entryTimestamp)
                 .collect(Collectors.toList());
 
         if (filteredProfitHistory.isEmpty()) {
-            log.debug("📊 Нет данных профита с момента входа для пары {}", pairData.getPairName());
-            log.debug("📊 Entry time: {}, но все данные профита старше этого времени", new Date(entryTimestamp));
-
-            // В качестве fallback показываем все данные профита
-            log.debug("📊 Fallback: показываем все данные профита ({} точек)", profitHistory.size());
+            log.debug("📊 Нет данных профита с момента входа для пары {}, используя все данные", pairData.getPairName());
             filteredProfitHistory = profitHistory;
         }
 
-        log.debug("📊 Добавляем на график историю профита: {} точек из {} общих",
-                filteredProfitHistory.size(), profitHistory.size());
+        if (filteredProfitHistory.isEmpty()) {
+            log.warn("📊 История профита все еще пуста после всех проверок для пары {}", pairData.getPairName());
+            return;
+        }
 
         List<Date> profitTimeAxis = filteredProfitHistory.stream()
                 .map(p -> new Date(p.getTimestamp()))
@@ -659,27 +644,26 @@ public final class ZScoreChart {
                 .map(ProfitHistoryItem::getProfitPercent)
                 .collect(Collectors.toList());
 
-        log.debug("📊 Диапазон значений профита: от {} до {}",
-                profitValues.stream().min(Double::compareTo).orElse(0.0),
-                profitValues.stream().max(Double::compareTo).orElse(0.0));
-
+        // Основная линия профита
         XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
         profitSeries.setYAxisGroup(1);
         profitSeries.setLineColor(Color.GREEN);
+        profitSeries.setMarker(new None());
+        profitSeries.setLineStyle(new BasicStroke(2.0f));
 
-        // Для малого количества точек показываем маркеры
-        if (profitValues.size() <= 2) {
-            log.debug("📊 Малое количество точек профита ({}), включаем маркеры", profitValues.size());
-            profitSeries.setMarker(SeriesMarkers.CIRCLE);
-            profitSeries.setMarkerColor(Color.GREEN.darker());
-            profitSeries.setLineStyle(new BasicStroke(3.0f)); // Толще линия
-        } else {
-            profitSeries.setMarker(new None());
-            profitSeries.setLineStyle(new BasicStroke(2.0f));
-        }
+        // Добавляем точку на последнее значение
+        Date lastTime = profitTimeAxis.get(profitTimeAxis.size() - 1);
+        Double lastValue = profitValues.get(profitValues.size() - 1);
+
+        XYSeries lastPointSeries = chart.addSeries("Last Profit Point",
+                Collections.singletonList(lastTime),
+                Collections.singletonList(lastValue));
+        lastPointSeries.setYAxisGroup(1);
+        lastPointSeries.setMarker(SeriesMarkers.CIRCLE);
+        lastPointSeries.setMarkerColor(Color.RED);
 
         chart.setYAxisGroupTitle(1, "Profit %");
 
-        log.debug("✅ График профита успешно добавлен на чарт");
+        log.debug("✅ График профита успешно добавлен на чарт с точкой на последнем значении");
     }
 }
