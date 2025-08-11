@@ -78,6 +78,8 @@ public class Settings {
     private boolean useExitTimeHours = true;
     @Builder.Default
     private boolean useExitBreakEvenPercent = true;
+    @Builder.Default
+    private boolean useCointegrationStabilityFilter = true; //todo добавить на UI
 
     // Блэклист тикеров с высокими требованиями к минимальному лоту
     @Column(length = 1000)
