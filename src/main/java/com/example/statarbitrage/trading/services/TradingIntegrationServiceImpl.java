@@ -99,7 +99,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public ArbitragePairTradeInfo closeArbitragePair(PairData pairData) {
-        log.info("=== Начало закрытия арбитражной пары: {}", pairData.getPairName());
+        log.debug("=== Начало закрытия арбитражной пары: {}", pairData.getPairName());
 
         synchronized (openPositionLock) {
             try {
@@ -112,9 +112,9 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 }
 
                 TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-                log.info("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
+                log.debug("Текущий торговый провайдер: {}", provider.getClass().getSimpleName());
 
-                log.info("Начинаем закрытие позиций для пары {}", pairData.getPairName());
+                log.debug("Начинаем закрытие позиций для пары {}", pairData.getPairName());
 
                 TradeResult longResult = closePosition(provider, longPositionOpt.get());
                 TradeResult shortResult = closePosition(provider, shortPositionOpt.get());
@@ -135,7 +135,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 log.error("Критическая ошибка при закрытии арбитражной пары {}: {}", pairData.getPairName(), e.getMessage(), e);
                 return buildFailure();
             } finally {
-                log.info("=== Конец закрытия арбитражной пары: {}", pairData.getPairName());
+                log.debug("=== Конец закрытия арбитражной пары: {}", pairData.getPairName());
             }
         }
     }
@@ -417,11 +417,11 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         BigDecimal totalPnLPercent = longResult.getPnlPercent().add(shortResult.getPnlPercent());
         BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
 
-        log.info("✅ Арбитражная пара {} УСПЕШНО закрыта.", pairData.getPairName());
-        log.info("📈 Общий доход (PnL): {} USDT ({} %)", totalPnLUSDT, totalPnLPercent);
-        log.info("💸 Общая комиссия: {} USDT", totalFees);
-        log.info("🟢 ЛОНГ: PnL = {} USDT ({} %), комиссия = {}", longResult.getPnlUSDT(), longResult.getPnlPercent(), longResult.getFees());
-        log.info("🔴 ШОРТ: PnL = {} USDT ({} %), комиссия = {}", shortResult.getPnlUSDT(), shortResult.getPnlPercent(), shortResult.getFees());
+        log.debug("✅ Арбитражная пара: {} УСПЕШНО закрыта.", pairData.getPairName());
+        log.debug("📈 Общий доход (PnL): {} USDT ({} %)", totalPnLUSDT, totalPnLPercent);
+        log.debug("💸 Общая комиссия: {} USDT", totalFees);
+        log.debug("🟢 ЛОНГ: PnL = {} USDT ({} %), комиссия = {}", longResult.getPnlUSDT(), longResult.getPnlPercent(), longResult.getFees());
+        log.debug("🔴 ШОРТ: PnL = {} USDT ({} %), комиссия = {}", shortResult.getPnlUSDT(), shortResult.getPnlPercent(), shortResult.getFees());
     }
 
     private void logFailure(PairData pairData, TradeResult longResult, TradeResult shortResult) {

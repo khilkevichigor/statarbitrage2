@@ -632,7 +632,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
-                log.info("Ответ OKX на закрытие ордера: HTTP {} | {}", response.code(), responseBody);
+                log.debug("Ответ OKX на закрытие ордера: HTTP {} | {}", response.code(), responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
@@ -643,7 +643,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
-                    log.info("Ордер на закрытие успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
+                    log.debug("Ордер на закрытие успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
                     return getOrderDetails(orderId, position.getSymbol(), TradeOperationType.CLOSE_POSITION);
                 }
 

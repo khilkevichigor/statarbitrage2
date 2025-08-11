@@ -148,7 +148,7 @@ public class Position {
 
         this.unrealizedPnLUSDT = BigDecimal.ZERO;
         this.unrealizedPnLPercent = BigDecimal.ZERO;
-        log.info("♻️ UnrealizedPnL сброшен до нуля, позиция закрыта.");
+        log.debug("♻️ UnrealizedPnL сброшен до нуля, позиция закрыта.");
     }
 
     public boolean isOpen() {

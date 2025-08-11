@@ -40,7 +40,7 @@ public class TelegramNotificationService implements NotificationService {
                 .text(text)
                 .enableMarkdown(false)
                 .build();
-        log.info("Отправка сообщения в телеграм {}", event.toString());
+        log.debug("Отправка сообщения в телеграм {}", event.toString());
         try {
             eventSendService.sendTelegramMessageAsTextEvent(event);
         } catch (Exception e) {
