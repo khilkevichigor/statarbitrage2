@@ -302,7 +302,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                     pairData.getLongTicker(),
                     result.getPositionId(),
                     result.getPnlUSDT(),
-                    result.getPnlPercent(),
+                    result.getPnlPercent() != null ? result.getPnlPercent() : BigDecimal.ZERO,
                     result.getFees());
         } else {
             log.warn("❌ Не удалось открыть ЛОНГ позицию по тикеру {}. Ошибка: {}", pairData.getLongTicker(), result.getErrorMessage());
@@ -320,7 +320,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                     pairData.getShortTicker(),
                     result.getPositionId(),
                     result.getPnlUSDT(),
-                    result.getPnlPercent(),
+                    result.getPnlPercent() != null ? result.getPnlPercent() : BigDecimal.ZERO,
                     result.getFees());
         } else {
             log.warn("❌ Не удалось открыть ШОРТ позицию по тикеру {}. Ошибка: {}", pairData.getShortTicker(), result.getErrorMessage());
