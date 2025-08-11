@@ -41,7 +41,8 @@ public class StartNewTradeProcessor {
         final PairData pairData = request.getPairData();
         final Settings settings = settingsService.getSettings();
 
-        log.debug("🚀 Начинаем новый трейд для {}", pairData.getPairName());
+        log.info("");
+        log.info("🚀 Начинаем новый трейд для {}...", pairData.getPairName());
 
         // 1. Предварительная валидация
         Optional<PairData> preValidationError = preValidate(pairData, settings);

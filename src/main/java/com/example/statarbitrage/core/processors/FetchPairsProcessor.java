@@ -32,7 +32,8 @@ public class FetchPairsProcessor {
         }
 
         long start = System.currentTimeMillis();
-        log.debug("🚀 Начало поиска торговых пар...");
+        log.info("");
+        log.info("🔎 Начало поиска пар...");
 
         Settings settings = settingsService.getSettings();
         List<String> usedTickers = getUsedTickers();

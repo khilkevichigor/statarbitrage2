@@ -37,7 +37,8 @@ public class CsvExportService {
             List<Field> exportableFields = getExportableFields(PairData.class);
 
             String schemaSignature = getSchemaSignature(exportableFields);
-            String csvFileName = CSV_FILE_PREFIX + schemaSignature + ".csv";
+            String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").format(LocalDateTime.now());
+            String csvFileName = CSV_FILE_PREFIX + timestamp + "_" + schemaSignature + ".csv";
             File csvFile = new File(csvFileName);
             boolean isNewFile = !csvFile.exists();
 

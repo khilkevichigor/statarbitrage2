@@ -65,7 +65,8 @@ public class UpdateTradeProcessor {
         if (pairData == null) {
             return request.getPairData();
         }
-        log.info("🧰 Обновление пары {}", pairData.getPairName());
+        log.info("");
+        log.info("🔄 Обновление пары {}...", pairData.getPairName());
 
         final Settings settings = settingsService.getSettings();
 
