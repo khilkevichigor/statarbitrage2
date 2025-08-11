@@ -251,34 +251,36 @@ public class PairData {
     @CsvExportable(order = 81)
     private double settingsExitBreakEvenPercent;
     @CsvExportable(order = 82)
-    private boolean settingsAutoTradingEnabled;
+    private double settingsUsePairs;
     @CsvExportable(order = 83)
-    private boolean settingsUseMinZFilter;
+    private boolean settingsAutoTradingEnabled;
     @CsvExportable(order = 84)
-    private boolean settingsUseMinRSquaredFilter;
+    private boolean settingsUseMinZFilter;
     @CsvExportable(order = 85)
-    private boolean settingsUseMinPValueFilter;
+    private boolean settingsUseMinRSquaredFilter;
     @CsvExportable(order = 86)
-    private boolean settingsUseMaxAdfValueFilter;
+    private boolean settingsUseMinPValueFilter;
     @CsvExportable(order = 87)
-    private boolean settingsUseMinCorrelationFilter;
+    private boolean settingsUseMaxAdfValueFilter;
     @CsvExportable(order = 88)
-    private boolean settingsUseMinVolumeFilter;
+    private boolean settingsUseMinCorrelationFilter;
     @CsvExportable(order = 89)
-    private boolean settingsUseExitTake;
+    private boolean settingsUseMinVolumeFilter;
     @CsvExportable(order = 90)
-    private boolean settingsUseExitStop;
+    private boolean settingsUseExitTake;
     @CsvExportable(order = 91)
-    private boolean settingsUseExitZMin;
+    private boolean settingsUseExitStop;
     @CsvExportable(order = 92)
-    private boolean settingsUseExitZMax;
+    private boolean settingsUseExitZMin;
     @CsvExportable(order = 93)
-    private boolean settingsUseExitZMaxPercent;
+    private boolean settingsUseExitZMax;
     @CsvExportable(order = 94)
-    private boolean settingsUseExitTimeHours;
+    private boolean settingsUseExitZMaxPercent;
     @CsvExportable(order = 95)
-    private boolean settingsUseExitBreakEvenPercent;
+    private boolean settingsUseExitTimeHours;
     @CsvExportable(order = 96)
+    private boolean settingsUseExitBreakEvenPercent;
+    @CsvExportable(order = 97)
     private String settingsMinimumLotBlacklist;
 
     public PairData(String longTicker, String shortTicker) {
