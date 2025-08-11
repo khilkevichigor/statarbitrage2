@@ -45,7 +45,7 @@ public class CsvExportService {
                 csvFileName = existingFile.getName();
                 isNewFile = false;
             } else {
-                String timestamp = DateTimeFormatter.ofPattern("MM-dd-yyyy-HH-mm").format(LocalDateTime.now());
+                String timestamp = DateTimeFormatter.ofPattern("MM_dd_yyyy_HH_mm").format(LocalDateTime.now());
                 csvFileName = CSV_FILE_PREFIX + timestamp + "_" + schemaSignature + ".csv";
                 isNewFile = true;
             }
