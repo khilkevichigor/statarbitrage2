@@ -130,11 +130,11 @@ public class PairData {
     private BigDecimal minProfitPercentChanges;
     private BigDecimal maxProfitPercentChanges;
 
-    private String timeToMinProfit;
-    private String timeToMaxProfit;
-    private String profitLong;
-    private String profitShort;
-    private String profitCommon;
+    private String formattedTimeToMinProfit;
+    private String formattedTimeToMaxProfit;
+    private String formattedProfitLong;
+    private String formattedProfitShort;
+    private String formattedProfitCommon;
 
     private long timestamp; //время создания PairData (fetch)
     private long entryTime; //время начала трейда
@@ -488,40 +488,45 @@ public class PairData {
     public String getFormattedTimeToMinProfit() {
         BigDecimal minProfitChanges = safeScale(this.getMinProfitPercentChanges(), 2);
         long minutes = this.getMinutesToMinProfitPercent();
-        return String.format("%s%%/%smin",
+        this.formattedTimeToMinProfit = String.format("%s%%/%smin",
                 minProfitChanges != null ? minProfitChanges.toPlainString() : "N/A",
                 minutes);
+        return this.formattedTimeToMinProfit;
     }
 
     public String getFormattedTimeToMaxProfit() {
         BigDecimal maxProfitChanges = safeScale(this.getMaxProfitPercentChanges(), 2);
         long minutes = this.getMinutesToMaxProfitPercent();
-        return String.format("%s%%/%smin",
+        this.formattedTimeToMaxProfit = String.format("%s%%/%smin",
                 maxProfitChanges != null ? maxProfitChanges.toPlainString() : "N/A",
                 minutes);
+        return this.formattedTimeToMaxProfit;
     }
 
     public String getFormattedProfitCommon() {
         BigDecimal profitUSDT = safeScale(this.getProfitUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(this.getProfitPercentChanges(), 2);
-        return String.format("%s$/%s%%",
+        this.formattedProfitCommon = String.format("%s$/%s%%",
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
+        return this.formattedProfitCommon;
     }
 
     public String getFormattedProfitLong() {
         BigDecimal profitUSDT = safeScale(this.getLongUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(this.getLongPercentChanges(), 2);
-        return String.format("%s$/%s%%",
+        this.formattedProfitLong = String.format("%s$/%s%%",
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
+        return this.formattedProfitLong;
     }
 
     public String getFormattedProfitShort() {
         BigDecimal profitUSDT = safeScale(this.getShortUSDTChanges(), 2);
         BigDecimal profitPercent = safeScale(this.getShortPercentChanges(), 2);
-        return String.format("%s$/%s%%",
+        this.formattedProfitShort = String.format("%s$/%s%%",
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
+        return this.formattedProfitShort;
     }
 }
