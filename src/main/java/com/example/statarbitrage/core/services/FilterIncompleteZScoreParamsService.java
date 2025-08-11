@@ -8,10 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,7 +31,7 @@ public class FilterIncompleteZScoreParamsService {
 
         log.info("🔍 Ожидаемое количество наблюдений: {}, максимальный Z-скор: {}", expected, maxZScore);
 
-        int before = zScoreDataList.size();
+        List<ZScoreData> originalList = new ArrayList<>(zScoreDataList);
         Map<String, Integer> filterStats = new HashMap<>();
 
         zScoreDataList.removeIf(data -> {
@@ -51,12 +48,7 @@ public class FilterIncompleteZScoreParamsService {
             return false;
         });
 
-        int after = zScoreDataList.size();
-        log.info("✅ Фильтрация завершена: {} → {} пар", before, after);
-
-        // Статистика фильтрации
-        filterStats.forEach((reason, count) ->
-                log.info("📊 {}: {} пар", reason, count));
+        logFilteringStatistics(originalList, zScoreDataList, settings);
     }
 
     /**
@@ -208,7 +200,7 @@ public class FilterIncompleteZScoreParamsService {
                     .orElse(1.0);
 
             totalWindows++;
-            if (avgAdfPValue < 0.05) {
+            if (avgAdfPValue < settings.getMaxAdfValue()) {
                 stableWindows++;
             }
         }
@@ -283,7 +275,7 @@ public class FilterIncompleteZScoreParamsService {
         if (params != null && params.size() >= 10) {
             double zScoreVolatility = calculateZScoreVolatility(params);
 //            if (zScoreVolatility > settings.getMaxZScoreVolatility()) {
-            if (zScoreVolatility > 10.0) {
+            if (zScoreVolatility > 1.5) { // Например, 1.5
                 return String.format("Высокая волатильность Z-score: %.2f", zScoreVolatility);
             }
         }
@@ -351,13 +343,18 @@ public class FilterIncompleteZScoreParamsService {
      */
     private void logFilteringStatistics(List<ZScoreData> originalList, List<ZScoreData> filteredList, Settings settings) {
         int total = originalList.size();
+        if (total == 0) {
+            log.info("📈 Статистика фильтрации: не было пар для обработки.");
+            return;
+        }
+
         int remaining = filteredList.size();
         int filtered = total - remaining;
 
         log.info("📈 === СТАТИСТИКА ФИЛЬТРАЦИИ ПАРЫ ===");
         log.info("📊 Всего пар: {}", total);
-        log.info("✅ Прошли фильтры: {} ({:.1f}%)", remaining, (remaining * 100.0 / total));
-        log.info("❌ Отфильтровано: {} ({:.1f}%)", filtered, (filtered * 100.0 / total));
+        log.info("✅ Прошли фильтры: {} ({}%)", remaining, String.format("%.1f", (remaining * 100.0 / total)));
+        log.info("❌ Отфильтровано: {} ({}%)", filtered, String.format("%.1f", (filtered * 100.0 / total)));
         log.info("⚙️ Активные фильтры:");
 
         if (settings.isUseMaxAdfValueFilter())
