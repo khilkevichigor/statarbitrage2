@@ -31,10 +31,10 @@ public class PortfolioServiceImpl implements PortfolioService {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         BigDecimal totalBalance = provider.getPortfolio().getTotalBalance();
         BigDecimal availableBalance = provider.getPortfolio().getAvailableBalance();
-        
-        log.info("💰 Портфолио: общий баланс = {} USDT, доступный баланс = {} USDT", 
+
+        log.debug("💰 Портфолио: общий баланс = {} USDT, доступный баланс = {} USDT",
                 totalBalance, availableBalance);
-        
+
         // Возвращаем общий баланс (eq) для совпадения с UI
         return totalBalance;
     }

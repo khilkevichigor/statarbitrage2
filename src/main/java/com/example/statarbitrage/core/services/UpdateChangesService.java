@@ -37,7 +37,7 @@ public class UpdateChangesService {
 
         // Добавляем новую точку в историю профита ПОСЛЕ обновления значения
         if (changes.getProfitPercentChanges() != null) {
-            log.info("📊 Добавляем точку профита в историю: {}% на время {}",
+            log.debug("📊 Добавляем точку профита в историю: {}% на время {}",
                     changes.getProfitPercentChanges(), System.currentTimeMillis());
             pairData.addProfitHistoryPoint(ProfitHistoryItem.builder()
                     .timestamp(System.currentTimeMillis())

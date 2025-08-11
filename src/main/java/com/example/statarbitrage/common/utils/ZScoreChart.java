@@ -90,7 +90,7 @@ public final class ZScoreChart {
 
         log.debug("Временной диапазон графика от: {} - до: {}",
                 new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
-        log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
+        log.debug("Текущий Z-Score: {}", pairData.getZScoreCurrent());
 
         if (timestamps.size() != zScores.size()) {
             log.warn("⚠️ Неверные входные данные для построения Z-графика");
@@ -137,7 +137,7 @@ public final class ZScoreChart {
         boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
 
         if (inRange) {
-            log.info("Время входа попадает в диапазон истории - рисуем точную линию входа");
+            log.debug("Время входа попадает в диапазон истории - рисуем точную линию входа");
 
             OptionalInt indexOpt = findClosestIndex(timestamps, entryTimestamp);
 
@@ -167,10 +167,10 @@ public final class ZScoreChart {
                 entryHorizontalLine.setMarker(new None());
                 entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                log.info("✅ Линия входа добавлена на графике в позиции {}", index);
+                log.debug("✅ Линия входа добавлена на графике в позиции {}", index);
             }
         } else if (entryTimestamp > 0) {
-            log.warn("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
+            log.debug("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
 
             // Показываем линию входа на ближайшей границе
             Date entryDate;
@@ -180,12 +180,12 @@ public final class ZScoreChart {
                 // Время входа раньше истории - показываем в начале
                 entryDate = new Date(historyStart);
                 index = 0;
-                log.info("Показываем линию входа в начале графика");
+                log.debug("Показываем линию входа в начале графика");
             } else {
                 // Время входа позже истории - показываем в конце
                 entryDate = new Date(historyEnd);
                 index = timestamps.size() - 1;
-                log.info("Показываем линию входа в конце графика");
+                log.debug("Показываем линию входа в конце графика");
             }
 
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
@@ -208,9 +208,9 @@ public final class ZScoreChart {
             entryHorizontalLine.setMarker(new None());
             entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-            log.info("✅ Приблизительная линия входа добавлена на графике");
+            log.debug("✅ Приблизительная линия входа добавлена на графике");
         } else {
-            log.warn("⚠️ Время входа не задано (0) - линия входа не будет показана");
+            log.debug("⚠️ Время входа не задано (0) - линия входа не будет показана");
         }
 
         return chart;
@@ -257,12 +257,12 @@ public final class ZScoreChart {
                     .map(ZScoreParam::getZscore)
                     .collect(Collectors.toList());
 
-            log.info("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
+            log.debug("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
         }
 
-        log.info("Временной диапазон графика от: {} - до: {}",
+        log.debug("Временной диапазон графика от: {} - до: {}",
                 new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
-        log.info("Текущий Z-Score: {}", pairData.getZScoreCurrent());
+        log.debug("Текущий Z-Score: {}", pairData.getZScoreCurrent());
 
         if (timestamps.size() != zScores.size()) {
             log.warn("⚠️ Неверные входные данные для построения Z-графика");
@@ -299,15 +299,15 @@ public final class ZScoreChart {
         long historyStart = timestamps.get(0);
         long historyEnd = timestamps.get(timestamps.size() - 1);
 
-        log.info("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
+        log.debug("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
                 new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
-        log.info("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
+        log.debug("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
 
         // Проверяем попадает ли время входа в диапазон истории
         boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
 
         if (inRange) {
-            log.info("Время входа попадает в диапазон истории - рисуем точную линию входа");
+            log.debug("Время входа попадает в диапазон истории - рисуем точную линию входа");
 
             OptionalInt indexOpt = findClosestIndex(timestamps, entryTimestamp);
 
@@ -337,10 +337,10 @@ public final class ZScoreChart {
                 entryHorizontalLine.setMarker(new None());
                 entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                log.info("✅ Линия входа добавлена на графике в позиции {}", index);
+                log.debug("✅ Линия входа добавлена на графике в позиции {}", index);
             }
         } else if (entryTimestamp > 0) {
-            log.warn("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
+            log.debug("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
 
             // Показываем линию входа на ближайшей границе
             Date entryDate;
@@ -350,12 +350,12 @@ public final class ZScoreChart {
                 // Время входа раньше истории - показываем в начале
                 entryDate = new Date(historyStart);
                 index = 0;
-                log.info("Показываем линию входа в начале графика");
+                log.debug("Показываем линию входа в начале графика");
             } else {
                 // Время входа позже истории - показываем в конце
                 entryDate = new Date(historyEnd);
                 index = timestamps.size() - 1;
-                log.info("Показываем линию входа в конце графика");
+                log.debug("Показываем линию входа в конце графика");
             }
 
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
@@ -378,7 +378,7 @@ public final class ZScoreChart {
             entryHorizontalLine.setMarker(new None());
             entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-            log.info("✅ Приблизительная линия входа добавлена на графике");
+            log.debug("✅ Приблизительная линия входа добавлена на графике");
         } else {
             log.warn("⚠️ Время входа не задано (0) - линия входа не будет показана");
         }
@@ -436,7 +436,7 @@ public final class ZScoreChart {
         // Создаем временную ось для EMA (начинается с позиции period-1)
         List<Date> emaTimeAxis = timeAxis.subList(period - 1, timeAxis.size());
 
-        log.info("Добавляем EMA({}) линию: {} точек", period, emaValues.size());
+        log.debug("Добавляем EMA({}) линию: {} точек", period, emaValues.size());
 
         XYSeries emaSeries = chart.addSeries("EMA(" + period + ")", emaTimeAxis, emaValues);
         emaSeries.setLineColor(Color.CYAN);
@@ -497,7 +497,7 @@ public final class ZScoreChart {
                 .map(value -> minZScore + (value / 100.0) * range)
                 .collect(Collectors.toList());
 
-        log.info("Добавляем StochRSI линию: {} точек (масштабированы в диапазон {}-{})",
+        log.debug("Добавляем StochRSI линию: {} точек (масштабированы в диапазон {}-{})",
                 stochRsiValues.size(), minZScore, maxZScore);
 
         // Основная линия StochRSI
@@ -623,16 +623,16 @@ public final class ZScoreChart {
 
         // Отладочная информация о данных профита
         long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
-        log.info("📊 Анализ данных профита для пары {}:", pairData.getPairName());
-        log.info("📊 Entry timestamp: {} ({})", entryTimestamp, new Date(entryTimestamp));
-        log.info("📊 Всего данных профита: {}", profitHistory.size());
+        log.debug("📊 Анализ данных профита для пары {}:", pairData.getPairName());
+        log.debug("📊 Entry timestamp: {} ({})", entryTimestamp, new Date(entryTimestamp));
+        log.debug("📊 Всего данных профита: {}", profitHistory.size());
 
         // Показываем первые и последние элементы профита
         if (!profitHistory.isEmpty()) {
             ProfitHistoryItem first = profitHistory.get(0);
             ProfitHistoryItem last = profitHistory.get(profitHistory.size() - 1);
-            log.info("📊 Первая запись профита: {} ({})", first.getTimestamp(), new Date(first.getTimestamp()));
-            log.info("📊 Последняя запись профита: {} ({})", last.getTimestamp(), new Date(last.getTimestamp()));
+            log.debug("📊 Первая запись профита: {} ({})", first.getTimestamp(), new Date(first.getTimestamp()));
+            log.debug("📊 Последняя запись профита: {} ({})", last.getTimestamp(), new Date(last.getTimestamp()));
         }
 
         // Фильтруем данные профита с момента входа
@@ -641,15 +641,15 @@ public final class ZScoreChart {
                 .collect(Collectors.toList());
 
         if (filteredProfitHistory.isEmpty()) {
-            log.warn("📊 Нет данных профита с момента входа для пары {}", pairData.getPairName());
-            log.warn("📊 Entry time: {}, но все данные профита старше этого времени", new Date(entryTimestamp));
+            log.debug("📊 Нет данных профита с момента входа для пары {}", pairData.getPairName());
+            log.debug("📊 Entry time: {}, но все данные профита старше этого времени", new Date(entryTimestamp));
 
             // В качестве fallback показываем все данные профита
-            log.info("📊 Fallback: показываем все данные профита ({} точек)", profitHistory.size());
+            log.debug("📊 Fallback: показываем все данные профита ({} точек)", profitHistory.size());
             filteredProfitHistory = profitHistory;
         }
 
-        log.info("📊 Добавляем на график историю профита: {} точек из {} общих",
+        log.debug("📊 Добавляем на график историю профита: {} точек из {} общих",
                 filteredProfitHistory.size(), profitHistory.size());
 
         List<Date> profitTimeAxis = filteredProfitHistory.stream()
@@ -659,7 +659,7 @@ public final class ZScoreChart {
                 .map(ProfitHistoryItem::getProfitPercent)
                 .collect(Collectors.toList());
 
-        log.info("📊 Диапазон значений профита: от {} до {}",
+        log.debug("📊 Диапазон значений профита: от {} до {}",
                 profitValues.stream().min(Double::compareTo).orElse(0.0),
                 profitValues.stream().max(Double::compareTo).orElse(0.0));
 
@@ -669,7 +669,7 @@ public final class ZScoreChart {
 
         // Для малого количества точек показываем маркеры
         if (profitValues.size() <= 2) {
-            log.info("📊 Малое количество точек профита ({}), включаем маркеры", profitValues.size());
+            log.debug("📊 Малое количество точек профита ({}), включаем маркеры", profitValues.size());
             profitSeries.setMarker(SeriesMarkers.CIRCLE);
             profitSeries.setMarkerColor(Color.GREEN.darker());
             profitSeries.setLineStyle(new BasicStroke(3.0f)); // Толще линия
@@ -680,6 +680,6 @@ public final class ZScoreChart {
 
         chart.setYAxisGroupTitle(1, "Profit %");
 
-        log.info("✅ График профита успешно добавлен на чарт");
+        log.debug("✅ График профита успешно добавлен на чарт");
     }
 }

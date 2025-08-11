@@ -192,7 +192,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 📜 История
             tradeHistory.add(orderResult);
-            log.info("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
+            log.debug("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     positionType.name(), symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
             // 🧾 Логгирование данных позиции
@@ -444,7 +444,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Конвертируем размер из USDT в базовые единицы
             BigDecimal sizeInBaseUnits = size.divide(currentPrice, 8, RoundingMode.DOWN);
-            log.info("💰 Конвертация размера: {}$ / {} = {} базовых единиц", size, currentPrice, sizeInBaseUnits);
+            log.debug("💰 Конвертация размера: {}$ / {} = {} базовых единиц", size, currentPrice, sizeInBaseUnits);
 
             // Округляем до lot size
             BigDecimal adjustedSize = sizeInBaseUnits.divide(lotSize, 0, RoundingMode.DOWN).multiply(lotSize);
@@ -665,7 +665,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.error("❌ БЛОКИРОВКА: Получение деталей ордера {} заблокировано из-за геолокации!", orderId);
                 return TradeResult.failure(tradeOperationType, symbol, "Геолокация не разрешена");
             }
-            log.info("Проверка геолокации пройдена.");
+            log.debug("Проверка геолокации пройдена.");
 
             final int sleepMillis = 2000;
             log.debug("Ожидаем {} мс, чтобы ордер {} успел исполниться...", sleepMillis, orderId);
@@ -1247,7 +1247,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             String posMode = data.get(0).getAsJsonObject().get("posMode").getAsString();
             boolean isHedge = "long_short_mode".equals(posMode);
-            log.info("🔍 Режим позиций OKX: {} ({})", posMode, isHedge ? "Hedge" : "Net");
+            log.debug("🔍 Режим позиций OKX: {} ({})", posMode, isHedge ? "Hedge" : "Net");
             return isHedge;
 
         } catch (Exception e) {
@@ -1284,7 +1284,7 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Получение реальной информации о позиции с OKX API по символу
      */
     private JsonObject getRealPositionFromOkx(String symbol) {
-        log.info("==> getRealPositionFromOkx: Запрос реальной позиции для {}", symbol);
+        log.debug("==> getRealPositionFromOkx: Запрос реальной позиции для {}", symbol);
 
         if (!geolocationService.isGeolocationAllowed()) {
             log.error("❌ БЛОКИРОВКА: Запрос позиции заблокирован из-за геолокации!");
@@ -1308,7 +1308,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             JsonObject positionData = data.get(0).getAsJsonObject();
-            log.info("✅ Получена реальная позиция для {}: {}", symbol, positionData);
+            log.debug("✅ Получена реальная позиция для {}: {}", symbol, positionData);
             return positionData;
 
         } catch (Exception e) {
@@ -1348,7 +1348,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             fields.put("Плечо", getJsonStringValue(data, "lever") + "x");
 
             log.debug("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
-            fields.forEach((label, value) -> log.info("🔍 {}: {}", label, value));
+            fields.forEach((label, value) -> log.debug("🔍 {}: {}", label, value));
             log.debug("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
 
         } catch (Exception e) {
