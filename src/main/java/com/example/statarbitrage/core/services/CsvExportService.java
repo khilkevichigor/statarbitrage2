@@ -29,6 +29,7 @@ public class CsvExportService {
 
     public synchronized void appendPairDataToCsv(PairData pairData) {
         try {
+            pairData.updateFormattedFieldsBeforeExportToCsv(); //обновим поля что бы они в csv небыли пустыми
             String schemaSignature = getSchemaSignature(pairData.getClass());
             String csvFileName = CSV_FILE_PREFIX + schemaSignature + ".csv";
             File csvFile = new File(csvFileName);

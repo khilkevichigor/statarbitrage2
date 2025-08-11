@@ -474,6 +474,17 @@ public class PairData {
         this.version = version;
     }
 
+    /**
+     * Обновляет поля перед экспортом в csv чтобы они небыли пустыми
+     */
+    public void updateFormattedFieldsBeforeExportToCsv() {
+        getFormattedTimeToMinProfit();
+        getFormattedTimeToMaxProfit();
+        getFormattedProfitCommon();
+        getFormattedProfitLong();
+        getFormattedProfitShort();
+    }
+
     public String getFormattedTimeToMinProfit() {
         BigDecimal minProfitChanges = safeScale(this.getMinProfitPercentChanges(), 2);
         long minutes = this.getMinutesToMinProfitPercent();
