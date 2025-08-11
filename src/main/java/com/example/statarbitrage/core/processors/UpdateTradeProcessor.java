@@ -136,7 +136,7 @@ public class UpdateTradeProcessor {
         final ZScoreParam latest = zScoreData.getLastZScoreParam();
         StringBuilder logMessage = new StringBuilder();
 
-        logMessage.append(String.format("pair: long=%s, short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+        logMessage.append(String.format("Наша пара: long=%s, short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
                 zScoreData.getIsCointegrated(),
                 latest.getPvalue(),
@@ -146,7 +146,7 @@ public class UpdateTradeProcessor {
 
         DataQuality dataQuality = zScoreData.getDataQuality();
         if (dataQuality != null) {
-            logMessage.append(String.format(" | data quality: avgAdf=%.2f, avgR=%.2f, stablePeriods=%d",
+            logMessage.append(String.format(" | avgAdf=%.2f, avgR=%.2f, stablePeriods=%d",
                     dataQuality.getAvg_adf_pvalue(),
                     dataQuality.getAvg_r_squared(),
                     dataQuality.getStable_periods()));
@@ -155,7 +155,7 @@ public class UpdateTradeProcessor {
         CointegrationDetails details = zScoreData.getCointegrationDetails();
         if (details != null) {
             logMessage.append(String.format(
-                    " | cointegration details: traceStat=%.2f, criticalValue95=%.2f, eigenSize=%d, vectorSize=%d, errors=%s",
+                    " | traceStat=%.2f, criticalValue95=%.2f, eigenSize=%d, vectorSize=%d, errors=%s",
                     details.getTrace_statistic() != null ? details.getTrace_statistic() : 0.0,
                     details.getCritical_value_95() != null ? details.getCritical_value_95() : 0.0,
                     details.getEigenvalues() != null ? details.getEigenvalues().size() : 0,
@@ -163,7 +163,7 @@ public class UpdateTradeProcessor {
                     details.getError() != null ? details.getError() : "N/A"));
         }
 
-        logMessage.append(String.format(" | check: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
+        logMessage.append(String.format(". Чек: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
                 FormatUtil.color(zScoreData.getCointegration_pvalue(), settings.getMinPValue()),
                 FormatUtil.color(zScoreData.getDataQuality().getAvg_adf_pvalue(), settings.getMaxAdfValue()),
                 FormatUtil.color(zScoreData.getDataQuality().getAvg_r_squared(), settings.getMinRSquared()),
