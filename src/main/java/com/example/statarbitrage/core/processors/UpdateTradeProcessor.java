@@ -134,44 +134,42 @@ public class UpdateTradeProcessor {
 
     private void logPairInfo(ZScoreData zScoreData, Settings settings) {
         final ZScoreParam latest = zScoreData.getLastZScoreParam();
-        log.info(String.format("Наша пара: long=%s short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                        zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                        zScoreData.getIsCointegrated(),
-                        latest.getPvalue(),
-                        latest.getAdfpvalue(),
-                        latest.getZscore(),
-                        latest.getCorrelation()
-                )
-        );
+        StringBuilder logMessage = new StringBuilder();
+
+        logMessage.append(String.format("pair: long=%s, short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+                zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
+                zScoreData.getIsCointegrated(),
+                latest.getPvalue(),
+                latest.getAdfpvalue(),
+                latest.getZscore(),
+                latest.getCorrelation()));
 
         DataQuality dataQuality = zScoreData.getDataQuality();
         if (dataQuality != null) {
-            log.info(String.format("- data quality: avgAdf=%.2f | avgR=%.2f | stablePeriods=%d",
-                            dataQuality.getAvg_adf_pvalue(),
-                            dataQuality.getAvg_r_squared(),
-                            dataQuality.getStable_periods()
-                    )
-            );
+            logMessage.append(String.format(" | data quality: avgAdf=%.2f, avgR=%.2f, stablePeriods=%d",
+                    dataQuality.getAvg_adf_pvalue(),
+                    dataQuality.getAvg_r_squared(),
+                    dataQuality.getStable_periods()));
         }
 
         CointegrationDetails details = zScoreData.getCointegrationDetails();
         if (details != null) {
-            log.info(String.format(
-                    "- cointegration details: traceStat=%.2f | criticalValue95=%.2f | eigenSize=%d | vectorSize=%d | errors=%s",
+            logMessage.append(String.format(
+                    " | cointegration details: traceStat=%.2f, criticalValue95=%.2f, eigenSize=%d, vectorSize=%d, errors=%s",
                     details.getTrace_statistic() != null ? details.getTrace_statistic() : 0.0,
                     details.getCritical_value_95() != null ? details.getCritical_value_95() : 0.0,
                     details.getEigenvalues() != null ? details.getEigenvalues().size() : 0,
                     details.getCointegrating_vector() != null ? details.getCointegrating_vector().size() : 0,
-                    details.getError() != null ? details.getError() : "N/A"
-            ));
+                    details.getError() != null ? details.getError() : "N/A"));
         }
 
-        log.info("🧪 Проверка: pValue={}, ADF={}, R²={}, stablePeriods={}",
+        logMessage.append(String.format(" | check: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
                 FormatUtil.color(zScoreData.getCointegration_pvalue(), settings.getMinPValue()),
                 FormatUtil.color(zScoreData.getDataQuality().getAvg_adf_pvalue(), settings.getMaxAdfValue()),
                 FormatUtil.color(zScoreData.getDataQuality().getAvg_r_squared(), settings.getMinRSquared()),
-                zScoreData.getDataQuality().getStable_periods()
-        );
+                zScoreData.getDataQuality().getStable_periods()));
+
+        log.info(logMessage.toString());
     }
 
     private PairData handleManualClose(PairData pairData, Settings settings) {
