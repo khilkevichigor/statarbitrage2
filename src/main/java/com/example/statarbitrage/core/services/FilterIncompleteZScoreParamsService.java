@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 public class FilterIncompleteZScoreParamsService {
     private final PairDataService pairDataService;
 
+    //todo добавить на пайтоне minJohansenTrace = 15.0;      // Если используете Johansen тест
+
     /**
      * Оптимизированная фильтрация коинтегрированных пар для парного трейдинга
      * Правильная последовательность фильтров для максимальной эффективности
