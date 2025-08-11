@@ -35,28 +35,45 @@ public class CsvExportService {
             pairData.updateFormattedFieldsBeforeExportToCsv();
 
             List<Field> exportableFields = getExportableFields(PairData.class);
-
             String schemaSignature = getSchemaSignature(exportableFields);
-            String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").format(LocalDateTime.now());
-            String csvFileName = CSV_FILE_PREFIX + timestamp + "_" + schemaSignature + ".csv";
-            File csvFile = new File(csvFileName);
-            boolean isNewFile = !csvFile.exists();
 
-            try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile, true))) {
+            File existingFile = findExistingFile(schemaSignature);
+            String csvFileName;
+            boolean isNewFile;
+
+            if (existingFile != null) {
+                csvFileName = existingFile.getName();
+                isNewFile = false;
+            } else {
+                String timestamp = DateTimeFormatter.ofPattern("MM-dd-yyyy-HH-mm").format(LocalDateTime.now());
+                csvFileName = CSV_FILE_PREFIX + timestamp + "_" + schemaSignature + ".csv";
+                isNewFile = true;
+            }
+
+            try (PrintWriter writer = new PrintWriter(new FileWriter(csvFileName, true))) {
                 if (isNewFile) {
                     writer.println(getCsvHeader(exportableFields));
                 }
                 writer.println(toCsvRow(pairData, exportableFields));
-                log.info("✅ Пара {} успешно добавлена в CSV журнал: {}", pairData.getPairName(), csvFileName);
+                log.info("✅ Пара {} успешно добавлена в CSV журнал: {}\n", pairData.getPairName(), csvFileName);
 
             } catch (IOException | IllegalAccessException e) {
-                log.error("❌ Ошибка при записи в CSV файл: {}", e.getMessage(), e);
+                log.error("❌ Ошибка при записи в CSV файл: {}\n", e.getMessage(), e);
             }
         } catch (NoSuchAlgorithmException e) {
-            log.error("❌ Ошибка при создании сигнатуры схемы для CSV: {}", e.getMessage(), e);
+            log.error("❌ Ошибка при создании сигнатуры схемы для CSV: {}\n", e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ Непредвиденная ошибка при экспорте в CSV: {}", e.getMessage(), e);
+            log.error("❌ Непредвиденная ошибка при экспорте в CSV: {}\n", e.getMessage(), e);
         }
+    }
+
+    private File findExistingFile(String schemaSignature) {
+        File dir = new File(".");
+        File[] matchingFiles = dir.listFiles((d, name) -> name.startsWith(CSV_FILE_PREFIX) && name.endsWith("_" + schemaSignature + ".csv"));
+        if (matchingFiles != null && matchingFiles.length > 0) {
+            return matchingFiles[0];
+        }
+        return null;
     }
 
     private List<Field> getExportableFields(Class<?> clazz) {
