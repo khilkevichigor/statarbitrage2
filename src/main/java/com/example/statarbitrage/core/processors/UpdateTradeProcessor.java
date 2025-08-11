@@ -146,7 +146,7 @@ public class UpdateTradeProcessor {
 
         DataQuality dataQuality = zScoreData.getDataQuality();
         if (dataQuality != null) {
-            logMessage.append(String.format(" | avgAdf=%.2f, avgR=%.2f, stablePeriods=%d",
+            logMessage.append(String.format(" | avgAdf=%.2f | avgR=%.2f | stablePeriods=%d",
                     dataQuality.getAvg_adf_pvalue(),
                     dataQuality.getAvg_r_squared(),
                     dataQuality.getStable_periods()));
@@ -155,7 +155,7 @@ public class UpdateTradeProcessor {
         CointegrationDetails details = zScoreData.getCointegrationDetails();
         if (details != null) {
             logMessage.append(String.format(
-                    " | traceStat=%.2f, criticalValue95=%.2f, eigenSize=%d, vectorSize=%d, errors=%s",
+                    " | traceStat=%.2f | criticalValue95=%.2f | eigenSize=%d | vectorSize=%d | errors=%s",
                     details.getTrace_statistic() != null ? details.getTrace_statistic() : 0.0,
                     details.getCritical_value_95() != null ? details.getCritical_value_95() : 0.0,
                     details.getEigenvalues() != null ? details.getEigenvalues().size() : 0,
