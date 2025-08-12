@@ -19,7 +19,6 @@ public class ZScoreService {
 
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
-    private final FilterIncompleteZScoreParamsService filterIncompleteZScoreParamsService;
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
         log.debug("🔍 Проверка ZScore данных:");
@@ -195,7 +194,7 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         checkZScoreParamsSize(rawZScoreDataList);
-        filterIncompleteZScoreParamsService.filter(null, rawZScoreDataList, settings);
+        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }
@@ -212,7 +211,7 @@ public class ZScoreService {
         List<ZScoreData> zScoreDataSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
 
         checkZScoreParamsSize(zScoreDataSingletonList);
-        filterIncompleteZScoreParamsService.filter(pairData, zScoreDataSingletonList, settings);
+        filterIncompleteZScoreParams(pairData, zScoreDataSingletonList, settings);
 
         return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
     }
