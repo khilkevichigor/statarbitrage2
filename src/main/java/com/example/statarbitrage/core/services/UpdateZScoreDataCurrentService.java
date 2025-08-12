@@ -12,11 +12,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UpdateZScoreDataCurrentService {
     public void updateCurrent(PairData pairData, ZScoreData zScoreData) {
-        if (zScoreData.getZscoreHistory() == null || zScoreData.getZscoreHistory().isEmpty()) {
-            log.error("Z-score history is empty for pair {}", pairData.getPairName());
-            return;
-        }
-        ZScoreParam latestParam = zScoreData.getZscoreHistory().get(zScoreData.getZscoreHistory().size() - 1);
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
         pairData.setZScoreCurrent(latestParam.getZscore());
         pairData.setCorrelationCurrent(latestParam.getCorrelation());
         pairData.setAdfPvalueCurrent(latestParam.getAdfpvalue());
@@ -28,9 +24,9 @@ public class UpdateZScoreDataCurrentService {
         pairData.setBetaCurrent(latestParam.getBeta());
 
         // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZscoreHistory() != null && !zScoreData.getZscoreHistory().isEmpty()) {
+        if (zScoreData.getZscoreParams() != null && !zScoreData.getZscoreParams().isEmpty()) {
             // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZscoreHistory()) {
+            for (ZScoreParam param : zScoreData.getZscoreParams()) {
                 pairData.addZScorePoint(param);
             }
         } else {

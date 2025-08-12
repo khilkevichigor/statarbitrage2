@@ -2,7 +2,8 @@ package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
-
+import com.example.statarbitrage.common.dto.cointegration.CointegrationDetails;
+import com.example.statarbitrage.common.dto.cointegration.DataQuality;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import lombok.RequiredArgsConstructor;
@@ -67,9 +68,9 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (zScoreDataList.isEmpty()) return;
 
         ZScoreData sample = zScoreDataList.get(0);
-        boolean hasOldFormat = sample.getZscoreHistory() != null && !sample.getZscoreHistory().isEmpty();
-        boolean hasNewFormat = sample.getLatestZscore() != null;
-        boolean hasJohansenData = sample.getCointegrationPvalue() != null;
+        boolean hasOldFormat = sample.getZscoreParams() != null && !sample.getZscoreParams().isEmpty();
+        boolean hasNewFormat = sample.getLatest_zscore() != null;
+        boolean hasJohansenData = sample.getCointegration_pvalue() != null;
 
         log.info("📋 Анализ формата данных:");
         log.info("   📊 Старый формат (zscoreParams): {}", hasOldFormat ? "✅" : "❌");
@@ -78,8 +79,8 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         if (hasJohansenData) {
             double minJohansenPValue = zScoreDataList.stream()
-                    .filter(d -> d.getCointegrationPvalue() != null)
-                    .mapToDouble(ZScoreData::getCointegrationPvalue)
+                    .filter(d -> d.getCointegration_pvalue() != null)
+                    .mapToDouble(ZScoreData::getCointegration_pvalue)
                     .min()
                     .orElse(1.0);
             log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
@@ -91,7 +92,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
      * Возвращает причину фильтрации или null если пара прошла все фильтры
      */
     private String shouldFilterPair(ZScoreData data, Settings settings, double expectedSize) {
-        List<ZScoreParam> params = data.getZscoreHistory();
+        List<ZScoreParam> params = data.getZscoreParams();
 
         // ====== ЭТАП 1: БЫСТРЫЕ ПРОВЕРКИ (дешевые операции) ======
 
@@ -171,7 +172,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (params != null && !params.isEmpty()) {
             return false; // Старый формат - есть данные
         }
-        return data.getLatestZscore() == null; // Новый формат - проверяем latest_zscore
+        return data.getLatest_zscore() == null; // Новый формат - проверяем latest_zscore
     }
 
     private boolean isTickersInvalid(ZScoreData data) {
@@ -184,8 +185,8 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
     private String checkCointegration(ZScoreData data, List<ZScoreParam> params, Settings settings) {
         // ПРИОРИТЕТ 1: Johansen тест (если доступен)
-        if (data.getCointegrationPvalue() != null) {
-            Double johansenPValue = data.getCointegrationPvalue();
+        if (data.getCointegration_pvalue() != null) {
+            Double johansenPValue = data.getCointegration_pvalue();
             log.debug("🔬 Johansen p-value: {} для пары {}/{}",
                     String.format("%.6f", johansenPValue),
                     data.getUndervaluedTicker(),
@@ -197,16 +198,17 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             }
 
             // Дополнительная проверка качества Johansen теста
-            if (data.getTraceStatistic() != null) {
-                if (data.getError() != null) {
-                    return "Ошибка в Johansen тесте: " + data.getError();
+            if (data.getCointegrationDetails() != null) {
+                CointegrationDetails details = data.getCointegrationDetails();
+                if (details.getError() != null) {
+                    return "Ошибка в Johansen тесте: " + details.getError();
                 }
 
                 // Проверяем trace statistic
-                if (data.getTraceStatistic() != null && data.getCriticalValue95() != null) {
-                    if (data.getTraceStatistic() <= data.getCriticalValue95()) {
+                if (details.getTrace_statistic() != null && details.getCritical_value_95() != null) {
+                    if (details.getTrace_statistic() <= details.getCritical_value_95()) {
                         return String.format("Слабая коинтеграция (Johansen): trace=%.2f ≤ critical=%.2f",
-                                data.getTraceStatistic(), data.getCriticalValue95());
+                                details.getTrace_statistic(), details.getCritical_value_95());
                     }
                 }
             }
@@ -250,9 +252,10 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
     private String checkCointegrationStability(ZScoreData data, List<ZScoreParam> params, Settings settings) {
         // Используем данные из DataQuality если доступны
-        if (data.getStablePeriods() != null && data.getTotalObservations() != null) {
-            if (data.getTotalObservations() > 0) {
-                double stabilityRatio = (double) data.getStablePeriods() / data.getTotalObservations();
+        if (data.getDataQuality() != null) {
+            DataQuality quality = data.getDataQuality();
+            if (quality.getStable_periods() != null && data.getTotal_observations() != null) {
+                double stabilityRatio = (double) quality.getStable_periods() / data.getTotal_observations();
                 double minStabilityRatio = 0.7; // 70% стабильных периодов
 
                 if (stabilityRatio < minStabilityRatio) {
@@ -371,7 +374,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             return lastParam.getAdfpvalue();
         } else {
             // Новый формат API - ADF может быть в cointegration_pvalue если нет Johansen
-            return data.getCointegrationPvalue();
+            return data.getCointegration_pvalue();
         }
     }
 
@@ -382,7 +385,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             return lastParam.getPvalue();
         } else {
             // Новый формат API
-            return data.getCorrelationPvalue();
+            return data.getCorrelation_pvalue();
         }
     }
 
@@ -390,9 +393,9 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (params != null && !params.isEmpty()) {
             // Старый формат API
             return params.get(params.size() - 1).getZscore();
-        } else if (data.getLatestZscore() != null) {
+        } else if (data.getLatest_zscore() != null) {
             // Новый формат API
-            return data.getLatestZscore();
+            return data.getLatest_zscore();
         } else {
             return 0.0;
         }
@@ -400,8 +403,13 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
     private Double getRSquared(ZScoreData data) {
         // Приоритет новому формату
-        if (data.getAvgRSquared() != null) {
-            return data.getAvgRSquared();
+        if (data.getAvg_r_squared() != null) {
+            return data.getAvg_r_squared();
+        }
+
+        // Fallback к DataQuality
+        if (data.getDataQuality() != null && data.getDataQuality().getAvg_r_squared() != null) {
+            return data.getDataQuality().getAvg_r_squared();
         }
 
         return null;
@@ -463,7 +471,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
     private void analyzeRemainingPairs(List<ZScoreData> filteredList) {
         // Статистика Z-Score
         double avgZScore = filteredList.stream()
-                .mapToDouble(d -> Math.abs(getLatestZScore(d, d.getZscoreHistory())))
+                .mapToDouble(d -> Math.abs(getLatestZScore(d, d.getZscoreParams())))
                 .average().orElse(0.0);
 
         // Статистика корреляции
@@ -481,7 +489,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         // Подсчет пар с Johansen тестом
         long johansenPairs = filteredList.stream()
-                .filter(d -> d.getCointegrationPvalue() != null)
+                .filter(d -> d.getCointegration_pvalue() != null)
                 .count();
 
         log.info("📋 Качество отобранных пар:");

@@ -1,13 +1,15 @@
 package com.example.statarbitrage.common.dto;
 
+import com.example.statarbitrage.common.dto.cointegration.CointegrationDetails;
+import com.example.statarbitrage.common.dto.cointegration.DataQuality;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -15,43 +17,39 @@ import java.util.List;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZScoreData {
+    private List<ZScoreParam> zscoreParams;
 
-    // Ticker information
+    // Новые четкие поля из Python API
     private String overvaluedTicker;
     private String undervaluedTicker;
 
-    // Core statistical data
+    // Статистические данные
     private Double correlation;
-    @JsonProperty("correlation_pvalue")
-    private Double correlationPvalue;
-    @JsonProperty("is_cointegrated")
-    private boolean isCointegrated;
-    @JsonProperty("cointegration_pvalue")
-    private Double cointegrationPvalue;
-    @JsonProperty("latest_zscore")
-    private Double latestZscore;
-    @JsonProperty("total_observations")
-    private Integer totalObservations;
+    private Double correlation_pvalue;
+    private Double cointegration_pvalue;
+    private Map<String, Object> cointegration_details; //todo уже есть ниже!
+    private Double latest_zscore;
+    private Integer total_observations;
+    private Double avg_r_squared;
 
-    // Flattened fields from CointegrationDetails
-    @JsonProperty("trace_statistic")
-    private Double traceStatistic;
-    @JsonProperty("critical_value_95")
-    private Double criticalValue95;
-    private List<Double> eigenvalues;
-    @JsonProperty("cointegrating_vector")
-    private List<Double> cointegratingVector;
-    private String error;
+    private Boolean isCointegrated;
+    private DataQuality dataQuality;
+    private CointegrationDetails cointegrationDetails;
 
-    // Flattened fields from DataQuality
-    @JsonProperty("avg_r_squared")
-    private Double avgRSquared;
-    @JsonProperty("avg_adf_pvalue")
-    private Double avgAdfPvalue;
-    @JsonProperty("stable_periods")
-    private Integer stablePeriods;
-
-    // Full Z-score history
-    @JsonProperty("zscore_history")
-    private List<ZScoreParam> zscoreHistory;
+    public ZScoreParam getLastZScoreParam() {
+        if (zscoreParams == null || zscoreParams.isEmpty()) {
+            // Если zscoreParams отсутствуют, создаем синтетический ZScoreParam из новых полей API
+            if (latest_zscore != null) {
+                return ZScoreParam.builder()
+                        .zscore(latest_zscore)
+                        .correlation(correlation != null ? correlation : 0.0)
+                        .pvalue(correlation_pvalue != null ? correlation_pvalue : 0.0)
+                        .adfpvalue(cointegration_pvalue != null ? cointegration_pvalue : 0.0)
+                        .timestamp(System.currentTimeMillis())
+                        .build();
+            }
+            return null;
+        }
+        return zscoreParams.get(zscoreParams.size() - 1);
+    }
 }
