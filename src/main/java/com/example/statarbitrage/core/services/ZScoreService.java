@@ -197,7 +197,7 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         checkZScoreParamsSize(rawZScoreDataList);
-        filterIncompleteZScoreParamsService.filter(null, rawZScoreDataList, settings);
+        filterIncompleteZScoreParamsService.filter(rawZScoreDataList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }

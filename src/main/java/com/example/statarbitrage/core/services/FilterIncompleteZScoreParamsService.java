@@ -16,14 +16,13 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class FilterIncompleteZScoreParamsService {
-    private final PairDataService pairDataService;
 
     /**
      * Оптимизированная фильтрация коинтегрированных пар для парного трейдинга
      * Правильная последовательность фильтров для максимальной эффективности
      * Поддержка Johansen теста и новой структуры данных из Python API
      */
-    public void filter(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
+    public void filter(List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
 
         // Анализируем входящие данные
@@ -334,11 +333,14 @@ public class FilterIncompleteZScoreParamsService {
     private String checkZScoreSignal(ZScoreData data, List<ZScoreParam> params, Settings settings) {
         double lastZScore = getLatestZScore(data, params);
 
-        // Используем абсолютное значение Z-Score для торгового сигнала
-        double absZScore = Math.abs(lastZScore);
-        if (absZScore < settings.getMinZ()) {
-            return String.format("Слабый сигнал: |Z-score|=%.2f < %.2f",
-                    absZScore, settings.getMinZ());
+        // Фильтруем отрицательные Z-Score - они указывают на неправильное определение ролей тикеров
+        if (lastZScore < 0) {
+            return String.format("Отрицательный Z-score: %.2f (роли тикеров перепутаны)", lastZScore);
+        }
+
+        // Проверяем минимальный порог Z-Score для торгового сигнала
+        if (lastZScore < settings.getMinZ()) {
+            return String.format("Слабый сигнал: Z-score=%.2f < %.2f", lastZScore, settings.getMinZ());
         }
 
         return null;
