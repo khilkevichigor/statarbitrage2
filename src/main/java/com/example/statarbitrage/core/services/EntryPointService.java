@@ -14,12 +14,7 @@ import org.springframework.stereotype.Service;
 public class EntryPointService {
 
     public void addEntryPoints(PairData pairData, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
-        if (zScoreData.getZscoreHistory() == null || zScoreData.getZscoreHistory().isEmpty()) {
-            log.error("Z-score history is empty for pair {}", pairData.getPairName());
-            // Or throw an exception, depending on desired behavior
-            return;
-        }
-        ZScoreParam latestParam = zScoreData.getZscoreHistory().get(zScoreData.getZscoreHistory().size() - 1);
+        ZScoreParam latestParam = zScoreData.getLastZScoreParam();
         pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
         pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
         pairData.setZScoreEntry(latestParam.getZscore());

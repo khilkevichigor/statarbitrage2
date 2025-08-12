@@ -2,7 +2,7 @@ package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
-
+import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -92,9 +92,10 @@ public class FetchPairsProcessor {
     private void logZScoreResults(List<ZScoreData> dataList) {
         int index = 1;
         for (ZScoreData data : dataList) {
+            ZScoreParam param = data.getLastZScoreParam();
             log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                     index++, data.getUndervaluedTicker(), data.getOvervaluedTicker(),
-                    data.getCointegrationPvalue(), data.getAvgAdfPvalue(), data.getLatestZscore(), data.getCorrelation()));
+                    param.getPvalue(), param.getAdfpvalue(), param.getZscore(), param.getCorrelation()));
         }
     }
 

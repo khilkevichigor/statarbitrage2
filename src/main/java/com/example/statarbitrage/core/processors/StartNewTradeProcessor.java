@@ -2,7 +2,7 @@ package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
-
+import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -88,9 +88,10 @@ public class StartNewTradeProcessor {
     }
 
     private void logTradeInfo(ZScoreData zScoreData) {
+        ZScoreParam latest = zScoreData.getLastZScoreParam();
         log.debug(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
                 zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                zScoreData.getCointegrationPvalue(), zScoreData.getAvgAdfPvalue(), zScoreData.getLatestZscore(), zScoreData.getCorrelation()));
+                latest.getPvalue(), latest.getAdfpvalue(), latest.getZscore(), latest.getCorrelation()));
     }
 
     private PairData openTradePosition(PairData pairData, ZScoreData zScoreData, Settings settings) {
