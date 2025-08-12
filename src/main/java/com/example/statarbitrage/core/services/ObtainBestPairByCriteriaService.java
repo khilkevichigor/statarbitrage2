@@ -79,11 +79,12 @@ public class ObtainBestPairByCriteriaService {
             pValue = last.getPvalue();
             adf = last.getAdfpvalue();
             corr = last.getCorrelation();
-//            rSquared = calculateAverageRSquared(params);
-            rSquared = z.getAvgRSquared();
+            rSquared = z.getAvgRSquared() != null ? z.getAvgRSquared() : 0.0;
         } else {
             // Новый формат с агрегированными данными
             if (z.getLatestZscore() == null || z.getCorrelation() == null) {
+                log.debug("⚠️ Пропускаем пару с отсутствующими данными: {}/{}",
+                        z.getUndervaluedTicker(), z.getOvervaluedTicker());
                 return null;
             }
 
@@ -94,38 +95,8 @@ public class ObtainBestPairByCriteriaService {
             rSquared = z.getAvgRSquared() != null ? z.getAvgRSquared() : 0.0;
         }
 
-        // ====== БАЗОВЫЕ ФИЛЬТРЫ (исключающие) ======
-
-        // 1. Z-Score должен быть положительным и достаточно сильным
-        if (settings.isUseMinZFilter() && Math.abs(zVal) < settings.getMinZ()) {
-            return null;
-        }
-
-        // 2. Исключаем экстремальные Z-Score (выбросы)
-        if (Math.abs(zVal) > 10.0) {
-            log.debug("❌ Экстремальный Z-score: {} для {}/{}",
-                    com.example.statarbitrage.common.utils.NumberFormatter.format(zVal, 2),
-                    z.getUndervaluedTicker(),
-                    z.getOvervaluedTicker());
-            return null;
-        }
-
-        // 3. P-value корреляции
-        if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) {
-            return null;
-        }
-
-        // 4. Коинтеграция (Johansen/ADF)
-        if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) {
-            return null;
-        }
-
-        // 5. Минимальная корреляция
-        if (settings.isUseMinCorrelationFilter() && Math.abs(corr) < settings.getMinCorrelation()) {
-            return null;
-        }
-
-        // ====== КОМПОЗИТНЫЙ СКОР (ранжирующий) ======
+        // ====== ТОЛЬКО КОМПОЗИТНЫЙ СКОР (без фильтрации) ======
+        // Вся фильтрация уже выполнена в FilterIncompleteZScoreParamsService
 
         double compositeScore = calculateCompositeScore(zVal, corr, adf, pValue, rSquared, z, settings);
 
@@ -204,17 +175,6 @@ public class ObtainBestPairByCriteriaService {
 
         return Math.max(0.0, score); // Не даем отрицательным скорам
     }
-
-    /**
-     * Рассчитывает среднее R-squared для старого формата
-     */
-//    private double calculateAverageRSquared(List<ZScoreParam> params) {
-//        return params.stream()
-//                .filter(p -> p.getRSquared() != null && p.getRSquared() > 0)
-//                .mapToDouble(ZScoreParam::getRSquared)
-//                .average()
-//                .orElse(0.0);
-//    }
 
     /**
      * Рассчитывает волатильность Z-Score

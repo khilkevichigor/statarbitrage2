@@ -2,7 +2,6 @@ package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
-import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -191,7 +190,7 @@ public class FilterIncompleteZScoreParamsService {
                     data.getOvervaluedTicker());
 
             // Для Johansen теста используем более строгий порог (0.05)
-            double johansenThreshold = 0.05;
+            double johansenThreshold = 0.05; //todo вынести в настройки
             if (johansenPValue > johansenThreshold) {
                 return String.format("НЕ коинтегрированы (Johansen): p-value=%.6f > %.6f",
                         johansenPValue, johansenThreshold);
@@ -211,7 +210,7 @@ public class FilterIncompleteZScoreParamsService {
             }
 
             log.debug("✅ Пара {}/{} прошла Johansen тест (p-value={})",
-                    data.getUndervaluedTicker(), data.getOvervaluedTicker(), 
+                    data.getUndervaluedTicker(), data.getOvervaluedTicker(),
                     String.format("%.6f", johansenPValue));
             return null; // Прошли Johansen тест
         }
@@ -448,17 +447,19 @@ public class FilterIncompleteZScoreParamsService {
             analyzeRemainingPairs(filteredList);
         }
 
-        log.info("⚙️ Активные фильтры:");
+        log.info("⚙️ Активные фильтры (централизованная фильтрация):");
         if (settings.isUseMaxAdfValueFilter())
-            log.info("   🔬 Коинтеграция: p-value < {}", settings.getMaxAdfValue());
+            log.info("   🔬 Коинтеграция: Johansen p-value < 0.05, ADF p-value < {}", settings.getMaxAdfValue()); //todo выпилить хардкод 0.05
         if (settings.isUseMinRSquaredFilter())
             log.info("   📈 R-squared: > {}", settings.getMinRSquared());
         if (settings.isUseMinCorrelationFilter())
-            log.info("   🔗 Корреляция: > {}", settings.getMinCorrelation());
+            log.info("   🔗 Корреляция: |значение| > {}", settings.getMinCorrelation());
         if (settings.isUseMinPValueFilter())
             log.info("   📊 P-value корреляции: < {}", settings.getMinPValue());
         if (settings.isUseMinZFilter())
-            log.info("   ⚡ Z-Score: > {}", settings.getMinZ());
+            log.info("   ⚡ Z-Score: положительный и > {}", settings.getMinZ());
+        log.info("   🚫 Отрицательные Z-Score отфильтровываются автоматически");
+        log.info("   🎯 Ранжирование в ObtainBestPairByCriteriaService по композитному скору");
     }
 
     /**
