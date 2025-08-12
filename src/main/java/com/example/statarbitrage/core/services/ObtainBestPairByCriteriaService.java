@@ -18,56 +18,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ObtainBestPairByCriteriaService {
 
-    public Optional<ZScoreData> getBestByCriteriaOld(Settings settings, List<ZScoreData> dataList) {
-        ZScoreData best = null;
-        double maxZ = Double.NEGATIVE_INFINITY;
-
-        for (ZScoreData z : dataList) {
-            List<ZScoreParam> params = z.getZscoreHistory();
-
-            double zVal, pValue, adf, corr;
-
-            if (params != null && !params.isEmpty()) {
-                // Используем старый формат с детальными параметрами
-                ZScoreParam last = params.get(params.size() - 1);
-                zVal = last.getZscore();
-                pValue = last.getPvalue();
-                adf = last.getAdfpvalue();
-                corr = last.getCorrelation();
-            } else {
-                // Используем новый формат с агрегированными данными
-                if (z.getLatestZscore() == null || z.getCorrelation() == null) continue;
-
-                zVal = z.getLatestZscore();
-                corr = z.getCorrelation();
-
-                // Для новых полей используем разумные значения по умолчанию
-                pValue = z.getCorrelationPvalue() != null ? z.getCorrelationPvalue() : 0.0;
-                adf = z.getCointegrationPvalue() != null ? z.getCointegrationPvalue() : 0.0;
-            }
-
-            // 1. Z >= minZ (только положительные Z-score, исключаем зеркальные пары)
-            if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) continue;
-
-            // 2. pValue <= minPValue
-            if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
-
-            // 3. adfValue <= maxAdfValue
-            if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;
-
-            // 4. corr >= minCorr
-            if (settings.isUseMinCorrelationFilter() && corr < settings.getMinCorrelation()) continue;
-
-            // 5. Выбираем с максимальным Z (только положительные)
-            if (zVal > maxZ) {
-                maxZ = zVal;
-                best = z;
-            }
-        }
-
-        return Optional.ofNullable(best);
-    }
-
     /**
      * Улучшенный метод выбора лучшей пары для торговли
      * Использует композитный скор вместо простого максимального Z-Score
@@ -331,10 +281,5 @@ public class ObtainBestPairByCriteriaService {
             this.pValue = pValue;
             this.rSquared = rSquared;
         }
-
-//        public double getZScore() { return zScore; }
-//
-//        public double getPValue() { return pValue; }
-//        public double getRSquared() { return rSquared; }
     }
 }
