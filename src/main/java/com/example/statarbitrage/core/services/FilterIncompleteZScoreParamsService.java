@@ -31,7 +31,13 @@ public class FilterIncompleteZScoreParamsService {
                 .max(Comparator.naturalOrder())
                 .orElse(0d);
 
-        log.info("🔍 Ожидаемое количество наблюдений: {}, максимальный Z-скор: {}", expected, maxZScore);
+        double minAdfValue = zScoreDataList.stream()
+                .map(ZScoreData::getLastZScoreParam)
+                .map(ZScoreParam::getAdfpvalue)
+                .min(Comparator.naturalOrder())
+                .orElse(0d);
+
+        log.info("🔍 Ожидаемое количество наблюдений: {}, максимальный Z-скор: {}, минимальный AdfPValue: {}", expected, maxZScore, minAdfValue);
 
         List<ZScoreData> originalList = new ArrayList<>(zScoreDataList);
         Map<String, Integer> filterStats = new HashMap<>();
