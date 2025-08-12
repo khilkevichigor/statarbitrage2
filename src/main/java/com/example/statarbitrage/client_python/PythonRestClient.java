@@ -178,32 +178,21 @@ public class PythonRestClient {
         }
     }
 
+    // Здесь сетим zscoreParams
     private ZScoreData convertPairAnalysisResultToZScoreData(PairAnalysisResult result) {
         ZScoreData zScoreData = new ZScoreData();
         zScoreData.setOvervaluedTicker(result.getOvervaluedTicker());
         zScoreData.setUndervaluedTicker(result.getUndervaluedTicker());
         zScoreData.setCorrelation(result.getCorrelation());
-        zScoreData.setCorrelationPvalue(result.getCorrelation_pvalue());
-        zScoreData.setCointegrated(result.getIs_cointegrated());
-        zScoreData.setCointegrationPvalue(result.getCointegration_pvalue());
-        zScoreData.setLatestZscore(result.getLatest_zscore());
-        zScoreData.setTotalObservations(result.getTotal_observations());
+        zScoreData.setCorrelation_pvalue(result.getCorrelation_pvalue());
+        zScoreData.setCointegration_pvalue(result.getCointegration_pvalue());
+        zScoreData.setLatest_zscore(result.getLatest_zscore());
+        zScoreData.setTotal_observations(result.getTotal_observations());
 
-        if (result.getCointegration_details() != null) {
-            CointegrationDetails details = result.getCointegration_details();
-            zScoreData.setTraceStatistic(details.getTrace_statistic());
-            zScoreData.setCriticalValue95(details.getCritical_value_95());
-            zScoreData.setEigenvalues(details.getEigenvalues());
-            zScoreData.setCointegratingVector(details.getCointegrating_vector());
-            zScoreData.setError(details.getError());
-        }
-
-        if (result.getData_quality() != null) {
-            DataQuality quality = result.getData_quality();
-            zScoreData.setAvgRSquared(quality.getAvg_r_squared());
-            zScoreData.setAvgAdfPvalue(quality.getAvg_adf_pvalue());
-            zScoreData.setStablePeriods(quality.getStable_periods());
-        }
+        //todo здесь сетить все поля из PairAnalysisResult
+        zScoreData.setIsCointegrated(result.getIs_cointegrated());
+        zScoreData.setDataQuality(result.getData_quality());
+        zScoreData.setCointegrationDetails(result.getCointegration_details());
 
         // Конвертируем zscore_history в zscoreParams если есть
         if (result.getZscore_history() != null && !result.getZscore_history().isEmpty()) {
@@ -218,7 +207,7 @@ public class PythonRestClient {
                         return param;
                     })
                     .collect(Collectors.toList());
-            zScoreData.setZscoreHistory(zscoreParams);
+            zScoreData.setZscoreParams(zscoreParams);
         }
 
         return zScoreData;
