@@ -3,8 +3,7 @@ package com.example.statarbitrage.core.processors;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
-import com.example.statarbitrage.common.dto.cointegration.CointegrationDetails;
-import com.example.statarbitrage.common.dto.cointegration.DataQuality;
+
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -134,41 +133,40 @@ public class UpdateTradeProcessor {
     }
 
     private void logPairInfo(ZScoreData zScoreData, Settings settings) {
-        final ZScoreParam latest = zScoreData.getLastZScoreParam();
+        if (zScoreData == null) {
+            log.warn("ZScoreData is null, cannot log pair info.");
+            return;
+        }
+
         StringBuilder logMessage = new StringBuilder();
 
         logMessage.append(String.format("Наша пара: long=%s, short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                zScoreData.getUndervaluedTicker(), zScoreData.getOvervaluedTicker(),
-                zScoreData.getIsCointegrated(),
-                latest.getPvalue(),
-                latest.getAdfpvalue(),
-                latest.getZscore(),
-                latest.getCorrelation()));
+                zScoreData.getUndervaluedTicker(),
+                zScoreData.getOvervaluedTicker(),
+                zScoreData.isCointegrated(),
+                zScoreData.getCointegrationPvalue(),
+                zScoreData.getAvgAdfPvalue(),
+                zScoreData.getLatestZscore(),
+                zScoreData.getCorrelation()));
 
-        DataQuality dataQuality = zScoreData.getDataQuality();
-        if (dataQuality != null) {
-            logMessage.append(String.format(" | avgAdf=%.2f | avgR=%.2f | stablePeriods=%d",
-                    dataQuality.getAvg_adf_pvalue(),
-                    dataQuality.getAvg_r_squared(),
-                    dataQuality.getStable_periods()));
-        }
+        logMessage.append(String.format(" | avgAdf=%.2f | avgR=%.2f | stablePeriods=%d",
+                zScoreData.getAvgAdfPvalue(),
+                zScoreData.getAvgRSquared(),
+                zScoreData.getStablePeriods()));
 
-        CointegrationDetails details = zScoreData.getCointegrationDetails();
-        if (details != null) {
-            logMessage.append(String.format(
-                    " | traceStat=%.2f | criticalValue95=%.2f | eigenSize=%d | vectorSize=%d | errors=%s",
-                    details.getTrace_statistic() != null ? details.getTrace_statistic() : 0.0,
-                    details.getCritical_value_95() != null ? details.getCritical_value_95() : 0.0,
-                    details.getEigenvalues() != null ? details.getEigenvalues().size() : 0,
-                    details.getCointegrating_vector() != null ? details.getCointegrating_vector().size() : 0,
-                    details.getError() != null ? details.getError() : "N/A"));
-        }
+        logMessage.append(String.format(
+                " | traceStat=%.2f | criticalValue95=%.2f | eigenSize=%d | vectorSize=%d | errors=%s",
+                zScoreData.getTraceStatistic() != null ? zScoreData.getTraceStatistic() : 0.0,
+                zScoreData.getCriticalValue95() != null ? zScoreData.getCriticalValue95() : 0.0,
+                zScoreData.getEigenvalues() != null ? zScoreData.getEigenvalues().size() : 0,
+                zScoreData.getCointegratingVector() != null ? zScoreData.getCointegratingVector().size() : 0,
+                zScoreData.getError() != null ? zScoreData.getError() : "N/A"));
 
         logMessage.append(String.format(". Чек: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
-                FormatUtil.color(zScoreData.getCointegration_pvalue(), settings.getMinPValue()),
-                FormatUtil.color(zScoreData.getDataQuality().getAvg_adf_pvalue(), settings.getMaxAdfValue()),
-                FormatUtil.color(zScoreData.getDataQuality().getAvg_r_squared(), settings.getMinRSquared()),
-                zScoreData.getDataQuality().getStable_periods()));
+                FormatUtil.color(zScoreData.getCointegrationPvalue(), settings.getMinPValue()),
+                FormatUtil.color(zScoreData.getAvgAdfPvalue(), settings.getMaxAdfValue()),
+                FormatUtil.color(zScoreData.getAvgRSquared(), settings.getMinRSquared()),
+                zScoreData.getStablePeriods()));
 
         log.info(logMessage.toString());
     }
