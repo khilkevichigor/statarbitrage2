@@ -27,12 +27,14 @@ public class FilterIncompleteZScoreParamsServiceV1 {
         log.info("🔍 Ожидаемое количество наблюдений: {}", expected);
 
         ZScoreParam maxZScoreParam = zScoreDataList.stream()
-                .map(ZScoreData::getLastZScoreParam)
+                .map(data -> (data.getZscoreHistory() != null && !data.getZscoreHistory().isEmpty()) ? data.getZscoreHistory().get(data.getZscoreHistory().size() - 1) : null)
+                .filter(Objects::nonNull)
                 .max(Comparator.comparingDouble(ZScoreParam::getZscore))
                 .orElse(null);
 
         ZScoreParam minAdfValueParam = zScoreDataList.stream()
-                .map(ZScoreData::getLastZScoreParam)
+                .map(data -> (data.getZscoreHistory() != null && !data.getZscoreHistory().isEmpty()) ? data.getZscoreHistory().get(data.getZscoreHistory().size() - 1) : null)
+                .filter(Objects::nonNull)
                 .min(Comparator.comparingDouble(ZScoreParam::getAdfpvalue))
                 .orElse(null);
 
@@ -71,7 +73,7 @@ public class FilterIncompleteZScoreParamsServiceV1 {
      * Возвращает причину фильтрации или null если пара прошла все фильтры
      */
     private String shouldFilterPair(ZScoreData data, Settings settings, double expectedSize) {
-        List<ZScoreParam> params = data.getZscoreParams();
+        List<ZScoreParam> params = data.getZscoreHistory();
 
         // ====== ЭТАП 1: БЫСТРЫЕ ПРОВЕРКИ (дешевые операции) ======
 
@@ -152,7 +154,7 @@ public class FilterIncompleteZScoreParamsServiceV1 {
         if (params != null && !params.isEmpty()) {
             return false; // Старый формат - есть данные
         }
-        return data.getLatest_zscore() == null; // Новый формат - проверяем latest_zscore
+        return data.getLatestZscore() == null; // Новый формат - проверяем latest_zscore
     }
 
 //    private String checkVolumeFilter(ZScoreData data, Settings settings) { //todo проверяем преде получением тикеров
@@ -183,7 +185,7 @@ public class FilterIncompleteZScoreParamsServiceV1 {
     }
 
     private String checkRSquared(ZScoreData data, Settings settings) {
-        Double rSquared = data.getAvg_r_squared();
+        Double rSquared = data.getAvgRSquared();
         if (rSquared == null) {
             return "Отсутствует R-squared";
         }
@@ -307,7 +309,7 @@ public class FilterIncompleteZScoreParamsServiceV1 {
             return lastParam.getAdfpvalue();
         } else {
             // Новый формат API
-            return data.getCointegration_pvalue();
+            return data.getCointegrationPvalue();
         }
     }
 
@@ -318,7 +320,7 @@ public class FilterIncompleteZScoreParamsServiceV1 {
             return lastParam.getPvalue();
         } else {
             // Новый формат API
-            return data.getCorrelation_pvalue();
+            return data.getCorrelationPvalue();
         }
     }
 
@@ -326,9 +328,9 @@ public class FilterIncompleteZScoreParamsServiceV1 {
         if (params != null && !params.isEmpty()) {
             // Старый формат API
             return params.get(params.size() - 1).getZscore();
-        } else if (data.getLatest_zscore() != null) {
+        } else if (data.getLatestZscore() != null) {
             // Новый формат API
-            return data.getLatest_zscore();
+            return data.getLatestZscore();
         } else {
             return 0.0;
         }
