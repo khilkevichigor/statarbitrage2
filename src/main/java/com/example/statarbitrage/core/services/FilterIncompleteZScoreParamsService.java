@@ -191,28 +191,29 @@ public class FilterIncompleteZScoreParamsService {
                     data.getUndervaluedTicker(),
                     data.getOvervaluedTicker());
 
-            if (johansenPValue > settings.getMaxAdfValue()) {
+            // Для Johansen теста используем более строгий порог (0.05)
+            double johansenThreshold = 0.05;
+            if (johansenPValue > johansenThreshold) {
                 return String.format("НЕ коинтегрированы (Johansen): p-value=%.6f > %.6f",
-                        johansenPValue, settings.getMaxAdfValue());
+                        johansenPValue, johansenThreshold);
             }
 
             // Дополнительная проверка качества Johansen теста
-            if (data.getTraceStatistic() != null) {
+            if (data.getTraceStatistic() != null && data.getCriticalValue95() != null) {
                 if (data.getError() != null) {
                     return "Ошибка в Johansen тесте: " + data.getError();
                 }
 
-                // Проверяем trace statistic
-                if (data.getTraceStatistic() != null && data.getCriticalValue95() != null) {
-                    if (data.getTraceStatistic() <= data.getCriticalValue95()) {
-                        return String.format("Слабая коинтеграция (Johansen): trace=%.2f ≤ critical=%.2f",
-                                data.getTraceStatistic(), data.getCriticalValue95());
-                    }
+                // Проверяем trace statistic - должен быть больше критического значения
+                if (data.getTraceStatistic() <= data.getCriticalValue95()) {
+                    return String.format("Слабая коинтеграция (Johansen): trace=%.2f ≤ critical=%.2f",
+                            data.getTraceStatistic(), data.getCriticalValue95());
                 }
             }
 
-            log.debug("✅ Пара {}/{} прошла Johansen тест",
-                    data.getUndervaluedTicker(), data.getOvervaluedTicker());
+            log.debug("✅ Пара {}/{} прошла Johansen тест (p-value={})",
+                    data.getUndervaluedTicker(), data.getOvervaluedTicker(), 
+                    String.format("%.6f", johansenPValue));
             return null; // Прошли Johansen тест
         }
 
@@ -222,16 +223,17 @@ public class FilterIncompleteZScoreParamsService {
             return "Отсутствует cointegration p-value";
         }
 
-        // Для криптовалют используем более мягкие критерии ADF
-        double adfThreshold = Math.max(settings.getMaxAdfValue(), 0.15); // Минимум 0.15 для crypto
+        // Для ADF теста используем настроечное значение с минимумом для криптовалют
+        double adfThreshold = Math.max(settings.getMaxAdfValue(), 0.1); // Минимум 0.1 для crypto
 
         if (adfPValue > adfThreshold) {
             return String.format("Слабая коинтеграция (ADF): p-value=%.6f > %.6f",
                     adfPValue, adfThreshold);
         }
 
-        log.debug("✅ Пара {}/{} прошла ADF тест",
-                data.getUndervaluedTicker(), data.getOvervaluedTicker());
+        log.debug("✅ Пара {}/{} прошла ADF тест (p-value={})",
+                data.getUndervaluedTicker(), data.getOvervaluedTicker(),
+                String.format("%.6f", adfPValue));
         return null;
     }
 
@@ -370,8 +372,8 @@ public class FilterIncompleteZScoreParamsService {
             ZScoreParam lastParam = params.get(params.size() - 1);
             return lastParam.getAdfpvalue();
         } else {
-            // Новый формат API - ADF может быть в cointegration_pvalue если нет Johansen
-            return data.getCointegrationPvalue();
+            // Новый формат API - используем avgAdfPvalue для ADF теста
+            return data.getAvgAdfPvalue();
         }
     }
 
