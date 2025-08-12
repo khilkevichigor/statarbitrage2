@@ -18,8 +18,6 @@ import java.util.*;
 public class FilterIncompleteZScoreParamsServiceV2 {
     private final PairDataService pairDataService;
 
-    //todo добавить на пайтоне minJohansenTrace = 15.0;      // Если используете Johansen тест
-
     /**
      * Оптимизированная фильтрация коинтегрированных пар для парного трейдинга
      * Правильная последовательность фильтров для максимальной эффективности
@@ -57,7 +55,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         // Статистика по причинам фильтрации
         filterStats.forEach((reason, count) ->
-                log.info("📊 {}: {} пар", reason, count));
+                log.debug("📊 {}: {} пар", reason, count));
 
         // Детальная статистика фильтрации
         logFilteringStatistics(originalList, zScoreDataList, settings);
@@ -84,7 +82,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
                     .filter(d -> d.getCointegration_pvalue() != null)
                     .mapToDouble(ZScoreData::getCointegration_pvalue)
                     .min().orElse(1.0);
-            log.info("   📈 Минимальный Johansen p-value: {:.6f}", minJohansenPValue);
+            log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
         }
     }
 
@@ -188,8 +186,10 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         // ПРИОРИТЕТ 1: Johansen тест (если доступен)
         if (data.getCointegration_pvalue() != null) {
             Double johansenPValue = data.getCointegration_pvalue();
-            log.debug("🔬 Johansen p-value: {:.6f} для пары {}/{}",
-                    johansenPValue, data.getUndervaluedTicker(), data.getOvervaluedTicker());
+            log.debug("🔬 Johansen p-value: {} для пары {}/{}",
+                    String.format("%.6f", johansenPValue),
+                    data.getUndervaluedTicker(),
+                    data.getOvervaluedTicker());
 
             if (johansenPValue > settings.getMaxAdfValue()) {
                 return String.format("НЕ коинтегрированы (Johansen): p-value=%.6f > %.6f",
@@ -443,8 +443,8 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         log.info("📈 === СТАТИСТИКА ФИЛЬТРАЦИИ ПАРЫ ===");
         log.info("📊 Всего пар: {}", total);
-        log.info("✅ Прошли фильтры: {} ({:.1f}%)", remaining, (remaining * 100.0 / total));
-        log.info("❌ Отфильтровано: {} ({:.1f}%)", filtered, (filtered * 100.0 / total));
+        log.info("✅ Прошли фильтры: {} ({}%)", remaining, String.format("%.1f", (remaining * 100.0 / total)));
+        log.info("❌ Отфильтровано: {} ({}%)", filtered, String.format("%.1f", (filtered * 100.0 / total)));
 
         // Анализ качества оставшихся пар
         if (!filteredList.isEmpty()) {
@@ -482,7 +482,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         // Статистика R-squared
         double avgRSquared = filteredList.stream()
                 .map(this::getRSquared)
-                .filter(Objects::nonNull)
+                .filter(r -> r != null)
                 .mapToDouble(Double::doubleValue)
                 .average().orElse(0.0);
 
@@ -492,10 +492,10 @@ public class FilterIncompleteZScoreParamsServiceV2 {
                 .count();
 
         log.info("📋 Качество отобранных пар:");
-        log.info("   📊 Средний |Z-Score|: {:.2f}", avgZScore);
-        log.info("   🔗 Средняя |корреляция|: {:.3f}", avgCorrelation);
-        log.info("   📈 Средний R²: {:.3f}", avgRSquared);
-        log.info("   🔬 Пары с Johansen тестом: {}/{} ({:.1f}%)",
-                johansenPairs, filteredList.size(), (johansenPairs * 100.0 / filteredList.size()));
+        log.info("   📊 Средний |Z-Score|: {}", String.format("%.2f", avgZScore));
+        log.info("   🔗 Средняя |корреляция|: {}", String.format("%.3f", avgCorrelation));
+        log.info("   📈 Средний R²: {}", String.format("%.3f", avgRSquared));
+        log.info("   🔬 Пары с Johansen тестом: {}/{} ({}%)",
+                johansenPairs, filteredList.size(), String.format("%.1f", (johansenPairs * 100.0 / filteredList.size())));
     }
 }
