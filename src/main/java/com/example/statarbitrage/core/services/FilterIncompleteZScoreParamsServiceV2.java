@@ -81,7 +81,8 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             double minJohansenPValue = zScoreDataList.stream()
                     .filter(d -> d.getCointegration_pvalue() != null)
                     .mapToDouble(ZScoreData::getCointegration_pvalue)
-                    .min().orElse(1.0);
+                    .min()
+                    .orElse(1.0);
             log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
         }
     }
