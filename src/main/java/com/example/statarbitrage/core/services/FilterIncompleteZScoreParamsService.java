@@ -40,7 +40,7 @@ public class FilterIncompleteZScoreParamsService {
                 filterStats.merge(reason, 1, Integer::sum);
                 // Удаляем PairData только при массовой фильтрации (когда pairData == null)
                 // При единичной фильтрации (для новых трейдов) PairData не удаляем
-                log.debug("⚠️ Отфильтровано {}/{} — {}",
+                log.info("⚠️ Отфильтровано {}/{} — {}",
                         data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason);
                 return true;
             }
