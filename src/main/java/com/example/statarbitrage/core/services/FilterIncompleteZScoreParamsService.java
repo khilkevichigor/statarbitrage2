@@ -9,11 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FilterIncompleteZScoreParamsServiceV1 {
+public class FilterIncompleteZScoreParamsService {
     private final PairDataService pairDataService;
 
     //todo добавить на пайтоне minJohansenTrace = 15.0;      // Если используете Johansen тест
@@ -24,27 +25,19 @@ public class FilterIncompleteZScoreParamsServiceV1 {
      */
     public void filter(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
-        log.info("🔍 Ожидаемое количество наблюдений: {}", expected);
-
-        ZScoreParam maxZScoreParam = zScoreDataList.stream()
+        double maxZScore = zScoreDataList.stream()
                 .map(ZScoreData::getLastZScoreParam)
-                .max(Comparator.comparingDouble(ZScoreParam::getZscore))
-                .orElse(null);
+                .map(ZScoreParam::getZscore)
+                .max(Comparator.naturalOrder())
+                .orElse(0d);
 
-        ZScoreParam minAdfValueParam = zScoreDataList.stream()
+        double minAdfValue = zScoreDataList.stream()
                 .map(ZScoreData::getLastZScoreParam)
-                .min(Comparator.comparingDouble(ZScoreParam::getAdfpvalue))
-                .orElse(null);
+                .map(ZScoreParam::getAdfpvalue)
+                .min(Comparator.naturalOrder())
+                .orElse(0d);
 
-        if (maxZScoreParam != null) {
-            log.info("🔍 Пара с максимальным Z-скор: {}, AdfPValue: {}",
-                    maxZScoreParam.getZscore(), maxZScoreParam.getAdfpvalue());
-        }
-
-        if (minAdfValueParam != null) {
-            log.info("🔍 Пара с минимальным AdfPValue: {}, Z-скор: {}",
-                    minAdfValueParam.getAdfpvalue(), minAdfValueParam.getZscore());
-        }
+        log.info("🔍 Ожидаемое количество наблюдений: {}, максимальный Z-скор: {}, минимальный AdfPValue: {}", expected, maxZScore, minAdfValue);
 
         List<ZScoreData> originalList = new ArrayList<>(zScoreDataList);
         Map<String, Integer> filterStats = new HashMap<>();
