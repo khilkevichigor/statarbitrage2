@@ -13,7 +13,7 @@ import java.util.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FilterIncompleteZScoreParamsServiceV1 {
+public class FilterIncompleteZScoreParamsServiceOld {
     private final PairDataService pairDataService;
 
     //todo добавить на пайтоне minJohansenTrace = 15.0;      // Если используете Johansen тест

@@ -19,7 +19,8 @@ public class ZScoreService {
 
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
-    private final FilterIncompleteZScoreParamsServiceV2 filterIncompleteZScoreParamsService;
+    private final FilterIncompleteZScoreParamsService filterIncompleteZScoreParamsService;
+    private final ObtainBestPairByCriteriaService obtainBestPairByCriteriaService;
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
         log.debug("🔍 Проверка ZScore данных:");
@@ -242,7 +243,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainBestPairByCriteriaService.getBestByCriteria(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 

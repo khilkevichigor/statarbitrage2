@@ -2,19 +2,20 @@ package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
-
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FilterIncompleteZScoreParamsServiceV2 {
+public class FilterIncompleteZScoreParamsService {
     private final PairDataService pairDataService;
 
     /**
