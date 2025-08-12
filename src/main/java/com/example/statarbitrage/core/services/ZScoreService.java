@@ -212,9 +212,11 @@ public class ZScoreService {
         }
 
         List<ZScoreData> zScoreDataSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
-
         checkZScoreParamsSize(zScoreDataSingletonList);
-        filterIncompleteZScoreParamsService.filter(pairData, zScoreDataSingletonList, settings);
+
+        // НЕ применяем фильтрацию для новых трейдов - пара уже была отфильтрована ранее в FetchPairsProcessor
+        // filterIncompleteZScoreParamsService.filter(pairData, zScoreDataSingletonList, settings);
+        log.debug("🔄 Обновление данных для уже отобранной пары {}", pairData.getPairName());
 
         return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
     }

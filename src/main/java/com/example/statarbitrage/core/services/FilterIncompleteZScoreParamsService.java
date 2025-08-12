@@ -40,9 +40,8 @@ public class FilterIncompleteZScoreParamsService {
             String reason = shouldFilterPair(data, settings, expected);
             if (reason != null) {
                 filterStats.merge(reason, 1, Integer::sum);
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
-                }
+                // Удаляем PairData только при массовой фильтрации (когда pairData == null)
+                // При единичной фильтрации (для новых трейдов) PairData не удаляем
                 log.debug("⚠️ Отфильтровано {}/{} — {}",
                         data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason);
                 return true;
