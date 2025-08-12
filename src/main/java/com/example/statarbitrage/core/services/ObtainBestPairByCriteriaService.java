@@ -102,7 +102,7 @@ public class ObtainBestPairByCriteriaService {
         }
 
         // 2. Исключаем экстремальные Z-Score (выбросы)
-        if (Math.abs(zVal) > 5.0) {
+        if (Math.abs(zVal) > 10.0) {
             log.debug("❌ Экстремальный Z-score: {} для {}/{}",
                     com.example.statarbitrage.common.utils.NumberFormatter.format(zVal, 2),
                     z.getUndervaluedTicker(),
