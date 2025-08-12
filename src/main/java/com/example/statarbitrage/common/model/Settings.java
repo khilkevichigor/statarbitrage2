@@ -14,8 +14,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Settings {
 
-    //todo по хорошему в бд сохранять каждую версию настроек что бы сетить их id в PairData для статы и анализа
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
