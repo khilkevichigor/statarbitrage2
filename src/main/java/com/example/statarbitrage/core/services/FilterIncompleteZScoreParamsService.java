@@ -28,7 +28,7 @@ public class FilterIncompleteZScoreParamsService {
     public void filterV1(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
         double maxZScore = zScoreDataList.stream()
-                .map(data -> (data.getZscoreHistory() != null && !data.getZscoreHistory().isEmpty()) ? data.getZscoreHistory().get(data.getZscoreHistory().size() - 1) : null)
+                .map(data -> (data.getZScoreHistory() != null && !data.getZScoreHistory().isEmpty()) ? data.getZScoreHistory().get(data.getZScoreHistory().size() - 1) : null)
                 .filter(Objects::nonNull)
                 .map(ZScoreParam::getZscore)
                 .max(Comparator.naturalOrder())
@@ -39,7 +39,7 @@ public class FilterIncompleteZScoreParamsService {
 
         zScoreDataList.removeIf(data -> {
             // Проверяем размер данных (используем новые поля API если zscoreParams отсутствуют)
-            List<ZScoreParam> params = data.getZscoreHistory();
+            List<ZScoreParam> params = data.getZScoreHistory();
             int actualSize = params != null ? params.size() :
                     (data.getTotalObservations() != null ? data.getTotalObservations() : 0);
 
@@ -52,7 +52,7 @@ public class FilterIncompleteZScoreParamsService {
                     if (pairData != null) {
                         pairDataService.delete(pairData);
                         log.warn("⚠️ Удалили пару {}/{} — наблюдений {} (ожидалось {})",
-                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), actualSize, expected);
+                                data.getUnderValuedTicker(), data.getOverValuedTicker(), actualSize, expected);
                     }
                 }
             }
@@ -61,13 +61,13 @@ public class FilterIncompleteZScoreParamsService {
             double lastZScore;
             if (params != null && !params.isEmpty()) {
                 lastZScore = params.get(params.size() - 1).getZscore(); //todo
-            } else if (data.getLatestZscore() != null) {
-                lastZScore = data.getLatestZscore();
+            } else if (data.getLatestZScore() != null) {
+                lastZScore = data.getLatestZScore();
             } else {
                 if (pairData != null) {
                     pairDataService.delete(pairData);
                     log.warn("⚠️ Удалили пару {}/{} — отсутствует информация о Z-score",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker());
+                            data.getUnderValuedTicker(), data.getOverValuedTicker());
                 }
                 return true;
             }
@@ -77,7 +77,7 @@ public class FilterIncompleteZScoreParamsService {
                 if (pairData != null) {
                     pairDataService.delete(pairData);
                     log.warn("⚠️ Удалили пару {}/{} — Z-скор={} < Z-скор Min={}",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
+                            data.getUnderValuedTicker(), data.getOverValuedTicker(), lastZScore, settings.getMinZ());
                 }
             }
 
@@ -88,18 +88,18 @@ public class FilterIncompleteZScoreParamsService {
                 if (pairData != null) {
                     pairDataService.delete(pairData);
                     log.warn("⚠️ Удалили пару {}/{} — RSquared={} < MinRSquared={}",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
+                            data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
                 }
             }
 
             // Фильтрация по Correlation
             boolean isIncompleteByCorrelation = false;
-            if (settings.isUseMinCorrelationFilter() && data.getCorrelation() != null && data.getCorrelation() < settings.getMinCorrelation()) {
+            if (settings.isUseMinCorrelationFilter() && data.getPearsonCorr() != null && data.getPearsonCorr() < settings.getMinCorrelation()) {
                 isIncompleteByCorrelation = true;
                 if (pairData != null) {
                     pairDataService.delete(pairData);
                     log.warn("⚠️ Удалили пару {}/{} — Correlation={} < MinCorrelation={}",
-                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getCorrelation(), settings.getMinCorrelation());
+                            data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getPearsonCorr(), settings.getMinCorrelation());
                 }
             }
 
@@ -110,9 +110,9 @@ public class FilterIncompleteZScoreParamsService {
                 if (params != null && !params.isEmpty()) {
                     // Для старого формата используем pValue из последнего параметра
                     pValue = params.get(params.size() - 1).getPvalue();
-                } else if (data.getCorrelationPvalue() != null) {
+                } else if (data.getPearsonCorrPValue() != null) {
                     // Для нового формата используем correlation_pvalue
-                    pValue = data.getCorrelationPvalue();
+                    pValue = data.getPearsonCorrPValue();
                 }
 
                 if (pValue != null && pValue > settings.getMinPValue()) {
@@ -120,7 +120,7 @@ public class FilterIncompleteZScoreParamsService {
                     if (pairData != null) {
                         pairDataService.delete(pairData);
                         log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
-                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), pValue, settings.getMinPValue());
+                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMinPValue());
                     }
                 }
             }
@@ -132,9 +132,9 @@ public class FilterIncompleteZScoreParamsService {
                 if (params != null && !params.isEmpty()) {
                     // Для старого формата используем adfpvalue из последнего параметра
                     adfValue = params.get(params.size() - 1).getAdfpvalue(); //todo здесь смесь старой и новой логики! актуализировать!!!
-                } else if (data.getCointegrationPvalue() != null) {
+                } else if (data.getJohansenCointPValue() != null) {
                     // Для нового формата используем cointegration_pvalue
-                    adfValue = data.getCointegrationPvalue(); //todo проверить это одно и то же???
+                    adfValue = data.getJohansenCointPValue(); //todo проверить это одно и то же???
                 }
 
                 if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
@@ -142,7 +142,7 @@ public class FilterIncompleteZScoreParamsService {
                     if (pairData != null) {
                         pairDataService.delete(pairData);
                         log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
-                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMaxAdfValue());
+                                data.getUnderValuedTicker(), data.getOverValuedTicker(), adfValue, settings.getMaxAdfValue());
                     }
                 }
             }
@@ -179,14 +179,14 @@ public class FilterIncompleteZScoreParamsService {
             if (reason != null) {
                 filterStats.merge(reason, 1, Integer::sum);
                 log.info("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
-                        data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason,
-                        NumberFormatter.format(getLatestZScore(data, data.getZscoreHistory()), 2),
-                        getAdfPValue(data, data.getZscoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZscoreHistory()), 4) : "N/A",
+                        data.getUnderValuedTicker(), data.getOverValuedTicker(), reason,
+                        NumberFormatter.format(getLatestZScore(data, data.getZScoreHistory()), 2),
+                        getAdfPValue(data, data.getZScoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZScoreHistory()), 4) : "N/A",
                         getRSquared(data) != null ? NumberFormatter.format(getRSquared(data), 3) : "N/A"
                 );
                 return true;
             }
-            log.info("✅ Пара {}/{} прошла все фильтры.", data.getUndervaluedTicker(), data.getOvervaluedTicker());
+            log.info("✅ Пара {}/{} прошла все фильтры.", data.getUnderValuedTicker(), data.getOverValuedTicker());
             return false;
         });
 
@@ -208,9 +208,9 @@ public class FilterIncompleteZScoreParamsService {
         if (zScoreDataList.isEmpty()) return;
 
         ZScoreData sample = zScoreDataList.get(0);
-        boolean hasOldFormat = sample.getZscoreHistory() != null && !sample.getZscoreHistory().isEmpty();
-        boolean hasNewFormat = sample.getLatestZscore() != null;
-        boolean hasJohansenData = sample.getCointegrationPvalue() != null;
+        boolean hasOldFormat = sample.getZScoreHistory() != null && !sample.getZScoreHistory().isEmpty();
+        boolean hasNewFormat = sample.getLatestZScore() != null;
+        boolean hasJohansenData = sample.getJohansenCointPValue() != null;
 
         log.info("📋 Анализ формата данных:");
         log.info("   📊 Старый формат (zscoreParams): {}", hasOldFormat ? "✅" : "❌");
@@ -219,8 +219,8 @@ public class FilterIncompleteZScoreParamsService {
 
         if (hasJohansenData) {
             double minJohansenPValue = zScoreDataList.stream()
-                    .filter(d -> d.getCointegrationPvalue() != null)
-                    .mapToDouble(ZScoreData::getCointegrationPvalue)
+                    .filter(d -> d.getJohansenCointPValue() != null)
+                    .mapToDouble(ZScoreData::getJohansenCointPValue)
                     .min()
                     .orElse(1.0);
             log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
@@ -232,8 +232,8 @@ public class FilterIncompleteZScoreParamsService {
      * Возвращает причину фильтрации или null если пара прошла все фильтры
      */
     private String shouldFilterPair(ZScoreData data, Settings settings, double expectedSize) {
-        List<ZScoreParam> params = data.getZscoreHistory();
-        String pairName = data.getUndervaluedTicker() + "/" + data.getOvervaluedTicker();
+        List<ZScoreParam> params = data.getZScoreHistory();
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
         log.info("⚙️ Проверка пары {} по критериям фильтрации:", pairName);
 
@@ -332,7 +332,7 @@ public class FilterIncompleteZScoreParamsService {
                 log.info("   ❌ {}: {}", pairName, reason);
                 return reason;
             }
-            log.info("   ✅ {}: Прошла фильтр корреляции (Корр={}).", pairName, com.example.statarbitrage.common.utils.NumberFormatter.format(data.getCorrelation(), 3));
+            log.info("   ✅ {}: Прошла фильтр корреляции (Корр={}).", pairName, com.example.statarbitrage.common.utils.NumberFormatter.format(data.getPearsonCorr(), 3));
         } else {
             log.info("   ℹ️ {}: Фильтр корреляции отключен.", pairName);
         }
@@ -370,25 +370,25 @@ public class FilterIncompleteZScoreParamsService {
         if (params != null && !params.isEmpty()) {
             return false; // Старый формат - есть данные
         }
-        return data.getLatestZscore() == null; // Новый формат - проверяем latest_zscore
+        return data.getLatestZScore() == null; // Новый формат - проверяем latest_zscore
     }
 
     private boolean isTickersInvalid(ZScoreData data) {
-        return data.getUndervaluedTicker() == null ||
-                data.getOvervaluedTicker() == null ||
-                data.getUndervaluedTicker().isEmpty() ||
-                data.getOvervaluedTicker().isEmpty() ||
-                data.getUndervaluedTicker().equals(data.getOvervaluedTicker());
+        return data.getUnderValuedTicker() == null ||
+                data.getOverValuedTicker() == null ||
+                data.getUnderValuedTicker().isEmpty() ||
+                data.getOverValuedTicker().isEmpty() ||
+                data.getUnderValuedTicker().equals(data.getOverValuedTicker());
     }
 
     private String checkCointegration(ZScoreData data, List<ZScoreParam> params, Settings settings) {
         // ПРИОРИТЕТ 1: Johansen тест (если доступен)
-        if (data.getCointegrationPvalue() != null) {
-            Double johansenPValue = data.getCointegrationPvalue();
+        if (data.getJohansenCointPValue() != null) {
+            Double johansenPValue = data.getJohansenCointPValue();
             log.debug("🔬 Johansen p-value: {} для пары {}/{}",
                     NumberFormatter.format(johansenPValue, 6), // Use NumberFormatter
-                    data.getUndervaluedTicker(),
-                    data.getOvervaluedTicker());
+                    data.getUnderValuedTicker(),
+                    data.getOverValuedTicker());
 
             // Для Johansen теста используем более строгий порог (0.05)
             double johansenThreshold = 0.05; //todo вынести в настройки
@@ -398,20 +398,20 @@ public class FilterIncompleteZScoreParamsService {
             }
 
             // Дополнительная проверка качества Johansen теста
-            if (data.getTraceStatistic() != null && data.getCriticalValue95() != null) {
-                if (data.getError() != null) {
-                    return "Ошибка в Johansen тесте: " + data.getError();
+            if (data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
+                if (data.getJohansenError() != null) {
+                    return "Ошибка в Johansen тесте: " + data.getJohansenError();
                 }
 
                 // Проверяем trace statistic - должен быть больше критического значения
-                if (data.getTraceStatistic() <= data.getCriticalValue95()) {
+                if (data.getJohansenTraceStatistic() <= data.getJohansenCriticalValue95()) {
                     return String.format("Слабая коинтеграция (Johansen): trace=%.2f ≤ critical=%.2f",
-                            data.getTraceStatistic(), data.getCriticalValue95());
+                            data.getJohansenTraceStatistic(), data.getJohansenCriticalValue95());
                 }
             }
 
             log.debug("✅ Пара {}/{} прошла Johansen тест (p-value={})",
-                    data.getUndervaluedTicker(), data.getOvervaluedTicker(),
+                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
                     com.example.statarbitrage.common.utils.NumberFormatter.format(johansenPValue, 6)); // Use NumberFormatter
             return null; // Прошли Johansen тест
         }
@@ -419,7 +419,7 @@ public class FilterIncompleteZScoreParamsService {
         // ПРИОРИТЕТ 2: Fallback к ADF если нет Johansen данных
         Double adfPValue = getAdfPValue(data, params);
         if (adfPValue == null) {
-            log.debug("⚠️ Отсутствует ADF p-value для пары {}/{}", data.getUndervaluedTicker(), data.getOvervaluedTicker());
+            log.debug("⚠️ Отсутствует ADF p-value для пары {}/{}", data.getUnderValuedTicker(), data.getOverValuedTicker());
             return "Отсутствует cointegration p-value"; // Return reason for filtering
         }
 
@@ -432,7 +432,7 @@ public class FilterIncompleteZScoreParamsService {
         }
 
         log.debug("✅ Пара {}/{} прошла ADF тест (p-value={})",
-                data.getUndervaluedTicker(), data.getOvervaluedTicker(),
+                data.getUnderValuedTicker(), data.getOverValuedTicker(),
                 com.example.statarbitrage.common.utils.NumberFormatter.format(adfPValue, 6)); // Use NumberFormatter
         return null;
     }
@@ -516,7 +516,7 @@ public class FilterIncompleteZScoreParamsService {
     }
 
     private String checkCorrelation(ZScoreData data, Settings settings) {
-        Double correlation = data.getCorrelation();
+        Double correlation = data.getPearsonCorr();
         if (correlation == null) {
             return "Отсутствует корреляция";
         }
@@ -587,7 +587,7 @@ public class FilterIncompleteZScoreParamsService {
             return lastParam.getPvalue();
         } else {
             // Новый формат API
-            return data.getCorrelationPvalue();
+            return data.getPearsonCorrPValue();
         }
     }
 
@@ -595,9 +595,9 @@ public class FilterIncompleteZScoreParamsService {
         if (params != null && !params.isEmpty()) {
             // Старый формат API
             return params.get(params.size() - 1).getZscore();
-        } else if (data.getLatestZscore() != null) {
+        } else if (data.getLatestZScore() != null) {
             // Новый формат API
-            return data.getLatestZscore();
+            return data.getLatestZScore();
         } else {
             return 0.0;
         }
@@ -670,13 +670,13 @@ public class FilterIncompleteZScoreParamsService {
     private void analyzeRemainingPairs(List<ZScoreData> filteredList) {
         // Статистика Z-Score
         double avgZScore = filteredList.stream()
-                .mapToDouble(d -> Math.abs(getLatestZScore(d, d.getZscoreHistory())))
+                .mapToDouble(d -> Math.abs(getLatestZScore(d, d.getZScoreHistory())))
                 .average().orElse(0.0);
 
         // Статистика корреляции
         double avgCorrelation = filteredList.stream()
-                .filter(d -> d.getCorrelation() != null)
-                .mapToDouble(d -> Math.abs(d.getCorrelation()))
+                .filter(d -> d.getPearsonCorr() != null)
+                .mapToDouble(d -> Math.abs(d.getPearsonCorr()))
                 .average().orElse(0.0);
 
         // Статистика R-squared
@@ -688,7 +688,7 @@ public class FilterIncompleteZScoreParamsService {
 
         // Подсчет пар с Johansen тестом
         long johansenPairs = filteredList.stream()
-                .filter(d -> d.getCointegrationPvalue() != null)
+                .filter(d -> d.getJohansenCointPValue() != null)
                 .count();
 
         log.info("📋 Качество отобранных пар:");

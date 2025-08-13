@@ -25,8 +25,8 @@ public class StartNewTradeValidationService {
     }
 
     public boolean validateTickers(PairData pairData, ZScoreData zScoreData) {
-        return Objects.equals(pairData.getLongTicker(), zScoreData.getUndervaluedTicker()) &&
-                Objects.equals(pairData.getShortTicker(), zScoreData.getOvervaluedTicker());
+        return Objects.equals(pairData.getLongTicker(), zScoreData.getUnderValuedTicker()) &&
+                Objects.equals(pairData.getShortTicker(), zScoreData.getOverValuedTicker());
     }
 
     public boolean validateAutoTrading(PairData pairData, boolean checkAutoTrading) {

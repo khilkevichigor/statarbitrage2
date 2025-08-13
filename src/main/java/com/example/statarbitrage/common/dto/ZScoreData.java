@@ -17,32 +17,37 @@ import java.util.List;
 public class ZScoreData {
 
     // Ticker information
-    private String overvaluedTicker;
-    private String undervaluedTicker;
+    @JsonProperty("overvaluedTicker")
+    private String overValuedTicker;
+
+    @JsonProperty("undervaluedTicker")
+    private String underValuedTicker;
 
     // Core statistical data
     @JsonProperty("pearson_corr")
-    private Double correlation;
+    private Double pearsonCorr;
     @JsonProperty("pearson_corr_pvalue")
-    private Double correlationPvalue;
+    private Double pearsonCorrPValue;
     @JsonProperty("johansen_is_coint")
-    private boolean isCointegrated;
+    private boolean johansenIsCoint;
     @JsonProperty("johansen_coint_pvalue")
-    private Double cointegrationPvalue;
+    private Double johansenCointPValue;
     @JsonProperty("latest_zscore")
-    private Double latestZscore;
+    private Double latestZScore;
     @JsonProperty("total_observations")
     private Integer totalObservations;
 
     // Flattened fields from CointegrationDetails
     @JsonProperty("trace_statistic")
-    private Double traceStatistic;
+    private Double johansenTraceStatistic;
     @JsonProperty("critical_value_95")
-    private Double criticalValue95;
-    private List<Double> eigenvalues;
+    private Double johansenCriticalValue95;
+    @JsonProperty("eigenvalues")
+    private List<Double> johansenEigenValues;
     @JsonProperty("cointegrating_vector")
-    private List<Double> cointegratingVector;
-    private String error;
+    private List<Double> johansenCointegratingVector;
+    @JsonProperty("error")
+    private String johansenError;
 
     // Flattened fields from DataQuality
     @JsonProperty("avg_r_squared")
@@ -54,5 +59,5 @@ public class ZScoreData {
 
     // Full Z-score history
     @JsonProperty("zscore_history")
-    private List<ZScoreParam> zscoreHistory;
+    private List<ZScoreParam> zScoreHistory;
 }

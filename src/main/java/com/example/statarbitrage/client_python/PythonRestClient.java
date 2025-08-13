@@ -180,22 +180,22 @@ public class PythonRestClient {
 
     private ZScoreData convertPairAnalysisResultToZScoreData(PairAnalysisResult result) {
         ZScoreData zScoreData = new ZScoreData();
-        zScoreData.setOvervaluedTicker(result.getOvervaluedTicker());
-        zScoreData.setUndervaluedTicker(result.getUndervaluedTicker());
-        zScoreData.setCorrelation(result.getCorrelation());
-        zScoreData.setCorrelationPvalue(result.getCorrelation_pvalue());
-        zScoreData.setCointegrated(result.getIs_cointegrated());
-        zScoreData.setCointegrationPvalue(result.getCointegration_pvalue());
-        zScoreData.setLatestZscore(result.getLatest_zscore());
+        zScoreData.setOverValuedTicker(result.getOvervaluedTicker());
+        zScoreData.setUnderValuedTicker(result.getUndervaluedTicker());
+        zScoreData.setPearsonCorr(result.getCorrelation());
+        zScoreData.setPearsonCorrPValue(result.getCorrelation_pvalue());
+        zScoreData.setJohansenIsCoint(result.getIs_cointegrated());
+        zScoreData.setJohansenCointPValue(result.getCointegration_pvalue());
+        zScoreData.setLatestZScore(result.getLatest_zscore());
         zScoreData.setTotalObservations(result.getTotal_observations());
 
         if (result.getCointegration_details() != null) {
             CointegrationDetails details = result.getCointegration_details();
-            zScoreData.setTraceStatistic(details.getTrace_statistic());
-            zScoreData.setCriticalValue95(details.getCritical_value_95());
-            zScoreData.setEigenvalues(details.getEigenvalues());
-            zScoreData.setCointegratingVector(details.getCointegrating_vector());
-            zScoreData.setError(details.getError());
+            zScoreData.setJohansenTraceStatistic(details.getTrace_statistic());
+            zScoreData.setJohansenCriticalValue95(details.getCritical_value_95());
+            zScoreData.setJohansenEigenValues(details.getEigenvalues());
+            zScoreData.setJohansenCointegratingVector(details.getCointegrating_vector());
+            zScoreData.setJohansenError(details.getError());
         }
 
         if (result.getData_quality() != null) {
@@ -218,7 +218,7 @@ public class PythonRestClient {
                         return param;
                     })
                     .collect(Collectors.toList());
-            zScoreData.setZscoreHistory(zscoreParams);
+            zScoreData.setZScoreHistory(zscoreParams);
         }
 
         return zScoreData;

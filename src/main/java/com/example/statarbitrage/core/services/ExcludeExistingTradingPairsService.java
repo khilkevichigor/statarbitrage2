@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,7 +42,7 @@ public class ExcludeExistingTradingPairsService {
         int beforeSize = zScoreDataList.size();
 
         zScoreDataList.removeIf(z ->
-                existingKeys.contains(buildKey(z.getUndervaluedTicker(), z.getOvervaluedTicker()))
+                existingKeys.contains(buildKey(z.getUnderValuedTicker(), z.getOverValuedTicker()))
         );
 
         int removed = beforeSize - zScoreDataList.size();

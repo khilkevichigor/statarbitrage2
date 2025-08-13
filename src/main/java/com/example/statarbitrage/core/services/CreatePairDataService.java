@@ -32,13 +32,13 @@ public class CreatePairDataService {
                 result.add(pairData);
             } catch (IllegalArgumentException e) {
                 log.warn("⚠️ Пропущена пара {}/{}: {}",
-                        zScoreData.getUndervaluedTicker(),
-                        zScoreData.getOvervaluedTicker(),
+                        zScoreData.getUnderValuedTicker(),
+                        zScoreData.getOverValuedTicker(),
                         e.getMessage());
             } catch (Exception e) {
                 log.error("❌ Ошибка при создании PairData для пары {}/{}: {}",
-                        zScoreData.getUndervaluedTicker(),
-                        zScoreData.getOvervaluedTicker(),
+                        zScoreData.getUnderValuedTicker(),
+                        zScoreData.getOverValuedTicker(),
                         e.getMessage(), e);
             }
         }
@@ -50,8 +50,8 @@ public class CreatePairDataService {
      * Строит одну пару на основе Z-данных и свечей
      */
     private PairData buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
-        String undervalued = zScoreData.getUndervaluedTicker();
-        String overvalued = zScoreData.getOvervaluedTicker();
+        String undervalued = zScoreData.getUnderValuedTicker();
+        String overvalued = zScoreData.getOverValuedTicker();
 
         List<Candle> undervaluedCandles = candlesMap.get(undervalued);
         List<Candle> overvaluedCandles = candlesMap.get(overvalued);

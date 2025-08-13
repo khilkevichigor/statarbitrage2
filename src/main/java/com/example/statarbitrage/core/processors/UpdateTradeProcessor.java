@@ -2,8 +2,6 @@ package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
-import com.example.statarbitrage.common.dto.ZScoreParam;
-
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -142,13 +140,13 @@ public class UpdateTradeProcessor {
         StringBuilder logMessage = new StringBuilder();
 
         logMessage.append(String.format("Наша пара: long=%s, short=%s | cointegrated=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
-                zScoreData.getUndervaluedTicker(),
-                zScoreData.getOvervaluedTicker(),
-                zScoreData.isCointegrated(),
-                zScoreData.getCointegrationPvalue(),
+                zScoreData.getUnderValuedTicker(),
+                zScoreData.getOverValuedTicker(),
+                zScoreData.isJohansenIsCoint(),
+                zScoreData.getJohansenCointPValue(),
                 zScoreData.getAvgAdfPvalue(),
-                zScoreData.getLatestZscore(),
-                zScoreData.getCorrelation()));
+                zScoreData.getLatestZScore(),
+                zScoreData.getPearsonCorr()));
 
         logMessage.append(String.format(" | avgAdf=%.2f | avgR=%.2f | stablePeriods=%d",
                 zScoreData.getAvgAdfPvalue(),
@@ -157,14 +155,14 @@ public class UpdateTradeProcessor {
 
         logMessage.append(String.format(
                 " | traceStat=%.2f | criticalValue95=%.2f | eigenSize=%d | vectorSize=%d | errors=%s",
-                zScoreData.getTraceStatistic() != null ? zScoreData.getTraceStatistic() : 0.0,
-                zScoreData.getCriticalValue95() != null ? zScoreData.getCriticalValue95() : 0.0,
-                zScoreData.getEigenvalues() != null ? zScoreData.getEigenvalues().size() : 0,
-                zScoreData.getCointegratingVector() != null ? zScoreData.getCointegratingVector().size() : 0,
-                zScoreData.getError() != null ? zScoreData.getError() : "N/A"));
+                zScoreData.getJohansenTraceStatistic() != null ? zScoreData.getJohansenTraceStatistic() : 0.0,
+                zScoreData.getJohansenCriticalValue95() != null ? zScoreData.getJohansenCriticalValue95() : 0.0,
+                zScoreData.getJohansenEigenValues() != null ? zScoreData.getJohansenEigenValues().size() : 0,
+                zScoreData.getJohansenCointegratingVector() != null ? zScoreData.getJohansenCointegratingVector().size() : 0,
+                zScoreData.getJohansenError() != null ? zScoreData.getJohansenError() : "N/A"));
 
         logMessage.append(String.format(". Чек: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
-                FormatUtil.color(zScoreData.getCointegrationPvalue(), settings.getMinPValue()),
+                FormatUtil.color(zScoreData.getJohansenCointPValue(), settings.getMinPValue()),
                 FormatUtil.color(zScoreData.getAvgAdfPvalue(), settings.getMaxAdfValue()),
                 FormatUtil.color(zScoreData.getAvgRSquared(), settings.getMinRSquared()),
                 zScoreData.getStablePeriods()));

@@ -2,7 +2,6 @@ package com.example.statarbitrage.core.processors;
 
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
-
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
@@ -93,13 +92,13 @@ public class FetchPairsProcessor {
         int index = 1;
         for (ZScoreData data : dataList) {
             // Use NumberFormatter.format which handles nulls and returns "N/A"
-            String cointegrationPValue = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getCointegrationPvalue(), 5);
+            String cointegrationPValue = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getJohansenCointPValue(), 5);
             String avgAdfPValue = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getAvgAdfPvalue(), 5);
-            String latestZscore = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getLatestZscore(), 2);
-            String correlation = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getCorrelation(), 2);
+            String latestZscore = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getLatestZScore(), 2);
+            String correlation = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getPearsonCorr(), 2);
 
             log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%s | adf=%s | z=%s | corr=%s",
-                    index++, data.getUndervaluedTicker(), data.getOvervaluedTicker(),
+                    index++, data.getUnderValuedTicker(), data.getOverValuedTicker(),
                     cointegrationPValue, avgAdfPValue, latestZscore, correlation));
         }
     }
