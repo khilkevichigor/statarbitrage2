@@ -124,7 +124,7 @@ public class ZScoreService {
 
             // Фильтрация по pValue
             boolean isIncompleteByPValue = false;
-            if (settings.isUseMinPValueFilter()) {
+            if (settings.isUseMaxPValueFilter()) {
                 Double pValue = null;
                 if (params != null && !params.isEmpty()) {
                     // Для старого формата используем pValue из последнего параметра
@@ -134,12 +134,12 @@ public class ZScoreService {
                     pValue = data.getPearsonCorrPValue();
                 }
 
-                if (pValue != null && pValue > settings.getMinPValue()) {
+                if (pValue != null && pValue > settings.getMaxPValue()) {
                     isIncompleteByPValue = true;
                     if (pairData != null) {
                         pairDataService.delete(pairData);
                         log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
-                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMinPValue());
+                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMaxPValue());
                     }
                 }
             }
@@ -375,7 +375,7 @@ public class ZScoreService {
             if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) continue;
 
             // 2. pValue <= minPValue
-            if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
+            if (settings.isUseMaxPValueFilter() && pValue > settings.getMaxPValue()) continue;
 
             // 3. adfValue <= maxAdfValue
             if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;

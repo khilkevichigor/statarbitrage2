@@ -30,8 +30,8 @@ public class DbInitializer {
                     .useMinZFilter(true)
                     .minZ(3.5)
 
-                    .useMinPValueFilter(true)
-                    .minPValue(0.01)
+                    .useMaxPValueFilter(true)
+                    .maxPValue(0.01)
 
                     .useMaxAdfValueFilter(true)
                     .maxAdfValue(0.8)

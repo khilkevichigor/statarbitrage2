@@ -162,7 +162,7 @@ public class UpdateTradeProcessor {
                 zScoreData.getJohansenError() != null ? zScoreData.getJohansenError() : "N/A"));
 
         logMessage.append(String.format(". Чек: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
-                FormatUtil.color(zScoreData.getJohansenCointPValue(), settings.getMinPValue()),
+                FormatUtil.color(zScoreData.getJohansenCointPValue(), settings.getMaxPValue()),
                 FormatUtil.color(zScoreData.getAvgAdfPvalue(), settings.getMaxAdfValue()),
                 FormatUtil.color(zScoreData.getAvgRSquared(), settings.getMinRSquared()),
                 zScoreData.getStablePeriods()));

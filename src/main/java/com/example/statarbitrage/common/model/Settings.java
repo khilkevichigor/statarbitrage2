@@ -22,7 +22,7 @@ public class Settings {
     private double candleLimit;
     private double minZ;
     private double minWindowSize;
-    private double minPValue;
+    private double maxPValue;
     private double maxAdfValue;
     private double minRSquared;
     private double minCorrelation;
@@ -53,7 +53,7 @@ public class Settings {
     @Builder.Default
     private boolean useMinRSquaredFilter = true;
     @Builder.Default
-    private boolean useMinPValueFilter = true;
+    private boolean useMaxPValueFilter = true;
     @Builder.Default
     private boolean useMaxAdfValueFilter = true;
     @Builder.Default

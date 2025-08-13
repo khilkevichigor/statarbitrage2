@@ -58,7 +58,7 @@ public class ObtainBestPairByCriteriaService {
             if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) continue;
 
             // 2. pValue <= minPValue
-            if (settings.isUseMinPValueFilter() && pValue > settings.getMinPValue()) continue;
+            if (settings.isUseMaxPValueFilter() && pValue > settings.getMaxPValue()) continue;
 
             // 3. adfValue <= maxAdfValue
             if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;

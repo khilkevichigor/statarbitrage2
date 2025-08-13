@@ -105,7 +105,7 @@ public class FilterIncompleteZScoreParamsService {
 
             // Фильтрация по pValue
             boolean isIncompleteByPValue = false;
-            if (settings.isUseMinPValueFilter()) {
+            if (settings.isUseMaxPValueFilter()) {
                 Double pValue = null;
                 if (params != null && !params.isEmpty()) {
                     // Для старого формата используем pValue из последнего параметра
@@ -115,12 +115,12 @@ public class FilterIncompleteZScoreParamsService {
                     pValue = data.getPearsonCorrPValue();
                 }
 
-                if (pValue != null && pValue > settings.getMinPValue()) {
+                if (pValue != null && pValue > settings.getMaxPValue()) {
                     isIncompleteByPValue = true;
                     if (pairData != null) {
                         pairDataService.delete(pairData);
                         log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
-                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMinPValue());
+                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMaxPValue());
                     }
                 }
             }
@@ -314,7 +314,7 @@ public class FilterIncompleteZScoreParamsService {
         // ====== ЭТАП 4: СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ ======
 
         // 7. P-value корреляции
-        if (settings.isUseMinPValueFilter()) {
+        if (settings.isUseMaxPValueFilter()) {
             reason = checkCorrelationSignificance(data, params, settings);
             if (reason != null) {
                 log.info("   ❌ {}: {}", pairName, reason);
@@ -507,9 +507,9 @@ public class FilterIncompleteZScoreParamsService {
             return "Отсутствует correlation p-value";
         }
 
-        if (pValue > settings.getMinPValue()) {
+        if (pValue > settings.getMaxPValue()) {
             return String.format("Незначимая корреляция: p-value=%.6f > %.6f",
-                    pValue, settings.getMinPValue());
+                    pValue, settings.getMaxPValue());
         }
 
         return null;
@@ -656,8 +656,8 @@ public class FilterIncompleteZScoreParamsService {
             log.info("   📈 R-squared: > {}", settings.getMinRSquared());
         if (settings.isUseMinCorrelationFilter())
             log.info("   🔗 Корреляция: |значение| > {}", settings.getMinCorrelation());
-        if (settings.isUseMinPValueFilter())
-            log.info("   📊 P-value корреляции: < {}", settings.getMinPValue());
+        if (settings.isUseMaxPValueFilter())
+            log.info("   📊 P-value корреляции: < {}", settings.getMaxPValue());
         if (settings.isUseMinZFilter())
             log.info("   ⚡ Z-Score: положительный и > {}", settings.getMinZ());
         log.info("   🚫 Отрицательные Z-Score отфильтровываются автоматически");

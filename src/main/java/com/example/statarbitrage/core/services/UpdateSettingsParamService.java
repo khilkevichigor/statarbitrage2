@@ -19,7 +19,7 @@ public class UpdateSettingsParamService {
         pairData.setSettingsCandleLimit(settings.getCandleLimit());
         pairData.setSettingsMinZ(settings.getMinZ());
         pairData.setSettingsMinWindowSize(settings.getMinWindowSize());
-        pairData.setSettingsMinPValue(settings.getMinPValue());
+        pairData.setSettingsMinPValue(settings.getMaxPValue());
         pairData.setSettingsMaxAdfValue(settings.getMaxAdfValue());
         pairData.setSettingsMinRSquared(settings.getMinRSquared());
         pairData.setSettingsMinCorrelation(settings.getMinCorrelation());
@@ -39,7 +39,7 @@ public class UpdateSettingsParamService {
         pairData.setSettingsAutoTradingEnabled(settings.isAutoTradingEnabled());
         pairData.setSettingsUseMinZFilter(settings.isUseMinZFilter());
         pairData.setSettingsUseMinRSquaredFilter(settings.isUseMinRSquaredFilter());
-        pairData.setSettingsUseMinPValueFilter(settings.isUseMinPValueFilter());
+        pairData.setSettingsUseMinPValueFilter(settings.isUseMaxPValueFilter());
         pairData.setSettingsUseMaxAdfValueFilter(settings.isUseMaxAdfValueFilter());
         pairData.setSettingsUseMinCorrelationFilter(settings.isUseMinCorrelationFilter());
         pairData.setSettingsUseMinVolumeFilter(settings.isUseMinVolumeFilter());

@@ -182,7 +182,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMaxAdfValueFilterCheckbox = new Checkbox("Использовать Max adfValue фильтр");
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
-        
+
         // Minimum lot blacklist field
         TextArea minimumLotBlacklistField = new TextArea("Блэклист мин. лота");
         minimumLotBlacklistField.setPlaceholder("Тикеры через запятую (ETH-USDT-SWAP,BTC-USDT-SWAP)");
@@ -493,7 +493,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minZField).bind(Settings::getMinZ, Settings::setMinZ);
         settingsBinder.forField(minRSquaredField).bind(Settings::getMinRSquared, Settings::setMinRSquared);
         settingsBinder.forField(minWindowSizeField).bind(Settings::getMinWindowSize, Settings::setMinWindowSize);
-        settingsBinder.forField(maxPValueField).bind(Settings::getMinPValue, Settings::setMinPValue);
+        settingsBinder.forField(maxPValueField).bind(Settings::getMaxPValue, Settings::setMaxPValue);
         settingsBinder.forField(maxAdfValueField).bind(Settings::getMaxAdfValue, Settings::setMaxAdfValue);
         settingsBinder.forField(checkIntervalField).bind(Settings::getCheckInterval, Settings::setCheckInterval);
         settingsBinder.forField(maxShortMarginSizeField).bind(Settings::getMaxShortMarginSize, Settings::setMaxShortMarginSize);
@@ -513,14 +513,14 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
         settingsBinder.forField(usePairsField).bind(Settings::getUsePairs, Settings::setUsePairs);
-        
+
         // Bind minimum lot blacklist field
         settingsBinder.forField(minimumLotBlacklistField).bind(Settings::getMinimumLotBlacklist, Settings::setMinimumLotBlacklist);
 
         // Bind filter checkboxes
         settingsBinder.forField(useMinZFilterCheckbox).bind(Settings::isUseMinZFilter, Settings::setUseMinZFilter);
         settingsBinder.forField(useMinRSquaredFilterCheckbox).bind(Settings::isUseMinRSquaredFilter, Settings::setUseMinRSquaredFilter);
-        settingsBinder.forField(useMinPValueFilterCheckbox).bind(Settings::isUseMinPValueFilter, Settings::setUseMinPValueFilter);
+        settingsBinder.forField(useMinPValueFilterCheckbox).bind(Settings::isUseMaxPValueFilter, Settings::setUseMaxPValueFilter);
         settingsBinder.forField(useMaxAdfValueFilterCheckbox).bind(Settings::isUseMaxAdfValueFilter, Settings::setUseMaxAdfValueFilter);
         settingsBinder.forField(useMinCorrelationFilterCheckbox).bind(Settings::isUseMinCorrelationFilter, Settings::setUseMinCorrelationFilter);
         settingsBinder.forField(useMinVolumeFilterCheckbox).bind(Settings::isUseMinVolumeFilter, Settings::setUseMinVolumeFilter);
