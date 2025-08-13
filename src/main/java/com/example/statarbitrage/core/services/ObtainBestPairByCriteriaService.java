@@ -116,14 +116,30 @@ public class ObtainBestPairByCriteriaService {
         // 1. Z-Score компонент (40% веса) - основной торговый сигнал
         double zScoreComponent = Math.abs(zVal) * 40.0;
 
-        // 2. Качество коинтеграции (25% веса)
+        // 2. Качество коинтеграции (25% веса) - Учитывает Johansen и ADF
         double cointegrationComponent = 0.0;
-        if (data.getCointegrationPvalue() != null) {
-            // Johansen тест - инвертируем p-value (меньше = лучше)
+        double johansenWeight = 0.6; // 60% вес для Johansen
+        double adfWeight = 0.4;      // 40% вес для ADF
+
+        boolean hasJohansen = data.getCointegrationPvalue() != null && data.getCointegrationPvalue() > 0;
+        boolean hasAdf = adf > 0;
+
+        if (hasJohansen && hasAdf) {
+            // Оба теста доступны: используем взвешенную оценку
+            double johansenScore = (1.0 - data.getCointegrationPvalue());
+            double adfScore = (1.0 - Math.min(adf, 1.0));
+            cointegrationComponent = (johansenScore * johansenWeight + adfScore * adfWeight) * 25.0;
+            log.trace("Расчет коинтеграции для {}/{}: Johansen ({}) и ADF ({}) -> {}",
+                    data.getUndervaluedTicker(), data.getOvervaluedTicker(),
+                    NumberFormatter.format(johansenScore, 2), NumberFormatter.format(adfScore, 2),
+                    NumberFormatter.format(cointegrationComponent, 2));
+
+        } else if (hasJohansen) {
+            // Только Johansen
             cointegrationComponent = (1.0 - data.getCointegrationPvalue()) * 25.0;
-        } else if (adf > 0) {
-            // ADF fallback
-            cointegrationComponent = (1.0 - Math.min(adf, 1.0)) * 20.0; // Немного меньший вес
+        } else if (hasAdf) {
+            // Только ADF
+            cointegrationComponent = (1.0 - Math.min(adf, 1.0)) * 25.0; // Используем полный вес
         }
 
         // 3. R-squared компонент (20% веса) - качество модели
