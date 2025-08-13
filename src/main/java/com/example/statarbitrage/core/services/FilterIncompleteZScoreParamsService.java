@@ -41,8 +41,8 @@ public class FilterIncompleteZScoreParamsService {
                 log.info("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
                         data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason,
                         com.example.statarbitrage.common.utils.NumberFormatter.format(getLatestZScore(data, data.getZscoreHistory()), 2),
-                        com.example.statarbitrage.common.utils.NumberFormatter.format(getAdfPValue(data, data.getZscoreHistory()), 4),
-                        com.example.statarbitrage.common.utils.NumberFormatter.format(getRSquared(data), 3)
+                        getAdfPValue(data, data.getZscoreHistory()) != null ? com.example.statarbitrage.common.utils.NumberFormatter.format(getAdfPValue(data, data.getZscoreHistory()), 4) : "N/A",
+                        getRSquared(data) != null ? com.example.statarbitrage.common.utils.NumberFormatter.format(getRSquared(data), 3) : "N/A"
                 );
                 return true;
             }
