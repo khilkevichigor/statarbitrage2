@@ -195,7 +195,7 @@ public class FilterIncompleteZScoreParamsService {
 
         // Статистика по причинам фильтрации
         filterStats.forEach((reason, count) ->
-                log.info("📊 Статистика по фильтрации - {}: {} пар", reason, count));
+                log.debug("📊 Статистика по фильтрации - {}: {} пар", reason, count));
 
         // Детальная статистика фильтрации
         logFilteringStatistics(originalList, zScoreDataList, settings);
