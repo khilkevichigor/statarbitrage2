@@ -93,74 +93,132 @@ public class FilterIncompleteZScoreParamsService {
      */
     private String shouldFilterPair(ZScoreData data, Settings settings, double expectedSize) {
         List<ZScoreParam> params = data.getZscoreHistory();
+        String pairName = data.getUndervaluedTicker() + "/" + data.getOvervaluedTicker();
+
+        log.info("⚙️ Проверка пары {} по критериям фильтрации:", pairName);
 
         // ====== ЭТАП 1: БЫСТРЫЕ ПРОВЕРКИ (дешевые операции) ======
 
         // 1. Проверка наличия данных
-        if (isDataMissing(data, params)) {
-            return "Отсутствуют данные Z-score";
+        String reason = isDataMissing(data, params) ? "Отсутствуют данные Z-score" : null;
+        if (reason != null) {
+            log.info("   ❌ {}: {}", pairName, reason);
+            return reason;
         }
+        log.info("   ✅ {}: Данные Z-score присутствуют.", pairName);
 
         // 2. Проверка тикеров
-        if (isTickersInvalid(data)) {
-            return "Некорректные тикеры";
+        reason = isTickersInvalid(data) ? "Некорректные тикеры" : null;
+        if (reason != null) {
+            log.info("   ❌ {}: {}", pairName, reason);
+            return reason;
         }
+        log.info("   ✅ {}: Тикеры корректны.", pairName);
 
         // 3. Проверка размера выборки (только для старого API)
         if (params != null && !params.isEmpty()) {
             int actualSize = params.size();
             if (actualSize < expectedSize) {
-                return String.format("Недостаточно наблюдений: %d < %.0f", actualSize, expectedSize);
+                reason = String.format("Недостаточно наблюдений: %d < %.0f", actualSize, expectedSize);
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
             }
+            log.info("   ✅ {}: Достаточно наблюдений ({} >= {}).", pairName, actualSize, expectedSize);
+        } else {
+            log.info("   ℹ️ {}: Проверка размера выборки пропущена (новый формат API).", pairName);
         }
+
 
         // ====== ЭТАП 2: КОИНТЕГРАЦИЯ (критически важно!) ======
 
         // 4. Johansen/ADF тест на коинтеграцию (ПРИОРИТЕТ!)
         if (settings.isUseMaxAdfValueFilter()) {
-            String cointegrationReason = checkCointegration(data, params, settings);
-            if (cointegrationReason != null) return cointegrationReason;
+            reason = checkCointegration(data, params, settings);
+            if (reason != null) {
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.info("   ✅ {}: Прошла тест на коинтеграцию.", pairName);
+        } else {
+            log.info("   ℹ️ {}: Фильтр коинтеграции отключен.", pairName);
         }
+
 
         // ====== ЭТАП 3: КАЧЕСТВО СТАТИСТИЧЕСКОЙ МОДЕЛИ ======
 
         // 5. R-squared (объяснительная способность модели)
         if (settings.isUseMinRSquaredFilter()) {
-            String rSquaredReason = checkRSquared(data, settings);
-            if (rSquaredReason != null) return rSquaredReason;
+            reason = checkRSquared(data, settings);
+            if (reason != null) {
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.info("   ✅ {}: Прошла фильтр R-squared (R²={}).", pairName, com.example.statarbitrage.common.utils.NumberFormatter.format(getRSquared(data), 3));
+        } else {
+            log.info("   ℹ️ {}: Фильтр R-squared отключен.", pairName);
         }
 
         // 6. Стабильность коинтеграции в времени
         if (settings.isUseCointegrationStabilityFilter()) {
-            String stabilityReason = checkCointegrationStability(data, params, settings);
-            if (stabilityReason != null) return stabilityReason;
+            reason = checkCointegrationStability(data, params, settings);
+            if (reason != null) {
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.info("   ✅ {}: Прошла фильтр стабильности коинтеграции.", pairName);
+        } else {
+            log.info("   ℹ️ {}: Фильтр стабильности коинтеграции отключен.", pairName);
         }
+
 
         // ====== ЭТАП 4: СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ ======
 
         // 7. P-value корреляции
         if (settings.isUseMinPValueFilter()) {
-            String pValueReason = checkCorrelationSignificance(data, params, settings);
-            if (pValueReason != null) return pValueReason;
+            reason = checkCorrelationSignificance(data, params, settings);
+            if (reason != null) {
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.info("   ✅ {}: Прошла фильтр P-value корреляции (P-value={}).", pairName, com.example.statarbitrage.common.utils.NumberFormatter.format(getCorrelationPValue(data, params), 4));
+        } else {
+            log.info("   ℹ️ {}: Фильтр P-value корреляции отключен.", pairName);
         }
 
         // 8. Корреляция (осторожно - может быть ложной!)
         if (settings.isUseMinCorrelationFilter()) {
-            String correlationReason = checkCorrelation(data, settings);
-            if (correlationReason != null) return correlationReason;
+            reason = checkCorrelation(data, settings);
+            if (reason != null) {
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.info("   ✅ {}: Прошла фильтр корреляции (Корр={}).", pairName, com.example.statarbitrage.common.utils.NumberFormatter.format(data.getCorrelation(), 3));
+        } else {
+            log.info("   ℹ️ {}: Фильтр корреляции отключен.", pairName);
         }
+
 
         // ====== ЭТАП 5: ТОРГОВЫЕ СИГНАЛЫ (в последнюю очередь!) ======
 
         // 9. Z-Score фильтр (торговый сигнал)
         if (settings.isUseMinZFilter()) {
-            String zScoreReason = checkZScoreSignal(data, params, settings);
-            if (zScoreReason != null) return zScoreReason;
+            reason = checkZScoreSignal(data, params, settings);
+            if (reason != null) {
+                log.info("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.info("   ✅ {}: Прошла фильтр Z-Score (Z={}).", pairName, com.example.statarbitrage.common.utils.NumberFormatter.format(getLatestZScore(data, params), 2));
+        } else {
+            log.info("   ℹ️ {}: Фильтр Z-Score отключен.", pairName);
         }
 
         // 10. Дополнительные торговые фильтры
-        String tradingReason = checkAdditionalTradingFilters(data, params, settings);
-        if (tradingReason != null) return tradingReason;
+        reason = checkAdditionalTradingFilters(data, params, settings);
+        if (reason != null) {
+            log.info("   ❌ {}: {}", pairName, reason);
+            return reason;
+        }
+        log.info("   ✅ {}: Прошла дополнительные торговые фильтры.", pairName);
 
         return null; // Пара прошла все фильтры
     }
