@@ -188,15 +188,15 @@ public class FilterIncompleteZScoreParamsService {
         if (data.getCointegrationPvalue() != null) {
             Double johansenPValue = data.getCointegrationPvalue();
             log.debug("🔬 Johansen p-value: {} для пары {}/{}",
-                    String.format("%.6f", johansenPValue),
+                    com.example.statarbitrage.common.utils.NumberFormatter.format(johansenPValue, 6), // Use NumberFormatter
                     data.getUndervaluedTicker(),
                     data.getOvervaluedTicker());
 
             // Для Johansen теста используем более строгий порог (0.05)
             double johansenThreshold = 0.05; //todo вынести в настройки
             if (johansenPValue > johansenThreshold) {
-                return String.format("НЕ коинтегрированы (Johansen): p-value=%.6f > %.6f",
-                        johansenPValue, johansenThreshold);
+                return String.format("НЕ коинтегрированы (Johansen): p-value=%s > %.6f",
+                        com.example.statarbitrage.common.utils.NumberFormatter.format(johansenPValue, 6), johansenThreshold);
             }
 
             // Дополнительная проверка качества Johansen теста
@@ -214,27 +214,28 @@ public class FilterIncompleteZScoreParamsService {
 
             log.debug("✅ Пара {}/{} прошла Johansen тест (p-value={})",
                     data.getUndervaluedTicker(), data.getOvervaluedTicker(),
-                    String.format("%.6f", johansenPValue));
+                    com.example.statarbitrage.common.utils.NumberFormatter.format(johansenPValue, 6)); // Use NumberFormatter
             return null; // Прошли Johansen тест
         }
 
         // ПРИОРИТЕТ 2: Fallback к ADF если нет Johansen данных
         Double adfPValue = getAdfPValue(data, params);
         if (adfPValue == null) {
-            return "Отсутствует cointegration p-value";
+            log.debug("⚠️ Отсутствует ADF p-value для пары {}/{}", data.getUndervaluedTicker(), data.getOvervaluedTicker());
+            return "Отсутствует cointegration p-value"; // Return reason for filtering
         }
 
         // Для ADF теста используем настроечное значение с минимумом для криптовалют
         double adfThreshold = Math.max(settings.getMaxAdfValue(), 0.1); // Минимум 0.1 для crypto
 
         if (adfPValue > adfThreshold) {
-            return String.format("Слабая коинтеграция (ADF): p-value=%.6f > %.6f",
-                    adfPValue, adfThreshold);
+            return String.format("Слабая коинтеграция (ADF): p-value=%s > %.6f",
+                    com.example.statarbitrage.common.utils.NumberFormatter.format(adfPValue, 6), adfThreshold); // Use NumberFormatter
         }
 
         log.debug("✅ Пара {}/{} прошла ADF тест (p-value={})",
                 data.getUndervaluedTicker(), data.getOvervaluedTicker(),
-                String.format("%.6f", adfPValue));
+                com.example.statarbitrage.common.utils.NumberFormatter.format(adfPValue, 6)); // Use NumberFormatter
         return null;
     }
 
