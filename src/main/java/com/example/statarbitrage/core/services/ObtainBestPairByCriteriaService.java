@@ -101,6 +101,10 @@ public class ObtainBestPairByCriteriaService {
 
         double compositeScore = calculateCompositeScore(zVal, corr, adf, pValue, rSquared, z, settings);
 
+        log.debug("Пара {}/{} оценена. Скор: {}",
+                z.getUndervaluedTicker(), z.getOvervaluedTicker(),
+                NumberFormatter.format(compositeScore, 2));
+
         return new PairCandidate(z, compositeScore, zVal, corr, adf, pValue, rSquared);
     }
 
@@ -223,14 +227,22 @@ public class ObtainBestPairByCriteriaService {
             PairCandidate candidate = candidates.get(i);
             ZScoreData data = candidate.getData();
 
-            log.info("   {}. {}/{} - Скор: {}, Z: {}, Корр: {}, Johansen: {}",
+            String johansenStatus = "❌";
+            if (data.getCointegrationPvalue() != null && data.getCointegrationPvalue() > 0) {
+                johansenStatus = String.format("✅ (p=%.4f)", data.getCointegrationPvalue());
+            }
+
+            log.info("   {}. {}/{} -> Скор: {}, Z: {}, Корр: {}, R²: {}, Johansen: {}, ADF: {}",
                     i + 1,
                     data.getUndervaluedTicker(),
                     data.getOvervaluedTicker(),
-                    com.example.statarbitrage.common.utils.NumberFormatter.format(candidate.getCompositeScore(), 1),
-                    com.example.statarbitrage.common.utils.NumberFormatter.format(candidate.getZScore(), 2),
-                    com.example.statarbitrage.common.utils.NumberFormatter.format(candidate.getCorrelation(), 3),
-                    data.getCointegrationPvalue() != null ? "✅" : "❌");
+                    NumberFormatter.format(candidate.getCompositeScore(), 2),
+                    NumberFormatter.format(candidate.getZScore(), 2),
+                    NumberFormatter.format(candidate.getCorrelation(), 3),
+                    NumberFormatter.format(candidate.getRSquared(), 3),
+                    johansenStatus,
+                    NumberFormatter.format(candidate.getAdfValue(), 4)
+            );
         }
     }
 

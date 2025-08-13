@@ -3,6 +3,7 @@ package com.example.statarbitrage.core.services;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,12 +39,15 @@ public class FilterIncompleteZScoreParamsService {
             String reason = shouldFilterPair(data, settings, expected);
             if (reason != null) {
                 filterStats.merge(reason, 1, Integer::sum);
-                // Удаляем PairData только при массовой фильтрации (когда pairData == null)
-                // При единичной фильтрации (для новых трейдов) PairData не удаляем
-                log.info("⚠️ Отфильтровано {}/{} — {}",
-                        data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason);
+                log.info("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
+                        data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason,
+                        NumberFormatter.format(getLatestZScore(data, data.getZscoreHistory()), 2),
+                        NumberFormatter.format(getAdfPValue(data, data.getZscoreHistory()), 4),
+                        NumberFormatter.format(getRSquared(data), 3)
+                );
                 return true;
             }
+            log.trace("✅ Пара {}/{} прошла все фильтры.", data.getUndervaluedTicker(), data.getOvervaluedTicker());
             return false;
         });
 
