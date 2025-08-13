@@ -3,6 +3,7 @@ package com.example.statarbitrage.core.services;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.utils.NumberFormatter;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,12 +51,12 @@ public class ObtainBestPairByCriteriaService {
         log.info("🏆 Выбрана лучшая пара: {}/{} со скором {}. Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
                 best.getData().getUndervaluedTicker(),
                 best.getData().getOvervaluedTicker(),
-                com.example.statarbitrage.common.utils.NumberFormatter.format(best.getCompositeScore(), 2),
-                com.example.statarbitrage.common.utils.NumberFormatter.format(best.getZScore(), 2),
-                com.example.statarbitrage.common.utils.NumberFormatter.format(best.getCorrelation(), 3),
-                com.example.statarbitrage.common.utils.NumberFormatter.format(best.getPValue(), 4),
-                com.example.statarbitrage.common.utils.NumberFormatter.format(best.getAdfValue(), 4),
-                com.example.statarbitrage.common.utils.NumberFormatter.format(best.getRSquared(), 3)
+                NumberFormatter.format(best.getCompositeScore(), 2),
+                NumberFormatter.format(best.getZScore(), 2),
+                NumberFormatter.format(best.getCorrelation(), 3),
+                NumberFormatter.format(best.getPValue(), 4),
+                NumberFormatter.format(best.getAdfValue(), 4),
+                NumberFormatter.format(best.getRSquared(), 3)
         );
 
         // Логируем топ-3 для анализа
