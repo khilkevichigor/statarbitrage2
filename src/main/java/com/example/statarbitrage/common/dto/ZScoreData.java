@@ -21,12 +21,13 @@ public class ZScoreData {
     private String undervaluedTicker;
 
     // Core statistical data
+    @JsonProperty("pearson_corr")
     private Double correlation;
-    @JsonProperty("correlation_pvalue")
+    @JsonProperty("pearson_corr_pvalue")
     private Double correlationPvalue;
-    @JsonProperty("is_cointegrated")
+    @JsonProperty("johansen_is_coint")
     private boolean isCointegrated;
-    @JsonProperty("cointegration_pvalue")
+    @JsonProperty("johansen_coint_pvalue")
     private Double cointegrationPvalue;
     @JsonProperty("latest_zscore")
     private Double latestZscore;

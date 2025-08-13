@@ -1,6 +1,7 @@
 package com.example.statarbitrage.common.dto.cointegration;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PairAnalysisResponse {
+
+    @JsonProperty("success")
     private boolean success;
+
+    @JsonProperty("result")
     private PairAnalysisResult result;
 }
