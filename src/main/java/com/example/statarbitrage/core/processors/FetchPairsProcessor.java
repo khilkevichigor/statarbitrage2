@@ -92,9 +92,15 @@ public class FetchPairsProcessor {
     private void logZScoreResults(List<ZScoreData> dataList) {
         int index = 1;
         for (ZScoreData data : dataList) {
-            log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
+            // Use NumberFormatter.format which handles nulls and returns "N/A"
+            String cointegrationPValue = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getCointegrationPvalue(), 5);
+            String avgAdfPValue = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getAvgAdfPvalue(), 5);
+            String latestZscore = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getLatestZscore(), 2);
+            String correlation = com.example.statarbitrage.common.utils.NumberFormatter.format(data.getCorrelation(), 2);
+
+            log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%s | adf=%s | z=%s | corr=%s",
                     index++, data.getUndervaluedTicker(), data.getOvervaluedTicker(),
-                    data.getCointegrationPvalue(), data.getAvgAdfPvalue(), data.getLatestZscore(), data.getCorrelation()));
+                    cointegrationPValue, avgAdfPValue, latestZscore, correlation));
         }
     }
 
