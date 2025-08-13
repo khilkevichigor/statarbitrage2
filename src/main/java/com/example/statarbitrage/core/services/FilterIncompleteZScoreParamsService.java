@@ -2,26 +2,166 @@ package com.example.statarbitrage.core.services;
 
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
+import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.common.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class FilterIncompleteZScoreParamsService {
 
+    private final PairDataService pairDataService;
+
     /**
+     * Старая версия фильтрации
+     *
+     * @param pairData
+     * @param zScoreDataList
+     * @param settings
+     */
+    public void filterV1(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
+        double expected = settings.getExpectedZParamsCount();
+        double maxZScore = zScoreDataList.stream()
+                .map(data -> (data.getZscoreHistory() != null && !data.getZscoreHistory().isEmpty()) ? data.getZscoreHistory().get(data.getZscoreHistory().size() - 1) : null)
+                .filter(Objects::nonNull)
+                .map(ZScoreParam::getZscore)
+                .max(Comparator.naturalOrder())
+                .orElse(0d);
+        log.info("🔍 Ожидаемое количество наблюдений по настройкам: {}, максимальный Z-скор: {}", expected, maxZScore);
+
+        int before = zScoreDataList.size();
+
+        zScoreDataList.removeIf(data -> {
+            // Проверяем размер данных (используем новые поля API если zscoreParams отсутствуют)
+            List<ZScoreParam> params = data.getZscoreHistory();
+            int actualSize = params != null ? params.size() :
+                    (data.getTotalObservations() != null ? data.getTotalObservations() : 0);
+
+            // Для нового API не проверяем количество наблюдений - данные уже агрегированы
+            boolean isIncompleteBySize = false;
+            if (params != null && !params.isEmpty()) {
+                // Только для старого формата проверяем количество наблюдений
+                isIncompleteBySize = actualSize < expected;
+                if (isIncompleteBySize) {
+                    if (pairData != null) {
+                        pairDataService.delete(pairData);
+                        log.warn("⚠️ Удалили пару {}/{} — наблюдений {} (ожидалось {})",
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), actualSize, expected);
+                    }
+                }
+            }
+
+            // Получаем последний Z-score (используем новые поля API если zscoreParams отсутствуют)
+            double lastZScore;
+            if (params != null && !params.isEmpty()) {
+                lastZScore = params.get(params.size() - 1).getZscore(); //todo
+            } else if (data.getLatestZscore() != null) {
+                lastZScore = data.getLatestZscore();
+            } else {
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("⚠️ Удалили пару {}/{} — отсутствует информация о Z-score",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker());
+                }
+                return true;
+            }
+
+            boolean isIncompleteByZ = settings.isUseMinZFilter() && lastZScore < settings.getMinZ();
+            if (isIncompleteByZ) {
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("⚠️ Удалили пару {}/{} — Z-скор={} < Z-скор Min={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), lastZScore, settings.getMinZ());
+                }
+            }
+
+            // Фильтрация по R-squared
+            boolean isIncompleteByRSquared = false;
+            if (settings.isUseMinRSquaredFilter() && data.getAvgRSquared() != null && data.getAvgRSquared() < settings.getMinRSquared()) {
+                isIncompleteByRSquared = true;
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("⚠️ Удалили пару {}/{} — RSquared={} < MinRSquared={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
+                }
+            }
+
+            // Фильтрация по Correlation
+            boolean isIncompleteByCorrelation = false;
+            if (settings.isUseMinCorrelationFilter() && data.getCorrelation() != null && data.getCorrelation() < settings.getMinCorrelation()) {
+                isIncompleteByCorrelation = true;
+                if (pairData != null) {
+                    pairDataService.delete(pairData);
+                    log.warn("⚠️ Удалили пару {}/{} — Correlation={} < MinCorrelation={}",
+                            data.getUndervaluedTicker(), data.getOvervaluedTicker(), data.getCorrelation(), settings.getMinCorrelation());
+                }
+            }
+
+            // Фильтрация по pValue
+            boolean isIncompleteByPValue = false;
+            if (settings.isUseMinPValueFilter()) {
+                Double pValue = null;
+                if (params != null && !params.isEmpty()) {
+                    // Для старого формата используем pValue из последнего параметра
+                    pValue = params.get(params.size() - 1).getPvalue();
+                } else if (data.getCorrelationPvalue() != null) {
+                    // Для нового формата используем correlation_pvalue
+                    pValue = data.getCorrelationPvalue();
+                }
+
+                if (pValue != null && pValue > settings.getMinPValue()) {
+                    isIncompleteByPValue = true;
+                    if (pairData != null) {
+                        pairDataService.delete(pairData);
+                        log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), pValue, settings.getMinPValue());
+                    }
+                }
+            }
+
+            // Фильтрация по adfValue
+            boolean isIncompleteByAdfValue = false;
+            if (settings.isUseMaxAdfValueFilter()) {
+                Double adfValue = null;
+                if (params != null && !params.isEmpty()) {
+                    // Для старого формата используем adfpvalue из последнего параметра
+                    adfValue = params.get(params.size() - 1).getAdfpvalue(); //todo здесь смесь старой и новой логики! актуализировать!!!
+                } else if (data.getCointegrationPvalue() != null) {
+                    // Для нового формата используем cointegration_pvalue
+                    adfValue = data.getCointegrationPvalue(); //todo проверить это одно и то же???
+                }
+
+                if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
+                    isIncompleteByAdfValue = true;
+                    if (pairData != null) {
+                        pairDataService.delete(pairData);
+                        log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
+                                data.getUndervaluedTicker(), data.getOvervaluedTicker(), adfValue, settings.getMaxAdfValue());
+                    }
+                }
+            }
+
+            return isIncompleteBySize || isIncompleteByZ || isIncompleteByRSquared || isIncompleteByCorrelation || isIncompleteByPValue || isIncompleteByAdfValue;
+        });
+
+        int after = zScoreDataList.size();
+        log.debug("✅ После фильтрации осталось {} из {} пар", after, before);
+    }
+
+    /**
+     * Новая версия фильтрации
+     * <p>
      * Оптимизированная фильтрация коинтегрированных пар для парного трейдинга
      * Правильная последовательность фильтров для максимальной эффективности
      * Поддержка Johansen теста и новой структуры данных из Python API
      */
-    public void filter(List<ZScoreData> zScoreDataList, Settings settings) {
+    public void filterV2(List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
 
         // Анализируем входящие данные
@@ -40,9 +180,9 @@ public class FilterIncompleteZScoreParamsService {
                 filterStats.merge(reason, 1, Integer::sum);
                 log.info("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
                         data.getUndervaluedTicker(), data.getOvervaluedTicker(), reason,
-                        com.example.statarbitrage.common.utils.NumberFormatter.format(getLatestZScore(data, data.getZscoreHistory()), 2),
-                        getAdfPValue(data, data.getZscoreHistory()) != null ? com.example.statarbitrage.common.utils.NumberFormatter.format(getAdfPValue(data, data.getZscoreHistory()), 4) : "N/A",
-                        getRSquared(data) != null ? com.example.statarbitrage.common.utils.NumberFormatter.format(getRSquared(data), 3) : "N/A"
+                        NumberFormatter.format(getLatestZScore(data, data.getZscoreHistory()), 2),
+                        getAdfPValue(data, data.getZscoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZscoreHistory()), 4) : "N/A",
+                        getRSquared(data) != null ? NumberFormatter.format(getRSquared(data), 3) : "N/A"
                 );
                 return true;
             }
@@ -246,7 +386,7 @@ public class FilterIncompleteZScoreParamsService {
         if (data.getCointegrationPvalue() != null) {
             Double johansenPValue = data.getCointegrationPvalue();
             log.debug("🔬 Johansen p-value: {} для пары {}/{}",
-                    com.example.statarbitrage.common.utils.NumberFormatter.format(johansenPValue, 6), // Use NumberFormatter
+                    NumberFormatter.format(johansenPValue, 6), // Use NumberFormatter
                     data.getUndervaluedTicker(),
                     data.getOvervaluedTicker());
 
@@ -254,7 +394,7 @@ public class FilterIncompleteZScoreParamsService {
             double johansenThreshold = 0.05; //todo вынести в настройки
             if (johansenPValue > johansenThreshold) {
                 return String.format("НЕ коинтегрированы (Johansen): p-value=%s > %.6f",
-                        com.example.statarbitrage.common.utils.NumberFormatter.format(johansenPValue, 6), johansenThreshold);
+                        NumberFormatter.format(johansenPValue, 6), johansenThreshold);
             }
 
             // Дополнительная проверка качества Johansen теста

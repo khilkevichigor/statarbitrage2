@@ -197,7 +197,8 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         checkZScoreParamsSize(rawZScoreDataList);
-        filterIncompleteZScoreParamsService.filter(rawZScoreDataList, settings);
+//        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
+        filterIncompleteZScoreParamsService.filterV2(rawZScoreDataList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }
@@ -245,7 +246,8 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = obtainBestPairByCriteriaService.getBestByCriteria(settings, remainingPairs);
+//            Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainBestPairByCriteriaService.getBestByCriteriaV2(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 
