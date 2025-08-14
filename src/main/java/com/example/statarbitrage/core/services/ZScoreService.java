@@ -219,9 +219,16 @@ public class ZScoreService {
         checkZScoreParamsSize(zScoreDataSingletonList);
 
         // НЕ применяем фильтрацию для новых трейдов - пара уже была отфильтрована ранее в FetchPairsProcessor
-//         filterIncompleteZScoreParamsServiceV1.filter(pairData, zScoreDataSingletonList, settings);
-        filterIncompleteZScoreParamsServiceV2.filter(zScoreDataSingletonList, settings);
-        log.debug("🔄 Обновление данных для уже отобранной пары {}", pairData.getPairName());
+        // ИСПРАВЛЕНО: убираем повторную фильтрацию для обеспечения согласованности данных
+        // filterIncompleteZScoreParamsServiceV2.filter(zScoreDataSingletonList, settings);
+        
+        log.info("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", pairData.getPairName());
+        
+        // Для информации: рассчитываем скор но не фильтруем
+        if (!zScoreDataSingletonList.isEmpty()) {
+            // Не используем результат, только для логов
+            log.info("📊 Информационно: пара {} обновлена с детальными данными", pairData.getPairName());
+        }
 
         return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
     }
