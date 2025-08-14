@@ -250,8 +250,8 @@ public class ZScoreService {
 
         for (int i = 0; i < topN; i++) {
 //            Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
-            Optional<ZScoreData> maybeBest = obtainBestPairServiceV1.getBestPair(settings, remainingPairs);
-//            Optional<ZScoreData> maybeBest = obtainBestPairServiceV2.getBestPair(settings, remainingPairs);
+//            Optional<ZScoreData> maybeBest = obtainBestPairServiceV1.getBestPair(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainBestPairServiceV2.getBestPair(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 
