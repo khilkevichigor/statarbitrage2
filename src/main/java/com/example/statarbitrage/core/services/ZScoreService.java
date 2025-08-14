@@ -220,7 +220,7 @@ public class ZScoreService {
 
         // НЕ применяем фильтрацию для новых трейдов - пара уже была отфильтрована ранее в FetchPairsProcessor
         // ИСПРАВЛЕНО: убираем повторную фильтрацию для обеспечения согласованности данных
-        // filterIncompleteZScoreParamsServiceV2.filter(zScoreDataSingletonList, settings);
+         filterIncompleteZScoreParamsServiceV2.filter(zScoreDataSingletonList, settings);
         
         log.info("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", pairData.getPairName());
         

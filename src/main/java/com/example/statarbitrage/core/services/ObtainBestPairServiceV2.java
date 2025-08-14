@@ -72,6 +72,7 @@ public class ObtainBestPairServiceV2 {
     /**
      * Оценивает пару с использованием НОВОЙ системы оценки качества
      * Упрощенный метод - вся логика скоринга в FilterIncompleteZScoreParamsServiceV2
+     * ДОБАВЛЕНА ПРОВЕРКА на минимальный Z-Score
      */
     private PairCandidate evaluatePair(ZScoreData z, Settings settings) {
         List<ZScoreParam> params = z.getZScoreHistory();
@@ -99,6 +100,23 @@ public class ObtainBestPairServiceV2 {
             pValue = z.getPearsonCorrPValue() != null ? z.getPearsonCorrPValue() : 0.0;
             adf = z.getJohansenCointPValue() != null ? z.getJohansenCointPValue() : 0.0;
             rSquared = z.getAvgRSquared() != null ? z.getAvgRSquared() : 0.0;
+        }
+
+        // ====== ФИНАЛЬНАЯ ФИЛЬТРАЦИЯ ПЕРЕД ОЦЕНКОЙ ======
+        String pairName = z.getUnderValuedTicker() + "/" + z.getOverValuedTicker();
+        
+        // Проверка на минимальный Z-Score (критично для торговли!)
+        if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) {
+            log.info("⚠️ Отфильтровали пару {} в getBestPair: Z-Score {} < minZ {}", 
+                    pairName, NumberFormatter.format(zVal, 2), NumberFormatter.format(settings.getMinZ(), 2));
+            return null;
+        }
+        
+        // Проверка на отрицательный Z-Score (нет торгового сигнала)
+        if (zVal <= 0) {
+            log.info("⚠️ Отфильтровали пару {} в getBestPair: неположительный Z-Score {}", 
+                    pairName, NumberFormatter.format(zVal, 2));
+            return null;
         }
 
         // ====== ПРОСТОЙ КАЛКУЛЯТОР СКОРА (основной в Filter) ======
