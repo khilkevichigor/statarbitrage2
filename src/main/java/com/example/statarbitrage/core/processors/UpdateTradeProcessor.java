@@ -102,11 +102,16 @@ public class UpdateTradeProcessor {
 
     @Transactional
     public void updateObservedPair(PairData pairData) {
+        final PairData freshPairData = loadFreshPairData(pairData);
+        if (freshPairData == null) {
+            return;
+        }
+
         final Settings settings = settingsService.getSettings();
-        final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
+        final ZScoreData zScoreData = calculateZScoreData(freshPairData, settings);
         if (zScoreData != null) {
-            pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
-            pairDataService.save(pairData);
+            pairDataService.updateZScoreDataCurrent(freshPairData, zScoreData);
+            pairDataService.save(freshPairData);
         }
     }
 
