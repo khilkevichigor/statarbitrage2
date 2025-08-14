@@ -455,31 +455,83 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         return Math.min(totalScore, 100.0); // Максимально 100 очков
     }
 
+    /**
+     * ДИНАМИЧЕСКАЯ СИСТЕМА ВЕСОВ для коинтеграции (25 очков)
+     * 
+     * Принцип: равные веса когда доступны оба теста, полный вес единственному доступному
+     * - Johansen + ADF доступны: 12.5 + 12.5 очков
+     * - Только Johansen: 25 очков 
+     * - Только ADF: 25 очков
+     * - Нет данных: 0 очков
+     */
     private double calculateCointegrationScoreComponent(ZScoreData data, List<ZScoreParam> params) {
+        boolean hasJohansen = data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0;
+        boolean hasAdf = getAdfPValue(data, params) != null && getAdfPValue(data, params) > 0;
+        
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
+        
+        if (!hasJohansen && !hasAdf) {
+            log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
+            return 0.0;
+        }
+        
         double score = 0.0;
-
-        // Johansen тест (15 очков макс)
-        if (data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0) {
+        
+        if (hasJohansen && hasAdf) {
+            // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 12.5 очков
+            log.debug("  🔬 {}: Динамические веса - оба теста (12.5+12.5)", pairName);
+            
+            // Johansen (12.5 очков)
             double johansenPValue = data.getJohansenCointPValue();
-            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 15.0; // Макс 15 при p-value = 0
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 12.5;
             score += johansenScore;
-
-            // Бонус за trace statistic
-            if (data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
-                if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
-                    score += 3.0; // Бонус за сильную коинтеграцию
-                }
+            
+            // ADF (12.5 очков)
+            Double adfPValue = getAdfPValue(data, params);
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 12.5;
+            score += adfScore;
+            
+            log.debug("    Johansen: {} очков (p-value={})", 
+                NumberFormatter.format(johansenScore, 1), 
+                NumberFormatter.format(johansenPValue, 6));
+            log.debug("    ADF: {} очков (p-value={})", 
+                NumberFormatter.format(adfScore, 1), 
+                NumberFormatter.format(adfPValue, 6));
+                
+        } else if (hasJohansen) {
+            // ТОЛЬКО JOHANSEN - полные 25 очков
+            log.debug("  🔬 {}: Динамические веса - только Johansen (25)", pairName);
+            
+            double johansenPValue = data.getJohansenCointPValue();
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 25.0;
+            score += johansenScore;
+            
+            log.debug("    Johansen: {} очков (p-value={})", 
+                NumberFormatter.format(johansenScore, 1), 
+                NumberFormatter.format(johansenPValue, 6));
+                
+        } else if (hasAdf) {
+            // ТОЛЬКО ADF - полные 25 очков
+            log.debug("  🔬 {}: Динамические веса - только ADF (25)", pairName);
+            
+            Double adfPValue = getAdfPValue(data, params);
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 25.0;
+            score += adfScore;
+            
+            log.debug("    ADF: {} очков (p-value={})", 
+                NumberFormatter.format(adfScore, 1), 
+                NumberFormatter.format(adfPValue, 6));
+        }
+        
+        // Бонус за trace statistic (только если есть Johansen)
+        if (hasJohansen && data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
+            if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
+                score += 2.0; // Небольшой бонус за сильную коинтеграцию
+                log.debug("    Бонус trace statistic: +2 очка");
             }
         }
-
-        // ADF тест (7 очков макс)
-        Double adfPValue = getAdfPValue(data, params);
-        if (adfPValue != null && adfPValue > 0) {
-            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 7.0;
-            score += adfScore;
-        }
-
-        return Math.min(score, 25.0); // Макс 25 очков
+        
+        return Math.min(score, 25.0); // Макс 25 очков (+ возможные бонусы до 27)
     }
 
     private double calculateModelQualityScoreComponent(ZScoreData data, List<ZScoreParam> params) {
