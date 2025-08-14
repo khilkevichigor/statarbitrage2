@@ -18,11 +18,13 @@ import java.util.Map;
 public class FilterIncompleteZScoreParamsServiceV2 {
 
     /**
-     * Новая версия фильтрации
+     * Новая версия фильтрации на основе системы очков
      * <p>
-     * Оптимизированная фильтрация коинтегрированных пар для парного трейдинга
-     * Правильная последовательность фильтров для максимальной эффективности
-     * Поддержка Johansen теста и новой структуры данных из Python API
+     * РЕВОЛЮЦИОННОЕ ИЗМЕНЕНИЕ:
+     * - Минимальная фильтрация (только критические проверки)
+     * - Расчет качественного скора для каждой пары (0-100 очков)
+     * - ObtainBestPairServiceV2 выбирает лучшую на основе скора
+     * - НЕТ приоритета Johansen - комплексная оценка!
      */
     public void filter(List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
@@ -49,7 +51,11 @@ public class FilterIncompleteZScoreParamsServiceV2 {
                 );
                 return true;
             }
-            log.info("✅ Пара {}/{} прошла все фильтры.", data.getUnderValuedTicker(), data.getOverValuedTicker());
+            // НОВАЯ СИСТЕМА: Рассчитываем качественный скор для каждой пары
+            double qualityScore = calculatePairQualityScore(data, settings);
+            log.info("📊 Пара {}/{} прошла базовую фильтрацию. Качественный скор: {}",
+                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
+                    NumberFormatter.format(qualityScore, 2));
             return false;
         });
 
@@ -91,139 +97,43 @@ public class FilterIncompleteZScoreParamsServiceV2 {
     }
 
     /**
-     * Определяет должна ли быть отфильтрована пара
-     * Возвращает причину фильтрации или null если пара прошла все фильтры
+     * Определяет должна ли быть отфильтрована пара (МИНИМАЛЬНАЯ ФИЛЬТРАЦИЯ)
+     * Остались только критические проверки - остальное через скоринг!
+     * Возвращает причину фильтрации или null если пара прошла критичные фильтры
      */
     private String shouldFilterPair(ZScoreData data, Settings settings, double expectedSize) {
         List<ZScoreParam> params = data.getZScoreHistory();
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
-        log.info("⚙️ Проверка пары {} по критериям фильтрации:", pairName);
+        log.debug("⚙️ МИНИМАЛЬНАЯ фильтрация пары {} (основная оценка через скоринг):", pairName);
 
-        // ====== ЭТАП 1: БЫСТРЫЕ ПРОВЕРКИ (дешевые операции) ======
+        // ====== КРИТИЧЕСКИЕ ПРОВЕРКИ (только обязательные!) ======
 
         // 1. Проверка наличия данных
         String reason = isDataMissing(data, params) ? "Отсутствуют данные Z-score" : null;
         if (reason != null) {
-            log.info("   ❌ {}: {}", pairName, reason);
+            log.debug("   ❌ {}: {}", pairName, reason);
             return reason;
         }
-        log.info("   ✅ {}: Данные Z-score присутствуют.", pairName);
 
         // 2. Проверка тикеров
         reason = isTickersInvalid(data) ? "Некорректные тикеры" : null;
         if (reason != null) {
-            log.info("   ❌ {}: {}", pairName, reason);
+            log.debug("   ❌ {}: {}", pairName, reason);
             return reason;
         }
-        log.info("   ✅ {}: Тикеры корректны.", pairName);
 
-        // 3. Проверка размера выборки (только для старого API)
-        if (params != null && !params.isEmpty()) {
-            int actualSize = params.size();
-            if (actualSize < expectedSize) {
-                reason = String.format("Недостаточно наблюдений: %d < %.0f", actualSize, expectedSize);
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Достаточно наблюдений ({} >= {}).", pairName, actualSize, expectedSize);
-        } else {
-            log.info("   ℹ️ {}: Проверка размера выборки пропущена (новый формат API).", pairName);
-        }
-
-
-        // ====== ЭТАП 2: КОИНТЕГРАЦИЯ (критически важно!) ======
-
-        // 4. Johansen/ADF тест на коинтеграцию (ПРИОРИТЕТ!)
-        if (settings.isUseMaxAdfValueFilter()) {
-            reason = checkCointegration(data, params, settings);
-            if (reason != null) {
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Прошла тест на коинтеграцию.", pairName);
-        } else {
-            log.info("   ℹ️ {}: Фильтр коинтеграции отключен.", pairName);
-        }
-
-
-        // ====== ЭТАП 3: КАЧЕСТВО СТАТИСТИЧЕСКОЙ МОДЕЛИ ======
-
-        // 5. R-squared (объяснительная способность модели)
-        if (settings.isUseMinRSquaredFilter()) {
-            reason = checkRSquared(data, settings);
-            if (reason != null) {
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Прошла фильтр R-squared (R²={}).", pairName, NumberFormatter.format(getRSquared(data), 3));
-        } else {
-            log.info("   ℹ️ {}: Фильтр R-squared отключен.", pairName);
-        }
-
-        // 6. Стабильность коинтеграции в времени
-        if (settings.isUseCointegrationStabilityFilter()) {
-            reason = checkCointegrationStability(data, params, settings);
-            if (reason != null) {
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Прошла фильтр стабильности коинтеграции.", pairName);
-        } else {
-            log.info("   ℹ️ {}: Фильтр стабильности коинтеграции отключен.", pairName);
-        }
-
-
-        // ====== ЭТАП 4: СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ ======
-
-        // 7. P-value корреляции
-        if (settings.isUseMaxPValueFilter()) {
-            reason = checkCorrelationSignificance(data, params, settings);
-            if (reason != null) {
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Прошла фильтр P-value корреляции (P-value={}).", pairName, NumberFormatter.format(getCorrelationPValue(data, params), 4));
-        } else {
-            log.info("   ℹ️ {}: Фильтр P-value корреляции отключен.", pairName);
-        }
-
-        // 8. Корреляция (осторожно - может быть ложной!)
-        if (settings.isUseMinCorrelationFilter()) {
-            reason = checkCorrelation(data, settings);
-            if (reason != null) {
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Прошла фильтр корреляции (Корр={}).", pairName, NumberFormatter.format(data.getPearsonCorr(), 3));
-        } else {
-            log.info("   ℹ️ {}: Фильтр корреляции отключен.", pairName);
-        }
-
-
-        // ====== ЭТАП 5: ТОРГОВЫЕ СИГНАЛЫ (в последнюю очередь!) ======
-
-        // 9. Z-Score фильтр (торговый сигнал)
-        if (settings.isUseMinZFilter()) {
-            reason = checkZScoreSignal(data, params, settings);
-            if (reason != null) {
-                log.info("   ❌ {}: {}", pairName, reason);
-                return reason;
-            }
-            log.info("   ✅ {}: Прошла фильтр Z-Score (Z={}).", pairName, NumberFormatter.format(getLatestZScore(data, params), 2));
-        } else {
-            log.info("   ℹ️ {}: Фильтр Z-Score отключен.", pairName);
-        }
-
-        // 10. Дополнительные торговые фильтры
-        reason = checkAdditionalTradingFilters(data, params, settings);
-        if (reason != null) {
-            log.info("   ❌ {}: {}", pairName, reason);
+        // 3. Проверка Z-Score на положительность (ключевой фильтр!)
+        double currentZScore = getLatestZScore(data, params);
+        if (currentZScore <= 0) {
+            reason = String.format("Отрицательный/нулевой Z-score: %.2f (нет сигнала)", currentZScore);
+            log.debug("   ❌ {}: {}", pairName, reason);
             return reason;
         }
-        log.info("   ✅ {}: Прошла дополнительные торговые фильтры.", pairName);
+        log.debug("   ✅ {}: Положительный Z-score: {}", pairName, NumberFormatter.format(currentZScore, 2));
 
-        return null; // Пара прошла все фильтры
+
+        return null; // Пара прошла критические проверки
     }
 
     // ============ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ФИЛЬТРАЦИИ ============
@@ -494,6 +404,141 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         return Math.sqrt(variance);
     }
 
+    // ============ НОВАЯ СИСТЕМА ОЦЕНКИ КАЧЕСТВА ПАР ============
+
+    /**
+     * Рассчитывает качественный скор пары (вместо приоритетной фильтрации)
+     * Максимальный скор: 100 очков
+     * <p>
+     * Компоненты скора:
+     * - Z-Score сила (40 очков) - основной торговый сигнал
+     * - Коинтеграция (25 очков) - Johansen + ADF + Pearson
+     * - Качество модели (20 очков) - R-squared + стабильность
+     * - Статистика (10 очков) - P-values
+     * - Бонусы (5 очков) - за полноту данных
+     */
+    private double calculatePairQualityScore(ZScoreData data, Settings settings) {
+        double totalScore = 0.0;
+        List<ZScoreParam> params = data.getZScoreHistory();
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
+
+        log.debug("🎯 Рассчет качественного скора для {}", pairName);
+
+        // ====== 1. Z-SCORE СИЛА (40 очков) ======
+        double zScore = getLatestZScore(data, params);
+        double zScorePoints = Math.min(Math.abs(zScore) * 8.0, 40.0); // Макс 40 очков при Z-score >= 5
+        totalScore += zScorePoints;
+        log.debug("  🎯 Z-Score компонент: {} очков (Z-score={})",
+                NumberFormatter.format(zScorePoints, 1), NumberFormatter.format(zScore, 2));
+
+        // ====== 2. КОИНТЕГРАЦИЯ (25 очков) ======
+        double cointegrationScore = calculateCointegrationScoreComponent(data, params);
+        totalScore += cointegrationScore;
+        log.debug("  🔬 Коинтеграция: {} очков", NumberFormatter.format(cointegrationScore, 1));
+
+        // ====== 3. КАЧЕСТВО МОДЕЛИ (20 очков) ======
+        double modelQualityScore = calculateModelQualityScoreComponent(data, params);
+        totalScore += modelQualityScore;
+        log.debug("  📊 Качество модели: {} очков", NumberFormatter.format(modelQualityScore, 1));
+
+        // ====== 4. СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ (10 очков) ======
+        double statisticalScore = calculateStatisticalSignificanceScoreComponent(data, params);
+        totalScore += statisticalScore;
+        log.debug("  📊 Статистика: {} очков", NumberFormatter.format(statisticalScore, 1));
+
+        // ====== 5. БОНУСЫ (5 очков) ======
+        double bonusScore = calculateBonusScoreComponent(data);
+        totalScore += bonusScore;
+        log.debug("  🎁 Бонусы: {} очков", NumberFormatter.format(bonusScore, 1));
+
+        log.debug("🏆 Итоговый скор для {}: {} очков", pairName, NumberFormatter.format(totalScore, 1));
+        return Math.min(totalScore, 100.0); // Максимально 100 очков
+    }
+
+    private double calculateCointegrationScoreComponent(ZScoreData data, List<ZScoreParam> params) {
+        double score = 0.0;
+
+        // Johansen тест (15 очков макс)
+        if (data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0) {
+            double johansenPValue = data.getJohansenCointPValue();
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 15.0; // Макс 15 при p-value = 0
+            score += johansenScore;
+
+            // Бонус за trace statistic
+            if (data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
+                if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
+                    score += 3.0; // Бонус за сильную коинтеграцию
+                }
+            }
+        }
+
+        // ADF тест (7 очков макс)
+        Double adfPValue = getAdfPValue(data, params);
+        if (adfPValue != null && adfPValue > 0) {
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 7.0;
+            score += adfScore;
+        }
+
+        return Math.min(score, 25.0); // Макс 25 очков
+    }
+
+    private double calculateModelQualityScoreComponent(ZScoreData data, List<ZScoreParam> params) {
+        double score = 0.0;
+
+        // R-squared (15 очков)
+        Double rSquared = getRSquared(data);
+        if (rSquared != null && rSquared > 0) {
+            score += rSquared * 15.0; // Макс 15 при R² = 1.0
+        }
+
+        // Стабильность (5 очков)
+        if (data.getStablePeriods() != null && data.getTotalObservations() != null && data.getTotalObservations() > 0) {
+            double stabilityRatio = (double) data.getStablePeriods() / data.getTotalObservations();
+            score += stabilityRatio * 5.0;
+        }
+
+        return Math.min(score, 20.0);
+    }
+
+    private double calculateStatisticalSignificanceScoreComponent(ZScoreData data, List<ZScoreParam> params) {
+        double score = 0.0;
+
+        // Pearson корреляция P-value (5 очков)
+        Double pearsonPValue = getCorrelationPValue(data, params);
+        if (pearsonPValue != null && pearsonPValue >= 0) {
+            score += Math.max(0, (0.05 - Math.min(pearsonPValue, 0.05)) / 0.05) * 5.0;
+        }
+
+        // Корреляция сила (5 очков)
+        if (data.getPearsonCorr() != null) {
+            double absCorr = Math.abs(data.getPearsonCorr());
+            score += Math.min(absCorr, 1.0) * 5.0;
+        }
+
+        return Math.min(score, 10.0);
+    }
+
+    private double calculateBonusScoreComponent(ZScoreData data) {
+        double bonusScore = 0.0;
+
+        // Бонус за полноту данных Johansen
+        if (data.getJohansenCointPValue() != null && data.getJohansenTraceStatistic() != null) {
+            bonusScore += 2.0;
+        }
+
+        // Бонус за стабильность
+        if (data.getStablePeriods() != null && data.getTotalObservations() != null) {
+            bonusScore += 1.0;
+        }
+
+        // Бонус за качество модели
+        if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
+            bonusScore += 2.0;
+        }
+
+        return Math.min(bonusScore, 5.0);
+    }
+
     /**
      * Логирует детальную статистику по фильтрации
      */
@@ -524,7 +569,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (settings.isUseMinZFilter())
             log.info("   ⚡ Z-Score: положительный и > {}", settings.getMinZ());
         log.info("   🚫 Отрицательные Z-Score отфильтровываются автоматически");
-        log.info("   🎯 Ранжирование в ObtainBestPairByCriteriaService по композитному скору");
+        log.info("   🎯 Ранжирование в ObtainBestPairServiceV2 по качественному скору (вместо приоритетов)");
     }
 
     /**

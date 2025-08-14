@@ -20,17 +20,19 @@ import java.util.Optional;
 public class ObtainBestPairServiceV2 {
 
     /**
-     * Новая версия получения лучшей пары
+     * Новая версия получения лучшей пары (ОБНОВЛЕНО!)
      * <p>
-     * Улучшенный метод выбора лучшей пары для торговли
-     * Использует композитный скор вместо простого максимального Z-Score
+     * Использует НОВУЮ систему оценки качества пар:
+     * - Нет приоритета Johansen тесту - все комплексно!
+     * - Z-Score(40p) + Коинтеграция(25p) + Качество(20p) + Статистика(10p) + Бонус(5p)
+     * - Максимальный скор: 100 очков
      */
     public Optional<ZScoreData> getBestPair(Settings settings, List<ZScoreData> dataList) {
         if (dataList == null || dataList.isEmpty()) {
             return Optional.empty();
         }
 
-        log.debug("🎯 Выбираем лучшую пару из {} кандидатов", dataList.size());
+        log.info("🎯 НОВАЯ СИСТЕМА: Выбираем лучшую пару из {} кандидатов по скору качества (без приоритета Johansen)", dataList.size());
 
         List<PairCandidate> candidates = new ArrayList<>();
 
@@ -50,7 +52,7 @@ public class ObtainBestPairServiceV2 {
         candidates.sort(Comparator.comparingDouble(PairCandidate::getCompositeScore).reversed());
 
         PairCandidate best = candidates.get(0);
-        log.info("🏆 Выбрана лучшая пара: {}/{} со скором {}. Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
+        log.info("🏆 НОВАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с упрощенным скором {}. Основной скоринг в Filter! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
                 best.getData().getUnderValuedTicker(),
                 best.getData().getOverValuedTicker(),
                 NumberFormatter.format(best.getCompositeScore(), 2),
@@ -68,7 +70,8 @@ public class ObtainBestPairServiceV2 {
     }
 
     /**
-     * Оценивает пару и возвращает кандидата с композитным скором
+     * Оценивает пару с использованием НОВОЙ системы оценки качества
+     * Упрощенный метод - вся логика скоринга в FilterIncompleteZScoreParamsServiceV2
      */
     private PairCandidate evaluatePair(ZScoreData z, Settings settings) {
         List<ZScoreParam> params = z.getZScoreHistory();
@@ -98,129 +101,39 @@ public class ObtainBestPairServiceV2 {
             rSquared = z.getAvgRSquared() != null ? z.getAvgRSquared() : 0.0;
         }
 
-        // ====== ТОЛЬКО КОМПОЗИТНЫЙ СКОР (без фильтрации) ======
-        // Вся фильтрация уже выполнена в FilterIncompleteZScoreParamsService
+        // ====== ПРОСТОЙ КАЛКУЛЯТОР СКОРА (основной в Filter) ======
+        // Основная логика скоринга вынесена в FilterIncompleteZScoreParamsServiceV2
 
-        double compositeScore = calculateCompositeScore(zVal, corr, adf, pValue, rSquared, z, settings);
+        double simplifiedScore = calculateSimplifiedScore(zVal, z);
 
-        return new PairCandidate(z, compositeScore, zVal, corr, adf, pValue, rSquared);
+        return new PairCandidate(z, simplifiedScore, zVal, corr, adf, pValue, rSquared);
     }
 
     /**
-     * Рассчитывает композитный скор для ранжирования пар
-     * Учитывает множественные факторы с весами
+     * УПРОЩЕННЫЙ калкулятор скора (основной скоринг в Filter)
+     * Основная логика скоринга перенесена в FilterIncompleteZScoreParamsServiceV2.calculatePairQualityScore()
      */
-    private double calculateCompositeScore(double zVal, double corr, double adf,
-                                           double pValue, double rSquared,
-                                           ZScoreData data, Settings settings) {
-        log.info("Рассчитываем композитный скор для {}/{}", data.getUnderValuedTicker(), data.getOverValuedTicker());
+    private double calculateSimplifiedScore(double zVal, ZScoreData data) {
+        // Простое вычисление скора - основная логика в FilterIncompleteZScoreParamsServiceV2
         double score = 0.0;
 
-        // 1. Z-Score компонент (40% веса) - основной торговый сигнал
-        double zScoreComponent = Math.abs(zVal) * 40.0;
-        log.info("  - Z-Score компонент: {} (Z-Score={})", NumberFormatter.format(zScoreComponent, 2), NumberFormatter.format(zVal, 2));
+        // Z-Score - главный компонент
+        score += Math.abs(zVal) * 10.0; // Базовые очки за Z-Score
 
-        // 2. Качество коинтеграции (25% веса) - Учитывает Johansen и ADF
-        double cointegrationComponent = 0.0;
-        double johansenWeight = 0.6; // 60% вес для Johansen
-        double adfWeight = 0.4;      // 40% вес для ADF
-
-        boolean hasJohansen = data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0;
-        boolean hasAdf = adf > 0;
-
-        if (hasJohansen && hasAdf) {
-            // Оба теста доступны: используем взвешенную оценку
-            double johansenScore = (1.0 - data.getJohansenCointPValue());
-            double adfScore = (1.0 - Math.min(adf, 1.0));
-            cointegrationComponent = (johansenScore * johansenWeight + adfScore * adfWeight) * 25.0;
-            log.info("  - Компонент коинтеграции (Johansen+ADF): {} (Johansen p-value={}, ADF p-value={})",
-                    NumberFormatter.format(cointegrationComponent, 2),
-                    NumberFormatter.format(data.getJohansenCointPValue(), 4),
-                    NumberFormatter.format(adf, 4));
-
-        } else if (hasJohansen) {
-            // Только Johansen
-            cointegrationComponent = (1.0 - data.getJohansenCointPValue()) * 25.0;
-            log.info("  - Компонент коинтеграции (Johansen): {} (p-value={})",
-                    NumberFormatter.format(cointegrationComponent, 2),
-                    NumberFormatter.format(data.getJohansenCointPValue(), 4));
-        } else if (hasAdf) {
-            // Только ADF
-            cointegrationComponent = (1.0 - Math.min(adf, 1.0)) * 25.0; // Используем полный вес
-            log.info("  - Компонент коинтеграции (ADF): {} (p-value={})",
-                    NumberFormatter.format(cointegrationComponent, 2),
-                    NumberFormatter.format(adf, 4));
+        // Простые бонусы
+        if (data.getJohansenCointPValue() != null) {
+            score += 5.0; // Бонус за Johansen тест
         }
 
-        // 3. R-squared компонент (20% веса) - качество модели
-        double rSquaredComponent = rSquared * 20.0;
-        log.info("  - R-squared компонент: {} (R²={})", NumberFormatter.format(rSquaredComponent, 2), NumberFormatter.format(rSquared, 3));
-
-
-        // 4. Корреляция компонент (10% веса)
-        double correlationComponent = Math.abs(corr) * 10.0;
-        log.info("  - Компонент корреляции: {} (Корр={})", NumberFormatter.format(correlationComponent, 2), NumberFormatter.format(corr, 3));
-
-
-        // 5. Статистическая значимость (5% веса)
-        double significanceComponent = (1.0 - Math.min(pValue, 1.0)) * 5.0;
-        log.info("  - Компонент значимости: {} (P-value={})", NumberFormatter.format(significanceComponent, 2), NumberFormatter.format(pValue, 4));
-
-
-        score = zScoreComponent + cointegrationComponent + rSquaredComponent +
-                correlationComponent + significanceComponent;
-        log.info("  - Базовый скор: {}", NumberFormatter.format(score, 2));
-
-
-        // БОНУСЫ за особые качества:
-
-        // Бонус за использование Johansen теста (более надежный)
-        if (data.getJohansenCointPValue() != null && data.getJohansenTraceStatistic() != null) {
-            score += 5.0; // Бонус за Johansen
-            log.info("  - Бонус за Johansen тест: +5.0");
-
-            // Дополнительный бонус за сильную коинтеграцию (trace >> critical)
-            if (data.getJohansenCriticalValue95() != null &&
-                    data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95() * 1.5) {
-                score += 3.0;
-                log.info("  - Бонус за сильную коинтеграцию: +3.0 (trace={} > 1.5 * critical={})",
-                        NumberFormatter.format(data.getJohansenTraceStatistic(), 2),
-                        NumberFormatter.format(data.getJohansenCriticalValue95(), 2));
-            }
+        if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
+            score += 3.0; // Бонус за высокий R-squared
         }
 
-        // Бонус за стабильность (если есть данные)
-        if (data.getStablePeriods() != null && data.getTotalObservations() != null) {
-            double stabilityRatio = (double) data.getStablePeriods() / data.getTotalObservations();
-            if (stabilityRatio > 0.8) {
-                score += 2.0; // Бонус за высокую стабильность
-                log.info("  - Бонус за стабильность: +2.0 (ratio={})", NumberFormatter.format(stabilityRatio, 2));
-            }
+        if (data.getPearsonCorr() != null) {
+            score += Math.abs(data.getPearsonCorr()) * 2.0; // Бонус за корреляцию
         }
 
-        // ШТРАФЫ за риски:
-
-        // Штраф за слишком высокую корреляцию (может быть ложной)
-        if (Math.abs(corr) > 0.95) {
-            score -= 3.0; // Подозрительно высокая корреляция
-            log.warn("  - Штраф за высокую корреляцию: -3.0 (Корр={})", NumberFormatter.format(corr, 3));
-        }
-
-        // Штраф за волатильность Z-Score (если есть история)
-        if (data.getZScoreHistory() != null && data.getZScoreHistory().size() >= 10) {
-            double volatility = calculateZScoreVolatility(data.getZScoreHistory());
-            if (volatility > 2.0) {
-                score -= volatility; // Штраф за высокую волатильность
-                log.warn("  - Штраф за волатильность Z-Score: -{} (volatility={})",
-                        NumberFormatter.format(volatility, 2),
-                        NumberFormatter.format(volatility, 2));
-            }
-        }
-
-        double finalScore = Math.max(0.0, score);
-        log.info("  - Итоговый скор: {}", NumberFormatter.format(finalScore, 2));
-
-        return finalScore;
+        return Math.max(0.0, score);
     }
 
     /**
