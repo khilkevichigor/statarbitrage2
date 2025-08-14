@@ -33,7 +33,7 @@ public class UpdateSettingsParamService {
         pairData.setSettingsExitZMin(settings.getExitZMin());
         pairData.setSettingsExitZMax(settings.getExitZMax());
         pairData.setSettingsExitZMaxPercent(settings.getExitZMaxPercent());
-        pairData.setSettingsExitTimeHours(settings.getExitTimeHours());
+        pairData.setSettingsExitTimeMinutes(settings.getExitTimeMinutes());
         pairData.setSettingsExitBreakEvenPercent(settings.getExitBreakEvenPercent());
         pairData.setSettingsUsePairs(settings.getUsePairs());
         pairData.setSettingsAutoTradingEnabled(settings.isAutoTradingEnabled());
@@ -48,7 +48,7 @@ public class UpdateSettingsParamService {
         pairData.setSettingsUseExitZMin(settings.isUseExitZMin());
         pairData.setSettingsUseExitZMax(settings.isUseExitZMax());
         pairData.setSettingsUseExitZMaxPercent(settings.isUseExitZMaxPercent());
-        pairData.setSettingsUseExitTimeHours(settings.isUseExitTimeHours());
+        pairData.setSettingsUseExitTimeHours(settings.isUseExitTimeMinutes());
         pairData.setSettingsUseExitBreakEvenPercent(settings.isUseExitBreakEvenPercent());
         pairData.setSettingsMinimumLotBlacklist(settings.getMinimumLotBlacklist());
     }

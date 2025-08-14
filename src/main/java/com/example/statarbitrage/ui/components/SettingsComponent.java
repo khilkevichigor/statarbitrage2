@@ -198,7 +198,7 @@ public class SettingsComponent extends VerticalLayout {
         NumberField exitZMinField = new NumberField("Exit Мин Z");
         NumberField exitZMaxField = new NumberField("Exit Макс Z");
         NumberField exitZMaxPercentField = new NumberField("Exit Макс Z (%)");
-        NumberField exitTimeHoursField = new NumberField("Exit Таймаут (ч)");
+        NumberField exitTimeMinutesField = new NumberField("Exit Таймаут (мин)");
         NumberField exitBreakEvenPercentField = new NumberField("Профит для БУ (%)");
 
         // Create exit strategy checkboxes
@@ -207,7 +207,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useExitZMinCheckbox = new Checkbox("Использовать Exit Мин Z");
         Checkbox useExitZMaxCheckbox = new Checkbox("Использовать Exit Макс Z");
         Checkbox useExitZMaxPercentCheckbox = new Checkbox("Использовать Exit Макс Z (%)");
-        Checkbox useExitTimeHoursCheckbox = new Checkbox("Использовать Exit Таймаут");
+        Checkbox useExitTimeMinutesCheckbox = new Checkbox("Использовать Exit Таймаут");
         Checkbox useExitBreakEvenPercentCheckbox = new Checkbox("Использовать уровень профита для БУ");
 
         NumberField usePairsField = new NumberField("Кол-во пар");
@@ -231,7 +231,7 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(exitZMinField, 0.01, -10.0);
         setNumberFieldProperties(exitZMaxField, 0.1, 0.0);
         setNumberFieldProperties(exitZMaxPercentField, 0.1, 0.0);
-        setNumberFieldProperties(exitTimeHoursField, 1, 1);
+        setNumberFieldProperties(exitTimeMinutesField, 1, 1);
         setNumberFieldProperties(usePairsField, 1, 1);
 
         // Create sections
@@ -253,14 +253,14 @@ public class SettingsComponent extends VerticalLayout {
                 exitZMinField,
                 exitZMaxField,
                 exitZMaxPercentField,
-                exitTimeHoursField,
+                exitTimeMinutesField,
                 exitBreakEvenPercentField,
                 useExitTakeCheckbox,
                 useExitStopCheckbox,
                 useExitZMinCheckbox,
                 useExitZMaxCheckbox,
                 useExitZMaxPercentCheckbox,
-                useExitTimeHoursCheckbox,
+                useExitTimeMinutesCheckbox,
                 useExitBreakEvenPercentCheckbox
         ));
 
@@ -286,7 +286,7 @@ public class SettingsComponent extends VerticalLayout {
                 exitZMinField,
                 exitZMaxField,
                 exitZMaxPercentField,
-                exitTimeHoursField,
+                exitTimeMinutesField,
                 exitBreakEvenPercentField,
                 useMinZFilterCheckbox,
                 useMinRSquaredFilterCheckbox,
@@ -299,7 +299,7 @@ public class SettingsComponent extends VerticalLayout {
                 useExitZMinCheckbox,
                 useExitZMaxCheckbox,
                 useExitZMaxPercentCheckbox,
-                useExitTimeHoursCheckbox,
+                useExitTimeMinutesCheckbox,
                 useExitBreakEvenPercentCheckbox);
 
         settingsBinder.readBean(currentSettings);
@@ -357,14 +357,14 @@ public class SettingsComponent extends VerticalLayout {
             NumberField exitZMinField,
             NumberField exitZMaxField,
             NumberField exitZMaxPercentField,
-            NumberField exitTimeHoursField,
+            NumberField exitTimeMinutesField,
             NumberField exitBreakEvenPercentField,
             Checkbox useExitTakeCheckbox,
             Checkbox useExitStopCheckbox,
             Checkbox useExitZMinCheckbox,
             Checkbox useExitZMaxCheckbox,
             Checkbox useExitZMaxPercentCheckbox,
-            Checkbox useExitTimeHoursCheckbox,
+            Checkbox useExitTimeMinutesCheckbox,
             Checkbox useExitBreakEvenPercentCheckbox
     ) {
 
@@ -376,7 +376,7 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout exitZMinLayout = createFilterLayout(useExitZMinCheckbox, exitZMinField);
         HorizontalLayout exitZMaxLayout = createFilterLayout(useExitZMaxCheckbox, exitZMaxField);
         HorizontalLayout exitZMaxPercentLayout = createFilterLayout(useExitZMaxPercentCheckbox, exitZMaxPercentField);
-        HorizontalLayout exitTimeHoursLayout = createFilterLayout(useExitTimeHoursCheckbox, exitTimeHoursField);
+        HorizontalLayout exitTimeMinutesLayout = createFilterLayout(useExitTimeMinutesCheckbox, exitTimeMinutesField);
         HorizontalLayout exitBreakEvenPercentLayout = createFilterLayout(useExitBreakEvenPercentCheckbox, exitBreakEvenPercentField);
 
         exitForm.add(
@@ -385,7 +385,7 @@ public class SettingsComponent extends VerticalLayout {
                 exitZMinLayout,
                 exitZMaxLayout,
                 exitZMaxPercentLayout,
-                exitTimeHoursLayout,
+                exitTimeMinutesLayout,
                 exitBreakEvenPercentLayout
         );
 
@@ -466,7 +466,7 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField exitZMinField,
                             NumberField exitZMaxField,
                             NumberField exitZMaxPercentField,
-                            NumberField exitTimeHoursField,
+                            NumberField exitTimeMinutesField,
                             NumberField exitBreakEvenPercentField,
                             Checkbox useMinZFilterCheckbox,
                             Checkbox useMinRSquaredFilterCheckbox,
@@ -479,7 +479,7 @@ public class SettingsComponent extends VerticalLayout {
                             Checkbox useExitZMinCheckbox,
                             Checkbox useExitZMaxCheckbox,
                             Checkbox useExitZMaxPercentCheckbox,
-                            Checkbox useExitTimeHoursCheckbox,
+                            Checkbox useExitTimeMinutesCheckbox,
                             Checkbox useExitBreakEvenPercentCheckbox) {
 
         settingsBinder.forField(timeframeField)
@@ -508,7 +508,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(exitZMinField).bind(Settings::getExitZMin, Settings::setExitZMin);
         settingsBinder.forField(exitZMaxField).bind(Settings::getExitZMax, Settings::setExitZMax);
         settingsBinder.forField(exitZMaxPercentField).bind(Settings::getExitZMaxPercent, Settings::setExitZMaxPercent);
-        settingsBinder.forField(exitTimeHoursField).bind(Settings::getExitTimeHours, Settings::setExitTimeHours);
+        settingsBinder.forField(exitTimeMinutesField).bind(Settings::getExitTimeMinutes, Settings::setExitTimeMinutes);
         settingsBinder.forField(exitBreakEvenPercentField).bind(Settings::getExitBreakEvenPercent, Settings::setExitBreakEvenPercent);
         settingsBinder.forField(minCorrelationField).bind(Settings::getMinCorrelation, Settings::setMinCorrelation);
         settingsBinder.forField(minVolumeField).bind(Settings::getMinVolume, Settings::setMinVolume);
@@ -531,7 +531,7 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(useExitZMinCheckbox).bind(Settings::isUseExitZMin, Settings::setUseExitZMin);
         settingsBinder.forField(useExitZMaxCheckbox).bind(Settings::isUseExitZMax, Settings::setUseExitZMax);
         settingsBinder.forField(useExitZMaxPercentCheckbox).bind(Settings::isUseExitZMaxPercent, Settings::setUseExitZMaxPercent);
-        settingsBinder.forField(useExitTimeHoursCheckbox).bind(Settings::isUseExitTimeHours, Settings::setUseExitTimeHours);
+        settingsBinder.forField(useExitTimeMinutesCheckbox).bind(Settings::isUseExitTimeMinutes, Settings::setUseExitTimeMinutes);
         settingsBinder.forField(useExitBreakEvenPercentCheckbox).bind(Settings::isUseExitBreakEvenPercent, Settings::setUseExitBreakEvenPercent);
     }
 

@@ -39,7 +39,7 @@ public class Settings {
     private double exitZMin;
     private double exitZMax;
     private double exitZMaxPercent;
-    private double exitTimeHours;
+    private double exitTimeMinutes;
     private double exitBreakEvenPercent; //% профита для закрытия по БУ
 
     private double usePairs;
@@ -73,7 +73,7 @@ public class Settings {
     @Builder.Default
     private boolean useExitZMaxPercent = true;
     @Builder.Default
-    private boolean useExitTimeHours = true;
+    private boolean useExitTimeMinutes = true;
     @Builder.Default
     private boolean useExitBreakEvenPercent = true;
     @Builder.Default

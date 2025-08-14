@@ -67,7 +67,7 @@ public class TradeHistoryService {
         tradeHistory.setExitStop(settings.getExitStop());
         tradeHistory.setExitZMin(settings.getExitZMin());
         tradeHistory.setExitZMax(settings.getExitZMaxPercent());
-        tradeHistory.setExitTimeHours(settings.getExitTimeHours());
+        tradeHistory.setExitTimeMinutes(settings.getExitTimeMinutes());
 
         tradeHistory.setExitReason(pairData.getExitReason());
 

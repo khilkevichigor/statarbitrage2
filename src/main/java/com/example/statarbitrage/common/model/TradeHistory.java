@@ -51,7 +51,7 @@ public class TradeHistory {
     private double exitStop;
     private double exitZMin;
     private double exitZMax;
-    private double exitTimeHours;
+    private double exitTimeMinutes;
 
     private String exitReason;
     private String entryTime;

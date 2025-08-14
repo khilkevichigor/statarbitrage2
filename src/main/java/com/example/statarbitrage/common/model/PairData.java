@@ -247,7 +247,7 @@ public class PairData {
     @CsvExportable(order = 79)
     private double settingsExitZMaxPercent;
     @CsvExportable(order = 80)
-    private double settingsExitTimeHours;
+    private double settingsExitTimeMinutes;
     @CsvExportable(order = 81)
     private double settingsExitBreakEvenPercent;
     @CsvExportable(order = 82)

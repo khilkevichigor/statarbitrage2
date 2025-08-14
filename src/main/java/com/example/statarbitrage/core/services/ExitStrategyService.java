@@ -79,11 +79,11 @@ public class ExitStrategyService {
     }
 
     private boolean isTimeExceeded(long entryTimeMillis, long nowMillis, Settings settings) {
-        if (!settings.isUseExitTimeHours() || entryTimeMillis <= 0) {
+        if (!settings.isUseExitTimeMinutes() || entryTimeMillis <= 0) {
             return false;
         }
-        long hoursHeld = (nowMillis - entryTimeMillis) / (1000 * 60 * 60);
-        return hoursHeld >= settings.getExitTimeHours();
+        long minutesHeld = (nowMillis - entryTimeMillis) / (1000 * 60); // перевод в минуты
+        return minutesHeld >= settings.getExitTimeMinutes(); // сравнение с минутами
     }
 
     private boolean isCloseAtBreakevenTriggered(PairData pairData, Settings settings) {
