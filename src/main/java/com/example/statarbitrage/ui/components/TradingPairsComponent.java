@@ -42,6 +42,7 @@ public class TradingPairsComponent extends VerticalLayout {
     private final Grid<PairData> tradingPairsGrid;
     private final Grid<PairData> closedPairsGrid;
     private final Grid<PairData> errorPairsGrid;
+    private final Grid<PairData> observedPairsGrid;
     private final VerticalLayout unrealizedProfitLayout;
 
     private Consumer<Void> uiUpdateCallback;
@@ -61,6 +62,7 @@ public class TradingPairsComponent extends VerticalLayout {
         this.tradingPairsGrid = new Grid<>(PairData.class, false);
         this.closedPairsGrid = new Grid<>(PairData.class, false);
         this.errorPairsGrid = new Grid<>(PairData.class, false);
+        this.observedPairsGrid = new Grid<>(PairData.class, false);
         this.unrealizedProfitLayout = new VerticalLayout();
 
         initializeComponent();
@@ -76,7 +78,8 @@ public class TradingPairsComponent extends VerticalLayout {
                 tradingPairsGrid,
                 unrealizedProfitLayout,
                 closedPairsGrid,
-                errorPairsGrid
+                errorPairsGrid,
+                observedPairsGrid
         );
     }
 
@@ -85,6 +88,7 @@ public class TradingPairsComponent extends VerticalLayout {
         setupTradingPairsGrid();
         setupClosedPairsGrid();
         setupErrorPairsGrid();
+        setupObservedPairsGrid();
         setupCommonGridProperties();
     }
 
@@ -210,6 +214,20 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.addColumn(new ComponentRenderer<>(this::createErrorPairsActionButtons)).setHeader("Чарт").setSortable(true).setAutoWidth(true);
     }
 
+    private void setupObservedPairsGrid() {
+        observedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreCurrent())).setHeader("Z-скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent())).setHeader("PValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Корр.").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        observedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getTimestamp())).setHeader("Дата/время").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        observedPairsGrid.addColumn(new ComponentRenderer<>(this::createChartButton)).setHeader("Чарт");
+    }
+
     private void setupCommonGridProperties() {
         selectedPairsGrid.setHeight("300px");
         selectedPairsGrid.setWidthFull();
@@ -219,6 +237,8 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.setWidthFull();
         errorPairsGrid.setHeight("300px");
         errorPairsGrid.setWidthFull();
+        observedPairsGrid.setHeight("300px");
+        observedPairsGrid.setWidthFull();
     }
 
     private Button createStartTradingButton(PairData pairData) {
@@ -324,12 +344,22 @@ public class TradingPairsComponent extends VerticalLayout {
         }
     }
 
+    public void updateObservedPairs() {
+        try {
+            List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.OBSERVED);
+            observedPairsGrid.setItems(pairs);
+        } catch (Exception e) {
+            log.error("Error updating observed pairs", e);
+        }
+    }
+
     public void updateAllData() {
         updateSelectedPairs();
         updateTradingPairs();
         updateClosedPairs();
         updateUnrealizedProfit();
         updateErrorPairs();
+        updateObservedPairs();
     }
 
     public void setSelectedPairs(List<PairData> pairs) {
@@ -381,10 +411,7 @@ public class TradingPairsComponent extends VerticalLayout {
         HorizontalLayout buttonsLayout = new HorizontalLayout();
         buttonsLayout.setSpacing(true);
         buttonsLayout.setPadding(false);
-
-        // Кнопка Chart
-        Button chartButton = createChartButton(pair);
-        buttonsLayout.add(chartButton);
+        buttonsLayout.add(createChartButton(pair));
         return buttonsLayout;
     }
 
@@ -454,6 +481,7 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.setVisible(false);
         closedPairsGrid.setVisible(false);
         errorPairsGrid.setVisible(false);
+        observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(false);
     }
 
@@ -462,6 +490,7 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.setVisible(true);
         closedPairsGrid.setVisible(false);
         errorPairsGrid.setVisible(false);
+        observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(true);
     }
 
@@ -470,6 +499,7 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.setVisible(false);
         closedPairsGrid.setVisible(true);
         errorPairsGrid.setVisible(false);
+        observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(false);
     }
 
@@ -478,6 +508,16 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.setVisible(false);
         closedPairsGrid.setVisible(false);
         errorPairsGrid.setVisible(true);
+        observedPairsGrid.setVisible(false);
+        unrealizedProfitLayout.setVisible(false);
+    }
+
+    public void showOnlyObservedPairs() {
+        selectedPairsGrid.setVisible(false);
+        tradingPairsGrid.setVisible(false);
+        closedPairsGrid.setVisible(false);
+        errorPairsGrid.setVisible(false);
+        observedPairsGrid.setVisible(true);
         unrealizedProfitLayout.setVisible(false);
     }
 
@@ -486,6 +526,7 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.setVisible(true);
         closedPairsGrid.setVisible(true);
         errorPairsGrid.setVisible(true);
+        observedPairsGrid.setVisible(true);
         unrealizedProfitLayout.setVisible(true);
     }
 
