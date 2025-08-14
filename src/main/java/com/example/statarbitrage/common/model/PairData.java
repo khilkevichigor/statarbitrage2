@@ -4,7 +4,6 @@ import com.example.statarbitrage.common.annotation.CsvExportable;
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
-import com.example.statarbitrage.common.utils.ZScoreChart;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
@@ -14,7 +13,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.awt.image.BufferedImage;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,11 +55,6 @@ public class PairData {
     private List<Candle> longTickerCandles;
     @Transient
     private List<Candle> shortTickerCandles;
-
-    @Transient
-    private BufferedImage cachedZScoreChart;
-    @Transient
-    private long chartGeneratedAt;
 
     @Column(columnDefinition = "TEXT")
     private String zScoreHistoryJson;
@@ -410,7 +403,6 @@ public class PairData {
             zScoreHistory.add(zScoreParam);
 
             saveZScoreHistoryToJson();
-            clearChartCache(); // Очищаем кеш чарта при добавлении новых данных
         }
     }
 
@@ -515,47 +507,6 @@ public class PairData {
         }
     }
 
-    /**
-     * Получение Z-Score графика с кешированием
-     * Чарт перегенерируется если данные обновлялись или прошло более 1 минуты
-     *
-     * @return BufferedImage с Z-Score графиком
-     */
-    public BufferedImage getZScoreChartImage() {
-        long currentTime = System.currentTimeMillis();
-        long cacheValidityPeriod = 60000; // 1 минута
-
-        // Перегенерируем чарт если:
-        // 1. Кеш пустой
-        // 2. Данные обновлялись позже создания чарта
-        // 3. Прошло более 1 минуты с момента генерации
-        boolean shouldRegenerate = cachedZScoreChart == null ||
-                updatedTime > chartGeneratedAt ||
-                (currentTime - chartGeneratedAt) > cacheValidityPeriod;
-
-        if (shouldRegenerate) {
-            try {
-                cachedZScoreChart = ZScoreChart.createBufferedImage(this);
-                chartGeneratedAt = currentTime;
-            } catch (Exception e) {
-                // Fallback: возвращаем null если не удалось создать чарт
-                cachedZScoreChart = null;
-                chartGeneratedAt = 0;
-                throw new RuntimeException("Failed to generate Z-Score chart for pair: " +
-                        longTicker + "/" + shortTicker, e);
-            }
-        }
-
-        return cachedZScoreChart;
-    }
-
-    /**
-     * Очистка кеша чарта (полезно при значительных изменениях данных)
-     */
-    public void clearChartCache() {
-        this.cachedZScoreChart = null;
-        this.chartGeneratedAt = 0;
-    }
 
     // Методы для версионности (нужны для работы с @Version)
     public Long getVersion() {

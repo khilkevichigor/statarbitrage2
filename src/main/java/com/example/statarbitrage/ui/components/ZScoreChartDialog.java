@@ -2,8 +2,8 @@ package com.example.statarbitrage.ui.components;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
-import com.example.statarbitrage.common.utils.ZScoreChart;
 import com.example.statarbitrage.core.services.SettingsService;
+import com.example.statarbitrage.ui.services.ChartService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -34,6 +34,7 @@ import java.math.RoundingMode;
 public class ZScoreChartDialog extends Dialog {
 
     private final SettingsService settingsService;
+    private final ChartService chartService;
 
     private VerticalLayout content;
     private Image chartImage;
@@ -44,8 +45,9 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showProfitCheckbox;
     private PairData currentPairData;
 
-    public ZScoreChartDialog(SettingsService settingsService) {
+    public ZScoreChartDialog(SettingsService settingsService, ChartService chartService) {
         this.settingsService = settingsService;
+        this.chartService = chartService;
         initializeDialog();
         createComponents();
         layoutComponents();
@@ -131,9 +133,11 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showEma = showEmaCheckbox.getValue();
                 boolean showStochRsi = showStochRsiCheckbox.getValue();
                 boolean showProfit = showProfitCheckbox.getValue();
+                Settings settings = settingsService.getSettings();
+                int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
                 // Генерируем новый чарт с выбранными индикаторами
-                BufferedImage chartBufferedImage = generateEnhancedChart(currentPairData, showEma, showStochRsi, showProfit);
+                BufferedImage chartBufferedImage = chartService.createChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit);
 
                 if (chartBufferedImage != null) {
                     StreamResource chartResource = createStreamResource(chartBufferedImage);
@@ -203,7 +207,7 @@ public class ZScoreChartDialog extends Dialog {
             showProfitCheckbox.setValue(false);
 
             // Генерируем и показываем базовый чарт
-            BufferedImage chartBufferedImage = pairData.getZScoreChartImage();
+            BufferedImage chartBufferedImage = chartService.createChart(currentPairData, false, 0, false, false);
 
             if (chartBufferedImage != null) {
                 StreamResource chartResource = createStreamResource(chartBufferedImage);
@@ -387,28 +391,5 @@ public class ZScoreChartDialog extends Dialog {
      */
     private String getProfitColor(double profit) {
         return profit >= 0 ? "#4CAF50" : "#F44336";
-    }
-
-    /**
-     * Генерирует расширенный чарт с дополнительными индикаторами
-     */
-    private BufferedImage generateEnhancedChart(PairData pairData, boolean showEma, boolean showStochRsi, boolean showProfit) {
-        if (!showEma && !showStochRsi && !showProfit) {
-            // Если ничего дополнительного не нужно показывать, возвращаем базовый чарт
-            return pairData.getZScoreChartImage();
-        }
-
-        log.debug("📊 Генерируем расширенный чарт с EMA: {}, StochRSI: {}, Profit: {}", showEma, showStochRsi, showProfit);
-
-        try {
-            Settings settings = settingsService.getSettings();
-            int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
-
-            // Используем новый API для создания расширенного чарта
-            return ZScoreChart.createEnhancedBufferedImage(pairData, showEma, emaPeriod, showStochRsi, showProfit);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при создании расширенного чарта", e);
-            return pairData.getZScoreChartImage();
-        }
     }
 }
