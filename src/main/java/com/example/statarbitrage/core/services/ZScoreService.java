@@ -19,8 +19,10 @@ public class ZScoreService {
 
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
-    private final FilterIncompleteZScoreParamsService filterIncompleteZScoreParamsService;
-    private final ObtainBestPairByCriteriaService obtainBestPairByCriteriaService;
+    private final ObtainBestPairServiceV1 obtainBestPairServiceV1;
+    private final ObtainBestPairServiceV2 obtainBestPairServiceV2;
+    private final FilterIncompleteZScoreParamsServiceV1 filterIncompleteZScoreParamsServiceV1;
+    private final FilterIncompleteZScoreParamsServiceV2 filterIncompleteZScoreParamsServiceV2;
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
         log.debug("🔍 Проверка ZScore данных:");
@@ -198,7 +200,8 @@ public class ZScoreService {
         }
         checkZScoreParamsSize(rawZScoreDataList);
 //        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
-        filterIncompleteZScoreParamsService.filterV2(rawZScoreDataList, settings);
+//        filterIncompleteZScoreParamsServiceV1.filter(null, rawZScoreDataList, settings);
+        filterIncompleteZScoreParamsServiceV2.filter(rawZScoreDataList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }
@@ -216,7 +219,7 @@ public class ZScoreService {
         checkZScoreParamsSize(zScoreDataSingletonList);
 
         // НЕ применяем фильтрацию для новых трейдов - пара уже была отфильтрована ранее в FetchPairsProcessor
-        // filterIncompleteZScoreParamsService.filter(pairData, zScoreDataSingletonList, settings);
+//         filterIncompleteZScoreParamsService.filter(pairData, zScoreDataSingletonList, settings);
         log.debug("🔄 Обновление данных для уже отобранной пары {}", pairData.getPairName());
 
         return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
@@ -247,7 +250,8 @@ public class ZScoreService {
 
         for (int i = 0; i < topN; i++) {
 //            Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
-            Optional<ZScoreData> maybeBest = obtainBestPairByCriteriaService.getBestByCriteriaV2(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainBestPairServiceV1.getBestPair(settings, remainingPairs);
+//            Optional<ZScoreData> maybeBest = obtainBestPairServiceV2.getBestPair(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 
