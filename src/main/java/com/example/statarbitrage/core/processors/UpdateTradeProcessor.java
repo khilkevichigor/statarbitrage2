@@ -100,6 +100,16 @@ public class UpdateTradeProcessor {
         return pairData;
     }
 
+    @Transactional
+    public void updateObservedPair(PairData pairData) {
+        final Settings settings = settingsService.getSettings();
+        final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
+        if (zScoreData != null) {
+            pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
+            pairDataService.save(pairData);
+        }
+    }
+
     private void validateRequest(UpdateTradeRequest request) {
         if (request == null || request.getPairData() == null) {
             throw new IllegalArgumentException("Неверный запрос на обновление трейда");

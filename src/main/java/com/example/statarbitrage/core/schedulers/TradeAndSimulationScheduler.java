@@ -91,21 +91,21 @@ public class TradeAndSimulationScheduler {
     private List<PairData> executeUpdateTrades() {
         log.debug("🔄 Шедуллер обновления трейдов запущен...");
 
-        List<PairData> tradingPairs = getTradingPairs();
-        if (tradingPairs.isEmpty()) {
-            return tradingPairs;
+        List<PairData> updatablePairs = getUpdatablePairs();
+        if (updatablePairs.isEmpty()) {
+            return updatablePairs;
         }
 
         updatePositionsPrices();
-        processTradeUpdates(tradingPairs);
+        processTradeUpdates(updatablePairs);
         updateUI();
 
-        return tradingPairs;
+        return updatablePairs;
     }
 
-    private List<PairData> getTradingPairs() {
+    private List<PairData> getUpdatablePairs() {
         try {
-            return pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            return pairDataService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
         } catch (Exception e) {
             log.error("❌ Ошибка при получении торговых пар: {}", e.getMessage());
             return List.of();
@@ -120,16 +120,21 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-    private void processTradeUpdates(List<PairData> tradingPairs) {
-        tradingPairs.forEach(this::updateSingleTrade);
+    private void processTradeUpdates(List<PairData> updatablePairs) {
+        updatablePairs.forEach(this::updateSingleTrade);
     }
 
     private void updateSingleTrade(PairData pairData) {
         try {
-            updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
-                    .pairData(pairData)
-                    .closeManually(false)
-                    .build());
+            if (pairData.getStatus() == TradeStatus.TRADING) {
+                updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+                        .pairData(pairData)
+                        .closeManually(false)
+                        .build());
+            } else if (pairData.getStatus() == TradeStatus.OBSERVED) {
+                // Here we will call a new method to only update cointegration data
+                updateTradeProcessor.updateObservedPair(pairData);
+            }
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при обновлении пары {}: {}", pairData.getPairName(), e.getMessage());
         }

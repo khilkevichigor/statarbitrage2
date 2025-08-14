@@ -84,6 +84,10 @@ public class Settings {
     @Builder.Default
     private String minimumLotBlacklist = "ETH-USDT-SWAP,BTC-USDT-SWAP";
 
+    @Column(length = 1000)
+    @Builder.Default
+    private String observedPairs = "";
+
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
     }

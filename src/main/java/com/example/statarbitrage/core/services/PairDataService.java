@@ -63,6 +63,11 @@ public class PairDataService {
         pairDataRepository.save(pairData);
     }
 
+    public void saveAll(List<PairData> pairDataList) {
+        pairDataList.forEach(pairData -> pairData.setUpdatedTime(System.currentTimeMillis()));
+        pairDataRepository.saveAll(pairDataList);
+    }
+
     public PairData findById(Long id) {
         return pairDataRepository.findById(id).orElse(null);
     }
@@ -81,6 +86,10 @@ public class PairDataService {
 
     public List<PairData> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
         return pairDataRepository.findAllByStatusOrderByUpdatedTimeDesc(status);
+    }
+
+    public List<PairData> findAllByStatusIn(List<TradeStatus> statuses) {
+        return pairDataRepository.findAllByStatusIn(statuses);
     }
 
     public int deleteAllByStatus(TradeStatus status) {

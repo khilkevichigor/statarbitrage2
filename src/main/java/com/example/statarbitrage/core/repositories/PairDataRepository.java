@@ -35,6 +35,8 @@ public interface PairDataRepository extends JpaRepository<PairData, Long> {
             "ORDER BY p.updatedTime DESC")
     List<PairData> findAllByStatusOrderByUpdatedTimeDesc(@Param("status") TradeStatus status);
 
+    List<PairData> findAllByStatusIn(List<TradeStatus> statuses);
+
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE " +
