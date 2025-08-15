@@ -102,24 +102,6 @@ public class ObtainBestPairServiceV2 {
             rSquared = z.getAvgRSquared() != null ? z.getAvgRSquared() : 0.0;
         }
 
-        //todo закомментил тк делаем в getBestPair()
-//        // ====== ФИНАЛЬНАЯ ФИЛЬТРАЦИЯ ПЕРЕД ОЦЕНКОЙ ======
-//        String pairName = z.getUnderValuedTicker() + "/" + z.getOverValuedTicker();
-//
-//        // Проверка на минимальный Z-Score (критично для торговли!)
-//        if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) {
-//            log.info("⚠️ Отфильтровали пару {} в getBestPair: Z-Score {} < minZ {}",
-//                    pairName, NumberFormatter.format(zVal, 2), NumberFormatter.format(settings.getMinZ(), 2));
-//            return null;
-//        }
-//
-//        // Проверка на отрицательный Z-Score (нет торгового сигнала)
-//        if (zVal <= 0) {
-//            log.info("⚠️ Отфильтровали пару {} в getBestPair: неположительный Z-Score {}",
-//                    pairName, NumberFormatter.format(zVal, 2));
-//            return null;
-//        }
-
         // ====== ПРОСТОЙ КАЛКУЛЯТОР СКОРА (основной в Filter) ======
         // Основная логика скоринга вынесена в FilterIncompleteZScoreParamsServiceV2
 
