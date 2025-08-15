@@ -23,16 +23,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChartService {
 
-    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
-        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {})",
-                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit);
+    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice) {
+        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {})",
+                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice);
 
-        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit);
+        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice);
 
         return BitmapEncoder.getBufferedImage(chart);
     }
 
-    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
+    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice) {
         XYChart chart = buildBasicZScoreChart(pairData);
 
         List<ZScoreParam> history = pairData.getZScoreHistory();
@@ -60,6 +60,10 @@ public class ChartService {
 
         if (showProfit) {
             addProfitToChart(chart, pairData);
+        }
+
+        if (showCombinedPrice) {
+            addCombinedPricesToChart(chart, pairData);
         }
 
         return chart;
@@ -500,5 +504,72 @@ public class ChartService {
         g2.dispose();
 
         return combinedImage;
+    }
+
+    private void addCombinedPricesToChart(XYChart chart, PairData pairData) {
+        String longTicker = pairData.getLongTicker();
+        String shortTicker = pairData.getShortTicker();
+
+        List<Candle> longCandles = pairData.getLongTickerCandles();
+        List<Candle> shortCandles = pairData.getShortTickerCandles();
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Не найдены свечи для тикеров {} или {} для наложения на Z-Score чарт", longTicker, shortTicker);
+            return;
+        }
+
+        // Сортировка по времени
+        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        // Получение времени и цен для long тикера
+        List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
+
+        // Получение времени и цен для short тикера  
+        List<Date> timeShort = shortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = shortCandles.stream().map(Candle::getClose).toList();
+
+        // Найти диапазон Z-Score для масштабирования цен
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
+        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
+        double zRange = maxZScore - minZScore;
+
+        // Найти диапазон цен для нормализации
+        double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
+        double longPriceRange = maxLongPrice - minLongPrice;
+
+        double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
+        double shortPriceRange = maxShortPrice - minShortPrice;
+
+        // Нормализация long цен в диапазон Z-Score
+        List<Double> scaledLongPrices = longPrices.stream()
+                .map(price -> longPriceRange != 0 ? 
+                    minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
+                .collect(Collectors.toList());
+
+        // Нормализация short цен в диапазон Z-Score  
+        List<Double> scaledShortPrices = shortPrices.stream()
+                .map(price -> shortPriceRange != 0 ? 
+                    minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
+                .collect(Collectors.toList());
+
+        log.debug("✅ Добавляем объединенные цены на Z-Score чарт: LONG {} точек, SHORT {} точек", 
+                scaledLongPrices.size(), scaledShortPrices.size());
+
+        // Добавляем long цены как полупрозрачную зеленую линию
+        XYSeries longPriceSeries = chart.addSeries("LONG Price (scaled): " + longTicker, timeLong, scaledLongPrices);
+        longPriceSeries.setLineColor(new Color(0, 255, 0, 120)); // Полупрозрачный зеленый
+        longPriceSeries.setMarker(new None());
+        longPriceSeries.setLineStyle(new BasicStroke(1.5f));
+
+        // Добавляем short цены как полупрозрачную красную линию
+        XYSeries shortPriceSeries = chart.addSeries("SHORT Price (scaled): " + shortTicker, timeShort, scaledShortPrices);
+        shortPriceSeries.setLineColor(new Color(255, 0, 0, 120)); // Полупрозрачный красный
+        shortPriceSeries.setMarker(new None());
+        shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
     }
 }

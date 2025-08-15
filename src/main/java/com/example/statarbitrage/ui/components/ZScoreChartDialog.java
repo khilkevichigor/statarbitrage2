@@ -44,6 +44,7 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showEmaCheckbox;
     private Checkbox showStochRsiCheckbox;
     private Checkbox showProfitCheckbox;
+    private Checkbox showCombinedPriceCheckbox;
     private PairData currentPairData;
 
     public ZScoreChartDialog(SettingsService settingsService, ChartService chartService) {
@@ -114,6 +115,10 @@ public class ZScoreChartDialog extends Dialog {
         showProfitCheckbox = new Checkbox("Показать профит");
         showProfitCheckbox.setValue(false);
         showProfitCheckbox.addValueChangeListener(e -> refreshChart());
+
+        showCombinedPriceCheckbox = new Checkbox("Показать объединенные цены");
+        showCombinedPriceCheckbox.setValue(false);
+        showCombinedPriceCheckbox.addValueChangeListener(e -> refreshChart());
     }
 
     /**
@@ -141,11 +146,12 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showEma = showEmaCheckbox.getValue();
                 boolean showStochRsi = showStochRsiCheckbox.getValue();
                 boolean showProfit = showProfitCheckbox.getValue();
+                boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
                 Settings settings = settingsService.getSettings();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
                 // Генерируем новый чарт с выбранными индикаторами
-                BufferedImage chartBufferedImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit);
+                BufferedImage chartBufferedImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice);
 
                 if (chartBufferedImage != null) {
                     StreamResource chartResource = createStreamResource(chartBufferedImage, "zscore-chart.png");
@@ -183,7 +189,7 @@ public class ZScoreChartDialog extends Dialog {
         indicatorsLabel.getStyle().set("font-weight", "bold");
         indicatorsLabel.getStyle().set("margin-right", "1rem");
 
-        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox);
+        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox, showCombinedPriceCheckbox);
 
         content.add(header, indicatorsPanel, zScoreChartImage, priceChartImage, detailsPanel);
         add(content);
@@ -213,9 +219,10 @@ public class ZScoreChartDialog extends Dialog {
             showEmaCheckbox.setValue(false);
             showStochRsiCheckbox.setValue(false);
             showProfitCheckbox.setValue(false);
+            showCombinedPriceCheckbox.setValue(false);
 
             // Генерируем и показываем базовый чарт
-            BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false);
+            BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false);
             if (zScoreChartBufferedImage != null) {
                 StreamResource zScoreChartResource = createStreamResource(zScoreChartBufferedImage, "zscore-chart.png");
                 zScoreChartImage.setSrc(zScoreChartResource);
