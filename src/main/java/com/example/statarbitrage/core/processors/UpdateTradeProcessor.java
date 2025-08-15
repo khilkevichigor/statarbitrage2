@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +81,13 @@ public class UpdateTradeProcessor {
 //            //todo
 //        }
 
-        final ZScoreData zScoreData = calculateZScoreData(pairData, settings);
+        final Map<String, Object> cointegrationData = calculateZScoreData(pairData, settings);
+        final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
+        final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
+
+        pairData.setLongTickerCandles(candlesMap.get(pairData.getLongTicker()));
+        pairData.setShortTickerCandles(candlesMap.get(pairData.getShortTicker()));
+
         logPairInfo(zScoreData, settings);
 
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
@@ -108,8 +115,13 @@ public class UpdateTradeProcessor {
         }
 
         final Settings settings = settingsService.getSettings();
-        final ZScoreData zScoreData = calculateZScoreData(freshPairData, settings);
+        final Map<String, Object> cointegrationData = calculateZScoreData(freshPairData, settings);
+        final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
+        final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
+
         if (zScoreData != null) {
+            freshPairData.setLongTickerCandles(candlesMap.get(freshPairData.getLongTicker()));
+            freshPairData.setShortTickerCandles(candlesMap.get(freshPairData.getShortTicker()));
             pairDataService.updateZScoreDataCurrent(freshPairData, zScoreData);
             pairDataService.save(freshPairData);
         }
@@ -141,9 +153,13 @@ public class UpdateTradeProcessor {
         return false;
     }
 
-    private ZScoreData calculateZScoreData(PairData pairData, Settings settings) {
+    private Map<String, Object> calculateZScoreData(PairData pairData, Settings settings) {
         final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        return zScoreService.calculateZScoreData(settings, candlesMap);
+        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+        Map<String, Object> result = new HashMap<>();
+        result.put("candlesMap", candlesMap);
+        result.put("zScoreData", zScoreData);
+        return result;
     }
 
     private void logPairInfo(ZScoreData zScoreData, Settings settings) {
