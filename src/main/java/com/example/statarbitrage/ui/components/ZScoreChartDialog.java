@@ -237,6 +237,9 @@ public class ZScoreChartDialog extends Dialog {
             showPixelSpreadCheckbox.setValue(false);
             pixelSpreadChartImage.setVisible(false);
 
+            // Вычисляем пиксельный спред независимо от чекбокса объединенных цен
+            chartService.calculatePixelSpreadIfNeeded(currentPairData);
+            
             // Генерируем и показываем базовый чарт
             BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false);
             if (zScoreChartBufferedImage != null) {
