@@ -4,6 +4,7 @@ import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
 import com.example.statarbitrage.common.model.TradeStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ObservedPairsService {
@@ -36,7 +38,15 @@ public class ObservedPairsService {
         for (String pair : pairs) {
             String[] tickers = pair.split("/");
             if (tickers.length == 2) {
-                PairData pairData = new PairData(tickers[0].trim(), tickers[1].trim());
+                String longTicker = tickers[0].trim();
+                String shortTicker = tickers[1].trim();
+
+                if (longTicker.equalsIgnoreCase(shortTicker)) {
+                    log.warn("⚠️ Пропускаем пару {}/{}: тикеры не могут быть одинаковыми.", longTicker, shortTicker);
+                    continue;
+                }
+
+                PairData pairData = new PairData(longTicker, shortTicker);
                 pairData.setStatus(TradeStatus.OBSERVED);
                 pairDataList.add(pairData);
             }
