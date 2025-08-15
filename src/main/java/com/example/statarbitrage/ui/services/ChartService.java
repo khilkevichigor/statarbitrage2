@@ -431,6 +431,7 @@ public class ChartService {
 
         List<Candle> longCandles = pairData.getLongTickerCandles();
         List<Candle> shortCandles = pairData.getShortTickerCandles();
+        List<ZScoreParam> history = pairData.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
             log.warn("Не найдены свечи для тикеров {} или {}", longTicker, shortTicker);
@@ -441,12 +442,34 @@ public class ChartService {
         longCandles.sort(Comparator.comparing(Candle::getTimestamp));
         shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
 
-        // Получение времени и цен
-        List<Date> timeAxis = longCandles.stream()
-                .map(c -> new Date(c.getTimestamp()))
-                .toList();
+        // Синхронизация с Z-Score историей, если она доступна
+        if (history != null && !history.isEmpty()) {
+            long zScoreStartTime = history.get(0).getTimestamp();
+            long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
+            long bufferTime = 300000; // 5 минут буфер
 
-        // Дата и цены
+            log.debug("📊 Синхронизируем Price чарт с Z-Score диапазоном: {} - {}", 
+                    new Date(zScoreStartTime), new Date(zScoreEndTime));
+
+            // Фильтруем свечи по временному диапазону Z-Score
+            longCandles = longCandles.stream()
+                    .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
+                    .toList();
+
+            shortCandles = shortCandles.stream()
+                    .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
+                    .toList();
+
+            log.debug("📊 Отфильтрованные свечи для Price чарта: LONG {}, SHORT {}", 
+                    longCandles.size(), shortCandles.size());
+
+            if (longCandles.isEmpty() || shortCandles.isEmpty()) {
+                log.warn("⚠️ Нет свечей в Z-Score временном диапазоне для Price чарта");
+                return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+            }
+        }
+
+        // Дата и цены (используем отфильтрованные свечи)
         List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
         List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
 
