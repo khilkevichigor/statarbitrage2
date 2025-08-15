@@ -145,7 +145,7 @@ public class ZScoreChartDialog extends Dialog {
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
                 // Генерируем новый чарт с выбранными индикаторами
-                BufferedImage chartBufferedImage = chartService.createChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit);
+                BufferedImage chartBufferedImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit);
 
                 if (chartBufferedImage != null) {
                     StreamResource chartResource = createStreamResource(chartBufferedImage, "zscore-chart.png");
@@ -215,7 +215,7 @@ public class ZScoreChartDialog extends Dialog {
             showProfitCheckbox.setValue(false);
 
             // Генерируем и показываем базовый чарт
-            BufferedImage zScoreChartBufferedImage = chartService.createChart(currentPairData, false, 0, false, false);
+            BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false);
             if (zScoreChartBufferedImage != null) {
                 StreamResource zScoreChartResource = createStreamResource(zScoreChartBufferedImage, "zscore-chart.png");
                 zScoreChartImage.setSrc(zScoreChartResource);

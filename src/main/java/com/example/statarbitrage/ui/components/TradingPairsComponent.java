@@ -215,15 +215,15 @@ public class TradingPairsComponent extends VerticalLayout {
     }
 
     private void setupObservedPairsGrid() {
-        observedPairsGrid.addColumn(PairData::getLongTicker).setHeader("Лонг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        observedPairsGrid.addColumn(PairData::getShortTicker).setHeader("Шорт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(PairData::getLongTicker).setHeader("A").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(PairData::getShortTicker).setHeader("B").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getZScoreCurrent())).setHeader("Z-скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent())).setHeader("PValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Корр.").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent())).setHeader("PValue").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent())).setHeader("AdfValue").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent())).setHeader("Corr").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        observedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getTimestamp())).setHeader("Дата/время").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getUpdatedTime())).setHeader("Дата/время").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         observedPairsGrid.addColumn(new ComponentRenderer<>(this::createChartButton)).setHeader("Чарт");
     }

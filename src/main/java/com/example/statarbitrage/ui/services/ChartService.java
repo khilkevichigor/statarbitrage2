@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChartService {
 
-    public BufferedImage createChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
+    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit) {
         log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {})",
                 pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit);
 
@@ -44,7 +44,7 @@ public class ChartService {
 
         List<Long> timestamps = history.stream()
                 .map(ZScoreParam::getTimestamp)
-                .collect(Collectors.toList());
+                .toList();
         List<Double> zScores = history.stream()
                 .map(ZScoreParam::getZscore)
                 .collect(Collectors.toList());
