@@ -37,6 +37,8 @@ public interface PairDataRepository extends JpaRepository<PairData, Long> {
 
     List<PairData> findAllByStatusIn(List<TradeStatus> statuses);
 
+    List<PairData> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
+
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE " +

@@ -17,6 +17,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FilterIncompleteZScoreParamsServiceV2 {
 
+    private final PairDataService pairDataService;
+    private final PixelSpreadService pixelSpreadService;
+
     /**
      * Новая версия фильтрации на основе системы очков
      * <p>
@@ -446,7 +449,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         totalScore += statisticalScore;
         log.debug("  📊 Статистика: {} очков", NumberFormatter.format(statisticalScore, 1));
 
-        // ====== 5. БОНУСЫ (5 очков) ======
+        // ====== 5. БОНУСЫ (5 очков) + ПИКСЕЛЬНЫЙ СПРЕД ======
         double bonusScore = calculateBonusScoreComponent(data);
         totalScore += bonusScore;
         log.debug("  🎁 Бонусы: {} очков", NumberFormatter.format(bonusScore, 1));
@@ -457,72 +460,72 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
     /**
      * ДИНАМИЧЕСКАЯ СИСТЕМА ВЕСОВ для коинтеграции (25 очков)
-     * 
+     * <p>
      * Принцип: равные веса когда доступны оба теста, полный вес единственному доступному
      * - Johansen + ADF доступны: 12.5 + 12.5 очков
-     * - Только Johansen: 25 очков 
+     * - Только Johansen: 25 очков
      * - Только ADF: 25 очков
      * - Нет данных: 0 очков
      */
     private double calculateCointegrationScoreComponent(ZScoreData data, List<ZScoreParam> params) {
         boolean hasJohansen = data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0;
         boolean hasAdf = getAdfPValue(data, params) != null && getAdfPValue(data, params) > 0;
-        
+
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
-        
+
         if (!hasJohansen && !hasAdf) {
             log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
             return 0.0;
         }
-        
+
         double score = 0.0;
-        
+
         if (hasJohansen && hasAdf) {
             // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 12.5 очков
             log.debug("  🔬 {}: Динамические веса - оба теста (12.5+12.5)", pairName);
-            
+
             // Johansen (12.5 очков)
             double johansenPValue = data.getJohansenCointPValue();
             double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 12.5;
             score += johansenScore;
-            
+
             // ADF (12.5 очков)
             Double adfPValue = getAdfPValue(data, params);
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 12.5;
             score += adfScore;
-            
-            log.debug("    Johansen: {} очков (p-value={})", 
-                NumberFormatter.format(johansenScore, 1), 
-                NumberFormatter.format(johansenPValue, 6));
-            log.debug("    ADF: {} очков (p-value={})", 
-                NumberFormatter.format(adfScore, 1), 
-                NumberFormatter.format(adfPValue, 6));
-                
+
+            log.debug("    Johansen: {} очков (p-value={})",
+                    NumberFormatter.format(johansenScore, 1),
+                    NumberFormatter.format(johansenPValue, 6));
+            log.debug("    ADF: {} очков (p-value={})",
+                    NumberFormatter.format(adfScore, 1),
+                    NumberFormatter.format(adfPValue, 6));
+
         } else if (hasJohansen) {
             // ТОЛЬКО JOHANSEN - полные 25 очков
             log.debug("  🔬 {}: Динамические веса - только Johansen (25)", pairName);
-            
+
             double johansenPValue = data.getJohansenCointPValue();
             double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 25.0;
             score += johansenScore;
-            
-            log.debug("    Johansen: {} очков (p-value={})", 
-                NumberFormatter.format(johansenScore, 1), 
-                NumberFormatter.format(johansenPValue, 6));
-                
+
+            log.debug("    Johansen: {} очков (p-value={})",
+                    NumberFormatter.format(johansenScore, 1),
+                    NumberFormatter.format(johansenPValue, 6));
+
         } else if (hasAdf) {
             // ТОЛЬКО ADF - полные 25 очков
             log.debug("  🔬 {}: Динамические веса - только ADF (25)", pairName);
-            
+
             Double adfPValue = getAdfPValue(data, params);
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 25.0;
             score += adfScore;
-            
-            log.debug("    ADF: {} очков (p-value={})", 
-                NumberFormatter.format(adfScore, 1), 
-                NumberFormatter.format(adfPValue, 6));
+
+            log.debug("    ADF: {} очков (p-value={})",
+                    NumberFormatter.format(adfScore, 1),
+                    NumberFormatter.format(adfPValue, 6));
         }
-        
+
         // Бонус за trace statistic (только если есть Johansen)
         if (hasJohansen && data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
             if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
@@ -530,7 +533,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
                 log.debug("    Бонус trace statistic: +2 очка");
             }
         }
-        
+
         return Math.min(score, 25.0); // Макс 25 очков (+ возможные бонусы до 27)
     }
 
@@ -575,7 +578,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         // Бонус за полноту данных Johansen
         if (data.getJohansenCointPValue() != null && data.getJohansenTraceStatistic() != null) {
-            bonusScore += 2.0;
+            bonusScore += 1.5;
         }
 
         // Бонус за стабильность
@@ -585,10 +588,66 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         // Бонус за качество модели
         if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
-            bonusScore += 2.0;
+            bonusScore += 1.5;
         }
 
-        return Math.min(bonusScore, 5.0);
+        // ====== НОВЫЙ КОМПОНЕНТ: ПИКСЕЛЬНЫЙ СПРЕД (до 2 очков) ======
+        double pixelSpreadBonus = calculatePixelSpreadBonus(data);
+        bonusScore += pixelSpreadBonus;
+        log.debug("    📏 Пиксельный спред: {} очков", NumberFormatter.format(pixelSpreadBonus, 1));
+
+        return Math.min(bonusScore, 6.0); // Увеличили максимум с 5 до 6 очков
+    }
+
+    /**
+     * Рассчитывает бонус за пиксельный спред
+     * Логика: чем больше средняя раздвижка - тем больше баллов
+     *
+     * @param data данные пары
+     * @return баллы (0-2.0)
+     */
+    private double calculatePixelSpreadBonus(ZScoreData data) {
+        try {
+            // Ищем существующую PairData по тикерам
+            String longTicker = data.getUnderValuedTicker();  // undervalued = long
+            String shortTicker = data.getOverValuedTicker(); // overvalued = short
+
+            // Получаем PairData из базы (если существует)
+            var existingPairs = pairDataService.findByTickers(longTicker, shortTicker);
+
+            if (!existingPairs.isEmpty()) {
+                var pairData = existingPairs.get(0);
+
+                // Получаем статистику пиксельного спреда
+                double avgSpread = pixelSpreadService.getAveragePixelSpread(pairData);
+                double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
+
+                if (avgSpread > 0) {
+                    // Логика начисления баллов:
+                    // avg < 20px: 0 баллов
+                    // avg 20-40px: 0.5-1.0 балл  
+                    // avg 40-80px: 1.0-1.5 балла
+                    // avg > 80px: 1.5-2.0 балла
+                    double baseScore = Math.min(avgSpread / 40.0, 2.0); // До 2 баллов
+
+                    // Бонус за высокий максимум (дополнительная волатильность)
+                    double maxBonus = maxSpread > 100 ? 0.3 : 0.0;
+
+                    double totalScore = Math.min(baseScore + maxBonus, 2.0);
+
+                    log.debug("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов",
+                            avgSpread, maxSpread, totalScore);
+
+                    return totalScore;
+                }
+            }
+
+            return 0.0; // Нет данных о пиксельном спреде
+
+        } catch (Exception e) {
+            log.debug("    📏 Ошибка расчета бонуса пиксельного спреда: {}", e.getMessage());
+            return 0.0;
+        }
     }
 
     /**

@@ -92,6 +92,10 @@ public class PairDataService {
         return pairDataRepository.findAllByStatusIn(statuses);
     }
 
+    public List<PairData> findByTickers(String longTicker, String shortTicker) {
+        return pairDataRepository.findByLongTickerAndShortTicker(longTicker, shortTicker);
+    }
+
     public int deleteAllByStatus(TradeStatus status) {
         return pairDataRepository.deleteAllByStatus(status);
     }

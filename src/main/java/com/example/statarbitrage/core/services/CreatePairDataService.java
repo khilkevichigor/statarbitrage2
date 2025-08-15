@@ -19,6 +19,7 @@ import java.util.Map;
 public class CreatePairDataService {
 
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
+    private final PixelSpreadService pixelSpreadService;
 
     /**
      * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
@@ -69,6 +70,24 @@ public class CreatePairDataService {
         pairData.setTimestamp(System.currentTimeMillis()); //создание и обноаление
 
         updateZScoreDataCurrentService.updateCurrent(pairData, zScoreData);
+
+        // Рассчитываем пиксельный спред для новой пары
+        try {
+            pixelSpreadService.calculatePixelSpreadIfNeeded(pairData);
+
+            // Логируем статистику пиксельного спреда
+            double avgSpread = pixelSpreadService.getAveragePixelSpread(pairData);
+            double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
+            double currentSpread = pixelSpreadService.getCurrentPixelSpread(pairData);
+
+            log.debug("🔢 Пиксельный спред для {}/{}: avg={:.1f}px, max={:.1f}px, current={:.1f}px",
+                    pairData.getLongTicker(), pairData.getShortTicker(),
+                    avgSpread, maxSpread, currentSpread);
+
+        } catch (Exception e) {
+            log.warn("⚠️ Ошибка расчета пиксельного спреда для {}/{}: {}",
+                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+        }
 
         return pairData;
     }
