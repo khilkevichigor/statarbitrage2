@@ -770,7 +770,7 @@ public class ChartService {
         timeLong.forEach(date -> allTimestamps.add(date.getTime()));
         timeShort.forEach(date -> allTimestamps.add(date.getTime()));
         
-        List<Long> sortedTimestamps = allTimestamps.stream().sorted().collect(Collectors.toList());
+        List<Long> sortedTimestamps = allTimestamps.stream().sorted().toList();
         
         log.debug("🔢 Найдено {} уникальных временных точек для анализа пиксельного спреда", sortedTimestamps.size());
 
