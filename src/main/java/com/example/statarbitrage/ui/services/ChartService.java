@@ -111,6 +111,8 @@ public class ChartService {
         chart.getStyler().setLegendVisible(false);
         chart.getStyler().setDatePattern("HH:mm");
         chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        chart.getStyler().setYAxisTicksVisible(false);
+        chart.getStyler().setYAxisTitleVisible(false);
 
         XYSeries zSeries = chart.addSeries("Z-Score", timeAxis, zScores);
         zSeries.setLineColor(Color.MAGENTA);
@@ -752,6 +754,8 @@ public class ChartService {
         chart.getStyler().setLegendVisible(false);
         chart.getStyler().setDatePattern("HH:mm");
         chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        chart.getStyler().setYAxisTicksVisible(false);
+        chart.getStyler().setYAxisTitleVisible(false);
 
         XYSeries pixelSeries = chart.addSeries("Pixel Distance", timeAxis, pixelDistances);
         pixelSeries.setLineColor(Color.BLUE);
