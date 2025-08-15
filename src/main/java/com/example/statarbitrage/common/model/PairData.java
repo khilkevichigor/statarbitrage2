@@ -73,11 +73,17 @@ public class PairData {
     @Column(columnDefinition = "TEXT")
     private String profitHistoryJson;
 
+    @Column(columnDefinition = "TEXT")
+    private String pixelSpreadHistoryJson;
+
     @Transient
     private List<ZScoreParam> zScoreHistory;
 
     @Transient
     private List<ProfitHistoryItem> profitHistory;
+
+    @Transient
+    private List<com.example.statarbitrage.common.dto.PixelSpreadHistoryItem> pixelSpreadHistory;
 
     @CsvExportable(order = 6)
     private String longTicker;
@@ -515,6 +521,66 @@ public class PairData {
         } catch (Exception e) {
             log.error("Ошибка десериализации истории профита для пары {}", pairName, e);
             this.profitHistory = new ArrayList<>();
+        }
+    }
+
+    /**
+     * Добавить новую точку в историю пиксельного спреда
+     *
+     * @param pixelSpreadHistoryItem новая точка данных
+     */
+    public void addPixelSpreadPoint(com.example.statarbitrage.common.dto.PixelSpreadHistoryItem pixelSpreadHistoryItem) {
+        getPixelSpreadHistory();
+
+        if (pixelSpreadHistory == null) {
+            pixelSpreadHistory = new ArrayList<>();
+        }
+
+        boolean exists = pixelSpreadHistory.stream()
+                .anyMatch(existing -> existing.getTimestamp() == pixelSpreadHistoryItem.getTimestamp());
+
+        if (!exists) {
+            pixelSpreadHistory.add(pixelSpreadHistoryItem);
+            savePixelSpreadHistoryToJson();
+        }
+    }
+
+    /**
+     * Получить историю пиксельного спреда
+     *
+     * @return список PixelSpreadHistoryItem
+     */
+    public List<com.example.statarbitrage.common.dto.PixelSpreadHistoryItem> getPixelSpreadHistory() {
+        if (pixelSpreadHistory == null && pixelSpreadHistoryJson != null && !pixelSpreadHistoryJson.isEmpty()) {
+            loadPixelSpreadHistoryFromJson();
+        }
+        return pixelSpreadHistory != null ? pixelSpreadHistory : new ArrayList<>();
+    }
+
+    /**
+     * Сериализация истории пиксельного спреда в JSON для сохранения в БД
+     */
+    private void savePixelSpreadHistoryToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.pixelSpreadHistoryJson = mapper.writeValueAsString(pixelSpreadHistory);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации истории пиксельного спреда для пары {}", pairName, e);
+        }
+    }
+
+    /**
+     * Десериализация истории пиксельного спреда из JSON при загрузке из БД
+     */
+    private void loadPixelSpreadHistoryFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<List<com.example.statarbitrage.common.dto.PixelSpreadHistoryItem>> typeRef = new TypeReference<>() {
+            };
+            this.pixelSpreadHistory = mapper.readValue(pixelSpreadHistoryJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации истории пиксельного спреда для пары {}", pairName, e);
+            this.pixelSpreadHistory = new ArrayList<>();
         }
     }
 

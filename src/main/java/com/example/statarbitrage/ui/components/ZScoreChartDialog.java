@@ -39,12 +39,14 @@ public class ZScoreChartDialog extends Dialog {
     private VerticalLayout content;
     private Image zScoreChartImage;
     private Image priceChartImage;
+    private Image pixelSpreadChartImage;
     private H3 pairTitle;
     private Div detailsPanel;
     private Checkbox showEmaCheckbox;
     private Checkbox showStochRsiCheckbox;
     private Checkbox showProfitCheckbox;
     private Checkbox showCombinedPriceCheckbox;
+    private Checkbox showPixelSpreadCheckbox;
     private PairData currentPairData;
 
     public ZScoreChartDialog(SettingsService settingsService, ChartService chartService) {
@@ -86,6 +88,14 @@ public class ZScoreChartDialog extends Dialog {
         priceChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
         priceChartImage.getStyle().set("margin-top", "1rem");
 
+        pixelSpreadChartImage = new Image();
+        pixelSpreadChartImage.setWidth("100%");
+        pixelSpreadChartImage.setHeight("400px");
+        pixelSpreadChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        pixelSpreadChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        pixelSpreadChartImage.getStyle().set("margin-top", "1rem");
+        pixelSpreadChartImage.setVisible(false); // Скрываем по умолчанию
+
         detailsPanel = new Div();
         detailsPanel.getStyle().set("padding", "1rem");
         detailsPanel.getStyle().set("background", "var(--lumo-contrast-5pct)");
@@ -119,6 +129,10 @@ public class ZScoreChartDialog extends Dialog {
         showCombinedPriceCheckbox = new Checkbox("Показать объединенные цены");
         showCombinedPriceCheckbox.setValue(false);
         showCombinedPriceCheckbox.addValueChangeListener(e -> refreshChart());
+
+        showPixelSpreadCheckbox = new Checkbox("📏 Показать пиксельный спред");
+        showPixelSpreadCheckbox.setValue(false);
+        showPixelSpreadCheckbox.addValueChangeListener(e -> refreshPixelSpreadChart());
     }
 
     /**
@@ -189,9 +203,9 @@ public class ZScoreChartDialog extends Dialog {
         indicatorsLabel.getStyle().set("font-weight", "bold");
         indicatorsLabel.getStyle().set("margin-right", "1rem");
 
-        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox, showCombinedPriceCheckbox);
+        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox);
 
-        content.add(header, indicatorsPanel, zScoreChartImage, priceChartImage, detailsPanel);
+        content.add(header, indicatorsPanel, zScoreChartImage, priceChartImage, pixelSpreadChartImage, detailsPanel);
         add(content);
     }
 
@@ -220,6 +234,8 @@ public class ZScoreChartDialog extends Dialog {
             showStochRsiCheckbox.setValue(false);
             showProfitCheckbox.setValue(false);
             showCombinedPriceCheckbox.setValue(false);
+            showPixelSpreadCheckbox.setValue(false);
+            pixelSpreadChartImage.setVisible(false);
 
             // Генерируем и показываем базовый чарт
             BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false);
@@ -416,5 +432,41 @@ public class ZScoreChartDialog extends Dialog {
      */
     private String getProfitColor(double profit) {
         return profit >= 0 ? "#4CAF50" : "#F44336";
+    }
+
+    /**
+     * Обновляет график пиксельного спреда
+     */
+    private void refreshPixelSpreadChart() {
+        if (currentPairData != null) {
+            try {
+                boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
+                
+                if (showPixelSpread) {
+                    log.debug("📏 Генерируем график пиксельного спреда для пары: {}", currentPairData.getPairName());
+                    
+                    BufferedImage pixelSpreadBufferedImage = chartService.createPixelSpreadChart(currentPairData);
+                    if (pixelSpreadBufferedImage != null) {
+                        StreamResource pixelSpreadResource = createStreamResource(pixelSpreadBufferedImage, "pixel-spread-chart.png");
+                        pixelSpreadChartImage.setSrc(pixelSpreadResource);
+                        pixelSpreadChartImage.setAlt("Pixel Spread Chart for " + currentPairData.getPairName());
+                        pixelSpreadChartImage.setVisible(true);
+                        log.debug("✅ График пиксельного спреда успешно создан");
+                    } else {
+                        pixelSpreadChartImage.setSrc("");
+                        pixelSpreadChartImage.setAlt("Pixel Spread Chart generation failed");
+                        pixelSpreadChartImage.setVisible(false);
+                        log.warn("⚠️ Не удалось создать график пиксельного спреда для пары: {}", currentPairData.getPairName());
+                    }
+                } else {
+                    pixelSpreadChartImage.setVisible(false);
+                    pixelSpreadChartImage.setSrc("");
+                    log.debug("📏 График пиксельного спреда скрыт");
+                }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при обновлении графика пиксельного спреда", e);
+                pixelSpreadChartImage.setVisible(false);
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.example.statarbitrage.ui.services;
 
 import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ProfitHistoryItem;
+import com.example.statarbitrage.common.dto.PixelSpreadHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
 import lombok.extern.slf4j.Slf4j;
@@ -623,5 +624,143 @@ public class ChartService {
         shortPriceSeries.setLineColor(new Color(255, 0, 0, 120)); // Полупрозрачный красный
         shortPriceSeries.setMarker(new None());
         shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
+
+        // Вычисляем пиксельное расстояние между графиками long и short
+        calculateAndSavePixelSpread(pairData, timeLong, scaledLongPrices, timeShort, scaledShortPrices, chart);
+    }
+
+    /**
+     * Вычисляет пиксельное расстояние между графиками Long и Short цен и сохраняет в историю
+     */
+    private void calculateAndSavePixelSpread(PairData pairData, List<Date> timeLong, List<Double> scaledLongPrices, 
+                                           List<Date> timeShort, List<Double> scaledShortPrices, XYChart chart) {
+        log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", pairData.getPairName());
+
+        if (timeLong.isEmpty() || timeShort.isEmpty() || scaledLongPrices.isEmpty() || scaledShortPrices.isEmpty()) {
+            log.warn("⚠️ Недостаточно данных для вычисления пиксельного спреда");
+            return;
+        }
+
+        int chartHeight = 720; // Высота чарта из buildBasicZScoreChart
+        
+        // Находим диапазон масштабированных значений
+        double minValue = Math.min(
+            scaledLongPrices.stream().min(Double::compareTo).orElse(0.0),
+            scaledShortPrices.stream().min(Double::compareTo).orElse(0.0)
+        );
+        double maxValue = Math.max(
+            scaledLongPrices.stream().max(Double::compareTo).orElse(1.0),
+            scaledShortPrices.stream().max(Double::compareTo).orElse(1.0)
+        );
+        double valueRange = maxValue - minValue;
+
+        // Создаем синхронизированные временные точки
+        Set<Long> allTimestamps = new HashSet<>();
+        timeLong.forEach(date -> allTimestamps.add(date.getTime()));
+        timeShort.forEach(date -> allTimestamps.add(date.getTime()));
+        
+        List<Long> sortedTimestamps = allTimestamps.stream().sorted().collect(Collectors.toList());
+        
+        log.debug("🔢 Найдено {} уникальных временных точек для анализа пиксельного спреда", sortedTimestamps.size());
+
+        for (Long timestamp : sortedTimestamps) {
+            // Находим ближайшие значения для Long и Short в данный момент времени
+            Double longPrice = findNearestPrice(timeLong, scaledLongPrices, timestamp);
+            Double shortPrice = findNearestPrice(timeShort, scaledShortPrices, timestamp);
+
+            if (longPrice != null && shortPrice != null) {
+                // Конвертируем значения в пиксели относительно высоты чарта
+                double longPixelY = convertValueToPixel(longPrice, minValue, maxValue, chartHeight);
+                double shortPixelY = convertValueToPixel(shortPrice, minValue, maxValue, chartHeight);
+                
+                // Вычисляем абсолютное пиксельное расстояние
+                double pixelDistance = Math.abs(longPixelY - shortPixelY);
+                
+                // Сохраняем в историю пиксельного спреда
+                PixelSpreadHistoryItem pixelSpreadItem = new PixelSpreadHistoryItem(timestamp, pixelDistance);
+                pairData.addPixelSpreadPoint(pixelSpreadItem);
+
+                log.trace("🔢 Timestamp: {}, Long: {} px, Short: {} px, Distance: {} px", 
+                    new Date(timestamp), Math.round(longPixelY), Math.round(shortPixelY), Math.round(pixelDistance));
+            }
+        }
+
+        log.debug("✅ Пиксельный спред вычислен и сохранен. Всего точек: {}", 
+            pairData.getPixelSpreadHistory().size());
+    }
+
+    /**
+     * Находит ближайшую цену для заданного времени
+     */
+    private Double findNearestPrice(List<Date> timeAxis, List<Double> prices, long targetTimestamp) {
+        if (timeAxis.isEmpty() || prices.isEmpty()) return null;
+        
+        int bestIndex = 0;
+        long bestDiff = Math.abs(timeAxis.get(0).getTime() - targetTimestamp);
+        
+        for (int i = 1; i < timeAxis.size(); i++) {
+            long diff = Math.abs(timeAxis.get(i).getTime() - targetTimestamp);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestIndex = i;
+            }
+        }
+        
+        return prices.get(bestIndex);
+    }
+
+    /**
+     * Конвертирует значение в пиксельную координату Y (перевернутая система координат)
+     */
+    private double convertValueToPixel(double value, double minValue, double maxValue, int chartHeight) {
+        if (maxValue - minValue == 0) return chartHeight / 2.0;
+        
+        // Нормализуем значение в диапазон [0, 1]
+        double normalized = (value - minValue) / (maxValue - minValue);
+        
+        // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
+        return chartHeight - (normalized * chartHeight);
+    }
+
+    /**
+     * Создает график пиксельного спреда
+     */
+    public BufferedImage createPixelSpreadChart(PairData pairData) {
+        List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
+        
+        if (pixelHistory == null || pixelHistory.isEmpty()) {
+            log.warn("📊 История пиксельного спреда пуста для пары {}", pairData.getPairName());
+            return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        }
+
+        // Сортируем по времени
+        pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
+        
+        List<Date> timeAxis = pixelHistory.stream()
+            .map(item -> new Date(item.getTimestamp()))
+            .collect(Collectors.toList());
+        List<Double> pixelDistances = pixelHistory.stream()
+            .map(PixelSpreadHistoryItem::getPixelDistance)
+            .collect(Collectors.toList());
+
+        XYChart chart = new XYChartBuilder()
+            .width(1920).height(720)
+            .title("Pixel Spread Chart: LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+            .xAxisTitle("Time").yAxisTitle("Pixel Distance")
+            .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setDatePattern("HH:mm");
+        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+
+        XYSeries pixelSeries = chart.addSeries("Pixel Distance", timeAxis, pixelDistances);
+        pixelSeries.setLineColor(Color.BLUE);
+        pixelSeries.setMarker(new None());
+        pixelSeries.setLineStyle(new BasicStroke(2.0f));
+
+        log.debug("✅ График пиксельного спреда создан с {} точками для пары {}", 
+            pixelHistory.size(), pairData.getPairName());
+
+        return BitmapEncoder.getBufferedImage(chart);
     }
 }
