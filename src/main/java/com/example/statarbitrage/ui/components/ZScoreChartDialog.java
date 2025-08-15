@@ -2,6 +2,7 @@ package com.example.statarbitrage.ui.components;
 
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.core.services.PixelSpreadService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.ui.services.ChartService;
 import com.vaadin.flow.component.button.Button;
@@ -35,6 +36,7 @@ public class ZScoreChartDialog extends Dialog {
 
     private final SettingsService settingsService;
     private final ChartService chartService;
+    private final PixelSpreadService pixelSpreadService;
 
     private VerticalLayout content;
     private Image zScoreChartImage;
@@ -50,9 +52,10 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showPixelSpreadOnPriceCheckbox;
     private PairData currentPairData;
 
-    public ZScoreChartDialog(SettingsService settingsService, ChartService chartService) {
+    public ZScoreChartDialog(SettingsService settingsService, ChartService chartService, PixelSpreadService pixelSpreadService) {
         this.settingsService = settingsService;
         this.chartService = chartService;
+        this.pixelSpreadService = pixelSpreadService;
         initializeDialog();
         createComponents();
         layoutComponents();
@@ -190,9 +193,9 @@ public class ZScoreChartDialog extends Dialog {
         if (currentPairData != null) {
             try {
                 boolean showPixelSpreadOnPrice = showPixelSpreadOnPriceCheckbox.getValue();
-                
+
                 log.debug("📊 Обновляем Price чарт с пиксельным спредом: {}", showPixelSpreadOnPrice);
-                
+
                 BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData, showPixelSpreadOnPrice);
                 if (priceChartBufferedImage != null) {
                     StreamResource priceChartResource = createStreamResource(priceChartBufferedImage, "price-chart.png");
@@ -269,9 +272,9 @@ public class ZScoreChartDialog extends Dialog {
             showPixelSpreadCheckbox.setValue(false);
             showPixelSpreadOnPriceCheckbox.setValue(false);
 
-            // Вычисляем пиксельный спред независимо от чекбокса объединенных цен
-            chartService.calculatePixelSpreadIfNeeded(currentPairData);
-            
+            // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService
+            pixelSpreadService.calculatePixelSpreadIfNeeded(currentPairData);
+
             // Генерируем и показываем базовый чарт
             BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false, false);
             if (zScoreChartBufferedImage != null) {
@@ -488,10 +491,10 @@ public class ZScoreChartDialog extends Dialog {
         if (currentPairData != null) {
             try {
                 boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
-                
+
                 if (showPixelSpread) {
                     log.debug("📏 Генерируем график пиксельного спреда для пары: {}", currentPairData.getPairName());
-                    
+
                     BufferedImage pixelSpreadBufferedImage = chartService.createPixelSpreadChart(currentPairData);
                     if (pixelSpreadBufferedImage != null) {
                         StreamResource pixelSpreadResource = createStreamResource(pixelSpreadBufferedImage, "pixel-spread-chart.png");

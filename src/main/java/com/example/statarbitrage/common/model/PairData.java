@@ -584,6 +584,17 @@ public class PairData {
         }
     }
 
+    /**
+     * Очищает историю пиксельного спреда
+     */
+    public void clearPixelSpreadHistory() {
+        if (pixelSpreadHistory != null) {
+            pixelSpreadHistory.clear();
+        }
+        pixelSpreadHistoryJson = null;
+        log.debug("🔢 История пиксельного спреда очищена для пары {}", pairName);
+    }
+
 
     // Методы для версионности (нужны для работы с @Version)
     public Long getVersion() {

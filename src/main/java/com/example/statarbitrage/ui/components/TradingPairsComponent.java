@@ -6,6 +6,7 @@ import com.example.statarbitrage.common.utils.NumberFormatter;
 import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
 import com.example.statarbitrage.core.services.PairDataService;
+import com.example.statarbitrage.core.services.PixelSpreadService;
 import com.example.statarbitrage.formatters.TimeFormatterUtil;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
@@ -37,6 +38,7 @@ public class TradingPairsComponent extends VerticalLayout {
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final ZScoreChartDialog zScoreChartDialog;
+    private final PixelSpreadService pixelSpreadService;
 
     private final Grid<PairData> selectedPairsGrid;
     private final Grid<PairData> tradingPairsGrid;
@@ -51,12 +53,14 @@ public class TradingPairsComponent extends VerticalLayout {
             PairDataService pairDataService,
             StartNewTradeProcessor startNewTradeProcessor,
             UpdateTradeProcessor updateTradeProcessor,
-            ZScoreChartDialog zScoreChartDialog
+            ZScoreChartDialog zScoreChartDialog,
+            PixelSpreadService pixelSpreadService
     ) {
         this.pairDataService = pairDataService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.zScoreChartDialog = zScoreChartDialog;
+        this.pixelSpreadService = pixelSpreadService;
 
         this.selectedPairsGrid = new Grid<>(PairData.class, false);
         this.tradingPairsGrid = new Grid<>(PairData.class, false);

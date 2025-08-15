@@ -1,10 +1,12 @@
 package com.example.statarbitrage.ui.services;
 
 import com.example.statarbitrage.common.dto.Candle;
-import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.PixelSpreadHistoryItem;
+import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
+import com.example.statarbitrage.core.services.PixelSpreadService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.XYChart;
@@ -20,9 +22,12 @@ import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
 @Slf4j
+@Service
+@RequiredArgsConstructor
 public class ChartService {
+
+    private final PixelSpreadService pixelSpreadService;
 
     public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread) {
         log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {}, PixelSpread: {})",
@@ -459,7 +464,7 @@ public class ChartService {
             long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
             long bufferTime = 300000; // 5 минут буфер
 
-            log.debug("📊 Синхронизируем Price чарт с Z-Score диапазоном: {} - {}", 
+            log.debug("📊 Синхронизируем Price чарт с Z-Score диапазоном: {} - {}",
                     new Date(zScoreStartTime), new Date(zScoreEndTime));
 
             // Фильтруем свечи по временному диапазону Z-Score
@@ -471,7 +476,7 @@ public class ChartService {
                     .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
                     .toList();
 
-            log.debug("📊 Отфильтрованные свечи для Price чарта: LONG {}, SHORT {}", 
+            log.debug("📊 Отфильтрованные свечи для Price чарта: LONG {}, SHORT {}",
                     longCandles.size(), shortCandles.size());
 
             if (longCandles.isEmpty() || shortCandles.isEmpty()) {
@@ -555,9 +560,9 @@ public class ChartService {
         List<ZScoreParam> history = pairData.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
-            log.warn("⚠️ Не найдены данные для наложения цен на Z-Score чарт: longCandles={}, shortCandles={}, history={}", 
-                    longCandles != null ? longCandles.size() : "null", 
-                    shortCandles != null ? shortCandles.size() : "null", 
+            log.warn("⚠️ Не найдены данные для наложения цен на Z-Score чарт: longCandles={}, shortCandles={}, history={}",
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null",
                     history.size());
             return;
         }
@@ -565,7 +570,7 @@ public class ChartService {
         // Получаем временной диапазон Z-Score истории как основной
         long zScoreStartTime = history.get(0).getTimestamp();
         long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
-        
+
         log.debug("📊 Z-Score временной диапазон: {} - {}", new Date(zScoreStartTime), new Date(zScoreEndTime));
 
         // Сортировка по времени
@@ -577,18 +582,18 @@ public class ChartService {
         List<Candle> filteredLongCandles = longCandles.stream()
                 .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
                 .toList();
-        
+
         List<Candle> filteredShortCandles = shortCandles.stream()
                 .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
                 .toList();
 
         if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
-            log.warn("⚠️ Нет свечей в временном диапазоне Z-Score: LONG filtered={}, SHORT filtered={}", 
+            log.warn("⚠️ Нет свечей в временном диапазоне Z-Score: LONG filtered={}, SHORT filtered={}",
                     filteredLongCandles.size(), filteredShortCandles.size());
             return;
         }
 
-        log.debug("📊 Отфильтрованные свечи: LONG {} -> {}, SHORT {} -> {}", 
+        log.debug("📊 Отфильтрованные свечи: LONG {} -> {}, SHORT {} -> {}",
                 longCandles.size(), filteredLongCandles.size(),
                 shortCandles.size(), filteredShortCandles.size());
 
@@ -615,17 +620,17 @@ public class ChartService {
 
         // Нормализация long цен в диапазон Z-Score
         List<Double> scaledLongPrices = longPrices.stream()
-                .map(price -> longPriceRange != 0 ? 
-                    minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
+                .map(price -> longPriceRange != 0 ?
+                        minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
                 .toList();
 
-        // Нормализация short цен в диапазон Z-Score  
+        // Нормализация short цен в диапазон Z-Score
         List<Double> scaledShortPrices = shortPrices.stream()
-                .map(price -> shortPriceRange != 0 ? 
-                    minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
+                .map(price -> shortPriceRange != 0 ?
+                        minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
                 .toList();
 
-        log.debug("✅ Добавляем синхронизированные цены на Z-Score чарт: LONG {} точек (диапазон: {}-{}), SHORT {} точек (диапазон: {}-{})", 
+        log.debug("✅ Добавляем синхронизированные цены на Z-Score чарт: LONG {} точек (диапазон: {}-{}), SHORT {} точек (диапазон: {}-{})",
                 scaledLongPrices.size(), minLongPrice, maxLongPrice,
                 scaledShortPrices.size(), minShortPrice, maxShortPrice);
 
@@ -641,8 +646,8 @@ public class ChartService {
         shortPriceSeries.setMarker(new None());
         shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
 
-        // Вычисляем пиксельное расстояние между графиками long и short
-        calculateAndSavePixelSpread(pairData, timeLong, scaledLongPrices, timeShort, scaledShortPrices);
+        // Используем PixelSpreadService для расчёта пиксельного спреда
+        pixelSpreadService.calculatePixelSpreadIfNeeded(pairData);
     }
 
     /**
@@ -650,7 +655,7 @@ public class ChartService {
      */
     private void addPixelSpreadToZScoreChart(XYChart chart, PairData pairData) {
         List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
-        
+
         if (pixelHistory == null || pixelHistory.isEmpty()) {
             log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Z-Score чарт", pairData.getPairName());
             return;
@@ -658,13 +663,13 @@ public class ChartService {
 
         // Сортируем по времени
         pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
-        
+
         List<Date> timeAxis = pixelHistory.stream()
-            .map(item -> new Date(item.getTimestamp()))
-            .collect(Collectors.toList());
+                .map(item -> new Date(item.getTimestamp()))
+                .collect(Collectors.toList());
         List<Double> pixelDistances = pixelHistory.stream()
-            .map(PixelSpreadHistoryItem::getPixelDistance)
-            .collect(Collectors.toList());
+                .map(PixelSpreadHistoryItem::getPixelDistance)
+                .collect(Collectors.toList());
 
         // Найти диапазон Z-Score для масштабирования пиксельного спреда
         List<ZScoreParam> history = pairData.getZScoreHistory();
@@ -679,11 +684,11 @@ public class ChartService {
 
         // Масштабируем пиксельный спред в диапазон Z-Score
         List<Double> scaledPixelSpread = pixelDistances.stream()
-            .map(pixel -> pixelRange != 0 ? 
-                minZScore + ((pixel - minPixelDistance) / pixelRange) * zRange : minZScore)
-            .collect(Collectors.toList());
+                .map(pixel -> pixelRange != 0 ?
+                        minZScore + ((pixel - minPixelDistance) / pixelRange) * zRange : minZScore)
+                .collect(Collectors.toList());
 
-        log.debug("✅ Добавляем пиксельный спред на Z-Score чарт: {} точек (диапазон: {}-{})", 
+        log.debug("✅ Добавляем пиксельный спред на Z-Score чарт: {} точек (диапазон: {}-{})",
                 scaledPixelSpread.size(), minPixelDistance, maxPixelDistance);
 
         // Добавляем пиксельный спред как полупрозрачную фиолетовую линию
@@ -698,7 +703,7 @@ public class ChartService {
      */
     private void addPixelSpreadToPriceChart(XYChart chart, PairData pairData, List<Date> priceTimeAxis, List<Double> prices) {
         List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
-        
+
         if (pixelHistory == null || pixelHistory.isEmpty()) {
             log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Price чарт", pairData.getPairName());
             return;
@@ -706,13 +711,13 @@ public class ChartService {
 
         // Сортируем по времени
         pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
-        
+
         List<Date> timeAxis = pixelHistory.stream()
-            .map(item -> new Date(item.getTimestamp()))
-            .collect(Collectors.toList());
+                .map(item -> new Date(item.getTimestamp()))
+                .collect(Collectors.toList());
         List<Double> pixelDistances = pixelHistory.stream()
-            .map(PixelSpreadHistoryItem::getPixelDistance)
-            .collect(Collectors.toList());
+                .map(PixelSpreadHistoryItem::getPixelDistance)
+                .collect(Collectors.toList());
 
         // Найти диапазон цен для масштабирования пиксельного спреда
         double minPrice = prices.stream().min(Double::compareTo).orElse(0.0);
@@ -726,11 +731,11 @@ public class ChartService {
 
         // Масштабируем пиксельный спред в диапазон цен
         List<Double> scaledPixelSpread = pixelDistances.stream()
-            .map(pixel -> pixelRange != 0 ? 
-                minPrice + ((pixel - minPixelDistance) / pixelRange) * priceRange : minPrice)
-            .collect(Collectors.toList());
+                .map(pixel -> pixelRange != 0 ?
+                        minPrice + ((pixel - minPixelDistance) / pixelRange) * priceRange : minPrice)
+                .collect(Collectors.toList());
 
-        log.debug("✅ Добавляем пиксельный спред на Price чарт: {} точек (диапазон цен: {}-{}, диапазон пикселей: {}-{})", 
+        log.debug("✅ Добавляем пиксельный спред на Price чарт: {} точек (диапазон цен: {}-{}, диапазон пикселей: {}-{})",
                 scaledPixelSpread.size(), minPrice, maxPrice, minPixelDistance, maxPixelDistance);
 
         // Добавляем пиксельный спред как полупрозрачную синюю линию
@@ -743,8 +748,8 @@ public class ChartService {
     /**
      * Вычисляет пиксельное расстояние между графиками Long и Short цен и сохраняет в историю
      */
-    private void calculateAndSavePixelSpread(PairData pairData, List<Date> timeLong, List<Double> scaledLongPrices, 
-                                           List<Date> timeShort, List<Double> scaledShortPrices) {
+    private void calculateAndSavePixelSpread(PairData pairData, List<Date> timeLong, List<Double> scaledLongPrices,
+                                             List<Date> timeShort, List<Double> scaledShortPrices) {
         log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", pairData.getPairName());
 
         if (timeLong.isEmpty() || timeShort.isEmpty() || scaledLongPrices.isEmpty() || scaledShortPrices.isEmpty()) {
@@ -753,15 +758,15 @@ public class ChartService {
         }
 
         int chartHeight = 720; // Высота чарта из buildBasicZScoreChart
-        
+
         // Находим диапазон масштабированных значений
         double minValue = Math.min(
-            scaledLongPrices.stream().min(Double::compareTo).orElse(0.0),
-            scaledShortPrices.stream().min(Double::compareTo).orElse(0.0)
+                scaledLongPrices.stream().min(Double::compareTo).orElse(0.0),
+                scaledShortPrices.stream().min(Double::compareTo).orElse(0.0)
         );
         double maxValue = Math.max(
-            scaledLongPrices.stream().max(Double::compareTo).orElse(1.0),
-            scaledShortPrices.stream().max(Double::compareTo).orElse(1.0)
+                scaledLongPrices.stream().max(Double::compareTo).orElse(1.0),
+                scaledShortPrices.stream().max(Double::compareTo).orElse(1.0)
         );
         double valueRange = maxValue - minValue;
 
@@ -769,9 +774,9 @@ public class ChartService {
         Set<Long> allTimestamps = new HashSet<>();
         timeLong.forEach(date -> allTimestamps.add(date.getTime()));
         timeShort.forEach(date -> allTimestamps.add(date.getTime()));
-        
+
         List<Long> sortedTimestamps = allTimestamps.stream().sorted().toList();
-        
+
         log.debug("🔢 Найдено {} уникальных временных точек для анализа пиксельного спреда", sortedTimestamps.size());
 
         for (Long timestamp : sortedTimestamps) {
@@ -783,21 +788,21 @@ public class ChartService {
                 // Конвертируем значения в пиксели относительно высоты чарта
                 double longPixelY = convertValueToPixel(longPrice, minValue, maxValue, chartHeight);
                 double shortPixelY = convertValueToPixel(shortPrice, minValue, maxValue, chartHeight);
-                
+
                 // Вычисляем абсолютное пиксельное расстояние
                 double pixelDistance = Math.abs(longPixelY - shortPixelY);
-                
+
                 // Сохраняем в историю пиксельного спреда
                 PixelSpreadHistoryItem pixelSpreadItem = new PixelSpreadHistoryItem(timestamp, pixelDistance);
                 pairData.addPixelSpreadPoint(pixelSpreadItem);
 
-                log.trace("🔢 Timestamp: {}, Long: {} px, Short: {} px, Distance: {} px", 
-                    new Date(timestamp), Math.round(longPixelY), Math.round(shortPixelY), Math.round(pixelDistance));
+                log.trace("🔢 Timestamp: {}, Long: {} px, Short: {} px, Distance: {} px",
+                        new Date(timestamp), Math.round(longPixelY), Math.round(shortPixelY), Math.round(pixelDistance));
             }
         }
 
-        log.debug("✅ Пиксельный спред вычислен и сохранен. Всего точек: {}", 
-            pairData.getPixelSpreadHistory().size());
+        log.debug("✅ Пиксельный спред вычислен и сохранен. Всего точек: {}",
+                pairData.getPixelSpreadHistory().size());
     }
 
     /**
@@ -805,10 +810,10 @@ public class ChartService {
      */
     private Double findNearestPrice(List<Date> timeAxis, List<Double> prices, long targetTimestamp) {
         if (timeAxis.isEmpty() || prices.isEmpty()) return null;
-        
+
         int bestIndex = 0;
         long bestDiff = Math.abs(timeAxis.get(0).getTime() - targetTimestamp);
-        
+
         for (int i = 1; i < timeAxis.size(); i++) {
             long diff = Math.abs(timeAxis.get(i).getTime() - targetTimestamp);
             if (diff < bestDiff) {
@@ -816,7 +821,7 @@ public class ChartService {
                 bestIndex = i;
             }
         }
-        
+
         return prices.get(bestIndex);
     }
 
@@ -825,10 +830,10 @@ public class ChartService {
      */
     private double convertValueToPixel(double value, double minValue, double maxValue, int chartHeight) {
         if (maxValue - minValue == 0) return chartHeight / 2.0;
-        
+
         // Нормализуем значение в диапазон [0, 1]
         double normalized = (value - minValue) / (maxValue - minValue);
-        
+
         // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
         return chartHeight - (normalized * chartHeight);
     }
@@ -855,9 +860,9 @@ public class ChartService {
         List<ZScoreParam> history = pairData.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
-            log.warn("⚠️ Не найдены данные для вычисления пиксельного спреда: longCandles={}, shortCandles={}, history={}", 
-                    longCandles != null ? longCandles.size() : "null", 
-                    shortCandles != null ? shortCandles.size() : "null", 
+            log.warn("⚠️ Не найдены данные для вычисления пиксельного спреда: longCandles={}, shortCandles={}, history={}",
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null",
                     history.size());
             return;
         }
@@ -865,7 +870,7 @@ public class ChartService {
         // Получаем временной диапазон Z-Score истории как основной
         long zScoreStartTime = history.get(0).getTimestamp();
         long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
-        
+
         log.debug("📊 Z-Score временной диапазон: {} - {}", new Date(zScoreStartTime), new Date(zScoreEndTime));
 
         // Сортировка по времени
@@ -877,13 +882,13 @@ public class ChartService {
         List<Candle> filteredLongCandles = longCandles.stream()
                 .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
                 .toList();
-        
+
         List<Candle> filteredShortCandles = shortCandles.stream()
                 .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
                 .toList();
 
         if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
-            log.warn("⚠️ Нет свечей в временном диапазоне Z-Score: LONG filtered={}, SHORT filtered={}", 
+            log.warn("⚠️ Нет свечей в временном диапазоне Z-Score: LONG filtered={}, SHORT filtered={}",
                     filteredLongCandles.size(), filteredShortCandles.size());
             return;
         }
@@ -911,17 +916,17 @@ public class ChartService {
 
         // Нормализация long цен в диапазон Z-Score
         List<Double> scaledLongPrices = longPrices.stream()
-                .map(price -> longPriceRange != 0 ? 
-                    minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
+                .map(price -> longPriceRange != 0 ?
+                        minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
                 .toList();
 
-        // Нормализация short цен в диапазон Z-Score  
+        // Нормализация short цен в диапазон Z-Score
         List<Double> scaledShortPrices = shortPrices.stream()
-                .map(price -> shortPriceRange != 0 ? 
-                    minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
+                .map(price -> shortPriceRange != 0 ?
+                        minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
                 .toList();
 
-        log.debug("✅ Вычисляем пиксельный спред независимо: LONG {} точек (диапазон: {}-{}), SHORT {} точек (диапазон: {}-{})", 
+        log.debug("✅ Вычисляем пиксельный спред независимо: LONG {} точек (диапазон: {}-{}), SHORT {} точек (диапазон: {}-{})",
                 scaledLongPrices.size(), minLongPrice, maxLongPrice,
                 scaledShortPrices.size(), minShortPrice, maxShortPrice);
 
@@ -934,7 +939,7 @@ public class ChartService {
      */
     public BufferedImage createPixelSpreadChart(PairData pairData) {
         List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
-        
+
         if (pixelHistory == null || pixelHistory.isEmpty()) {
             log.warn("📊 История пиксельного спреда пуста для пары {}", pairData.getPairName());
             return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
@@ -942,19 +947,19 @@ public class ChartService {
 
         // Сортируем по времени
         pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
-        
+
         List<Date> timeAxis = pixelHistory.stream()
-            .map(item -> new Date(item.getTimestamp()))
-            .collect(Collectors.toList());
+                .map(item -> new Date(item.getTimestamp()))
+                .collect(Collectors.toList());
         List<Double> pixelDistances = pixelHistory.stream()
-            .map(PixelSpreadHistoryItem::getPixelDistance)
-            .collect(Collectors.toList());
+                .map(PixelSpreadHistoryItem::getPixelDistance)
+                .collect(Collectors.toList());
 
         XYChart chart = new XYChartBuilder()
-            .width(1920).height(720)
-            .title("Pixel Spread Chart: LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
-            .xAxisTitle("Time").yAxisTitle("Pixel Distance")
-            .build();
+                .width(1920).height(720)
+                .title("Pixel Spread Chart: LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+                .xAxisTitle("Time").yAxisTitle("Pixel Distance")
+                .build();
 
         chart.getStyler().setLegendVisible(false);
         chart.getStyler().setDatePattern("HH:mm");
@@ -967,9 +972,10 @@ public class ChartService {
         pixelSeries.setMarker(new None());
         pixelSeries.setLineStyle(new BasicStroke(2.0f));
 
-        log.debug("✅ График пиксельного спреда создан с {} точками для пары {}", 
-            pixelHistory.size(), pairData.getPairName());
+        log.debug("✅ График пиксельного спреда создан с {} точками для пары {}",
+                pixelHistory.size(), pairData.getPairName());
 
         return BitmapEncoder.getBufferedImage(chart);
     }
 }
+
