@@ -51,9 +51,20 @@ public class PairData {
     @CsvExportable(order = 5)
     private String errorDescription;
 
-    @Transient
+    //    @Transient
+    @ElementCollection
+    @CollectionTable(
+            name = "pair_data_long_candles",
+            joinColumns = @JoinColumn(name = "pair_data_id")
+    )
     private List<Candle> longTickerCandles;
-    @Transient
+
+    //    @Transient
+    @ElementCollection
+    @CollectionTable(
+            name = "pair_data_short_candles",
+            joinColumns = @JoinColumn(name = "pair_data_id")
+    )
     private List<Candle> shortTickerCandles;
 
     @Column(columnDefinition = "TEXT")
