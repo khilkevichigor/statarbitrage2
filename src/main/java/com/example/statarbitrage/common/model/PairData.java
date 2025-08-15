@@ -52,7 +52,7 @@ public class PairData {
     private String errorDescription;
 
     //    @Transient
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "pair_data_long_candles",
             joinColumns = @JoinColumn(name = "pair_data_id")
@@ -60,7 +60,7 @@ public class PairData {
     private List<Candle> longTickerCandles;
 
     //    @Transient
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "pair_data_short_candles",
             joinColumns = @JoinColumn(name = "pair_data_id")
