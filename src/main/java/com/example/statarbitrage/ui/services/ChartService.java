@@ -512,31 +512,59 @@ public class ChartService {
 
         List<Candle> longCandles = pairData.getLongTickerCandles();
         List<Candle> shortCandles = pairData.getShortTickerCandles();
+        List<ZScoreParam> history = pairData.getZScoreHistory();
 
-        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
-            log.warn("⚠️ Не найдены свечи для тикеров {} или {} для наложения на Z-Score чарт", longTicker, shortTicker);
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
+            log.warn("⚠️ Не найдены данные для наложения цен на Z-Score чарт: longCandles={}, shortCandles={}, history={}", 
+                    longCandles != null ? longCandles.size() : "null", 
+                    shortCandles != null ? shortCandles.size() : "null", 
+                    history.size());
             return;
         }
+
+        // Получаем временной диапазон Z-Score истории как основной
+        long zScoreStartTime = history.get(0).getTimestamp();
+        long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
+        
+        log.debug("📊 Z-Score временной диапазон: {} - {}", new Date(zScoreStartTime), new Date(zScoreEndTime));
 
         // Сортировка по времени
         longCandles.sort(Comparator.comparing(Candle::getTimestamp));
         shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
 
-        // Получение времени и цен для long тикера
-        List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
+        // Фильтруем свечи по временному диапазону Z-Score с небольшим буфером
+        long bufferTime = 300000; // 5 минут буфер
+        List<Candle> filteredLongCandles = longCandles.stream()
+                .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
+                .toList();
+        
+        List<Candle> filteredShortCandles = shortCandles.stream()
+                .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
+                .toList();
 
-        // Получение времени и цен для short тикера  
-        List<Date> timeShort = shortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> shortPrices = shortCandles.stream().map(Candle::getClose).toList();
+        if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
+            log.warn("⚠️ Нет свечей в временном диапазоне Z-Score: LONG filtered={}, SHORT filtered={}", 
+                    filteredLongCandles.size(), filteredShortCandles.size());
+            return;
+        }
+
+        log.debug("📊 Отфильтрованные свечи: LONG {} -> {}, SHORT {} -> {}", 
+                longCandles.size(), filteredLongCandles.size(),
+                shortCandles.size(), filteredShortCandles.size());
+
+        // Получение времени и цен для отфильтрованных свечей
+        List<Date> timeLong = filteredLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = filteredLongCandles.stream().map(Candle::getClose).toList();
+
+        List<Date> timeShort = filteredShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = filteredShortCandles.stream().map(Candle::getClose).toList();
 
         // Найти диапазон Z-Score для масштабирования цен
-        List<ZScoreParam> history = pairData.getZScoreHistory();
         double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
         double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
         double zRange = maxZScore - minZScore;
 
-        // Найти диапазон цен для нормализации
+        // Найти диапазон цен для нормализации (используем только отфильтрованные цены)
         double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
         double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
         double longPriceRange = maxLongPrice - minLongPrice;
@@ -549,16 +577,17 @@ public class ChartService {
         List<Double> scaledLongPrices = longPrices.stream()
                 .map(price -> longPriceRange != 0 ? 
                     minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
-                .collect(Collectors.toList());
+                .toList();
 
         // Нормализация short цен в диапазон Z-Score  
         List<Double> scaledShortPrices = shortPrices.stream()
                 .map(price -> shortPriceRange != 0 ? 
                     minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
-                .collect(Collectors.toList());
+                .toList();
 
-        log.debug("✅ Добавляем объединенные цены на Z-Score чарт: LONG {} точек, SHORT {} точек", 
-                scaledLongPrices.size(), scaledShortPrices.size());
+        log.debug("✅ Добавляем синхронизированные цены на Z-Score чарт: LONG {} точек (диапазон: {}-{}), SHORT {} точек (диапазон: {}-{})", 
+                scaledLongPrices.size(), minLongPrice, maxLongPrice,
+                scaledShortPrices.size(), minShortPrice, maxShortPrice);
 
         // Добавляем long цены как полупрозрачную зеленую линию
         XYSeries longPriceSeries = chart.addSeries("LONG Price (scaled): " + longTicker, timeLong, scaledLongPrices);
