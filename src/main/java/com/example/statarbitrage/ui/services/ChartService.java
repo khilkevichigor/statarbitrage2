@@ -433,6 +433,10 @@ public class ChartService {
     }
 
     public BufferedImage createPriceChart(PairData pairData) {
+        return createPriceChart(pairData, false);
+    }
+
+    public BufferedImage createPriceChart(PairData pairData, boolean showPixelSpread) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
@@ -516,6 +520,12 @@ public class ChartService {
         bottomChart.getStyler().setYAxisTitleVisible(false);
 
         bottomChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
+
+        // Добавляем пиксельный спред если нужно
+        if (showPixelSpread) {
+            addPixelSpreadToPriceChart(topChart, pairData, timeLong, longPrices);
+            addPixelSpreadToPriceChart(bottomChart, pairData, timeShort, shortPrices);
+        }
 
         // Объединение 2 графиков
         BufferedImage topImage = BitmapEncoder.getBufferedImage(topChart);
@@ -679,6 +689,53 @@ public class ChartService {
         // Добавляем пиксельный спред как полупрозрачную фиолетовую линию
         XYSeries pixelSpreadSeries = chart.addSeries("Pixel Spread (scaled)", timeAxis, scaledPixelSpread);
         pixelSpreadSeries.setLineColor(new Color(128, 0, 128, 150)); // Полупрозрачный фиолетовый
+        pixelSpreadSeries.setMarker(new None());
+        pixelSpreadSeries.setLineStyle(new BasicStroke(2.0f));
+    }
+
+    /**
+     * Добавляет пиксельный спред на Price чарт
+     */
+    private void addPixelSpreadToPriceChart(XYChart chart, PairData pairData, List<Date> priceTimeAxis, List<Double> prices) {
+        List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
+        
+        if (pixelHistory == null || pixelHistory.isEmpty()) {
+            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Price чарт", pairData.getPairName());
+            return;
+        }
+
+        // Сортируем по времени
+        pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
+        
+        List<Date> timeAxis = pixelHistory.stream()
+            .map(item -> new Date(item.getTimestamp()))
+            .collect(Collectors.toList());
+        List<Double> pixelDistances = pixelHistory.stream()
+            .map(PixelSpreadHistoryItem::getPixelDistance)
+            .collect(Collectors.toList());
+
+        // Найти диапазон цен для масштабирования пиксельного спреда
+        double minPrice = prices.stream().min(Double::compareTo).orElse(0.0);
+        double maxPrice = prices.stream().max(Double::compareTo).orElse(1.0);
+        double priceRange = maxPrice - minPrice;
+
+        // Найти диапазон пиксельного спреда
+        double minPixelDistance = pixelDistances.stream().min(Double::compareTo).orElse(0.0);
+        double maxPixelDistance = pixelDistances.stream().max(Double::compareTo).orElse(100.0);
+        double pixelRange = maxPixelDistance - minPixelDistance;
+
+        // Масштабируем пиксельный спред в диапазон цен
+        List<Double> scaledPixelSpread = pixelDistances.stream()
+            .map(pixel -> pixelRange != 0 ? 
+                minPrice + ((pixel - minPixelDistance) / pixelRange) * priceRange : minPrice)
+            .collect(Collectors.toList());
+
+        log.debug("✅ Добавляем пиксельный спред на Price чарт: {} точек (диапазон цен: {}-{}, диапазон пикселей: {}-{})", 
+                scaledPixelSpread.size(), minPrice, maxPrice, minPixelDistance, maxPixelDistance);
+
+        // Добавляем пиксельный спред как полупрозрачную синюю линию
+        XYSeries pixelSpreadSeries = chart.addSeries("Pixel Spread (scaled)", timeAxis, scaledPixelSpread);
+        pixelSpreadSeries.setLineColor(new Color(0, 0, 255, 120)); // Полупрозрачный синий
         pixelSpreadSeries.setMarker(new None());
         pixelSpreadSeries.setLineStyle(new BasicStroke(2.0f));
     }

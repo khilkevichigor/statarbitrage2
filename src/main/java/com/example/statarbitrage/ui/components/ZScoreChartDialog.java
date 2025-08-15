@@ -47,6 +47,7 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showProfitCheckbox;
     private Checkbox showCombinedPriceCheckbox;
     private Checkbox showPixelSpreadCheckbox;
+    private Checkbox showPixelSpreadOnPriceCheckbox;
     private PairData currentPairData;
 
     public ZScoreChartDialog(SettingsService settingsService, ChartService chartService) {
@@ -133,6 +134,10 @@ public class ZScoreChartDialog extends Dialog {
         showPixelSpreadCheckbox = new Checkbox("📏 Показать пиксельный спред на Z-Score");
         showPixelSpreadCheckbox.setValue(false);
         showPixelSpreadCheckbox.addValueChangeListener(e -> refreshChart());
+
+        showPixelSpreadOnPriceCheckbox = new Checkbox("📏 Показать пиксельный спред на Price");
+        showPixelSpreadOnPriceCheckbox.setValue(false);
+        showPixelSpreadOnPriceCheckbox.addValueChangeListener(e -> refreshPriceChart());
     }
 
     /**
@@ -178,6 +183,32 @@ public class ZScoreChartDialog extends Dialog {
         }
     }
 
+    /**
+     * Обновляет Price чарт с учетом пиксельного спреда
+     */
+    private void refreshPriceChart() {
+        if (currentPairData != null) {
+            try {
+                boolean showPixelSpreadOnPrice = showPixelSpreadOnPriceCheckbox.getValue();
+                
+                log.debug("📊 Обновляем Price чарт с пиксельным спредом: {}", showPixelSpreadOnPrice);
+                
+                BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData, showPixelSpreadOnPrice);
+                if (priceChartBufferedImage != null) {
+                    StreamResource priceChartResource = createStreamResource(priceChartBufferedImage, "price-chart.png");
+                    priceChartImage.setSrc(priceChartResource);
+                    priceChartImage.setAlt("Price Chart for " + currentPairData.getPairName());
+                } else {
+                    priceChartImage.setSrc("");
+                    priceChartImage.setAlt("Price Chart generation failed");
+                    log.warn("⚠️ Не удалось создать Price чарт для пары: {}", currentPairData.getPairName());
+                }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при обновлении Price чарта", e);
+            }
+        }
+    }
+
     private void layoutComponents() {
         // Header with close button
         HorizontalLayout header = new HorizontalLayout();
@@ -204,7 +235,7 @@ public class ZScoreChartDialog extends Dialog {
         indicatorsLabel.getStyle().set("font-weight", "bold");
         indicatorsLabel.getStyle().set("margin-right", "1rem");
 
-        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox);
+        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox, showPixelSpreadOnPriceCheckbox);
 
         content.add(header, indicatorsPanel, zScoreChartImage, priceChartImage, pixelSpreadChartImage, detailsPanel);
         add(content);
@@ -236,6 +267,7 @@ public class ZScoreChartDialog extends Dialog {
             showProfitCheckbox.setValue(false);
             showCombinedPriceCheckbox.setValue(false);
             showPixelSpreadCheckbox.setValue(false);
+            showPixelSpreadOnPriceCheckbox.setValue(false);
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен
             chartService.calculatePixelSpreadIfNeeded(currentPairData);
@@ -252,7 +284,7 @@ public class ZScoreChartDialog extends Dialog {
                 log.warn("⚠️ Не удалось создать Z-Score чарт для пары: {}", pairData.getPairName());
             }
 
-            BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData);
+            BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData, false);
             if (priceChartBufferedImage != null) {
                 StreamResource priceChartResource = createStreamResource(priceChartBufferedImage, "price-chart.png");
                 priceChartImage.setSrc(priceChartResource);
