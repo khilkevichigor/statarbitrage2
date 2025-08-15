@@ -94,7 +94,7 @@ public class ZScoreChartDialog extends Dialog {
         pixelSpreadChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
         pixelSpreadChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
         pixelSpreadChartImage.getStyle().set("margin-top", "1rem");
-        pixelSpreadChartImage.setVisible(false); // Скрываем по умолчанию
+        pixelSpreadChartImage.setVisible(true); // Всегда показываем третий чарт пиксельного спреда
 
         detailsPanel = new Div();
         detailsPanel.getStyle().set("padding", "1rem");
@@ -130,9 +130,9 @@ public class ZScoreChartDialog extends Dialog {
         showCombinedPriceCheckbox.setValue(false);
         showCombinedPriceCheckbox.addValueChangeListener(e -> refreshChart());
 
-        showPixelSpreadCheckbox = new Checkbox("📏 Показать пиксельный спред");
+        showPixelSpreadCheckbox = new Checkbox("📏 Показать пиксельный спред на Z-Score");
         showPixelSpreadCheckbox.setValue(false);
-        showPixelSpreadCheckbox.addValueChangeListener(e -> refreshPixelSpreadChart());
+        showPixelSpreadCheckbox.addValueChangeListener(e -> refreshChart());
     }
 
     /**
@@ -161,11 +161,12 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showStochRsi = showStochRsiCheckbox.getValue();
                 boolean showProfit = showProfitCheckbox.getValue();
                 boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
+                boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
                 Settings settings = settingsService.getSettings();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
                 // Генерируем новый чарт с выбранными индикаторами
-                BufferedImage chartBufferedImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice);
+                BufferedImage chartBufferedImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
 
                 if (chartBufferedImage != null) {
                     StreamResource chartResource = createStreamResource(chartBufferedImage, "zscore-chart.png");
@@ -235,13 +236,12 @@ public class ZScoreChartDialog extends Dialog {
             showProfitCheckbox.setValue(false);
             showCombinedPriceCheckbox.setValue(false);
             showPixelSpreadCheckbox.setValue(false);
-            pixelSpreadChartImage.setVisible(false);
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен
             chartService.calculatePixelSpreadIfNeeded(currentPairData);
             
             // Генерируем и показываем базовый чарт
-            BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false);
+            BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false, false);
             if (zScoreChartBufferedImage != null) {
                 StreamResource zScoreChartResource = createStreamResource(zScoreChartBufferedImage, "zscore-chart.png");
                 zScoreChartImage.setSrc(zScoreChartResource);
@@ -261,6 +261,18 @@ public class ZScoreChartDialog extends Dialog {
                 priceChartImage.setSrc(""); // Clear image
                 priceChartImage.setAlt("Price Chart generation failed");
                 log.warn("⚠️ Не удалось создать Price чарт для пары: {}", pairData.getPairName());
+            }
+
+            // Всегда показываем третий чарт пиксельного спреда
+            BufferedImage pixelSpreadBufferedImage = chartService.createPixelSpreadChart(currentPairData);
+            if (pixelSpreadBufferedImage != null) {
+                StreamResource pixelSpreadResource = createStreamResource(pixelSpreadBufferedImage, "pixel-spread-chart.png");
+                pixelSpreadChartImage.setSrc(pixelSpreadResource);
+                pixelSpreadChartImage.setAlt("Pixel Spread Chart for " + pairData.getPairName());
+            } else {
+                pixelSpreadChartImage.setSrc("");
+                pixelSpreadChartImage.setAlt("Pixel Spread Chart generation failed");
+                log.warn("⚠️ Не удалось создать Pixel Spread чарт для пары: {}", pairData.getPairName());
             }
 
             // Заполняем детальную информацию

@@ -24,16 +24,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChartService {
 
-    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice) {
-        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {})",
-                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice);
+    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread) {
+        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {}, PixelSpread: {})",
+                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
 
-        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice);
+        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
 
         return BitmapEncoder.getBufferedImage(chart);
     }
 
-    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice) {
+    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread) {
         XYChart chart = buildBasicZScoreChart(pairData);
 
         List<ZScoreParam> history = pairData.getZScoreHistory();
@@ -65,6 +65,10 @@ public class ChartService {
 
         if (showCombinedPrice) {
             addCombinedPricesToChart(chart, pairData);
+        }
+
+        if (showPixelSpread) {
+            addPixelSpreadToZScoreChart(chart, pairData);
         }
 
         return chart;
@@ -629,6 +633,54 @@ public class ChartService {
 
         // Вычисляем пиксельное расстояние между графиками long и short
         calculateAndSavePixelSpread(pairData, timeLong, scaledLongPrices, timeShort, scaledShortPrices);
+    }
+
+    /**
+     * Добавляет пиксельный спред на Z-Score чарт
+     */
+    private void addPixelSpreadToZScoreChart(XYChart chart, PairData pairData) {
+        List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
+        
+        if (pixelHistory == null || pixelHistory.isEmpty()) {
+            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Z-Score чарт", pairData.getPairName());
+            return;
+        }
+
+        // Сортируем по времени
+        pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
+        
+        List<Date> timeAxis = pixelHistory.stream()
+            .map(item -> new Date(item.getTimestamp()))
+            .collect(Collectors.toList());
+        List<Double> pixelDistances = pixelHistory.stream()
+            .map(PixelSpreadHistoryItem::getPixelDistance)
+            .collect(Collectors.toList());
+
+        // Найти диапазон Z-Score для масштабирования пиксельного спреда
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
+        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
+        double zRange = maxZScore - minZScore;
+
+        // Найти диапазон пиксельного спреда
+        double minPixelDistance = pixelDistances.stream().min(Double::compareTo).orElse(0.0);
+        double maxPixelDistance = pixelDistances.stream().max(Double::compareTo).orElse(100.0);
+        double pixelRange = maxPixelDistance - minPixelDistance;
+
+        // Масштабируем пиксельный спред в диапазон Z-Score
+        List<Double> scaledPixelSpread = pixelDistances.stream()
+            .map(pixel -> pixelRange != 0 ? 
+                minZScore + ((pixel - minPixelDistance) / pixelRange) * zRange : minZScore)
+            .collect(Collectors.toList());
+
+        log.debug("✅ Добавляем пиксельный спред на Z-Score чарт: {} точек (диапазон: {}-{})", 
+                scaledPixelSpread.size(), minPixelDistance, maxPixelDistance);
+
+        // Добавляем пиксельный спред как полупрозрачную фиолетовую линию
+        XYSeries pixelSpreadSeries = chart.addSeries("Pixel Spread (scaled)", timeAxis, scaledPixelSpread);
+        pixelSpreadSeries.setLineColor(new Color(128, 0, 128, 150)); // Полупрозрачный фиолетовый
+        pixelSpreadSeries.setMarker(new None());
+        pixelSpreadSeries.setLineStyle(new BasicStroke(2.0f));
     }
 
     /**
