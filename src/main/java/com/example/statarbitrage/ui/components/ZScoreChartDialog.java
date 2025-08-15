@@ -37,7 +37,8 @@ public class ZScoreChartDialog extends Dialog {
     private final ChartService chartService;
 
     private VerticalLayout content;
-    private Image chartImage;
+    private Image zScoreChartImage;
+    private Image priceChartImage;
     private H3 pairTitle;
     private Div detailsPanel;
     private Checkbox showEmaCheckbox;
@@ -71,11 +72,18 @@ public class ZScoreChartDialog extends Dialog {
         // Создаем чекбоксы для дополнительных индикаторов
         createIndicatorCheckboxes();
 
-        chartImage = new Image();
-        chartImage.setWidth("100%");
-        chartImage.setHeight("400px");
-        chartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
-        chartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        zScoreChartImage = new Image();
+        zScoreChartImage.setWidth("100%");
+        zScoreChartImage.setHeight("400px");
+        zScoreChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        zScoreChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+
+        priceChartImage = new Image();
+        priceChartImage.setWidth("100%");
+        priceChartImage.setHeight("400px");
+        priceChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        priceChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        priceChartImage.getStyle().set("margin-top", "1rem");
 
         detailsPanel = new Div();
         detailsPanel.getStyle().set("padding", "1rem");
@@ -140,8 +148,8 @@ public class ZScoreChartDialog extends Dialog {
                 BufferedImage chartBufferedImage = chartService.createChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit);
 
                 if (chartBufferedImage != null) {
-                    StreamResource chartResource = createStreamResource(chartBufferedImage);
-                    chartImage.setSrc(chartResource);
+                    StreamResource chartResource = createStreamResource(chartBufferedImage, "zscore-chart.png");
+                    zScoreChartImage.setSrc(chartResource);
                 }
             } catch (Exception e) {
                 log.error("❌ Ошибка при обновлении чарта", e);
@@ -177,7 +185,7 @@ public class ZScoreChartDialog extends Dialog {
 
         indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox);
 
-        content.add(header, indicatorsPanel, chartImage, detailsPanel);
+        content.add(header, indicatorsPanel, zScoreChartImage, priceChartImage, detailsPanel);
         add(content);
     }
 
@@ -207,17 +215,26 @@ public class ZScoreChartDialog extends Dialog {
             showProfitCheckbox.setValue(false);
 
             // Генерируем и показываем базовый чарт
-            BufferedImage chartBufferedImage = chartService.createChart(currentPairData, false, 0, false, false);
-
-            if (chartBufferedImage != null) {
-                StreamResource chartResource = createStreamResource(chartBufferedImage);
-                chartImage.setSrc(chartResource);
-                chartImage.setAlt("Z-Score Chart for " + pairData.getPairName());
+            BufferedImage zScoreChartBufferedImage = chartService.createChart(currentPairData, false, 0, false, false);
+            if (zScoreChartBufferedImage != null) {
+                StreamResource zScoreChartResource = createStreamResource(zScoreChartBufferedImage, "zscore-chart.png");
+                zScoreChartImage.setSrc(zScoreChartResource);
+                zScoreChartImage.setAlt("Z-Score Chart for " + pairData.getPairName());
             } else {
-                // Fallback если чарт не удалось создать
-                chartImage.setSrc(""); // Clear image
-                chartImage.setAlt("Chart generation failed");
-                log.warn("⚠️ Не удалось создать чарт для пары: {}", pairData.getPairName());
+                zScoreChartImage.setSrc(""); // Clear image
+                zScoreChartImage.setAlt("Z-Score Chart generation failed");
+                log.warn("⚠️ Не удалось создать Z-Score чарт для пары: {}", pairData.getPairName());
+            }
+
+            BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData);
+            if (priceChartBufferedImage != null) {
+                StreamResource priceChartResource = createStreamResource(priceChartBufferedImage, "price-chart.png");
+                priceChartImage.setSrc(priceChartResource);
+                priceChartImage.setAlt("Price Chart for " + pairData.getPairName());
+            } else {
+                priceChartImage.setSrc(""); // Clear image
+                priceChartImage.setAlt("Price Chart generation failed");
+                log.warn("⚠️ Не удалось создать Price чарт для пары: {}", pairData.getPairName());
             }
 
             // Заполняем детальную информацию
@@ -231,7 +248,8 @@ public class ZScoreChartDialog extends Dialog {
 
             // Показываем ошибку пользователю
             pairTitle.setText("❌ Error Loading Chart");
-            chartImage.setSrc("");
+            zScoreChartImage.setSrc("");
+            priceChartImage.setSrc("");
             detailsPanel.removeAll();
             detailsPanel.add(new Span("Failed to load chart: " + e.getMessage()));
             open();
@@ -241,8 +259,8 @@ public class ZScoreChartDialog extends Dialog {
     /**
      * Создает StreamResource из BufferedImage
      */
-    private StreamResource createStreamResource(BufferedImage bufferedImage) {
-        return new StreamResource("zscore-chart.png", () -> {
+    private StreamResource createStreamResource(BufferedImage bufferedImage, String fileName) {
+        return new StreamResource(fileName, () -> {
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(bufferedImage, "png", baos);

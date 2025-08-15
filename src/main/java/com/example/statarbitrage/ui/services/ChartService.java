@@ -1,5 +1,6 @@
 package com.example.statarbitrage.ui.services;
 
+import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.PairData;
@@ -418,5 +419,86 @@ public class ChartService {
         chart.setYAxisGroupTitle(1, "Profit %");
 
         log.debug("✅ График профита успешно добавлен на чарт с точкой на последнем значении");
+    }
+
+    public BufferedImage createPriceChart(PairData pairData) {
+        String longTicker = pairData.getLongTicker();
+        String shortTicker = pairData.getShortTicker();
+
+        List<Candle> longCandles = pairData.getLongTickerCandles();
+        List<Candle> shortCandles = pairData.getShortTickerCandles();
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("Не найдены свечи для тикеров {} или {}", longTicker, shortTicker);
+            return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        }
+
+        // Сортировка по времени
+        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        // Получение времени и цен
+        List<Date> timeAxis = longCandles.stream()
+                .map(c -> new Date(c.getTimestamp()))
+                .toList();
+
+        // Дата и цены
+        List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
+
+        List<Date> timeShort = shortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = shortCandles.stream().map(Candle::getClose).toList();
+
+        // График 1: первая монета (long)
+        XYChart topChart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
+                .xAxisTitle("Time").yAxisTitle("Price")
+                .build();
+        topChart.getStyler().setLegendVisible(false);
+
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + pairData.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
+        longSeries.setLineColor(Color.GREEN);
+        longSeries.setMarker(new None());
+
+        topChart.getStyler().setYAxisTicksVisible(false);
+        topChart.getStyler().setYAxisTitleVisible(false);
+
+        topChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
+
+        // График 2: вторая монета (short)
+        XYChart bottomChart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
+                .xAxisTitle("Time").yAxisTitle("Price")
+                .build();
+        bottomChart.getStyler().setLegendVisible(false);
+
+        XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + pairData.getShortTickerCurrentPrice() + ")", timeShort, shortPrices);
+        shortSeries.setLineColor(Color.RED);
+        shortSeries.setMarker(new None());
+
+        bottomChart.getStyler().setYAxisTicksVisible(false);
+        bottomChart.getStyler().setYAxisTitleVisible(false);
+
+        bottomChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
+
+        // Объединение 2 графиков
+        BufferedImage topImage = BitmapEncoder.getBufferedImage(topChart);
+        BufferedImage bottomImage = BitmapEncoder.getBufferedImage(bottomChart);
+
+        BufferedImage combinedImage = new BufferedImage(1920, 720, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = combinedImage.createGraphics();
+
+        // Нарисовать верхний график (long) полностью
+        g2.drawImage(topImage, 0, 0, null);
+
+        // Установить прозрачность 50% и наложить нижний график (short)
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+        g2.drawImage(bottomImage, 0, 0, null);
+
+        g2.dispose();
+
+        return combinedImage;
     }
 }
