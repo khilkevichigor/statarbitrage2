@@ -46,7 +46,7 @@ public class FetchPairsProcessor {
         int count = Optional.ofNullable(request.getCountOfPairs())
                 .orElse((int) settings.getUsePairs());
 
-        List<ZScoreData> zScoreDataList = computeZScorePairs(settings, candlesMap, count);
+        List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap, count);
         if (zScoreDataList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -79,9 +79,9 @@ public class FetchPairsProcessor {
         return map;
     }
 
-    private List<ZScoreData> computeZScorePairs(Settings settings, Map<String, List<Candle>> candlesMap, int count) {
+    private List<ZScoreData> computeZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, int count) {
         try {
-            return zScoreService.getTopNPairs(settings, candlesMap, count);
+            return zScoreService.getTopNZScoreData(settings, candlesMap, count);
         } catch (Exception e) {
             log.error("❌ Ошибка при расчете Z-Score: {}", e.getMessage());
             return Collections.emptyList();

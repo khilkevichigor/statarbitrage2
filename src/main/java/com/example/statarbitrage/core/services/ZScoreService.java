@@ -19,7 +19,7 @@ public class ZScoreService {
 
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
-    private final ObtainBestZScoreDataBeforeCreateNewPairService obtainBestZScoreDataBeforeCreateNewPairService;
+    private final ObtainTopZScoreDataBeforeCreateNewPairService obtainTopZScoreDataBeforeCreateNewPairService;
     private final FilterZScoreDataBeforeCreateNewPairService filterZScoreDataBeforeCreateNewPairService;
     private final FilterZScoreDataForExistingPairBeforeNewTradeService filterZScoreDataForExistingPairBeforeNewTradeService;
 
@@ -231,15 +231,15 @@ public class ZScoreService {
     /**
      * Возвращает топ-N лучших пар.
      */
-    public List<ZScoreData> getTopNPairs(Settings settings,
-                                         Map<String, List<Candle>> candlesMap,
-                                         int count) {
+    public List<ZScoreData> getTopNZScoreData(Settings settings,
+                                              Map<String, List<Candle>> candlesMap,
+                                              int count) {
 
         List<ZScoreData> all = calculateZScoreData(settings, candlesMap, true);
-        return obtainTopNBestZScoreData(candlesMap, settings, all, count);
+        return obtainTopNZScoreData(candlesMap, settings, all, count);
     }
 
-    private List<ZScoreData> obtainTopNBestZScoreData(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
+    private List<ZScoreData> obtainTopNZScoreData(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (topN <= 0) {
             log.warn("⚠️ Некорректное количество пар: topN={}", topN);
             return Collections.emptyList();
@@ -252,7 +252,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = obtainBestZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 

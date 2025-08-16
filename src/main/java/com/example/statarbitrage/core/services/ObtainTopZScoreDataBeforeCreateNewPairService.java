@@ -17,7 +17,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ObtainBestZScoreDataBeforeCreateNewPairService {
+public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
     private final FilterZScoreDataBeforeCreateNewPairService filterService;
 
