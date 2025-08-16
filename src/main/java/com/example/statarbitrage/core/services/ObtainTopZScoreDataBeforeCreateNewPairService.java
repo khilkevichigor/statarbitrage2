@@ -20,54 +20,6 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
     private final PixelSpreadService pixelSpreadService;
 
     /**
-     * Фильтрует и анализирует список пар ZScoreData
-     * Объединённая логика из FilterZScoreDataBeforeCreateNewPairService
-     */
-    public void filterZScoreData(List<ZScoreData> zScoreDataList, Settings settings) {
-        double expected = settings.getExpectedZParamsCount();
-
-        // Анализируем входящие данные
-        analyzeInputData(zScoreDataList);
-
-        log.info("🔍 Ожидаемое количество наблюдений: {}, всего пар для анализа: {}", expected, zScoreDataList.size());
-
-        // Сохраняем копию оригинального списка для статистики
-        List<ZScoreData> originalList = List.copyOf(zScoreDataList);
-        int before = zScoreDataList.size();
-        Map<String, Integer> filterStats = new HashMap<>();
-
-        zScoreDataList.removeIf(data -> {
-            String reason = shouldFilterPair(data, settings, expected);
-            if (reason != null) {
-                filterStats.merge(reason, 1, Integer::sum);
-                log.info("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
-                        data.getUnderValuedTicker(), data.getOverValuedTicker(), reason,
-                        NumberFormatter.format(getLatestZScore(data, data.getZScoreHistory()), 2),
-                        getAdfPValue(data, data.getZScoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZScoreHistory()), 4) : "N/A",
-                        getRSquared(data) != null ? NumberFormatter.format(getRSquared(data), 3) : "N/A"
-                );
-                return true;
-            }
-            // Рассчитываем качественный скор для каждой пары
-            double qualityScore = calculatePairQualityScore(data, settings);
-            log.info("📊 Пара {}/{} прошла базовую фильтрацию. Качественный скор: {}",
-                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
-                    NumberFormatter.format(qualityScore, 2));
-            return false;
-        });
-
-        int after = zScoreDataList.size();
-        log.info("✅ Фильтрация завершена: {} → {} пар", before, after);
-
-        // Статистика по причинам фильтрации
-        filterStats.forEach((reason, count) ->
-                log.debug("📊 Статистика по фильтрации - {}: {} пар", reason, count));
-
-        // Детальная статистика фильтрации
-        logFilteringStatistics(originalList, zScoreDataList, settings);
-    }
-
-    /**
      * Новая версия получения лучшей пары (КОНФИГУРИРУЕМЫЕ ВЕСА!)
      * <p>
      * Использует ПОЛНУЮ систему оценки качества пар:
@@ -92,23 +44,23 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             String reason = shouldFilterPair(data, settings, expected);
             if (reason != null) {
                 filterStats.merge(reason, 1, Integer::sum);
-                log.debug("⚠️ Отфильтровано {}/{} — {}", 
-                    data.getUnderValuedTicker(), data.getOverValuedTicker(), reason);
+                log.debug("⚠️ Отфильтровано {}/{} — {}",
+                        data.getUnderValuedTicker(), data.getOverValuedTicker(), reason);
             } else {
                 filteredList.add(data);
                 // Рассчитываем качественный скор для лога
                 double qualityScore = calculatePairQualityScore(data, settings);
                 log.info("📊 Пара {}/{} прошла фильтрацию. Качественный скор: {}",
-                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
-                    NumberFormatter.format(qualityScore, 2));
+                        data.getUnderValuedTicker(), data.getOverValuedTicker(),
+                        NumberFormatter.format(qualityScore, 2));
             }
         }
 
         log.info("✅ После фильтрации осталось {} из {} пар", filteredList.size(), dataList.size());
-        
+
         // Статистика фильтрации
         filterStats.forEach((reason, count) ->
-            log.debug("📊 Фильтрация - {}: {} пар", reason, count));
+                log.debug("📊 Фильтрация - {}: {} пар", reason, count));
 
         if (filteredList.isEmpty()) {
             log.warn("❌ Нет подходящих пар после фильтрации");
@@ -193,53 +145,6 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
     }
 
     /**
-     * УПРОЩЕННЫЙ калкулятор скора (основной скоринг в Filter)
-     * Основная логика скоринга перенесена в FilterIncompleteZScoreParamsServiceV2.calculatePairQualityScore()
-     */
-    private double calculateSimplifiedScore(double zVal, ZScoreData data) {
-        // Простое вычисление скора - основная логика в FilterIncompleteZScoreParamsServiceV2
-        double score = 0.0;
-
-        // Z-Score - главный компонент
-        score += Math.abs(zVal) * 10.0; // Базовые очки за Z-Score
-
-        // Простые бонусы
-        if (data.getJohansenCointPValue() != null) {
-            score += 5.0; // Бонус за Johansen тест
-        }
-
-        if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
-            score += 3.0; // Бонус за высокий R-squared
-        }
-
-        if (data.getPearsonCorr() != null) {
-            score += Math.abs(data.getPearsonCorr()) * 2.0; // Бонус за корреляцию
-        }
-
-        return Math.max(0.0, score);
-    }
-
-    /**
-     * Рассчитывает волатильность Z-Score
-     */
-    private double calculateZScoreVolatility(List<ZScoreParam> params) {
-        if (params.size() < 10) return 0.0;
-
-        List<Double> recentZScores = params.subList(params.size() - 10, params.size())
-                .stream()
-                .map(ZScoreParam::getZscore)
-                .toList();
-
-        double mean = recentZScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        double variance = recentZScores.stream()
-                .mapToDouble(z -> Math.pow(z - mean, 2))
-                .average()
-                .orElse(0.0);
-
-        return Math.sqrt(variance);
-    }
-
-    /**
      * Логирует топ кандидатов для анализа
      */
     private void logTopCandidates(List<PairCandidate> candidates) {
@@ -265,34 +170,6 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     johansenStatus,
                     NumberFormatter.format(candidate.getAdfValue(), 4)
             );
-        }
-    }
-
-    // ============ МЕТОДЫ ФИЛЬТРАЦИИ ============
-
-    /**
-     * Анализирует входящие данные и определяет формат API
-     */
-    private void analyzeInputData(List<ZScoreData> zScoreDataList) {
-        if (zScoreDataList.isEmpty()) return;
-
-        ZScoreData sample = zScoreDataList.get(0);
-        boolean hasOldFormat = sample.getZScoreHistory() != null && !sample.getZScoreHistory().isEmpty();
-        boolean hasNewFormat = sample.getLatestZScore() != null;
-        boolean hasJohansenData = sample.getJohansenCointPValue() != null;
-
-        log.info("📋 Анализ формата данных:");
-        log.info("   📊 Старый формат (zscoreParams): {}", hasOldFormat ? "✅" : "❌");
-        log.info("   🆕 Новый формат (latest_zscore): {}", hasNewFormat ? "✅" : "❌");
-        log.info("   🔬 Johansen тест: {}", hasJohansenData ? "✅ ДОСТУПЕН" : "❌");
-
-        if (hasJohansenData) {
-            double minJohansenPValue = zScoreDataList.stream()
-                    .filter(d -> d.getJohansenCointPValue() != null)
-                    .mapToDouble(ZScoreData::getJohansenCointPValue)
-                    .min()
-                    .orElse(1.0);
-            log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
         }
     }
 
@@ -462,60 +339,6 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
     }
 
     /**
-     * Статистика фильтрации
-     */
-    private void logFilteringStatistics(List<ZScoreData> originalList, List<ZScoreData> filteredList, Settings settings) {
-        int total = originalList.size();
-        int remaining = filteredList.size();
-        int filtered = total - remaining;
-
-        log.info("📈 === СТАТИСТИКА ФИЛЬТРАЦИИ ПАРЫ ===");
-        log.info("📊 Всего пар: {}", total);
-        log.info("✅ Прошли фильтры: {} ({}%)", remaining, String.format("%.1f", (remaining * 100.0 / total)));
-        log.info("❌ Отфильтровано: {} ({}%)", filtered, String.format("%.1f", (filtered * 100.0 / total)));
-
-        // Анализ качества оставшихся пар
-        if (!filteredList.isEmpty()) {
-            analyzeRemainingPairs(filteredList);
-        }
-    }
-
-    /**
-     * Анализирует качество оставшихся пар после фильтрации
-     */
-    private void analyzeRemainingPairs(List<ZScoreData> filteredList) {
-        // Статистика Z-Score
-        double avgZScore = filteredList.stream()
-                .mapToDouble(d -> Math.abs(getLatestZScore(d, d.getZScoreHistory())))
-                .average().orElse(0.0);
-
-        // Статистика корреляции
-        double avgCorrelation = filteredList.stream()
-                .filter(d -> d.getPearsonCorr() != null)
-                .mapToDouble(d -> Math.abs(d.getPearsonCorr()))
-                .average().orElse(0.0);
-
-        // Статистика R-squared
-        double avgRSquared = filteredList.stream()
-                .map(this::getRSquared)
-                .filter(Objects::nonNull)
-                .mapToDouble(Double::doubleValue)
-                .average().orElse(0.0);
-
-        // Подсчет пар с Johansen тестом
-        long johansenPairs = filteredList.stream()
-                .filter(d -> d.getJohansenCointPValue() != null)
-                .count();
-
-        log.info("📋 Качество отобранных пар:");
-        log.info("   📊 Средний |Z-Score|: {}", String.format("%.2f", avgZScore));
-        log.info("   🔗 Средняя |корреляция|: {}", String.format("%.3f", avgCorrelation));
-        log.info("   📈 Средний R²: {}", String.format("%.3f", avgRSquared));
-        log.info("   🔬 Пары с Johansen тестом: {}/{} ({}%)",
-                johansenPairs, filteredList.size(), String.format("%.1f", (johansenPairs * 100.0 / filteredList.size())));
-    }
-
-    /**
      * Расчет скора пиксельного спреда
      */
     private double calculatePixelSpreadScoreComponent(ZScoreData data, Settings settings) {
@@ -555,7 +378,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     }
 
                     double totalScore = maxWeight * scoreRatio;
-                    
+
                     log.info("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
                             avgSpread, maxSpread, totalScore, scoreRatio * 100, maxWeight);
 
