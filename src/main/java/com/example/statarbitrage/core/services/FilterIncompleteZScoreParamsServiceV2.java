@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -425,7 +426,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         List<ZScoreParam> params = data.getZScoreHistory();
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
-        log.debug("🎯 Рассчет качественного скора для {} с НАСТРАИВАЕМЫМИ весами", pairName);
+        log.info("🎯 Рассчет качественного скора для {} с НАСТРАИВАЕМЫМИ весами", pairName);
 
         // ====== 1. Z-SCORE СИЛА (настраиваемый вес) ======
         if (settings.isUseZScoreScoring()) {
@@ -433,7 +434,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             double maxWeight = settings.getZScoreScoringWeight();
             double zScorePoints = Math.min(Math.abs(zScore) * (maxWeight / 5.0), maxWeight); // Нормализуем по весу
             totalScore += zScorePoints;
-            log.debug("  🎯 Z-Score компонент: {} очков (Z-score={}, вес={})",
+            log.info("  🎯 Z-Score компонент: {} очков (Z-score={}, вес={})",
                     NumberFormatter.format(zScorePoints, 1), NumberFormatter.format(zScore, 2), maxWeight);
         }
 
@@ -441,7 +442,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (settings.isUsePixelSpreadScoring()) {
             double pixelSpreadScore = calculatePixelSpreadScoreComponent(data, settings);
             totalScore += pixelSpreadScore;
-            log.debug("  📏 Пиксельный спред: {} очков (вес={})", 
+            log.info("  📏 Пиксельный спред: {} очков (вес={})",
                     NumberFormatter.format(pixelSpreadScore, 1), settings.getPixelSpreadScoringWeight());
         }
 
@@ -449,7 +450,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (settings.isUseCointegrationScoring()) {
             double cointegrationScore = calculateCointegrationScoreComponent(data, params, settings);
             totalScore += cointegrationScore;
-            log.debug("  🔬 Коинтеграция: {} очков (вес={})", 
+            log.info("  🔬 Коинтеграция: {} очков (вес={})",
                     NumberFormatter.format(cointegrationScore, 1), settings.getCointegrationScoringWeight());
         }
 
@@ -457,7 +458,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (settings.isUseModelQualityScoring()) {
             double modelQualityScore = calculateModelQualityScoreComponent(data, params, settings);
             totalScore += modelQualityScore;
-            log.debug("  📊 Качество модели: {} очков (вес={})", 
+            log.info("  📊 Качество модели: {} очков (вес={})",
                     NumberFormatter.format(modelQualityScore, 1), settings.getModelQualityScoringWeight());
         }
 
@@ -465,7 +466,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (settings.isUseStatisticsScoring()) {
             double statisticalScore = calculateStatisticalSignificanceScoreComponent(data, params, settings);
             totalScore += statisticalScore;
-            log.debug("  📊 Статистика: {} очков (вес={})", 
+            log.info("  📊 Статистика: {} очков (вес={})",
                     NumberFormatter.format(statisticalScore, 1), settings.getStatisticsScoringWeight());
         }
 
@@ -473,11 +474,11 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         if (settings.isUseBonusScoring()) {
             double bonusScore = calculateBonusScoreComponent(data, settings);
             totalScore += bonusScore;
-            log.debug("  🎁 Бонусы: {} очков (вес={})", 
+            log.info("  🎁 Бонусы: {} очков (вес={})",
                     NumberFormatter.format(bonusScore, 1), settings.getBonusScoringWeight());
         }
 
-        log.debug("🏆 Итоговый скор для {}: {} очков (НАСТРАИВАЕМЫЕ ВЕСА)", pairName, NumberFormatter.format(totalScore, 1));
+        log.info("🏆 Итоговый скор для {}: {} очков (НАСТРАИВАЕМЫЕ ВЕСА)", pairName, NumberFormatter.format(totalScore, 1));
         return totalScore; // Убираем ограничение в 100 очков - теперь сумма весов настраивается
     }
 
@@ -527,7 +528,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
                     double totalScore = maxWeight * scoreRatio;
 
-                    log.debug("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
+                    log.info("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
                             avgSpread, maxSpread, totalScore, scoreRatio * 100, maxWeight);
 
                     return totalScore;
@@ -537,7 +538,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             return 0.0; // Нет данных о пиксельном спреде
 
         } catch (Exception e) {
-            log.debug("    📏 Ошибка расчета скора пиксельного спреда: {}", e.getMessage());
+            log.warn("    📏 Ошибка расчета скора пиксельного спреда: {}", e.getMessage());
             return 0.0;
         }
     }
@@ -558,7 +559,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
         if (!hasJohansen && !hasAdf) {
-            log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
+            log.info("  🔬 {}: Нет данных коинтеграции", pairName);
             return 0.0;
         }
 
@@ -567,7 +568,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         if (hasJohansen && hasAdf) {
             // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 50% от полного веса
-            log.debug("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight/2, maxWeight/2);
+            log.info("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight/2, maxWeight/2);
 
             // Johansen (50% от веса)
             double johansenPValue = data.getJohansenCointPValue();
@@ -579,34 +580,34 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * (maxWeight / 2.0);
             score += adfScore;
 
-            log.debug("    Johansen: {} очков (p-value={})",
+            log.info("    Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
-            log.debug("    ADF: {} очков (p-value={})",
+            log.info("    ADF: {} очков (p-value={})",
                     NumberFormatter.format(adfScore, 1),
                     NumberFormatter.format(adfPValue, 6));
 
         } else if (hasJohansen) {
             // ТОЛЬКО JOHANSEN - полный вес
-            log.debug("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
+            log.info("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
 
             double johansenPValue = data.getJohansenCointPValue();
             double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * maxWeight;
             score += johansenScore;
 
-            log.debug("    Johansen: {} очков (p-value={})",
+            log.info("    Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
 
         } else if (hasAdf) {
             // ТОЛЬКО ADF - полный вес
-            log.debug("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
+            log.info("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
 
             Double adfPValue = getAdfPValue(data, params);
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * maxWeight;
             score += adfScore;
 
-            log.debug("    ADF: {} очков (p-value={})",
+            log.info("    ADF: {} очков (p-value={})",
                     NumberFormatter.format(adfScore, 1),
                     NumberFormatter.format(adfPValue, 6));
         }
@@ -616,7 +617,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
                 double traceBonus = maxWeight * 0.05; // 5% от основного веса
                 score += traceBonus;
-                log.debug("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
+                log.info("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
             }
         }
 
@@ -738,7 +739,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
         // Статистика R-squared
         double avgRSquared = filteredList.stream()
                 .map(this::getRSquared)
-                .filter(r -> r != null)
+                .filter(Objects::nonNull)
                 .mapToDouble(Double::doubleValue)
                 .average().orElse(0.0);
 
