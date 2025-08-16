@@ -440,7 +440,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * maxWeight;
             score += johansenScore;
 
-            log.info("    Johansen: {} очков (p-value={})",
+            log.info("     Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
 
