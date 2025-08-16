@@ -39,17 +39,17 @@ public class ZScoreChartDialog extends Dialog {
     private final PixelSpreadService pixelSpreadService;
 
     private VerticalLayout content;
-    private Image zScoreChartImage;
-    private Image priceChartImage;
-    private Image pixelSpreadChartImage;
+    private Image mainChartImage; // Единая область для чартов
     private H3 pairTitle;
     private Div detailsPanel;
+    // Чекбоксы для выбора типов чартов
+    private Checkbox showZScoreCheckbox;
+    private Checkbox showCombinedPriceCheckbox;
+    private Checkbox showPixelSpreadCheckbox;
+    // Чекбоксы для дополнительных индикаторов на Z-Score
     private Checkbox showEmaCheckbox;
     private Checkbox showStochRsiCheckbox;
     private Checkbox showProfitCheckbox;
-    private Checkbox showCombinedPriceCheckbox;
-    private Checkbox showPixelSpreadCheckbox;
-    private Checkbox showPixelSpreadOnPriceCheckbox;
     private PairData currentPairData;
 
     public ZScoreChartDialog(SettingsService settingsService, ChartService chartService, PixelSpreadService pixelSpreadService) {
@@ -76,29 +76,15 @@ public class ZScoreChartDialog extends Dialog {
         pairTitle.getStyle().set("margin", "0 0 1rem 0");
         pairTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
 
-        // Создаем чекбоксы для дополнительных индикаторов
-        createIndicatorCheckboxes();
+        // Создаем чекбоксы для выбора типов чартов
+        createChartSelectionCheckboxes();
 
-        zScoreChartImage = new Image();
-        zScoreChartImage.setWidth("100%");
-        zScoreChartImage.setHeight("400px");
-        zScoreChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
-        zScoreChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
-
-        priceChartImage = new Image();
-        priceChartImage.setWidth("100%");
-        priceChartImage.setHeight("400px");
-        priceChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
-        priceChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
-        priceChartImage.getStyle().set("margin-top", "1rem");
-
-        pixelSpreadChartImage = new Image();
-        pixelSpreadChartImage.setWidth("100%");
-        pixelSpreadChartImage.setHeight("400px");
-        pixelSpreadChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
-        pixelSpreadChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
-        pixelSpreadChartImage.getStyle().set("margin-top", "1rem");
-        pixelSpreadChartImage.setVisible(true); // Всегда показываем третий чарт пиксельного спреда
+        // Единая область для чартов
+        mainChartImage = new Image();
+        mainChartImage.setWidth("100%");
+        mainChartImage.setHeight("600px");
+        mainChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        mainChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
 
         detailsPanel = new Div();
         detailsPanel.getStyle().set("padding", "1rem");
@@ -113,34 +99,39 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
-     * Создает чекбоксы для отображения дополнительных индикаторов
+     * Создает чекбоксы для выбора типов чартов
      */
-    private void createIndicatorCheckboxes() {
+    private void createChartSelectionCheckboxes() {
         Settings settings = settingsService.getSettings();
 
-        showEmaCheckbox = new Checkbox("Показать EMA (" + getEmaPeriodFromTimeframe(settings.getTimeframe()) + ")");
+        // Основные чекбоксы для выбора типов чартов
+        showZScoreCheckbox = new Checkbox("📊 Z-Score график");
+        showZScoreCheckbox.setValue(false); // Не выбран по умолчанию
+        showZScoreCheckbox.addValueChangeListener(e -> refreshMainChart());
+
+        showCombinedPriceCheckbox = new Checkbox("💰 Наложенные цены");
+        showCombinedPriceCheckbox.setValue(true); // Выбран по умолчанию!
+        showCombinedPriceCheckbox.addValueChangeListener(e -> refreshMainChart());
+
+        showPixelSpreadCheckbox = new Checkbox("📏 Пиксельный спред");
+        showPixelSpreadCheckbox.setValue(false); // Не выбран по умолчанию
+        showPixelSpreadCheckbox.addValueChangeListener(e -> refreshMainChart());
+
+        // Дополнительные индикаторы для Z-Score (только если Z-Score выбран)
+        showEmaCheckbox = new Checkbox("+ EMA (" + getEmaPeriodFromTimeframe(settings.getTimeframe()) + ")");
         showEmaCheckbox.setValue(false);
-        showEmaCheckbox.addValueChangeListener(e -> refreshChart());
+        showEmaCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showEmaCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
 
-        showStochRsiCheckbox = new Checkbox("Отобразить StochRSI");
+        showStochRsiCheckbox = new Checkbox("+ StochRSI");
         showStochRsiCheckbox.setValue(false);
-        showStochRsiCheckbox.addValueChangeListener(e -> refreshChart());
+        showStochRsiCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showStochRsiCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
 
-        showProfitCheckbox = new Checkbox("Показать профит");
+        showProfitCheckbox = new Checkbox("+ Профит");
         showProfitCheckbox.setValue(false);
-        showProfitCheckbox.addValueChangeListener(e -> refreshChart());
-
-        showCombinedPriceCheckbox = new Checkbox("Показать объединенные цены");
-        showCombinedPriceCheckbox.setValue(false);
-        showCombinedPriceCheckbox.addValueChangeListener(e -> refreshChart());
-
-        showPixelSpreadCheckbox = new Checkbox("📏 Показать пиксельный спред на Z-Score");
-        showPixelSpreadCheckbox.setValue(false);
-        showPixelSpreadCheckbox.addValueChangeListener(e -> refreshChart());
-
-        showPixelSpreadOnPriceCheckbox = new Checkbox("📏 Показать пиксельный спред на Price");
-        showPixelSpreadOnPriceCheckbox.setValue(false);
-        showPixelSpreadOnPriceCheckbox.addValueChangeListener(e -> refreshPriceChart());
+        showProfitCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showProfitCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
     }
 
     /**
@@ -159,58 +150,91 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
-     * Обновляет чарт с учетом выбранных индикаторов
+     * Обновляет главный чарт с учетом выбранных типов
      */
-    private void refreshChart() {
-        if (currentPairData != null) {
-            try {
-                // Получаем настройки для индикаторов
+    private void refreshMainChart() {
+        if (currentPairData == null) return;
+
+        try {
+            boolean showZScore = showZScoreCheckbox.getValue();
+            boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
+            boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
+
+            // Управляем доступностью индикаторов Z-Score
+            boolean zScoreEnabled = showZScore;
+            showEmaCheckbox.setEnabled(zScoreEnabled);
+            showStochRsiCheckbox.setEnabled(zScoreEnabled);
+            showProfitCheckbox.setEnabled(zScoreEnabled);
+
+            // Если Z-Score отключен, отключаем его индикаторы
+            if (!zScoreEnabled) {
+                showEmaCheckbox.setValue(false);
+                showStochRsiCheckbox.setValue(false);
+                showProfitCheckbox.setValue(false);
+            }
+
+            // Проверяем, что хотя бы один чарт выбран
+            if (!showZScore && !showCombinedPrice && !showPixelSpread) {
+                // Если ни один не выбран, очищаем изображение
+                mainChartImage.setSrc("");
+                mainChartImage.setAlt("Выберите тип чарта для отображения");
+                log.debug("📊 Все чекбоксы отключены - чарт очищен");
+                return;
+            }
+
+            BufferedImage chartImage = null;
+
+            // Создаем чарт в зависимости от выбранного типа
+            if (showZScore && !showCombinedPrice && !showPixelSpread) {
+                // Только Z-Score чарт с индикаторами
+                Settings settings = settingsService.getSettings();
                 boolean showEma = showEmaCheckbox.getValue();
                 boolean showStochRsi = showStochRsiCheckbox.getValue();
                 boolean showProfit = showProfitCheckbox.getValue();
-                boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
-                boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
-                Settings settings = settingsService.getSettings();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
-                // Генерируем новый чарт с выбранными индикаторами
-                BufferedImage chartBufferedImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
+                chartImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, false, false);
+                log.debug("📊 Создан Z-Score чарт с индикаторами: EMA={}, StochRSI={}, Profit={}", showEma, showStochRsi, showProfit);
 
-                if (chartBufferedImage != null) {
-                    StreamResource chartResource = createStreamResource(chartBufferedImage, "zscore-chart.png");
-                    zScoreChartImage.setSrc(chartResource);
-                }
-            } catch (Exception e) {
-                log.error("❌ Ошибка при обновлении чарта", e);
+            } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
+                // Только Price чарт
+                chartImage = chartService.createPriceChart(currentPairData, false);
+                log.debug("📊 Создан Price чарт");
+
+            } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
+                // Только Pixel Spread чарт
+                chartImage = chartService.createPixelSpreadChart(currentPairData);
+                log.debug("📊 Создан Pixel Spread чарт");
+
+            } else {
+                // Комбинированный чарт - создаем комбинированный Z-Score чарт
+                Settings settings = settingsService.getSettings();
+                boolean showEma = showEmaCheckbox.getValue();
+                boolean showStochRsi = showStochRsiCheckbox.getValue();
+                boolean showProfit = showProfitCheckbox.getValue();
+                int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
+
+                chartImage = chartService.createCombinedChart(currentPairData, showZScore, showCombinedPrice, showPixelSpread, showEma, emaPeriod, showStochRsi, showProfit);
+                log.debug("📊 Создан комбинированный чарт: ZScore={}, Price={}, PixelSpread={}", showZScore, showCombinedPrice, showPixelSpread);
             }
+
+            if (chartImage != null) {
+                StreamResource chartResource = createStreamResource(chartImage, "main-chart.png");
+                mainChartImage.setSrc(chartResource);
+                mainChartImage.setAlt("Chart for " + currentPairData.getPairName());
+            } else {
+                mainChartImage.setSrc("");
+                mainChartImage.setAlt("Failed to generate chart");
+                log.warn("⚠️ Не удалось создать чарт для пары: {}", currentPairData.getPairName());
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении главного чарта", e);
+            mainChartImage.setSrc("");
+            mainChartImage.setAlt("Chart generation error");
         }
     }
 
-    /**
-     * Обновляет Price чарт с учетом пиксельного спреда
-     */
-    private void refreshPriceChart() {
-        if (currentPairData != null) {
-            try {
-                boolean showPixelSpreadOnPrice = showPixelSpreadOnPriceCheckbox.getValue();
-
-                log.debug("📊 Обновляем Price чарт с пиксельным спредом: {}", showPixelSpreadOnPrice);
-
-                BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData, showPixelSpreadOnPrice);
-                if (priceChartBufferedImage != null) {
-                    StreamResource priceChartResource = createStreamResource(priceChartBufferedImage, "price-chart.png");
-                    priceChartImage.setSrc(priceChartResource);
-                    priceChartImage.setAlt("Price Chart for " + currentPairData.getPairName());
-                } else {
-                    priceChartImage.setSrc("");
-                    priceChartImage.setAlt("Price Chart generation failed");
-                    log.warn("⚠️ Не удалось создать Price чарт для пары: {}", currentPairData.getPairName());
-                }
-            } catch (Exception e) {
-                log.error("❌ Ошибка при обновлении Price чарта", e);
-            }
-        }
-    }
 
     private void layoutComponents() {
         // Header with close button
@@ -225,22 +249,36 @@ public class ZScoreChartDialog extends Dialog {
 
         header.add(pairTitle, closeButton);
 
-        // Панель с чекбоксами для индикаторов
-        HorizontalLayout indicatorsPanel = new HorizontalLayout();
-        indicatorsPanel.setWidthFull();
-        indicatorsPanel.setAlignItems(FlexComponent.Alignment.CENTER);
-        indicatorsPanel.getStyle().set("padding", "0.5rem");
-        indicatorsPanel.getStyle().set("background", "var(--lumo-contrast-5pct)");
-        indicatorsPanel.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
-        indicatorsPanel.getStyle().set("margin-bottom", "1rem");
+        // Панель с чекбоксами для выбора типов чартов
+        VerticalLayout chartSelectionPanel = new VerticalLayout();
+        chartSelectionPanel.setSpacing(false);
+        chartSelectionPanel.setPadding(true);
+        chartSelectionPanel.getStyle().set("background", "var(--lumo-contrast-5pct)");
+        chartSelectionPanel.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        chartSelectionPanel.getStyle().set("margin-bottom", "1rem");
 
-        Span indicatorsLabel = new Span("📊 Индикаторы:");
-        indicatorsLabel.getStyle().set("font-weight", "bold");
+        Span chartsLabel = new Span("📊 Выбор чартов:");
+        chartsLabel.getStyle().set("font-weight", "bold");
+        chartsLabel.getStyle().set("margin-bottom", "0.5rem");
+
+        HorizontalLayout mainChartsRow = new HorizontalLayout();
+        mainChartsRow.setAlignItems(FlexComponent.Alignment.CENTER);
+        mainChartsRow.add(showZScoreCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox);
+
+        HorizontalLayout indicatorsRow = new HorizontalLayout();
+        indicatorsRow.setAlignItems(FlexComponent.Alignment.CENTER);
+        indicatorsRow.getStyle().set("margin-top", "0.5rem");
+
+        Span indicatorsLabel = new Span("📈 Индикаторы Z-Score:");
+        indicatorsLabel.getStyle().set("font-size", "0.9rem");
+        indicatorsLabel.getStyle().set("color", "var(--lumo-secondary-text-color)");
         indicatorsLabel.getStyle().set("margin-right", "1rem");
 
-        indicatorsPanel.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox, showPixelSpreadOnPriceCheckbox);
+        indicatorsRow.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox);
 
-        content.add(header, indicatorsPanel, zScoreChartImage, priceChartImage, pixelSpreadChartImage, detailsPanel);
+        chartSelectionPanel.add(chartsLabel, mainChartsRow, indicatorsRow);
+
+        content.add(header, chartSelectionPanel, mainChartImage, detailsPanel);
         add(content);
     }
 
@@ -265,50 +303,18 @@ public class ZScoreChartDialog extends Dialog {
             pairTitle.setText(String.format("📊 Z-Score Chart: %s", pairData.getPairName()));
 
             // Сбрасываем состояние чекбоксов
+            showZScoreCheckbox.setValue(false);
+            showCombinedPriceCheckbox.setValue(true); // Наложенные цены по умолчанию!
+            showPixelSpreadCheckbox.setValue(false);
             showEmaCheckbox.setValue(false);
             showStochRsiCheckbox.setValue(false);
             showProfitCheckbox.setValue(false);
-            showCombinedPriceCheckbox.setValue(false);
-            showPixelSpreadCheckbox.setValue(false);
-            showPixelSpreadOnPriceCheckbox.setValue(false);
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService
             pixelSpreadService.calculatePixelSpreadIfNeeded(currentPairData);
 
-            // Генерируем и показываем базовый чарт
-            BufferedImage zScoreChartBufferedImage = chartService.createZScoreChart(currentPairData, false, 0, false, false, false, false);
-            if (zScoreChartBufferedImage != null) {
-                StreamResource zScoreChartResource = createStreamResource(zScoreChartBufferedImage, "zscore-chart.png");
-                zScoreChartImage.setSrc(zScoreChartResource);
-                zScoreChartImage.setAlt("Z-Score Chart for " + pairData.getPairName());
-            } else {
-                zScoreChartImage.setSrc(""); // Clear image
-                zScoreChartImage.setAlt("Z-Score Chart generation failed");
-                log.warn("⚠️ Не удалось создать Z-Score чарт для пары: {}", pairData.getPairName());
-            }
-
-            BufferedImage priceChartBufferedImage = chartService.createPriceChart(currentPairData, false);
-            if (priceChartBufferedImage != null) {
-                StreamResource priceChartResource = createStreamResource(priceChartBufferedImage, "price-chart.png");
-                priceChartImage.setSrc(priceChartResource);
-                priceChartImage.setAlt("Price Chart for " + pairData.getPairName());
-            } else {
-                priceChartImage.setSrc(""); // Clear image
-                priceChartImage.setAlt("Price Chart generation failed");
-                log.warn("⚠️ Не удалось создать Price чарт для пары: {}", pairData.getPairName());
-            }
-
-            // Всегда показываем третий чарт пиксельного спреда
-            BufferedImage pixelSpreadBufferedImage = chartService.createPixelSpreadChart(currentPairData);
-            if (pixelSpreadBufferedImage != null) {
-                StreamResource pixelSpreadResource = createStreamResource(pixelSpreadBufferedImage, "pixel-spread-chart.png");
-                pixelSpreadChartImage.setSrc(pixelSpreadResource);
-                pixelSpreadChartImage.setAlt("Pixel Spread Chart for " + pairData.getPairName());
-            } else {
-                pixelSpreadChartImage.setSrc("");
-                pixelSpreadChartImage.setAlt("Pixel Spread Chart generation failed");
-                log.warn("⚠️ Не удалось создать Pixel Spread чарт для пары: {}", pairData.getPairName());
-            }
+            // Генерируем и показываем чарт согласно выбранным чекбоксам
+            refreshMainChart();
 
             // Заполняем детальную информацию
             updateDetailsPanel(pairData);
@@ -321,8 +327,8 @@ public class ZScoreChartDialog extends Dialog {
 
             // Показываем ошибку пользователю
             pairTitle.setText("❌ Error Loading Chart");
-            zScoreChartImage.setSrc("");
-            priceChartImage.setSrc("");
+            mainChartImage.setSrc("");
+            mainChartImage.setAlt("Chart loading failed");
             detailsPanel.removeAll();
             detailsPanel.add(new Span("Failed to load chart: " + e.getMessage()));
             open();
@@ -484,39 +490,4 @@ public class ZScoreChartDialog extends Dialog {
         return profit >= 0 ? "#4CAF50" : "#F44336";
     }
 
-    /**
-     * Обновляет график пиксельного спреда
-     */
-    private void refreshPixelSpreadChart() {
-        if (currentPairData != null) {
-            try {
-                boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
-
-                if (showPixelSpread) {
-                    log.debug("📏 Генерируем график пиксельного спреда для пары: {}", currentPairData.getPairName());
-
-                    BufferedImage pixelSpreadBufferedImage = chartService.createPixelSpreadChart(currentPairData);
-                    if (pixelSpreadBufferedImage != null) {
-                        StreamResource pixelSpreadResource = createStreamResource(pixelSpreadBufferedImage, "pixel-spread-chart.png");
-                        pixelSpreadChartImage.setSrc(pixelSpreadResource);
-                        pixelSpreadChartImage.setAlt("Pixel Spread Chart for " + currentPairData.getPairName());
-                        pixelSpreadChartImage.setVisible(true);
-                        log.debug("✅ График пиксельного спреда успешно создан");
-                    } else {
-                        pixelSpreadChartImage.setSrc("");
-                        pixelSpreadChartImage.setAlt("Pixel Spread Chart generation failed");
-                        pixelSpreadChartImage.setVisible(false);
-                        log.warn("⚠️ Не удалось создать график пиксельного спреда для пары: {}", currentPairData.getPairName());
-                    }
-                } else {
-                    pixelSpreadChartImage.setVisible(false);
-                    pixelSpreadChartImage.setSrc("");
-                    log.debug("📏 График пиксельного спреда скрыт");
-                }
-            } catch (Exception e) {
-                log.error("❌ Ошибка при обновлении графика пиксельного спреда", e);
-                pixelSpreadChartImage.setVisible(false);
-            }
-        }
-    }
 }

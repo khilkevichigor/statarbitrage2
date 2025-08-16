@@ -935,6 +935,99 @@ public class ChartService {
     }
 
     /**
+     * Создает комбинированный чарт с выбранными компонентами
+     */
+    public BufferedImage createCombinedChart(PairData pairData, boolean showZScore, boolean showCombinedPrice,
+                                             boolean showPixelSpread, boolean showEma, int emaPeriod,
+                                             boolean showStochRsi, boolean showProfit) {
+        log.debug("🎨 Создание комбинированного чарта для пары: {} (ZScore: {}, Price: {}, PixelSpread: {}, EMA: {}, StochRSI: {}, Profit: {})",
+                pairData.getPairName(), showZScore, showCombinedPrice, showPixelSpread, showEma, showStochRsi, showProfit);
+
+        // Если выбран только один тип чарта, используем специализированные методы
+        if (showZScore && !showCombinedPrice && !showPixelSpread) {
+            return createZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, false, false);
+        } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
+            return createPriceChart(pairData, false);
+        } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
+            return createPixelSpreadChart(pairData);
+        }
+
+        // Для комбинированного чарта используем Z-Score как базу
+        XYChart chart;
+
+        if (showZScore) {
+            // Если Z-Score выбран, используем его как основу
+            chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
+        } else {
+            // Если Z-Score не выбран, создаем базовый чарт для других компонентов
+            chart = createBaseCombinedChart(pairData);
+
+            if (showCombinedPrice) {
+                addCombinedPricesToChart(chart, pairData);
+            }
+
+            if (showPixelSpread) {
+                addPixelSpreadToZScoreChart(chart, pairData);
+            }
+        }
+
+        return BitmapEncoder.getBufferedImage(chart);
+    }
+
+    /**
+     * Создает базовый чарт для комбинирования компонентов (без Z-Score)
+     */
+    private XYChart createBaseCombinedChart(PairData pairData) {
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+
+        List<Long> timestamps;
+        if (history.isEmpty()) {
+            log.warn("⚠️ История Z-Score пуста для пары {}, используем текущее время", pairData.getPairName());
+            timestamps = Collections.singletonList(System.currentTimeMillis());
+        } else {
+            timestamps = history.stream()
+                    .map(ZScoreParam::getTimestamp)
+                    .collect(Collectors.toList());
+        }
+
+        List<Date> timeAxis = timestamps.stream().map(Date::new).collect(Collectors.toList());
+
+        XYChart chart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Combined Chart: LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+                .xAxisTitle("Time").yAxisTitle("Values")
+                .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setDatePattern("HH:mm");
+        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        chart.getStyler().setYAxisTicksVisible(false);
+        chart.getStyler().setYAxisTitleVisible(false);
+
+        // Добавляем точку входа если есть
+        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        long historyStart = timestamps.get(0);
+        long historyEnd = timestamps.get(timestamps.size() - 1);
+
+        boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+
+        if (inRange) {
+            Date entryDate = new Date(entryTimestamp);
+            List<Date> lineX = Arrays.asList(entryDate, entryDate);
+            // Используем диапазон от 0 до 1 для базового чарта
+            List<Double> lineY = Arrays.asList(0.0, 1.0);
+
+            XYSeries entryLine = chart.addSeries("Entry", lineX, lineY);
+            entryLine.setLineColor(Color.BLUE);
+            entryLine.setMarker(new None());
+            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+            log.debug("✅ Линия входа добавлена на комбинированный чарт");
+        }
+
+        return chart;
+    }
+
+    /**
      * Добавляет новую точку пиксельного спреда
      */
     public void addCurrentPixelSpreadPoint(PairData pairData) {
