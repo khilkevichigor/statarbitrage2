@@ -935,6 +935,13 @@ public class ChartService {
     }
 
     /**
+     * Добавляет новую точку пиксельного спреда
+     */
+    public void addCurrentPixelSpreadPoint(PairData pairData) {
+        pixelSpreadService.addCurrentPixelSpreadPoint(pairData);
+    }
+
+    /**
      * Создает график пиксельного спреда
      */
     public BufferedImage createPixelSpreadChart(PairData pairData) {

@@ -288,4 +288,95 @@ public class PixelSpreadService {
 
         return Math.sqrt(sumSquaredDifferences / (history.size() - 1));
     }
+
+    /**
+     * Добавляет новую точку пиксельного спреда для текущего времени
+     */
+    public void addCurrentPixelSpreadPoint(PairData pairData) {
+        List<Candle> longCandles = pairData.getLongTickerCandles();
+        List<Candle> shortCandles = pairData.getShortTickerCandles();
+        List<ZScoreParam> history = pairData.getZScoreHistory();
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
+            log.warn("⚠️ Не найдены данные для добавления новой точки пиксельного спреда: longCandles={}, shortCandles={}, history={}",
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null",
+                    history.size());
+            return;
+        }
+
+        // Получаем текущее время - последний Z-Score
+        ZScoreParam latestZScore = history.get(history.size() - 1);
+        long currentTimestamp = latestZScore.getTimestamp();
+
+        // Получаем последние цены
+        Candle latestLongCandle = longCandles.stream()
+                .max(Comparator.comparing(Candle::getTimestamp))
+                .orElse(null);
+        Candle latestShortCandle = shortCandles.stream()
+                .max(Comparator.comparing(Candle::getTimestamp))
+                .orElse(null);
+
+        if (latestLongCandle == null || latestShortCandle == null) {
+            log.warn("⚠️ Не найдены последние свечи для добавления точки пиксельного спреда");
+            return;
+        }
+
+        // Получаем диапазон Z-Score для нормализации
+        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
+        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
+        double zRange = maxZScore - minZScore;
+
+        // Получаем диапазон цен для нормализации
+        double minLongPrice = longCandles.stream().mapToDouble(Candle::getClose).min().orElse(0.0);
+        double maxLongPrice = longCandles.stream().mapToDouble(Candle::getClose).max().orElse(1.0);
+        double longPriceRange = maxLongPrice - minLongPrice;
+
+        double minShortPrice = shortCandles.stream().mapToDouble(Candle::getClose).min().orElse(0.0);
+        double maxShortPrice = shortCandles.stream().mapToDouble(Candle::getClose).max().orElse(1.0);
+        double shortPriceRange = maxShortPrice - minShortPrice;
+
+        // Нормализуем текущие цены в диапазон Z-Score
+        double scaledLongPrice = longPriceRange != 0 ?
+                minZScore + ((latestLongCandle.getClose() - minLongPrice) / longPriceRange) * zRange : minZScore;
+        double scaledShortPrice = shortPriceRange != 0 ?
+                minZScore + ((latestShortCandle.getClose() - minShortPrice) / shortPriceRange) * zRange : minZScore;
+
+        // Вычисляем пиксельное расстояние
+        int chartHeight = 720;
+        double minValue = Math.min(scaledLongPrice, scaledShortPrice);
+        double maxValue = Math.max(scaledLongPrice, scaledShortPrice);
+
+        double longPixelY = convertValueToPixelY(scaledLongPrice, minZScore, maxZScore, chartHeight);
+        double shortPixelY = convertValueToPixelY(scaledShortPrice, minZScore, maxZScore, chartHeight);
+        double pixelDistance = Math.abs(longPixelY - shortPixelY);
+
+        // Проверяем, не добавляли ли мы уже точку для этого времени
+        boolean alreadyExists = pairData.getPixelSpreadHistory().stream()
+                .anyMatch(item -> Math.abs(item.getTimestamp() - currentTimestamp) < 1000); // 1 секунда толеранс
+
+        if (!alreadyExists) {
+            PixelSpreadHistoryItem newPoint = new PixelSpreadHistoryItem(currentTimestamp, pixelDistance);
+            pairData.addPixelSpreadPoint(newPoint);
+
+            log.debug("✅ Добавлена новая точка пиксельного спреда для пары {} в {}: {} пикселей",
+                    pairData.getPairName(), new Date(currentTimestamp), Math.round(pixelDistance));
+        } else {
+            log.trace("⏭️ Точка пиксельного спреда уже существует для времени {} пары {}",
+                    new Date(currentTimestamp), pairData.getPairName());
+        }
+    }
+
+    /**
+     * Конвертирует значение в пиксельную координату Y (перевернутая система координат)
+     */
+    private double convertValueToPixelY(double value, double minValue, double maxValue, int chartHeight) {
+        if (maxValue - minValue == 0) return chartHeight / 2.0;
+
+        // Нормализуем значение в диапазон [0, 1]
+        double normalized = (value - minValue) / (maxValue - minValue);
+
+        // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
+        return chartHeight - (normalized * chartHeight);
+    }
 }

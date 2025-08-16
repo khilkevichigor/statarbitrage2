@@ -12,6 +12,7 @@ import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.Positioninfo;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
+import com.example.statarbitrage.ui.services.ChartService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,7 @@ public class UpdateTradeProcessor {
     private final NotificationService notificationService;
     private final CloseByStopService closeByStopService;
     private final CsvExportService csvExportService;
+    private final ChartService chartService;
 
 
     //todo выводить стату по среднему времени timeToMin/Max для анализа и подстройки Settings
@@ -91,6 +93,12 @@ public class UpdateTradeProcessor {
         logPairInfo(zScoreData, settings);
 
         pairDataService.updateZScoreDataCurrent(pairData, zScoreData);
+
+        // Обновляем пиксельный спред синхронно с Z-Score и ценами
+        log.debug("🔢 Обновляем пиксельный спред для пары {}", pairData.getPairName());
+        chartService.calculatePixelSpreadIfNeeded(pairData); // Инициализация при первом запуске
+        chartService.addCurrentPixelSpreadPoint(pairData); // Добавляем новую точку
+
         pairDataService.addChanges(pairData); // обновляем профит до проверки стратегии выхода
 
         if (request.isCloseManually()) {
@@ -123,6 +131,12 @@ public class UpdateTradeProcessor {
             freshPairData.setLongTickerCandles(candlesMap.get(freshPairData.getLongTicker()));
             freshPairData.setShortTickerCandles(candlesMap.get(freshPairData.getShortTicker()));
             pairDataService.updateZScoreDataCurrent(freshPairData, zScoreData);
+
+            // Обновляем пиксельный спред для наблюдаемой пары
+            log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshPairData.getPairName());
+            chartService.calculatePixelSpreadIfNeeded(freshPairData); // Инициализация при первом запуске
+            chartService.addCurrentPixelSpreadPoint(freshPairData); // Добавляем новую точку
+
             pairDataService.save(freshPairData);
         }
     }
