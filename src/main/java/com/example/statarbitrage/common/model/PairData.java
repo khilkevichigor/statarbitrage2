@@ -2,6 +2,7 @@ package com.example.statarbitrage.common.model;
 
 import com.example.statarbitrage.common.annotation.CsvExportable;
 import com.example.statarbitrage.common.dto.Candle;
+import com.example.statarbitrage.common.dto.PixelSpreadHistoryItem;
 import com.example.statarbitrage.common.dto.ProfitHistoryItem;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -83,7 +84,7 @@ public class PairData {
     private List<ProfitHistoryItem> profitHistory;
 
     @Transient
-    private List<com.example.statarbitrage.common.dto.PixelSpreadHistoryItem> pixelSpreadHistory;
+    private List<PixelSpreadHistoryItem> pixelSpreadHistory;
 
     @CsvExportable(order = 6)
     private String longTicker;
@@ -515,7 +516,7 @@ public class PairData {
     private void loadProfitHistoryFromJson() {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            TypeReference<List<com.example.statarbitrage.common.dto.ProfitHistoryItem>> typeRef = new TypeReference<>() {
+            TypeReference<List<ProfitHistoryItem>> typeRef = new TypeReference<>() {
             };
             this.profitHistory = mapper.readValue(profitHistoryJson, typeRef);
         } catch (Exception e) {
@@ -529,7 +530,7 @@ public class PairData {
      *
      * @param pixelSpreadHistoryItem новая точка данных
      */
-    public void addPixelSpreadPoint(com.example.statarbitrage.common.dto.PixelSpreadHistoryItem pixelSpreadHistoryItem) {
+    public void addPixelSpreadPoint(PixelSpreadHistoryItem pixelSpreadHistoryItem) {
         getPixelSpreadHistory();
 
         if (pixelSpreadHistory == null) {
@@ -550,7 +551,7 @@ public class PairData {
      *
      * @return список PixelSpreadHistoryItem
      */
-    public List<com.example.statarbitrage.common.dto.PixelSpreadHistoryItem> getPixelSpreadHistory() {
+    public List<PixelSpreadHistoryItem> getPixelSpreadHistory() {
         if (pixelSpreadHistory == null && pixelSpreadHistoryJson != null && !pixelSpreadHistoryJson.isEmpty()) {
             loadPixelSpreadHistoryFromJson();
         }
@@ -575,7 +576,7 @@ public class PairData {
     private void loadPixelSpreadHistoryFromJson() {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            TypeReference<List<com.example.statarbitrage.common.dto.PixelSpreadHistoryItem>> typeRef = new TypeReference<>() {
+            TypeReference<List<PixelSpreadHistoryItem>> typeRef = new TypeReference<>() {
             };
             this.pixelSpreadHistory = mapper.readValue(pixelSpreadHistoryJson, typeRef);
         } catch (Exception e) {
