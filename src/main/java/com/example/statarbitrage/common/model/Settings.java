@@ -88,6 +88,36 @@ public class Settings {
     @Builder.Default
     private String observedPairs = "";
 
+    // ====== КОНФИГУРИРУЕМЫЕ ВЕСА СКОРИНГА ======
+    
+    // Флаги включения/выключения компонентов скоринга
+    @Builder.Default
+    private boolean useZScoreScoring = true;
+    @Builder.Default
+    private boolean usePixelSpreadScoring = true;
+    @Builder.Default
+    private boolean useCointegrationScoring = true;
+    @Builder.Default
+    private boolean useModelQualityScoring = true;
+    @Builder.Default
+    private boolean useStatisticsScoring = true;
+    @Builder.Default
+    private boolean useBonusScoring = true;
+
+    // Веса компонентов скоринга (в очках)
+    @Builder.Default
+    private double zScoreScoringWeight = 40.0;
+    @Builder.Default
+    private double pixelSpreadScoringWeight = 25.0;
+    @Builder.Default
+    private double cointegrationScoringWeight = 25.0;
+    @Builder.Default
+    private double modelQualityScoringWeight = 20.0;
+    @Builder.Default
+    private double statisticsScoringWeight = 10.0;
+    @Builder.Default
+    private double bonusScoringWeight = 5.0;
+
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
     }

@@ -410,203 +410,82 @@ public class FilterIncompleteZScoreParamsServiceV2 {
     // ============ НОВАЯ СИСТЕМА ОЦЕНКИ КАЧЕСТВА ПАР ============
 
     /**
-     * Рассчитывает качественный скор пары (вместо приоритетной фильтрации)
-     * Максимальный скор: 100 очков
-     * <p>
-     * Компоненты скора:
-     * - Z-Score сила (40 очков) - основной торговый сигнал
-     * - Коинтеграция (25 очков) - Johansen + ADF + Pearson
-     * - Качество модели (20 очков) - R-squared + стабильность
-     * - Статистика (10 очков) - P-values
-     * - Бонусы (5 очков) - за полноту данных
+     * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
+     * 
+     * Компоненты скора (веса настраиваются через UI):
+     * - Z-Score сила - основной торговый сигнал
+     * - Пиксельный спред - важность раздвижки цен  
+     * - Коинтеграция - Johansen + ADF тесты
+     * - Качество модели - R-squared + стабильность
+     * - Статистика - P-values и корреляции
+     * - Бонусы - за полноту данных
      */
     private double calculatePairQualityScore(ZScoreData data, Settings settings) {
         double totalScore = 0.0;
         List<ZScoreParam> params = data.getZScoreHistory();
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
-        log.debug("🎯 Рассчет качественного скора для {}", pairName);
+        log.debug("🎯 Рассчет качественного скора для {} с НАСТРАИВАЕМЫМИ весами", pairName);
 
-        // ====== 1. Z-SCORE СИЛА (40 очков) ======
-        double zScore = getLatestZScore(data, params);
-        double zScorePoints = Math.min(Math.abs(zScore) * 8.0, 40.0); // Макс 40 очков при Z-score >= 5
-        totalScore += zScorePoints;
-        log.debug("  🎯 Z-Score компонент: {} очков (Z-score={})",
-                NumberFormatter.format(zScorePoints, 1), NumberFormatter.format(zScore, 2));
+        // ====== 1. Z-SCORE СИЛА (настраиваемый вес) ======
+        if (settings.isUseZScoreScoring()) {
+            double zScore = getLatestZScore(data, params);
+            double maxWeight = settings.getZScoreScoringWeight();
+            double zScorePoints = Math.min(Math.abs(zScore) * (maxWeight / 5.0), maxWeight); // Нормализуем по весу
+            totalScore += zScorePoints;
+            log.debug("  🎯 Z-Score компонент: {} очков (Z-score={}, вес={})",
+                    NumberFormatter.format(zScorePoints, 1), NumberFormatter.format(zScore, 2), maxWeight);
+        }
 
-        // ====== 2. КОИНТЕГРАЦИЯ (25 очков) ======
-        double cointegrationScore = calculateCointegrationScoreComponent(data, params);
-        totalScore += cointegrationScore;
-        log.debug("  🔬 Коинтеграция: {} очков", NumberFormatter.format(cointegrationScore, 1));
+        // ====== 2. ПИКСЕЛЬНЫЙ СПРЕД (настраиваемый вес, высокий приоритет!) ======
+        if (settings.isUsePixelSpreadScoring()) {
+            double pixelSpreadScore = calculatePixelSpreadScoreComponent(data, settings);
+            totalScore += pixelSpreadScore;
+            log.debug("  📏 Пиксельный спред: {} очков (вес={})", 
+                    NumberFormatter.format(pixelSpreadScore, 1), settings.getPixelSpreadScoringWeight());
+        }
 
-        // ====== 3. КАЧЕСТВО МОДЕЛИ (20 очков) ======
-        double modelQualityScore = calculateModelQualityScoreComponent(data, params);
-        totalScore += modelQualityScore;
-        log.debug("  📊 Качество модели: {} очков", NumberFormatter.format(modelQualityScore, 1));
+        // ====== 3. КОИНТЕГРАЦИЯ (настраиваемый вес) ======
+        if (settings.isUseCointegrationScoring()) {
+            double cointegrationScore = calculateCointegrationScoreComponent(data, params, settings);
+            totalScore += cointegrationScore;
+            log.debug("  🔬 Коинтеграция: {} очков (вес={})", 
+                    NumberFormatter.format(cointegrationScore, 1), settings.getCointegrationScoringWeight());
+        }
 
-        // ====== 4. СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ (10 очков) ======
-        double statisticalScore = calculateStatisticalSignificanceScoreComponent(data, params);
-        totalScore += statisticalScore;
-        log.debug("  📊 Статистика: {} очков", NumberFormatter.format(statisticalScore, 1));
+        // ====== 4. КАЧЕСТВО МОДЕЛИ (настраиваемый вес) ======
+        if (settings.isUseModelQualityScoring()) {
+            double modelQualityScore = calculateModelQualityScoreComponent(data, params, settings);
+            totalScore += modelQualityScore;
+            log.debug("  📊 Качество модели: {} очков (вес={})", 
+                    NumberFormatter.format(modelQualityScore, 1), settings.getModelQualityScoringWeight());
+        }
 
-        // ====== 5. БОНУСЫ (5 очков) + ПИКСЕЛЬНЫЙ СПРЕД ======
-        double bonusScore = calculateBonusScoreComponent(data);
-        totalScore += bonusScore;
-        log.debug("  🎁 Бонусы: {} очков", NumberFormatter.format(bonusScore, 1));
+        // ====== 5. СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ (настраиваемый вес) ======
+        if (settings.isUseStatisticsScoring()) {
+            double statisticalScore = calculateStatisticalSignificanceScoreComponent(data, params, settings);
+            totalScore += statisticalScore;
+            log.debug("  📊 Статистика: {} очков (вес={})", 
+                    NumberFormatter.format(statisticalScore, 1), settings.getStatisticsScoringWeight());
+        }
 
-        log.debug("🏆 Итоговый скор для {}: {} очков", pairName, NumberFormatter.format(totalScore, 1));
-        return Math.min(totalScore, 100.0); // Максимально 100 очков
+        // ====== 6. БОНУСЫ (настраиваемый вес) ======
+        if (settings.isUseBonusScoring()) {
+            double bonusScore = calculateBonusScoreComponent(data, settings);
+            totalScore += bonusScore;
+            log.debug("  🎁 Бонусы: {} очков (вес={})", 
+                    NumberFormatter.format(bonusScore, 1), settings.getBonusScoringWeight());
+        }
+
+        log.debug("🏆 Итоговый скор для {}: {} очков (НАСТРАИВАЕМЫЕ ВЕСА)", pairName, NumberFormatter.format(totalScore, 1));
+        return totalScore; // Убираем ограничение в 100 очков - теперь сумма весов настраивается
     }
 
     /**
-     * ДИНАМИЧЕСКАЯ СИСТЕМА ВЕСОВ для коинтеграции (25 очков)
-     * <p>
-     * Принцип: равные веса когда доступны оба теста, полный вес единственному доступному
-     * - Johansen + ADF доступны: 12.5 + 12.5 очков
-     * - Только Johansen: 25 очков
-     * - Только ADF: 25 очков
-     * - Нет данных: 0 очков
+     * НОВЫЙ КОМПОНЕНТ: Расчет скора пиксельного спреда
+     * Использует полный вес из настроек (по умолчанию 25 очков = равно Johansen/ADF)
      */
-    private double calculateCointegrationScoreComponent(ZScoreData data, List<ZScoreParam> params) {
-        boolean hasJohansen = data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0;
-        boolean hasAdf = getAdfPValue(data, params) != null && getAdfPValue(data, params) > 0;
-
-        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
-
-        if (!hasJohansen && !hasAdf) {
-            log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
-            return 0.0;
-        }
-
-        double score = 0.0;
-
-        if (hasJohansen && hasAdf) {
-            // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 12.5 очков
-            log.debug("  🔬 {}: Динамические веса - оба теста (12.5+12.5)", pairName);
-
-            // Johansen (12.5 очков)
-            double johansenPValue = data.getJohansenCointPValue();
-            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 12.5;
-            score += johansenScore;
-
-            // ADF (12.5 очков)
-            Double adfPValue = getAdfPValue(data, params);
-            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 12.5;
-            score += adfScore;
-
-            log.debug("    Johansen: {} очков (p-value={})",
-                    NumberFormatter.format(johansenScore, 1),
-                    NumberFormatter.format(johansenPValue, 6));
-            log.debug("    ADF: {} очков (p-value={})",
-                    NumberFormatter.format(adfScore, 1),
-                    NumberFormatter.format(adfPValue, 6));
-
-        } else if (hasJohansen) {
-            // ТОЛЬКО JOHANSEN - полные 25 очков
-            log.debug("  🔬 {}: Динамические веса - только Johansen (25)", pairName);
-
-            double johansenPValue = data.getJohansenCointPValue();
-            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * 25.0;
-            score += johansenScore;
-
-            log.debug("    Johansen: {} очков (p-value={})",
-                    NumberFormatter.format(johansenScore, 1),
-                    NumberFormatter.format(johansenPValue, 6));
-
-        } else if (hasAdf) {
-            // ТОЛЬКО ADF - полные 25 очков
-            log.debug("  🔬 {}: Динамические веса - только ADF (25)", pairName);
-
-            Double adfPValue = getAdfPValue(data, params);
-            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * 25.0;
-            score += adfScore;
-
-            log.debug("    ADF: {} очков (p-value={})",
-                    NumberFormatter.format(adfScore, 1),
-                    NumberFormatter.format(adfPValue, 6));
-        }
-
-        // Бонус за trace statistic (только если есть Johansen)
-        if (hasJohansen && data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
-            if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
-                score += 2.0; // Небольшой бонус за сильную коинтеграцию
-                log.debug("    Бонус trace statistic: +2 очка");
-            }
-        }
-
-        return Math.min(score, 25.0); // Макс 25 очков (+ возможные бонусы до 27)
-    }
-
-    private double calculateModelQualityScoreComponent(ZScoreData data, List<ZScoreParam> params) {
-        double score = 0.0;
-
-        // R-squared (15 очков)
-        Double rSquared = getRSquared(data);
-        if (rSquared != null && rSquared > 0) {
-            score += rSquared * 15.0; // Макс 15 при R² = 1.0
-        }
-
-        // Стабильность (5 очков)
-        if (data.getStablePeriods() != null && data.getTotalObservations() != null && data.getTotalObservations() > 0) {
-            double stabilityRatio = (double) data.getStablePeriods() / data.getTotalObservations();
-            score += stabilityRatio * 5.0;
-        }
-
-        return Math.min(score, 20.0);
-    }
-
-    private double calculateStatisticalSignificanceScoreComponent(ZScoreData data, List<ZScoreParam> params) {
-        double score = 0.0;
-
-        // Pearson корреляция P-value (5 очков)
-        Double pearsonPValue = getCorrelationPValue(data, params);
-        if (pearsonPValue != null && pearsonPValue >= 0) {
-            score += Math.max(0, (0.05 - Math.min(pearsonPValue, 0.05)) / 0.05) * 5.0;
-        }
-
-        // Корреляция сила (5 очков)
-        if (data.getPearsonCorr() != null) {
-            double absCorr = Math.abs(data.getPearsonCorr());
-            score += Math.min(absCorr, 1.0) * 5.0;
-        }
-
-        return Math.min(score, 10.0);
-    }
-
-    private double calculateBonusScoreComponent(ZScoreData data) {
-        double bonusScore = 0.0;
-
-        // Бонус за полноту данных Johansen
-        if (data.getJohansenCointPValue() != null && data.getJohansenTraceStatistic() != null) {
-            bonusScore += 1.5;
-        }
-
-        // Бонус за стабильность
-        if (data.getStablePeriods() != null && data.getTotalObservations() != null) {
-            bonusScore += 1.0;
-        }
-
-        // Бонус за качество модели
-        if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
-            bonusScore += 1.5;
-        }
-
-        // ====== НОВЫЙ КОМПОНЕНТ: ПИКСЕЛЬНЫЙ СПРЕД (до 2 очков) ======
-        double pixelSpreadBonus = calculatePixelSpreadBonus(data);
-        bonusScore += pixelSpreadBonus;
-        log.debug("    📏 Пиксельный спред: {} очков", NumberFormatter.format(pixelSpreadBonus, 1));
-
-        return Math.min(bonusScore, 6.0); // Увеличили максимум с 5 до 6 очков
-    }
-
-    /**
-     * Рассчитывает бонус за пиксельный спред
-     * Логика: чем больше средняя раздвижка - тем больше баллов
-     *
-     * @param data данные пары
-     * @return баллы (0-2.0)
-     */
-    private double calculatePixelSpreadBonus(ZScoreData data) {
+    private double calculatePixelSpreadScoreComponent(ZScoreData data, Settings settings) {
         try {
             // Ищем существующую PairData по тикерам
             String longTicker = data.getUnderValuedTicker();  // undervalued = long
@@ -623,20 +502,33 @@ public class FilterIncompleteZScoreParamsServiceV2 {
                 double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
 
                 if (avgSpread > 0) {
-                    // Логика начисления баллов:
-                    // avg < 20px: 0 баллов
-                    // avg 20-40px: 0.5-1.0 балл  
-                    // avg 40-80px: 1.0-1.5 балла
-                    // avg > 80px: 1.5-2.0 балла
-                    double baseScore = Math.min(avgSpread / 40.0, 2.0); // До 2 баллов
+                    double maxWeight = settings.getPixelSpreadScoringWeight();
+                    
+                    // Логика начисления баллов (нормализуем на полный вес):
+                    // avg < 20px: 0% от веса
+                    // avg 20-40px: 25-50% от веса  
+                    // avg 40-80px: 50-75% от веса
+                    // avg > 80px: 75-100% от веса
+                    double scoreRatio;
+                    if (avgSpread < 20) {
+                        scoreRatio = 0.0;
+                    } else if (avgSpread < 40) {
+                        scoreRatio = 0.25 + (avgSpread - 20) / 20 * 0.25; // 25-50%
+                    } else if (avgSpread < 80) {
+                        scoreRatio = 0.50 + (avgSpread - 40) / 40 * 0.25; // 50-75%
+                    } else {
+                        scoreRatio = 0.75 + Math.min((avgSpread - 80) / 40, 1.0) * 0.25; // 75-100%
+                    }
 
                     // Бонус за высокий максимум (дополнительная волатильность)
-                    double maxBonus = maxSpread > 100 ? 0.3 : 0.0;
+                    if (maxSpread > 100) {
+                        scoreRatio = Math.min(scoreRatio + 0.1, 1.0); // +10% бонус
+                    }
 
-                    double totalScore = Math.min(baseScore + maxBonus, 2.0);
+                    double totalScore = maxWeight * scoreRatio;
 
-                    log.debug("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов",
-                            avgSpread, maxSpread, totalScore);
+                    log.debug("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
+                            avgSpread, maxSpread, totalScore, scoreRatio * 100, maxWeight);
 
                     return totalScore;
                 }
@@ -645,10 +537,155 @@ public class FilterIncompleteZScoreParamsServiceV2 {
             return 0.0; // Нет данных о пиксельном спреде
 
         } catch (Exception e) {
-            log.debug("    📏 Ошибка расчета бонуса пиксельного спреда: {}", e.getMessage());
+            log.debug("    📏 Ошибка расчета скора пиксельного спреда: {}", e.getMessage());
             return 0.0;
         }
     }
+
+    /**
+     * ДИНАМИЧЕСКАЯ СИСТЕМА ВЕСОВ для коинтеграции (настраиваемый вес)
+     * <p>
+     * Принцип: равные веса когда доступны оба теста, полный вес единственному доступному
+     * - Johansen + ADF доступны: 50% + 50% от веса
+     * - Только Johansen: 100% от веса
+     * - Только ADF: 100% от веса
+     * - Нет данных: 0 очков
+     */
+    private double calculateCointegrationScoreComponent(ZScoreData data, List<ZScoreParam> params, Settings settings) {
+        boolean hasJohansen = data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0;
+        boolean hasAdf = getAdfPValue(data, params) != null && getAdfPValue(data, params) > 0;
+
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
+
+        if (!hasJohansen && !hasAdf) {
+            log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
+            return 0.0;
+        }
+
+        double maxWeight = settings.getCointegrationScoringWeight();
+        double score = 0.0;
+
+        if (hasJohansen && hasAdf) {
+            // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 50% от полного веса
+            log.debug("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight/2, maxWeight/2);
+
+            // Johansen (50% от веса)
+            double johansenPValue = data.getJohansenCointPValue();
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * (maxWeight / 2.0);
+            score += johansenScore;
+
+            // ADF (50% от веса)
+            Double adfPValue = getAdfPValue(data, params);
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * (maxWeight / 2.0);
+            score += adfScore;
+
+            log.debug("    Johansen: {} очков (p-value={})",
+                    NumberFormatter.format(johansenScore, 1),
+                    NumberFormatter.format(johansenPValue, 6));
+            log.debug("    ADF: {} очков (p-value={})",
+                    NumberFormatter.format(adfScore, 1),
+                    NumberFormatter.format(adfPValue, 6));
+
+        } else if (hasJohansen) {
+            // ТОЛЬКО JOHANSEN - полный вес
+            log.debug("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
+
+            double johansenPValue = data.getJohansenCointPValue();
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * maxWeight;
+            score += johansenScore;
+
+            log.debug("    Johansen: {} очков (p-value={})",
+                    NumberFormatter.format(johansenScore, 1),
+                    NumberFormatter.format(johansenPValue, 6));
+
+        } else if (hasAdf) {
+            // ТОЛЬКО ADF - полный вес
+            log.debug("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
+
+            Double adfPValue = getAdfPValue(data, params);
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * maxWeight;
+            score += adfScore;
+
+            log.debug("    ADF: {} очков (p-value={})",
+                    NumberFormatter.format(adfScore, 1),
+                    NumberFormatter.format(adfPValue, 6));
+        }
+
+        // Небольшой бонус за trace statistic (только если есть Johansen) - 5% от веса
+        if (hasJohansen && data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
+            if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
+                double traceBonus = maxWeight * 0.05; // 5% от основного веса
+                score += traceBonus;
+                log.debug("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
+            }
+        }
+
+        return score; // Возвращаем полный скор без ограничений
+    }
+
+    private double calculateModelQualityScoreComponent(ZScoreData data, List<ZScoreParam> params, Settings settings) {
+        double maxWeight = settings.getModelQualityScoringWeight();
+        double score = 0.0;
+
+        // R-squared (75% от веса)
+        Double rSquared = getRSquared(data);
+        if (rSquared != null && rSquared > 0) {
+            score += rSquared * (maxWeight * 0.75); // 75% от веса при R² = 1.0
+        }
+
+        // Стабильность (25% от веса)
+        if (data.getStablePeriods() != null && data.getTotalObservations() != null && data.getTotalObservations() > 0) {
+            double stabilityRatio = (double) data.getStablePeriods() / data.getTotalObservations();
+            score += stabilityRatio * (maxWeight * 0.25); // 25% от веса
+        }
+
+        return score;
+    }
+
+    private double calculateStatisticalSignificanceScoreComponent(ZScoreData data, List<ZScoreParam> params, Settings settings) {
+        double maxWeight = settings.getStatisticsScoringWeight();
+        double score = 0.0;
+
+        // Pearson корреляция P-value (50% от веса)
+        Double pearsonPValue = getCorrelationPValue(data, params);
+        if (pearsonPValue != null && pearsonPValue >= 0) {
+            score += Math.max(0, (0.05 - Math.min(pearsonPValue, 0.05)) / 0.05) * (maxWeight * 0.5);
+        }
+
+        // Корреляция сила (50% от веса)
+        if (data.getPearsonCorr() != null) {
+            double absCorr = Math.abs(data.getPearsonCorr());
+            score += Math.min(absCorr, 1.0) * (maxWeight * 0.5);
+        }
+
+        return score;
+    }
+
+    private double calculateBonusScoreComponent(ZScoreData data, Settings settings) {
+        double maxWeight = settings.getBonusScoringWeight();
+        double bonusScore = 0.0;
+
+        // Бонус за полноту данных Johansen (30% от веса)
+        if (data.getJohansenCointPValue() != null && data.getJohansenTraceStatistic() != null) {
+            bonusScore += maxWeight * 0.3;
+        }
+
+        // Бонус за стабильность (20% от веса)
+        if (data.getStablePeriods() != null && data.getTotalObservations() != null) {
+            bonusScore += maxWeight * 0.2;
+        }
+
+        // Бонус за качество модели (30% от веса)
+        if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
+            bonusScore += maxWeight * 0.3;
+        }
+
+        // ЗАМЕТКА: Пиксельный спред теперь отдельный полноценный компонент!
+        // Он больше не в бонусах, а имеет собственный вес равный Johansen/ADF
+
+        return bonusScore;
+    }
+
 
     /**
      * Логирует детальную статистику по фильтрации

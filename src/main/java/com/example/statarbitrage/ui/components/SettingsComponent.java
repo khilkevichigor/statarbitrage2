@@ -264,6 +264,8 @@ public class SettingsComponent extends VerticalLayout {
                 useExitBreakEvenPercentCheckbox
         ));
 
+        add(createScoringWeightsSection());
+
         // Bind fields to settings object
         bindFields(
                 timeframeField,
@@ -391,6 +393,62 @@ public class SettingsComponent extends VerticalLayout {
 
         return createDetailsCard("🚪 Стратегии выхода",
                 "Условия закрытия позиций и управления рисками", exitForm);
+    }
+
+    private Details createScoringWeightsSection() {
+        FormLayout scoringForm = createFormLayout();
+
+        // Создаем поля для весов скоринга
+        NumberField zScoreWeightField = new NumberField("Z-Score сила (очки)");
+        NumberField pixelSpreadWeightField = new NumberField("Пиксельный спред (очки)");  
+        NumberField cointegrationWeightField = new NumberField("Коинтеграция (очки)");
+        NumberField modelQualityWeightField = new NumberField("Качество модели (очки)");
+        NumberField statisticsWeightField = new NumberField("Статистика (очки)");
+        NumberField bonusWeightField = new NumberField("Бонусы (очки)");
+
+        // Создаем чекбоксы для включения/выключения компонентов
+        Checkbox useZScoreScoringCheckbox = new Checkbox("Использовать Z-Score скоринг");
+        Checkbox usePixelSpreadScoringCheckbox = new Checkbox("Использовать пиксельный спред скоринг");
+        Checkbox useCointegrationScoringCheckbox = new Checkbox("Использовать коинтеграцию скоринг"); 
+        Checkbox useModelQualityScoringCheckbox = new Checkbox("Использовать качество модели скоринг");
+        Checkbox useStatisticsScoringCheckbox = new Checkbox("Использовать статистику скоринг");
+        Checkbox useBonusScoringCheckbox = new Checkbox("Использовать бонусы скоринг");
+
+        // Настраиваем свойства полей
+        setNumberFieldProperties(zScoreWeightField, 1.0, 0.0);
+        setNumberFieldProperties(pixelSpreadWeightField, 1.0, 0.0);
+        setNumberFieldProperties(cointegrationWeightField, 1.0, 0.0);
+        setNumberFieldProperties(modelQualityWeightField, 1.0, 0.0);
+        setNumberFieldProperties(statisticsWeightField, 1.0, 0.0);
+        setNumberFieldProperties(bonusWeightField, 1.0, 0.0);
+
+        // Создаем компоновки с чекбоксами
+        HorizontalLayout zScoreLayout = createFilterLayout(useZScoreScoringCheckbox, zScoreWeightField);
+        HorizontalLayout pixelSpreadLayout = createFilterLayout(usePixelSpreadScoringCheckbox, pixelSpreadWeightField);
+        HorizontalLayout cointegrationLayout = createFilterLayout(useCointegrationScoringCheckbox, cointegrationWeightField);
+        HorizontalLayout modelQualityLayout = createFilterLayout(useModelQualityScoringCheckbox, modelQualityWeightField);
+        HorizontalLayout statisticsLayout = createFilterLayout(useStatisticsScoringCheckbox, statisticsWeightField);
+        HorizontalLayout bonusLayout = createFilterLayout(useBonusScoringCheckbox, bonusWeightField);
+
+        scoringForm.add(
+                zScoreLayout,
+                pixelSpreadLayout, 
+                cointegrationLayout,
+                modelQualityLayout,
+                statisticsLayout,
+                bonusLayout
+        );
+
+        // Привязываем поля к настройкам
+        bindScoringFields(
+                zScoreWeightField, pixelSpreadWeightField, cointegrationWeightField,
+                modelQualityWeightField, statisticsWeightField, bonusWeightField,
+                useZScoreScoringCheckbox, usePixelSpreadScoringCheckbox, useCointegrationScoringCheckbox,
+                useModelQualityScoringCheckbox, useStatisticsScoringCheckbox, useBonusScoringCheckbox
+        );
+
+        return createDetailsCard("🎯 Веса системы скоринга",
+                "Настройка весов компонентов для оценки качества торговых пар", scoringForm);
     }
 
     private Details createDetailsCard(String title, String description, FormLayout content) {
@@ -533,6 +591,50 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(useExitZMaxPercentCheckbox).bind(Settings::isUseExitZMaxPercent, Settings::setUseExitZMaxPercent);
         settingsBinder.forField(useExitTimeMinutesCheckbox).bind(Settings::isUseExitTimeMinutes, Settings::setUseExitTimeMinutes);
         settingsBinder.forField(useExitBreakEvenPercentCheckbox).bind(Settings::isUseExitBreakEvenPercent, Settings::setUseExitBreakEvenPercent);
+    }
+
+    /**
+     * Привязывает поля скоринга к настройкам
+     */
+    private void bindScoringFields(NumberField zScoreWeightField, NumberField pixelSpreadWeightField, 
+                                  NumberField cointegrationWeightField, NumberField modelQualityWeightField,
+                                  NumberField statisticsWeightField, NumberField bonusWeightField,
+                                  Checkbox useZScoreScoringCheckbox, Checkbox usePixelSpreadScoringCheckbox,
+                                  Checkbox useCointegrationScoringCheckbox, Checkbox useModelQualityScoringCheckbox,
+                                  Checkbox useStatisticsScoringCheckbox, Checkbox useBonusScoringCheckbox) {
+
+        // Bind scoring weight fields
+        settingsBinder.forField(zScoreWeightField)
+                .withValidator(new DoubleRangeValidator("Вес Z-Score должен быть больше 0", 0.0, Double.MAX_VALUE))
+                .bind(Settings::getZScoreScoringWeight, Settings::setZScoreScoringWeight);
+        
+        settingsBinder.forField(pixelSpreadWeightField)
+                .withValidator(new DoubleRangeValidator("Вес пиксельного спреда должен быть больше 0", 0.0, Double.MAX_VALUE))
+                .bind(Settings::getPixelSpreadScoringWeight, Settings::setPixelSpreadScoringWeight);
+                
+        settingsBinder.forField(cointegrationWeightField)
+                .withValidator(new DoubleRangeValidator("Вес коинтеграции должен быть больше 0", 0.0, Double.MAX_VALUE))
+                .bind(Settings::getCointegrationScoringWeight, Settings::setCointegrationScoringWeight);
+                
+        settingsBinder.forField(modelQualityWeightField)
+                .withValidator(new DoubleRangeValidator("Вес качества модели должен быть больше 0", 0.0, Double.MAX_VALUE))
+                .bind(Settings::getModelQualityScoringWeight, Settings::setModelQualityScoringWeight);
+                
+        settingsBinder.forField(statisticsWeightField)
+                .withValidator(new DoubleRangeValidator("Вес статистики должен быть больше 0", 0.0, Double.MAX_VALUE))
+                .bind(Settings::getStatisticsScoringWeight, Settings::setStatisticsScoringWeight);
+                
+        settingsBinder.forField(bonusWeightField)
+                .withValidator(new DoubleRangeValidator("Вес бонусов должен быть больше 0", 0.0, Double.MAX_VALUE))
+                .bind(Settings::getBonusScoringWeight, Settings::setBonusScoringWeight);
+
+        // Bind scoring checkbox fields  
+        settingsBinder.forField(useZScoreScoringCheckbox).bind(Settings::isUseZScoreScoring, Settings::setUseZScoreScoring);
+        settingsBinder.forField(usePixelSpreadScoringCheckbox).bind(Settings::isUsePixelSpreadScoring, Settings::setUsePixelSpreadScoring);
+        settingsBinder.forField(useCointegrationScoringCheckbox).bind(Settings::isUseCointegrationScoring, Settings::setUseCointegrationScoring);
+        settingsBinder.forField(useModelQualityScoringCheckbox).bind(Settings::isUseModelQualityScoring, Settings::setUseModelQualityScoring);
+        settingsBinder.forField(useStatisticsScoringCheckbox).bind(Settings::isUseStatisticsScoring, Settings::setUseStatisticsScoring);
+        settingsBinder.forField(useBonusScoringCheckbox).bind(Settings::isUseBonusScoring, Settings::setUseBonusScoring);
     }
 
     private void setupValidation() {
