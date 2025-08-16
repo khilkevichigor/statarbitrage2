@@ -18,21 +18,24 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class ObtainBestPairServiceV2 {
+    
+    private final FilterIncompleteZScoreParamsServiceV2 filterService;
 
     /**
-     * Новая версия получения лучшей пары (ОБНОВЛЕНО!)
+     * Новая версия получения лучшей пары (КОНФИГУРИРУЕМЫЕ ВЕСА!)
      * <p>
-     * Использует НОВУЮ систему оценки качества пар:
-     * - Нет приоритета Johansen тесту - все комплексно!
-     * - Z-Score(40p) + Коинтеграция(25p) + Качество(20p) + Статистика(10p) + Бонус(5p)
-     * - Максимальный скор: 100 очков
+     * Использует ПОЛНУЮ систему оценки качества пар из FilterIncompleteZScoreParamsServiceV2:
+     * - НАСТРАИВАЕМЫЕ ВЕСА через UI настройки
+     * - ПИКСЕЛЬНЫЙ СПРЕД с равным весом коинтеграции (25 очков по умолчанию)
+     * - Z-Score + Пиксельный спред + Коинтеграция + Качество модели + Статистика + Бонусы
+     * - Максимальный скор: сумма всех весов (настраивается)
      */
     public Optional<ZScoreData> getBestPair(Settings settings, List<ZScoreData> dataList) {
         if (dataList == null || dataList.isEmpty()) {
             return Optional.empty();
         }
 
-        log.info("🎯 НОВАЯ СИСТЕМА: Выбираем лучшую пару из {} кандидатов по скору качества (без приоритета Johansen)", dataList.size());
+        log.info("🎯 КОНФИГУРИРУЕМАЯ СИСТЕМА: Выбираем лучшую пару из {} кандидатов по полному скору качества (включая пиксельный спред!)", dataList.size());
 
         List<PairCandidate> candidates = new ArrayList<>();
 
@@ -52,7 +55,7 @@ public class ObtainBestPairServiceV2 {
         candidates.sort(Comparator.comparingDouble(PairCandidate::getCompositeScore).reversed());
 
         PairCandidate best = candidates.get(0);
-        log.info("🏆 НОВАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с упрощенным скором {}. Основной скоринг в Filter! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
+        log.info("🏆 КОНФИГУРИРУЕМАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с полным скором {} (включая пиксельный спред!)! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
                 best.getData().getUnderValuedTicker(),
                 best.getData().getOverValuedTicker(),
                 NumberFormatter.format(best.getCompositeScore(), 2),
@@ -102,12 +105,12 @@ public class ObtainBestPairServiceV2 {
             rSquared = z.getAvgRSquared() != null ? z.getAvgRSquared() : 0.0;
         }
 
-        // ====== ПРОСТОЙ КАЛКУЛЯТОР СКОРА (основной в Filter) ======
-        // Основная логика скоринга вынесена в FilterIncompleteZScoreParamsServiceV2
+        // ====== ПОЛНЫЙ КАЛКУЛЯТОР СКОРА с ПИКСЕЛЬНЫМ СПРЕДОМ ======
+        // Используем полную систему скоринга с настраиваемыми весами включая пиксельный спред!
+        
+        double fullQualityScore = filterService.calculatePairQualityScore(z, settings);
 
-        double simplifiedScore = calculateSimplifiedScore(zVal, z);
-
-        return new PairCandidate(z, simplifiedScore, zVal, corr, adf, pValue, rSquared);
+        return new PairCandidate(z, fullQualityScore, zVal, corr, adf, pValue, rSquared);
     }
 
     /**

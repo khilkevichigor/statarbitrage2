@@ -56,7 +56,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
                 return true;
             }
             // НОВАЯ СИСТЕМА: Рассчитываем качественный скор для каждой пары
-            double qualityScore = calculatePairQualityScore(data, settings);
+            double qualityScore = calculatePairQualityScoreInternal(data, settings);
             log.info("📊 Пара {}/{} прошла базовую фильтрацию. Качественный скор: {}",
                     data.getUnderValuedTicker(), data.getOverValuedTicker(),
                     NumberFormatter.format(qualityScore, 2));
@@ -411,6 +411,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
     // ============ НОВАЯ СИСТЕМА ОЦЕНКИ КАЧЕСТВА ПАР ============
 
     /**
+     * ПУБЛИЧНЫЙ МЕТОД для ObtainBestPairServiceV2
      * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
      * 
      * Компоненты скора (веса настраиваются через UI):
@@ -421,7 +422,14 @@ public class FilterIncompleteZScoreParamsServiceV2 {
      * - Статистика - P-values и корреляции
      * - Бонусы - за полноту данных
      */
-    private double calculatePairQualityScore(ZScoreData data, Settings settings) {
+    public double calculatePairQualityScore(ZScoreData data, Settings settings) {
+        return calculatePairQualityScoreInternal(data, settings);
+    }
+
+    /**
+     * Внутренняя реализация расчета скора
+     */
+    private double calculatePairQualityScoreInternal(ZScoreData data, Settings settings) {
         double totalScore = 0.0;
         List<ZScoreParam> params = data.getZScoreHistory();
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
