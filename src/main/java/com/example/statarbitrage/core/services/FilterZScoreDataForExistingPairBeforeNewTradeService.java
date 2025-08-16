@@ -16,7 +16,7 @@ import java.util.Objects;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FilterIncompleteZScoreParamsServiceV2 {
+public class FilterZScoreDataForExistingPairBeforeNewTradeService {
 
     private final PairDataService pairDataService;
     private final PixelSpreadService pixelSpreadService;
@@ -413,10 +413,10 @@ public class FilterIncompleteZScoreParamsServiceV2 {
     /**
      * ПУБЛИЧНЫЙ МЕТОД для ObtainBestPairServiceV2
      * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
-     * 
+     * <p>
      * Компоненты скора (веса настраиваются через UI):
      * - Z-Score сила - основной торговый сигнал
-     * - Пиксельный спред - важность раздвижки цен  
+     * - Пиксельный спред - важность раздвижки цен
      * - Коинтеграция - Johansen + ADF тесты
      * - Качество модели - R-squared + стабильность
      * - Статистика - P-values и корреляции
@@ -512,7 +512,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
                 if (avgSpread > 0) {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
-                    
+
                     // Логика начисления баллов (нормализуем на полный вес):
                     // avg < 20px: 0% от веса
                     // avg 20-40px: 25-50% от веса  
@@ -576,7 +576,7 @@ public class FilterIncompleteZScoreParamsServiceV2 {
 
         if (hasJohansen && hasAdf) {
             // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 50% от полного веса
-            log.info("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight/2, maxWeight/2);
+            log.info("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight / 2, maxWeight / 2);
 
             // Johansen (50% от веса)
             double johansenPValue = data.getJohansenCointPValue();

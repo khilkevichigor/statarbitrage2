@@ -48,7 +48,7 @@ public class StartNewTradeProcessor {
         if (preValidationError.isPresent()) return preValidationError.get();
 
         // 2. Получаем и проверяем ZScore данные
-        Optional<ZScoreData> maybeZScoreData = calculateZScoreData(pairData, settings);
+        Optional<ZScoreData> maybeZScoreData = updateZScoreDataForExistingPair(pairData, settings);
         if (maybeZScoreData.isEmpty()) return handleTradeError(pairData, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
 
         final ZScoreData zScoreData = maybeZScoreData.get();
@@ -81,9 +81,9 @@ public class StartNewTradeProcessor {
         return Optional.empty();
     }
 
-    private Optional<ZScoreData> calculateZScoreData(PairData pairData, Settings settings) {
+    private Optional<ZScoreData> updateZScoreDataForExistingPair(PairData pairData, Settings settings) {
         Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
-        return zScoreService.calculateZScoreDataForNewTrade(pairData, settings, candlesMap);
+        return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(pairData, settings, candlesMap);
     }
 
     private void logTradeInfo(ZScoreData zScoreData) {

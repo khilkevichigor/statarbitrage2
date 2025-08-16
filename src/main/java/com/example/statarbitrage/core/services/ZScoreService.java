@@ -19,10 +19,9 @@ public class ZScoreService {
 
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
-    private final ObtainBestPairServiceV1 obtainBestPairServiceV1;
-    private final ObtainBestPairServiceV2 obtainBestPairServiceV2;
-    private final FilterIncompleteZScoreParamsServiceV1 filterIncompleteZScoreParamsServiceV1;
-    private final FilterIncompleteZScoreParamsServiceV2 filterIncompleteZScoreParamsServiceV2;
+    private final ObtainBestZScoreDataBeforeCreateNewPairService obtainBestZScoreDataBeforeCreateNewPairService;
+    private final FilterZScoreDataBeforeCreateNewPairService filterZScoreDataBeforeCreateNewPairService;
+    private final FilterZScoreDataForExistingPairBeforeNewTradeService filterZScoreDataForExistingPairBeforeNewTradeService;
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
         log.debug("🔍 Проверка ZScore данных:");
@@ -199,16 +198,14 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         checkZScoreParamsSize(rawZScoreDataList);
-//        filterIncompleteZScoreParams(null, rawZScoreDataList, settings);
-//        filterIncompleteZScoreParamsServiceV1.filter(null, rawZScoreDataList, settings);
-        filterIncompleteZScoreParamsServiceV2.filter(rawZScoreDataList, settings);
+        filterZScoreDataBeforeCreateNewPairService.filter(rawZScoreDataList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }
         return rawZScoreDataList;
     }
 
-    public Optional<ZScoreData> calculateZScoreDataForNewTrade(PairData pairData, Settings settings, Map<String, List<Candle>> candlesMap) {
+    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(PairData pairData, Settings settings, Map<String, List<Candle>> candlesMap) {
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
@@ -218,12 +215,10 @@ public class ZScoreService {
         List<ZScoreData> zScoreDataSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
         checkZScoreParamsSize(zScoreDataSingletonList);
 
-        // НЕ применяем фильтрацию для новых трейдов - пара уже была отфильтрована ранее в FetchPairsProcessor
-        // ИСПРАВЛЕНО: убираем повторную фильтрацию для обеспечения согласованности данных
-         filterIncompleteZScoreParamsServiceV2.filter(zScoreDataSingletonList, settings);
-        
+        filterZScoreDataForExistingPairBeforeNewTradeService.filter(zScoreDataSingletonList, settings);
+
         log.info("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", pairData.getPairName());
-        
+
         // Для информации: рассчитываем скор но не фильтруем
         if (!zScoreDataSingletonList.isEmpty()) {
             // Не используем результат, только для логов
@@ -241,10 +236,10 @@ public class ZScoreService {
                                          int count) {
 
         List<ZScoreData> all = calculateZScoreData(settings, candlesMap, true);
-        return obtainTopNBestPairs(candlesMap, settings, all, count);
+        return obtainTopNBestZScoreData(candlesMap, settings, all, count);
     }
 
-    private List<ZScoreData> obtainTopNBestPairs(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
+    private List<ZScoreData> obtainTopNBestZScoreData(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
         if (topN <= 0) {
             log.warn("⚠️ Некорректное количество пар: topN={}", topN);
             return Collections.emptyList();
@@ -257,9 +252,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-//            Optional<ZScoreData> maybeBest = getBestByCriteria(settings, remainingPairs);
-//            Optional<ZScoreData> maybeBest = obtainBestPairServiceV1.getBestPair(settings, remainingPairs);
-            Optional<ZScoreData> maybeBest = obtainBestPairServiceV2.getBestPair(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainBestZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 

@@ -17,9 +17,9 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ObtainBestPairServiceV2 {
-    
-    private final FilterIncompleteZScoreParamsServiceV2 filterService;
+public class ObtainBestZScoreDataBeforeCreateNewPairService {
+
+    private final FilterZScoreDataBeforeCreateNewPairService filterService;
 
     /**
      * Новая версия получения лучшей пары (КОНФИГУРИРУЕМЫЕ ВЕСА!)
@@ -30,7 +30,7 @@ public class ObtainBestPairServiceV2 {
      * - Z-Score + Пиксельный спред + Коинтеграция + Качество модели + Статистика + Бонусы
      * - Максимальный скор: сумма всех весов (настраивается)
      */
-    public Optional<ZScoreData> getBestPair(Settings settings, List<ZScoreData> dataList) {
+    public Optional<ZScoreData> getBestZScoreData(Settings settings, List<ZScoreData> dataList) {
         if (dataList == null || dataList.isEmpty()) {
             return Optional.empty();
         }
@@ -107,7 +107,7 @@ public class ObtainBestPairServiceV2 {
 
         // ====== ПОЛНЫЙ КАЛКУЛЯТОР СКОРА с ПИКСЕЛЬНЫМ СПРЕДОМ ======
         // Используем полную систему скоринга с настраиваемыми весами включая пиксельный спред!
-        
+
         double fullQualityScore = filterService.calculatePairQualityScore(z, settings);
 
         return new PairCandidate(z, fullQualityScore, zVal, corr, adf, pValue, rSquared);
