@@ -128,10 +128,9 @@ public class ZScoreChartDialog extends Dialog {
         showStochRsiCheckbox.addValueChangeListener(e -> refreshMainChart());
         showStochRsiCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
 
-        showProfitCheckbox = new Checkbox("+ Профит");
+        showProfitCheckbox = new Checkbox("💹 Профит");
         showProfitCheckbox.setValue(false);
         showProfitCheckbox.addValueChangeListener(e -> refreshMainChart());
-        showProfitCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
     }
 
     /**
@@ -160,17 +159,15 @@ public class ZScoreChartDialog extends Dialog {
             boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
             boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
 
-            // Управляем доступностью индикаторов Z-Score
+            // Управляем доступностью индикаторов Z-Score (но НЕ профит!)
             boolean zScoreEnabled = showZScore;
             showEmaCheckbox.setEnabled(zScoreEnabled);
             showStochRsiCheckbox.setEnabled(zScoreEnabled);
-            showProfitCheckbox.setEnabled(zScoreEnabled);
 
-            // Если Z-Score отключен, отключаем его индикаторы
+            // Если Z-Score отключен, отключаем его индикаторы (но НЕ профит!)
             if (!zScoreEnabled) {
                 showEmaCheckbox.setValue(false);
                 showStochRsiCheckbox.setValue(false);
-                showProfitCheckbox.setValue(false);
             }
 
             // Проверяем, что хотя бы один чарт выбран
@@ -197,14 +194,16 @@ public class ZScoreChartDialog extends Dialog {
                 log.debug("📊 Создан Z-Score чарт с индикаторами: EMA={}, StochRSI={}, Profit={}", showEma, showStochRsi, showProfit);
 
             } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
-                // Только Price чарт
-                chartImage = chartService.createPriceChart(currentPairData, false);
-                log.debug("📊 Создан Price чарт");
+                // Только Price чарт с профитом
+                boolean showProfit = showProfitCheckbox.getValue();
+                chartImage = chartService.createPriceChartWithProfit(currentPairData, false, showProfit);
+                log.debug("📊 Создан Price чарт с Profit={}", showProfit);
 
             } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
-                // Только Pixel Spread чарт
-                chartImage = chartService.createPixelSpreadChart(currentPairData);
-                log.debug("📊 Создан Pixel Spread чарт");
+                // Только Pixel Spread чарт с профитом
+                boolean showProfit = showProfitCheckbox.getValue();
+                chartImage = chartService.createPixelSpreadChartWithProfit(currentPairData, showProfit);
+                log.debug("📊 Создан Pixel Spread чарт с Profit={}", showProfit);
 
             } else {
                 // Комбинированный чарт - создаем комбинированный Z-Score чарт
@@ -263,7 +262,7 @@ public class ZScoreChartDialog extends Dialog {
 
         HorizontalLayout mainChartsRow = new HorizontalLayout();
         mainChartsRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        mainChartsRow.add(showZScoreCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox);
+        mainChartsRow.add(showZScoreCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox, showProfitCheckbox);
 
         HorizontalLayout indicatorsRow = new HorizontalLayout();
         indicatorsRow.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -274,7 +273,7 @@ public class ZScoreChartDialog extends Dialog {
         indicatorsLabel.getStyle().set("color", "var(--lumo-secondary-text-color)");
         indicatorsLabel.getStyle().set("margin-right", "1rem");
 
-        indicatorsRow.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox, showProfitCheckbox);
+        indicatorsRow.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox);
 
         chartSelectionPanel.add(chartsLabel, mainChartsRow, indicatorsRow);
 

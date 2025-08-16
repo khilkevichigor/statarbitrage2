@@ -441,7 +441,15 @@ public class ChartService {
         return createPriceChart(pairData, false);
     }
 
+    public BufferedImage createPriceChartWithProfit(PairData pairData, boolean showPixelSpread, boolean showProfit) {
+        return createPriceChartInternal(pairData, showPixelSpread, showProfit);
+    }
+
     public BufferedImage createPriceChart(PairData pairData, boolean showPixelSpread) {
+        return createPriceChartInternal(pairData, showPixelSpread, false);
+    }
+
+    private BufferedImage createPriceChartInternal(PairData pairData, boolean showPixelSpread, boolean showProfit) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
@@ -530,6 +538,12 @@ public class ChartService {
         if (showPixelSpread) {
             addPixelSpreadToPriceChart(topChart, pairData, timeLong, longPrices);
             addPixelSpreadToPriceChart(bottomChart, pairData, timeShort, shortPrices);
+        }
+
+        // Добавляем профит если нужно
+        if (showProfit) {
+            addProfitToChart(topChart, pairData);
+            addProfitToChart(bottomChart, pairData);
         }
 
         // Объединение 2 графиков
@@ -1034,10 +1048,18 @@ public class ChartService {
         pixelSpreadService.addCurrentPixelSpreadPoint(pairData);
     }
 
+    public BufferedImage createPixelSpreadChartWithProfit(PairData pairData, boolean showProfit) {
+        return createPixelSpreadChartInternal(pairData, showProfit);
+    }
+
     /**
      * Создает график пиксельного спреда
      */
     public BufferedImage createPixelSpreadChart(PairData pairData) {
+        return createPixelSpreadChartInternal(pairData, false);
+    }
+
+    private BufferedImage createPixelSpreadChartInternal(PairData pairData, boolean showProfit) {
         List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
 
         if (pixelHistory == null || pixelHistory.isEmpty()) {
@@ -1072,8 +1094,13 @@ public class ChartService {
         pixelSeries.setMarker(new None());
         pixelSeries.setLineStyle(new BasicStroke(2.0f));
 
-        log.debug("✅ График пиксельного спреда создан с {} точками для пары {}",
-                pixelHistory.size(), pairData.getPairName());
+        // Добавляем профит если нужно
+        if (showProfit) {
+            addProfitToChart(chart, pairData);
+        }
+
+        log.debug("✅ График пиксельного спреда создан с {} точками для пары {} (профит: {})",
+                pixelHistory.size(), pairData.getPairName(), showProfit);
 
         return BitmapEncoder.getBufferedImage(chart);
     }
