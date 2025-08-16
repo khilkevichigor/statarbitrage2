@@ -9,22 +9,68 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
-    private final FilterZScoreDataBeforeCreateNewPairService filterService;
+    private final PairDataService pairDataService;
+    private final PixelSpreadService pixelSpreadService;
+
+    /**
+     * Фильтрует и анализирует список пар ZScoreData
+     * Объединённая логика из FilterZScoreDataBeforeCreateNewPairService
+     */
+    public void filterZScoreData(List<ZScoreData> zScoreDataList, Settings settings) {
+        double expected = settings.getExpectedZParamsCount();
+
+        // Анализируем входящие данные
+        analyzeInputData(zScoreDataList);
+
+        log.info("🔍 Ожидаемое количество наблюдений: {}, всего пар для анализа: {}", expected, zScoreDataList.size());
+
+        // Сохраняем копию оригинального списка для статистики
+        List<ZScoreData> originalList = List.copyOf(zScoreDataList);
+        int before = zScoreDataList.size();
+        Map<String, Integer> filterStats = new HashMap<>();
+
+        zScoreDataList.removeIf(data -> {
+            String reason = shouldFilterPair(data, settings, expected);
+            if (reason != null) {
+                filterStats.merge(reason, 1, Integer::sum);
+                log.info("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
+                        data.getUnderValuedTicker(), data.getOverValuedTicker(), reason,
+                        NumberFormatter.format(getLatestZScore(data, data.getZScoreHistory()), 2),
+                        getAdfPValue(data, data.getZScoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZScoreHistory()), 4) : "N/A",
+                        getRSquared(data) != null ? NumberFormatter.format(getRSquared(data), 3) : "N/A"
+                );
+                return true;
+            }
+            // Рассчитываем качественный скор для каждой пары
+            double qualityScore = calculatePairQualityScore(data, settings);
+            log.info("📊 Пара {}/{} прошла базовую фильтрацию. Качественный скор: {}",
+                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
+                    NumberFormatter.format(qualityScore, 2));
+            return false;
+        });
+
+        int after = zScoreDataList.size();
+        log.info("✅ Фильтрация завершена: {} → {} пар", before, after);
+
+        // Статистика по причинам фильтрации
+        filterStats.forEach((reason, count) ->
+                log.debug("📊 Статистика по фильтрации - {}: {} пар", reason, count));
+
+        // Детальная статистика фильтрации
+        logFilteringStatistics(originalList, zScoreDataList, settings);
+    }
 
     /**
      * Новая версия получения лучшей пары (КОНФИГУРИРУЕМЫЕ ВЕСА!)
      * <p>
-     * Использует ПОЛНУЮ систему оценки качества пар из FilterIncompleteZScoreParamsServiceV2:
+     * Использует ПОЛНУЮ систему оценки качества пар:
      * - НАСТРАИВАЕМЫЕ ВЕСА через UI настройки
      * - ПИКСЕЛЬНЫЙ СПРЕД с равным весом коинтеграции (25 очков по умолчанию)
      * - Z-Score + Пиксельный спред + Коинтеграция + Качество модели + Статистика + Бонусы
@@ -35,11 +81,44 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             return Optional.empty();
         }
 
-        log.info("🎯 КОНФИГУРИРУЕМАЯ СИСТЕМА: Выбираем лучшую пару из {} кандидатов по полному скору качества (включая пиксельный спред!)", dataList.size());
+        log.info("🎯 ОБЪЕДИНЕННАЯ СИСТЕМА: Фильтруем и выбираем лучшую пару из {} кандидатов за один проход!", dataList.size());
 
+        // Сначала фильтруем данные (встроенная фильтрация)
+        List<ZScoreData> filteredList = new ArrayList<>();
+        Map<String, Integer> filterStats = new HashMap<>();
+        double expected = settings.getExpectedZParamsCount();
+
+        for (ZScoreData data : dataList) {
+            String reason = shouldFilterPair(data, settings, expected);
+            if (reason != null) {
+                filterStats.merge(reason, 1, Integer::sum);
+                log.debug("⚠️ Отфильтровано {}/{} — {}", 
+                    data.getUnderValuedTicker(), data.getOverValuedTicker(), reason);
+            } else {
+                filteredList.add(data);
+                // Рассчитываем качественный скор для лога
+                double qualityScore = calculatePairQualityScore(data, settings);
+                log.info("📊 Пара {}/{} прошла фильтрацию. Качественный скор: {}",
+                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
+                    NumberFormatter.format(qualityScore, 2));
+            }
+        }
+
+        log.info("✅ После фильтрации осталось {} из {} пар", filteredList.size(), dataList.size());
+        
+        // Статистика фильтрации
+        filterStats.forEach((reason, count) ->
+            log.debug("📊 Фильтрация - {}: {} пар", reason, count));
+
+        if (filteredList.isEmpty()) {
+            log.warn("❌ Нет подходящих пар после фильтрации");
+            return Optional.empty();
+        }
+
+        // Теперь оцениваем отфильтрованные пары
         List<PairCandidate> candidates = new ArrayList<>();
 
-        for (ZScoreData z : dataList) {
+        for (ZScoreData z : filteredList) {
             PairCandidate candidate = evaluatePair(z, settings);
             if (candidate != null) {
                 candidates.add(candidate);
@@ -47,7 +126,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         }
 
         if (candidates.isEmpty()) {
-            log.warn("❌ Нет подходящих пар после финальной фильтрации");
+            log.warn("❌ Нет подходящих пар после оценки");
             return Optional.empty();
         }
 
@@ -55,7 +134,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         candidates.sort(Comparator.comparingDouble(PairCandidate::getCompositeScore).reversed());
 
         PairCandidate best = candidates.get(0);
-        log.info("🏆 КОНФИГУРИРУЕМАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с полным скором {} (включая пиксельный спред!)! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
+        log.info("🏆 ОБЪЕДИНЕННАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с полным скором {}! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
                 best.getData().getUnderValuedTicker(),
                 best.getData().getOverValuedTicker(),
                 NumberFormatter.format(best.getCompositeScore(), 2),
@@ -108,7 +187,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         // ====== ПОЛНЫЙ КАЛКУЛЯТОР СКОРА с ПИКСЕЛЬНЫМ СПРЕДОМ ======
         // Используем полную систему скоринга с настраиваемыми весами включая пиксельный спред!
 
-        double fullQualityScore = filterService.calculatePairQualityScore(z, settings);
+        double fullQualityScore = calculatePairQualityScore(z, settings);
 
         return new PairCandidate(z, fullQualityScore, zVal, corr, adf, pValue, rSquared);
     }
@@ -187,6 +266,444 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     NumberFormatter.format(candidate.getAdfValue(), 4)
             );
         }
+    }
+
+    // ============ МЕТОДЫ ФИЛЬТРАЦИИ ============
+
+    /**
+     * Анализирует входящие данные и определяет формат API
+     */
+    private void analyzeInputData(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList.isEmpty()) return;
+
+        ZScoreData sample = zScoreDataList.get(0);
+        boolean hasOldFormat = sample.getZScoreHistory() != null && !sample.getZScoreHistory().isEmpty();
+        boolean hasNewFormat = sample.getLatestZScore() != null;
+        boolean hasJohansenData = sample.getJohansenCointPValue() != null;
+
+        log.info("📋 Анализ формата данных:");
+        log.info("   📊 Старый формат (zscoreParams): {}", hasOldFormat ? "✅" : "❌");
+        log.info("   🆕 Новый формат (latest_zscore): {}", hasNewFormat ? "✅" : "❌");
+        log.info("   🔬 Johansen тест: {}", hasJohansenData ? "✅ ДОСТУПЕН" : "❌");
+
+        if (hasJohansenData) {
+            double minJohansenPValue = zScoreDataList.stream()
+                    .filter(d -> d.getJohansenCointPValue() != null)
+                    .mapToDouble(ZScoreData::getJohansenCointPValue)
+                    .min()
+                    .orElse(1.0);
+            log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
+        }
+    }
+
+    /**
+     * Определяет должна ли быть отфильтрована пара (МИНИМАЛЬНАЯ ФИЛЬТРАЦИЯ)
+     * Остались только критические проверки - остальное через скоринг!
+     * Возвращает причину фильтрации или null если пара прошла критичные фильтры
+     */
+    private String shouldFilterPair(ZScoreData data, Settings settings, double expectedSize) {
+        List<ZScoreParam> params = data.getZScoreHistory();
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
+
+        log.debug("⚙️ МИНИМАЛЬНАЯ фильтрация пары {} (основная оценка через скоринг):", pairName);
+
+        // ====== КРИТИЧЕСКИЕ ПРОВЕРКИ (только обязательные!) ======
+
+        // 1. Проверка наличия данных
+        String reason = isDataMissing(data, params) ? "Отсутствуют данные Z-score" : null;
+        if (reason != null) {
+            log.debug("   ❌ {}: {}", pairName, reason);
+            return reason;
+        }
+
+        // 2. Проверка тикеров
+        reason = isTickersInvalid(data) ? "Некорректные тикеры" : null;
+        if (reason != null) {
+            log.debug("   ❌ {}: {}", pairName, reason);
+            return reason;
+        }
+
+        // 3. Проверка Z-Score на положительность (ключевой фильтр!)
+        double currentZScore = getLatestZScore(data, params);
+        if (currentZScore <= 0) {
+            reason = String.format("Отрицательный/нулевой Z-score: %.2f (нет сигнала)", currentZScore);
+            log.debug("   ❌ {}: {}", pairName, reason);
+            return reason;
+        }
+        log.debug("   ✅ {}: Положительный Z-score: {}", pairName, NumberFormatter.format(currentZScore, 2));
+
+        return null; // Пара прошла критические проверки
+    }
+
+    // ============ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ФИЛЬТРАЦИИ ============
+
+    private boolean isDataMissing(ZScoreData data, List<ZScoreParam> params) {
+        // Проверяем наличие Z-score данных в любом формате
+        if (params != null && !params.isEmpty()) {
+            return false; // Старый формат - есть данные
+        }
+        return data.getLatestZScore() == null; // Новый формат - проверяем latest_zscore
+    }
+
+    private boolean isTickersInvalid(ZScoreData data) {
+        return data.getUnderValuedTicker() == null ||
+                data.getOverValuedTicker() == null ||
+                data.getUnderValuedTicker().isEmpty() ||
+                data.getOverValuedTicker().isEmpty() ||
+                data.getUnderValuedTicker().equals(data.getOverValuedTicker());
+    }
+
+    private Double getAdfPValue(ZScoreData data, List<ZScoreParam> params) {
+        if (params != null && !params.isEmpty()) {
+            // Старый формат API
+            ZScoreParam lastParam = params.get(params.size() - 1);
+            return lastParam.getAdfpvalue();
+        } else {
+            // Новый формат API - используем avgAdfPvalue для ADF теста
+            return data.getAvgAdfPvalue();
+        }
+    }
+
+    private Double getCorrelationPValue(ZScoreData data, List<ZScoreParam> params) {
+        if (params != null && !params.isEmpty()) {
+            // Старый формат API
+            ZScoreParam lastParam = params.get(params.size() - 1);
+            return lastParam.getPvalue();
+        } else {
+            // Новый формат API
+            return data.getPearsonCorrPValue();
+        }
+    }
+
+    private double getLatestZScore(ZScoreData data, List<ZScoreParam> params) {
+        if (params != null && !params.isEmpty()) {
+            // Старый формат API
+            return params.get(params.size() - 1).getZscore();
+        } else if (data.getLatestZScore() != null) {
+            // Новый формат API
+            return data.getLatestZScore();
+        } else {
+            return 0.0;
+        }
+    }
+
+    private Double getRSquared(ZScoreData data) {
+        // Приоритет новому формату
+        if (data.getAvgRSquared() != null) {
+            return data.getAvgRSquared();
+        }
+        return null;
+    }
+
+    // ============ СИСТЕМА ОЦЕНКИ КАЧЕСТВА ПАР ============
+
+    /**
+     * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
+     */
+    public double calculatePairQualityScore(ZScoreData data, Settings settings) {
+        double totalScore = 0.0;
+        List<ZScoreParam> params = data.getZScoreHistory();
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
+
+        log.info("🎯 Рассчет качественного скора для {} с НАСТРАИВАЕМЫМИ весами", pairName);
+
+        // ====== 1. Z-SCORE СИЛА (настраиваемый вес) ======
+        if (settings.isUseZScoreScoring()) {
+            double zScore = getLatestZScore(data, params);
+            double maxWeight = settings.getZScoreScoringWeight();
+            double zScorePoints = Math.min(Math.abs(zScore) * (maxWeight / 5.0), maxWeight); // Нормализуем по весу
+            totalScore += zScorePoints;
+            log.info("  🎯 Z-Score компонент: {} очков (Z-score={}, вес={})",
+                    NumberFormatter.format(zScorePoints, 1), NumberFormatter.format(zScore, 2), maxWeight);
+        }
+
+        // ====== 2. ПИКСЕЛЬНЫЙ СПРЕД (настраиваемый вес, высокий приоритет!) ======
+        if (settings.isUsePixelSpreadScoring()) {
+            double pixelSpreadScore = calculatePixelSpreadScoreComponent(data, settings);
+            totalScore += pixelSpreadScore;
+            log.info("  📏 Пиксельный спред: {} очков (вес={})",
+                    NumberFormatter.format(pixelSpreadScore, 1), settings.getPixelSpreadScoringWeight());
+        }
+
+        // ====== 3. КОИНТЕГРАЦИЯ (настраиваемый вес) ======
+        if (settings.isUseCointegrationScoring()) {
+            double cointegrationScore = calculateCointegrationScoreComponent(data, params, settings);
+            totalScore += cointegrationScore;
+            log.info("  🔬 Коинтеграция: {} очков (вес={})",
+                    NumberFormatter.format(cointegrationScore, 1), settings.getCointegrationScoringWeight());
+        }
+
+        // ====== 4. КАЧЕСТВО МОДЕЛИ (настраиваемый вес) ======
+        if (settings.isUseModelQualityScoring()) {
+            double modelQualityScore = calculateModelQualityScoreComponent(data, params, settings);
+            totalScore += modelQualityScore;
+            log.info("  📊 Качество модели: {} очков (вес={})",
+                    NumberFormatter.format(modelQualityScore, 1), settings.getModelQualityScoringWeight());
+        }
+
+        // ====== 5. СТАТИСТИЧЕСКАЯ ЗНАЧИМОСТЬ (настраиваемый вес) ======
+        if (settings.isUseStatisticsScoring()) {
+            double statisticalScore = calculateStatisticalSignificanceScoreComponent(data, params, settings);
+            totalScore += statisticalScore;
+            log.info("  📊 Статистика: {} очков (вес={})",
+                    NumberFormatter.format(statisticalScore, 1), settings.getStatisticsScoringWeight());
+        }
+
+        // ====== 6. БОНУСЫ (настраиваемый вес) ======
+        if (settings.isUseBonusScoring()) {
+            double bonusScore = calculateBonusScoreComponent(data, settings);
+            totalScore += bonusScore;
+            log.info("  🎁 Бонусы: {} очков (вес={})",
+                    NumberFormatter.format(bonusScore, 1), settings.getBonusScoringWeight());
+        }
+
+        log.info("🏆 Итоговый скор для {}: {} очков (НАСТРАИВАЕМЫЕ ВЕСА)", pairName, NumberFormatter.format(totalScore, 1));
+        return totalScore;
+    }
+
+    /**
+     * Статистика фильтрации
+     */
+    private void logFilteringStatistics(List<ZScoreData> originalList, List<ZScoreData> filteredList, Settings settings) {
+        int total = originalList.size();
+        int remaining = filteredList.size();
+        int filtered = total - remaining;
+
+        log.info("📈 === СТАТИСТИКА ФИЛЬТРАЦИИ ПАРЫ ===");
+        log.info("📊 Всего пар: {}", total);
+        log.info("✅ Прошли фильтры: {} ({}%)", remaining, String.format("%.1f", (remaining * 100.0 / total)));
+        log.info("❌ Отфильтровано: {} ({}%)", filtered, String.format("%.1f", (filtered * 100.0 / total)));
+
+        // Анализ качества оставшихся пар
+        if (!filteredList.isEmpty()) {
+            analyzeRemainingPairs(filteredList);
+        }
+    }
+
+    /**
+     * Анализирует качество оставшихся пар после фильтрации
+     */
+    private void analyzeRemainingPairs(List<ZScoreData> filteredList) {
+        // Статистика Z-Score
+        double avgZScore = filteredList.stream()
+                .mapToDouble(d -> Math.abs(getLatestZScore(d, d.getZScoreHistory())))
+                .average().orElse(0.0);
+
+        // Статистика корреляции
+        double avgCorrelation = filteredList.stream()
+                .filter(d -> d.getPearsonCorr() != null)
+                .mapToDouble(d -> Math.abs(d.getPearsonCorr()))
+                .average().orElse(0.0);
+
+        // Статистика R-squared
+        double avgRSquared = filteredList.stream()
+                .map(this::getRSquared)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .average().orElse(0.0);
+
+        // Подсчет пар с Johansen тестом
+        long johansenPairs = filteredList.stream()
+                .filter(d -> d.getJohansenCointPValue() != null)
+                .count();
+
+        log.info("📋 Качество отобранных пар:");
+        log.info("   📊 Средний |Z-Score|: {}", String.format("%.2f", avgZScore));
+        log.info("   🔗 Средняя |корреляция|: {}", String.format("%.3f", avgCorrelation));
+        log.info("   📈 Средний R²: {}", String.format("%.3f", avgRSquared));
+        log.info("   🔬 Пары с Johansen тестом: {}/{} ({}%)",
+                johansenPairs, filteredList.size(), String.format("%.1f", (johansenPairs * 100.0 / filteredList.size())));
+    }
+
+    /**
+     * Расчет скора пиксельного спреда
+     */
+    private double calculatePixelSpreadScoreComponent(ZScoreData data, Settings settings) {
+        try {
+            // Ищем существующую PairData по тикерам
+            String longTicker = data.getUnderValuedTicker();  // undervalued = long
+            String shortTicker = data.getOverValuedTicker(); // overvalued = short
+
+            // Получаем PairData из базы (если существует)
+            var existingPairs = pairDataService.findByTickers(longTicker, shortTicker);
+
+            if (!existingPairs.isEmpty()) {
+                var pairData = existingPairs.get(0);
+
+                // Получаем статистику пиксельного спреда
+                double avgSpread = pixelSpreadService.getAveragePixelSpread(pairData);
+                double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
+
+                if (avgSpread > 0) {
+                    double maxWeight = settings.getPixelSpreadScoringWeight();
+
+                    // Логика начисления баллов (нормализуем на полный вес)
+                    double scoreRatio;
+                    if (avgSpread < 20) {
+                        scoreRatio = 0.0;
+                    } else if (avgSpread < 40) {
+                        scoreRatio = 0.25 + (avgSpread - 20) / 20 * 0.25; // 25-50%
+                    } else if (avgSpread < 80) {
+                        scoreRatio = 0.50 + (avgSpread - 40) / 40 * 0.25; // 50-75%
+                    } else {
+                        scoreRatio = 0.75 + Math.min((avgSpread - 80) / 40, 1.0) * 0.25; // 75-100%
+                    }
+
+                    // Бонус за высокий максимум (дополнительная волатильность)
+                    if (maxSpread > 100) {
+                        scoreRatio = Math.min(scoreRatio + 0.1, 1.0); // +10% бонус
+                    }
+
+                    double totalScore = maxWeight * scoreRatio;
+                    
+                    log.info("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
+                            avgSpread, maxSpread, totalScore, scoreRatio * 100, maxWeight);
+
+                    return totalScore;
+                }
+            }
+
+            return 0.0; // Нет данных о пиксельном спреде
+
+        } catch (Exception e) {
+            log.warn("    📏 Ошибка расчета скора пиксельного спреда: {}", e.getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Динамическая система весов для коинтеграции
+     */
+    private double calculateCointegrationScoreComponent(ZScoreData data, List<ZScoreParam> params, Settings settings) {
+        boolean hasJohansen = data.getJohansenCointPValue() != null && data.getJohansenCointPValue() > 0;
+        boolean hasAdf = getAdfPValue(data, params) != null && getAdfPValue(data, params) > 0;
+
+        String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
+
+        if (!hasJohansen && !hasAdf) {
+            log.info("  🔬 {}: Нет данных коинтеграции", pairName);
+            return 0.0;
+        }
+
+        double maxWeight = settings.getCointegrationScoringWeight();
+        double score = 0.0;
+
+        if (hasJohansen && hasAdf) {
+            // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 50% от полного веса
+            log.info("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight / 2, maxWeight / 2);
+
+            // Johansen (50% от веса)
+            double johansenPValue = data.getJohansenCointPValue();
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * (maxWeight / 2.0);
+            score += johansenScore;
+
+            // ADF (50% от веса)
+            Double adfPValue = getAdfPValue(data, params);
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * (maxWeight / 2.0);
+            score += adfScore;
+
+            log.info("    Johansen: {} очков (p-value={})",
+                    NumberFormatter.format(johansenScore, 1),
+                    NumberFormatter.format(johansenPValue, 6));
+            log.info("    ADF: {} очков (p-value={})",
+                    NumberFormatter.format(adfScore, 1),
+                    NumberFormatter.format(adfPValue, 6));
+
+        } else if (hasJohansen) {
+            // ТОЛЬКО JOHANSEN - полный вес
+            log.info("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
+
+            double johansenPValue = data.getJohansenCointPValue();
+            double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * maxWeight;
+            score += johansenScore;
+
+            log.info("    Johansen: {} очков (p-value={})",
+                    NumberFormatter.format(johansenScore, 1),
+                    NumberFormatter.format(johansenPValue, 6));
+
+        } else if (hasAdf) {
+            // ТОЛЬКО ADF - полный вес
+            log.info("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
+
+            Double adfPValue = getAdfPValue(data, params);
+            double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * maxWeight;
+            score += adfScore;
+
+            log.info("    ADF: {} очков (p-value={})",
+                    NumberFormatter.format(adfScore, 1),
+                    NumberFormatter.format(adfPValue, 6));
+        }
+
+        // Небольшой бонус за trace statistic (только если есть Johansen) - 5% от веса
+        if (hasJohansen && data.getJohansenTraceStatistic() != null && data.getJohansenCriticalValue95() != null) {
+            if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
+                double traceBonus = maxWeight * 0.05; // 5% от основного веса
+                score += traceBonus;
+                log.info("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
+            }
+        }
+
+        return score;
+    }
+
+    private double calculateModelQualityScoreComponent(ZScoreData data, List<ZScoreParam> params, Settings settings) {
+        double maxWeight = settings.getModelQualityScoringWeight();
+        double score = 0.0;
+
+        // R-squared (75% от веса)
+        Double rSquared = getRSquared(data);
+        if (rSquared != null && rSquared > 0) {
+            score += rSquared * (maxWeight * 0.75); // 75% от веса при R² = 1.0
+        }
+
+        // Стабильность (25% от веса)
+        if (data.getStablePeriods() != null && data.getTotalObservations() != null && data.getTotalObservations() > 0) {
+            double stabilityRatio = (double) data.getStablePeriods() / data.getTotalObservations();
+            score += stabilityRatio * (maxWeight * 0.25); // 25% от веса
+        }
+
+        return score;
+    }
+
+    private double calculateStatisticalSignificanceScoreComponent(ZScoreData data, List<ZScoreParam> params, Settings settings) {
+        double maxWeight = settings.getStatisticsScoringWeight();
+        double score = 0.0;
+
+        // Pearson корреляция P-value (50% от веса)
+        Double pearsonPValue = getCorrelationPValue(data, params);
+        if (pearsonPValue != null && pearsonPValue >= 0) {
+            score += Math.max(0, (0.05 - Math.min(pearsonPValue, 0.05)) / 0.05) * (maxWeight * 0.5);
+        }
+
+        // Корреляция сила (50% от веса)
+        if (data.getPearsonCorr() != null) {
+            double absCorr = Math.abs(data.getPearsonCorr());
+            score += Math.min(absCorr, 1.0) * (maxWeight * 0.5);
+        }
+
+        return score;
+    }
+
+    private double calculateBonusScoreComponent(ZScoreData data, Settings settings) {
+        double maxWeight = settings.getBonusScoringWeight();
+        double bonusScore = 0.0;
+
+        // Бонус за полноту данных Johansen (30% от веса)
+        if (data.getJohansenCointPValue() != null && data.getJohansenTraceStatistic() != null) {
+            bonusScore += maxWeight * 0.3;
+        }
+
+        // Бонус за стабильность (20% от веса)
+        if (data.getStablePeriods() != null && data.getTotalObservations() != null) {
+            bonusScore += maxWeight * 0.2;
+        }
+
+        // Бонус за качество модели (30% от веса)
+        if (data.getAvgRSquared() != null && data.getAvgRSquared() > 0.8) {
+            bonusScore += maxWeight * 0.3;
+        }
+
+        return bonusScore;
     }
 
     /**

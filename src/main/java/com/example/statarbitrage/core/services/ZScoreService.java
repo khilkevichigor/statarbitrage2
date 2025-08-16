@@ -20,7 +20,6 @@ public class ZScoreService {
     private final PairDataService pairDataService;
     private final PythonRestClient pythonRestClient;
     private final ObtainTopZScoreDataBeforeCreateNewPairService obtainTopZScoreDataBeforeCreateNewPairService;
-    private final FilterZScoreDataBeforeCreateNewPairService filterZScoreDataBeforeCreateNewPairService;
     private final FilterZScoreDataForExistingPairBeforeNewTradeService filterZScoreDataForExistingPairBeforeNewTradeService;
 
     private void checkZScoreParamsSize(List<ZScoreData> rawZScoreList) {
@@ -198,7 +197,6 @@ public class ZScoreService {
             return Collections.emptyList();
         }
         checkZScoreParamsSize(rawZScoreDataList);
-        filterZScoreDataBeforeCreateNewPairService.filter(rawZScoreDataList, settings);
         if (excludeExistingPairs) {
             pairDataService.excludeExistingTradingPairs(rawZScoreDataList);
         }

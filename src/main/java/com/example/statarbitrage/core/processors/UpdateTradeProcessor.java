@@ -83,7 +83,7 @@ public class UpdateTradeProcessor {
 //            //todo
 //        }
 
-        final Map<String, Object> cointegrationData = calculateZScoreData(pairData, settings);
+        final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(pairData, settings);
         final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
         final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
 
@@ -123,7 +123,7 @@ public class UpdateTradeProcessor {
         }
 
         final Settings settings = settingsService.getSettings();
-        final Map<String, Object> cointegrationData = calculateZScoreData(freshPairData, settings);
+        final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(freshPairData, settings);
         final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
         final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
 
@@ -167,7 +167,7 @@ public class UpdateTradeProcessor {
         return false;
     }
 
-    private Map<String, Object> calculateZScoreData(PairData pairData, Settings settings) {
+    private Map<String, Object> updateZScoreDataForExistingPair(PairData pairData, Settings settings) {
         final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();
