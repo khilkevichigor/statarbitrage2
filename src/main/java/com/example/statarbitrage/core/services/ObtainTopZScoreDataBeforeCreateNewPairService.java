@@ -210,6 +210,18 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         }
         log.debug("   ✅ {}: Положительный Z-score: {}", pairName, NumberFormatter.format(currentZScore, 2));
 
+        // 4. Проверка минимального Z-Score (если включена в настройках)
+        if (settings.isUseMinZFilter()) {
+            double minZ = settings.getMinZ();
+            if (currentZScore < minZ) {
+                reason = String.format("Z-score ниже минимума: %.2f < %.2f", currentZScore, minZ);
+                log.debug("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.debug("   ✅ {}: Z-score выше минимума: {} >= {}", pairName, 
+                    NumberFormatter.format(currentZScore, 2), NumberFormatter.format(minZ, 2));
+        }
+
         return null; // Пара прошла критические проверки
     }
 
