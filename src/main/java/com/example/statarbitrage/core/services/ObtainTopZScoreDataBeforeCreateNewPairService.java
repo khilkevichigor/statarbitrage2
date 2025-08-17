@@ -396,21 +396,36 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
     /**
      * Вычисляет скор из значения пиксельного спреда
+     * ИСПРАВЛЕНО: реалистичные диапазоны для криптовалютного арбитража
      */
     private double calculateScoreFromPixelSpread(double avgSpread, double maxWeight) {
-        // Логика начисления баллов (нормализуем на полный вес)
         double scoreRatio;
-        if (avgSpread < 20) {
+
+        if (avgSpread < 0) {
+            // Ошибка: отрицательный спред невозможен
+            log.warn("    📏 ОШИБКА: отрицательный пиксельный спред {}px", String.format("%.1f", avgSpread));
             scoreRatio = 0.0;
-        } else if (avgSpread < 40) {
-            scoreRatio = 0.25 + (avgSpread - 20) / 20 * 0.25; // 25-50%
-        } else if (avgSpread < 80) {
-            scoreRatio = 0.50 + (avgSpread - 40) / 40 * 0.25; // 50-75%
+        } else if (avgSpread > 720) {
+            // Ошибка: слишком большой спред, возможно некорректные данные
+            log.warn("    📏 ОШИБКА: слишком большой пиксельный спред {}px (>720px)", String.format("%.1f", avgSpread));
+            scoreRatio = 0.0;
+        } else if (avgSpread <= 240) {
+            // Низкий спред: 0-240px - постепенный рост от 10% до 60%
+            scoreRatio = 0.1 + (avgSpread / 240.0) * 0.5; // 10% - 60%
+        } else if (avgSpread <= 480) {
+            // Нормальный спред: 240-480px - оптимальный диапазон 60%-100%
+            scoreRatio = 0.6 + ((avgSpread - 240) / 240.0) * 0.4; // 60% - 100%
         } else {
-            scoreRatio = 0.75 + Math.min((avgSpread - 80) / 40, 1.0) * 0.25; // 75-100%
+            // Повышенный риск: 480-720px - убывающий от 100% до 30%
+            scoreRatio = 1.0 - ((avgSpread - 480) / 240.0) * 0.7; // 100% - 30%
         }
 
-        return maxWeight * scoreRatio;
+        double score = maxWeight * scoreRatio;
+
+        log.debug("    📏 Пиксельный спред {}px → ratio={:.1%} → {} баллов",
+                String.format("%.1f", avgSpread), scoreRatio, String.format("%.1f", score));
+
+        return score;
     }
 
     /**
