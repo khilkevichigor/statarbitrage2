@@ -536,8 +536,9 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
 
                     double totalScore = maxWeight * scoreRatio;
 
-                    log.info("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
-                            avgSpread, maxSpread, totalScore, scoreRatio * 100, maxWeight);
+                    log.info("    📏 Пиксельный спред: avg={}px, max={}px → {} баллов ({}% от {})",
+                            String.format("%.1f", avgSpread), String.format("%.1f", maxSpread), 
+                            String.format("%.1f", totalScore), String.format("%.0f", scoreRatio * 100), maxWeight);
 
                     return totalScore;
                 }

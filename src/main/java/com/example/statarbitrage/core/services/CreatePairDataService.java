@@ -80,9 +80,10 @@ public class CreatePairDataService {
             double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
             double currentSpread = pixelSpreadService.getCurrentPixelSpread(pairData);
 
-            log.debug("🔢 Пиксельный спред для {}/{}: avg={:.1f}px, max={:.1f}px, current={:.1f}px",
+            log.debug("🔢 Пиксельный спред для {}/{}: avg={}px, max={}px, current={}px",
                     pairData.getLongTicker(), pairData.getShortTicker(),
-                    avgSpread, maxSpread, currentSpread);
+                    String.format("%.1f", avgSpread), String.format("%.1f", maxSpread), 
+                    String.format("%.1f", currentSpread));
 
         } catch (Exception e) {
             log.warn("⚠️ Ошибка расчета пиксельного спреда для {}/{}: {}",

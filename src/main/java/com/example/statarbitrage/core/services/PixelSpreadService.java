@@ -496,8 +496,8 @@ public class PixelSpreadService {
 
         double averagePixelSpread = pixelDistances.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
 
-        log.debug("✅ Средний пиксельный спред для пары {}: {:.1f} px (на основе {} точек)",
-                pairName, averagePixelSpread, pixelDistances.size());
+        log.debug("✅ Средний пиксельный спред для пары {}: {} px (на основе {} точек)",
+                pairName, String.format("%.1f", averagePixelSpread), pixelDistances.size());
 
         return averagePixelSpread;
     }
@@ -583,8 +583,9 @@ public class PixelSpreadService {
         double shortPixelY = convertValueToPixel(scaledShortPrice, minValue, maxValue, chartHeight);
         double pixelDistance = Math.abs(longPixelY - shortPixelY);
 
-        log.debug("✅ Быстрый пиксельный спред для пары {}: {:.1f} px (последние цены: LONG={:.8f}, SHORT={:.8f})",
-                pairName, pixelDistance, lastLongPrice, lastShortPrice);
+        log.debug("✅ Быстрый пиксельный спред для пары {}: {} px (последние цены: LONG={}, SHORT={})",
+                pairName, String.format("%.1f", pixelDistance), 
+                String.format("%.8f", lastLongPrice), String.format("%.8f", lastShortPrice));
 
         return pixelDistance;
     }

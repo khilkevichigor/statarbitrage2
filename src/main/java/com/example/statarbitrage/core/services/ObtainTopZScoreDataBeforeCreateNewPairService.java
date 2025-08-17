@@ -360,8 +360,8 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
                     double totalScore = calculateScoreFromPixelSpread(avgSpread, maxWeight);
 
-                    log.info("    📏 Пиксельный спред (существующая пара): avg={:.1f}px → {:.1f} баллов",
-                            avgSpread, totalScore);
+                    log.info("    📏 Пиксельный спред (существующая пара): avg={}px → {} баллов",
+                            String.format("%.1f", avgSpread), String.format("%.1f", totalScore));
                     return totalScore;
                 }
             }
@@ -379,8 +379,8 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
                     double totalScore = calculateScoreFromPixelSpread(currentSpread, maxWeight);
 
-                    log.info("    📏 Пиксельный спред (вычисленный текущий): {:.1f}px → {:.1f} баллов",
-                            currentSpread, totalScore);
+                    log.info("    📏 Пиксельный спред (вычисленный текущий): {}px → {} баллов",
+                            String.format("%.1f", currentSpread), String.format("%.1f", totalScore));
                     return totalScore;
                 }
             }
