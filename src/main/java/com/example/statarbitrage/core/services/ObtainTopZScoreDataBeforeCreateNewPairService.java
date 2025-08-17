@@ -381,11 +381,16 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     
                     // Добавляем бонус за волатильность пиксельного спреда
                     double volatilityBonus = calculateVolatilityBonusFromCandles(longCandles, shortCandles, maxWeight);
-                    double totalScore = baseScore + volatilityBonus;
+                    
+                    // Добавляем бонус за достаточно большой текущий пиксельный спред
+                    double currentSpreadBonus = calculateCurrentSpreadBonus(currentSpread, maxWeight);
+                    
+                    double totalScore = baseScore + volatilityBonus + currentSpreadBonus;
 
-                    log.info("    📏 Пиксельный спред (вычисленный): {}px → {} баллов (базовый: {}, бонус волатильности: {})",
+                    log.info("    📏 Пиксельный спред (вычисленный): {}px → {} баллов (базовый: {}, волатильность: {}, текущий спред: {})",
                             String.format("%.1f", currentSpread), String.format("%.1f", totalScore), 
-                            String.format("%.1f", baseScore), String.format("%.1f", volatilityBonus));
+                            String.format("%.1f", baseScore), String.format("%.1f", volatilityBonus),
+                            String.format("%.1f", currentSpreadBonus));
                     return totalScore;
                 }
             }
@@ -765,6 +770,59 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         
         // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
         return chartHeight - (normalized * chartHeight);
+    }
+
+    /**
+     * Вычисляет бонус за достаточно большой текущий пиксельный спред
+     * Предотвращает выбор пар с низким или нулевым спредом
+     */
+    private double calculateCurrentSpreadBonus(double currentSpread, double maxWeight) {
+        double bonusRatio = 0.0;
+        
+        if (currentSpread <= 0) {
+            // Нулевой спред - никаких бонусов
+            bonusRatio = 0.0;
+            log.debug("    📐 Нулевой текущий спред: нет бонуса");
+        } else if (currentSpread < 30) {
+            // Очень низкий спред: 0-30px - штраф (-10% от веса)
+            bonusRatio = -0.1;
+            log.debug("    📐 ШТРАФ за очень низкий текущий спред: {}px → {}% штрафа",
+                    String.format("%.1f", currentSpread), String.format("%.0f", bonusRatio * 100));
+        } else if (currentSpread < 60) {
+            // Низкий спред: 30-60px - без бонусов и штрафов
+            bonusRatio = 0.0;
+            log.debug("    📐 Низкий текущий спред: {}px → нет бонуса",
+                    String.format("%.1f", currentSpread));
+        } else if (currentSpread < 120) {
+            // Умеренный спред: 60-120px - малый бонус 5%
+            bonusRatio = 0.15;
+            log.debug("    📐 Умеренный текущий спред: {}px → +{}% бонуса",
+                    String.format("%.1f", currentSpread), String.format("%.0f", bonusRatio * 100));
+        } else if (currentSpread < 240) {
+            // Хороший спред: 120-240px - хороший бонус 10%
+            bonusRatio = 0.30;
+            log.debug("    📐 БОНУС за хороший текущий спред: {}px → +{}% бонуса",
+                    String.format("%.1f", currentSpread), String.format("%.0f", bonusRatio * 100));
+        } else if (currentSpread <= 480) {
+            // Отличный спред: 240-480px - максимальный бонус 15%
+            bonusRatio = 0.45;
+            log.debug("    📐 БОЛЬШОЙ БОНУС за отличный текущий спред: {}px → +{}% бонуса",
+                    String.format("%.1f", currentSpread), String.format("%.0f", bonusRatio * 100));
+        } else {
+            // Слишком большой спред: >480px - уменьшающийся бонус
+            double excessRatio = Math.min((currentSpread - 480) / 240.0, 1.0); // До 720px
+            bonusRatio = 0.15 - (excessRatio * 0.1); // От 15% до 5%
+            log.debug("    📐 Большой текущий спред: {}px → +{}% убывающего бонуса",
+                    String.format("%.1f", currentSpread), String.format("%.0f", bonusRatio * 100));
+        }
+        
+        double bonus = maxWeight * bonusRatio;
+        
+        if (bonus != 0.0) {
+            log.debug("    📐 Бонус за текущий спред: {} баллов", String.format("%.1f", bonus));
+        }
+        
+        return bonus;
     }
 
     /**
