@@ -34,7 +34,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             return Optional.empty();
         }
 
-        log.info("🎯 ОБЪЕДИНЕННАЯ СИСТЕМА: Фильтруем и выбираем лучшую пару из {} кандидатов за один проход!", dataList.size());
+        log.debug("🎯 ОБЪЕДИНЕННАЯ СИСТЕМА: Фильтруем и выбираем лучшую пару из {} кандидатов за один проход!", dataList.size());
 
         // Сначала фильтруем данные (встроенная фильтрация)
         List<ZScoreData> filteredList = new ArrayList<>();
@@ -57,14 +57,14 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             }
         }
 
-        log.info("✅ После фильтрации осталось {} из {} пар", filteredList.size(), dataList.size());
+        log.debug("✅ После фильтрации осталось {} из {} пар", filteredList.size(), dataList.size());
 
         // Статистика фильтрации
         filterStats.forEach((reason, count) ->
                 log.debug("📊 Фильтрация - {}: {} пар", reason, count));
 
         if (filteredList.isEmpty()) {
-            log.warn("❌ Нет подходящих пар после фильтрации");
+            log.debug("❌ Нет подходящих пар после фильтрации");
             return Optional.empty();
         }
 
@@ -79,7 +79,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         }
 
         if (candidates.isEmpty()) {
-            log.warn("❌ Нет подходящих пар после оценки");
+            log.debug("❌ Нет подходящих пар после оценки");
             return Optional.empty();
         }
 
@@ -149,7 +149,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
      * Логирует топ кандидатов для анализа
      */
     private void logTopCandidates(List<PairCandidate> candidates) {
-        log.info("🏅 Топ-3 кандидата:");
+        log.debug("🏅 Топ-3 кандидата:");
 
         for (int i = 0; i < Math.min(3, candidates.size()); i++) {
             PairCandidate candidate = candidates.get(i);
@@ -160,7 +160,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 johansenStatus = String.format("✅ (p=%.4f)", data.getJohansenCointPValue());
             }
 
-            log.info("   {}. {}/{} -> Скор: {}, Z: {}, Корр: {}, R²: {}, Johansen: {}, ADF: {}",
+            log.debug("   {}. {}/{} -> Скор: {}, Z: {}, Корр: {}, R²: {}, Johansen: {}, ADF: {}",
                     i + 1,
                     data.getUnderValuedTicker(),
                     data.getOverValuedTicker(),
