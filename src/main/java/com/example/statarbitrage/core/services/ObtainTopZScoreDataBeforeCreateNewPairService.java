@@ -51,7 +51,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 filteredList.add(data);
                 // Рассчитываем качественный скор для лога
                 double qualityScore = calculatePairQualityScore(data, settings, candlesMap);
-                log.info("📊 Пара {}/{} прошла фильтрацию. Качественный скор: {}",
+                log.debug("📊 Пара {}/{} прошла фильтрацию. Качественный скор: {}",
                         data.getUnderValuedTicker(), data.getOverValuedTicker(),
                         NumberFormatter.format(qualityScore, 2));
             }
@@ -351,7 +351,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         List<ZScoreParam> params = data.getZScoreHistory();
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
-        log.info("🎯 Рассчет качественного скора для {} с НАСТРАИВАЕМЫМИ весами", pairName);
+        log.debug("🎯 Рассчет качественного скора для {} с НАСТРАИВАЕМЫМИ весами", pairName);
 
         // ====== 1. Z-SCORE СИЛА (настраиваемый вес) ======
         if (settings.isUseZScoreScoring()) {
@@ -403,7 +403,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     NumberFormatter.format(bonusScore, 1), settings.getBonusScoringWeight());
         }
 
-        log.info("🏆 Итоговый скор для {}: {} очков (НАСТРАИВАЕМЫЕ ВЕСА)", pairName, NumberFormatter.format(totalScore, 1));
+        log.debug("🏆 Итоговый скор для {}: {} очков (НАСТРАИВАЕМЫЕ ВЕСА)", pairName, NumberFormatter.format(totalScore, 1));
         return totalScore;
     }
 
