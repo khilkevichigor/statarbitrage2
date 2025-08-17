@@ -222,6 +222,62 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     NumberFormatter.format(currentZScore, 2), NumberFormatter.format(minZ, 2));
         }
 
+        // 5. Проверка максимального P-Value корреляции (если включена в настройках)
+        if (settings.isUseMaxPValueFilter()) {
+            Double correlationPValue = getCorrelationPValue(data, params);
+            double maxPValue = settings.getMaxPValue();
+            if (correlationPValue != null && correlationPValue > maxPValue) {
+                reason = String.format("P-Value корреляции выше максимума: %.6f > %.6f", correlationPValue, maxPValue);
+                log.debug("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.debug("   ✅ {}: P-Value корреляции в норме: {} <= {}", pairName, 
+                    correlationPValue != null ? NumberFormatter.format(correlationPValue, 6) : "null", 
+                    NumberFormatter.format(maxPValue, 6));
+        }
+
+        // 6. Проверка максимального ADF P-Value (если включена в настройках)
+        if (settings.isUseMaxAdfValueFilter()) {
+            Double adfPValue = getAdfPValue(data, params);
+            double maxAdfValue = settings.getMaxAdfValue();
+            if (adfPValue != null && adfPValue > maxAdfValue) {
+                reason = String.format("ADF P-Value выше максимума: %.6f > %.6f", adfPValue, maxAdfValue);
+                log.debug("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.debug("   ✅ {}: ADF P-Value в норме: {} <= {}", pairName, 
+                    adfPValue != null ? NumberFormatter.format(adfPValue, 6) : "null", 
+                    NumberFormatter.format(maxAdfValue, 6));
+        }
+
+        // 7. Проверка минимального R-Squared (если включена в настройках)
+        if (settings.isUseMinRSquaredFilter()) {
+            Double rSquared = getRSquared(data);
+            double minRSquared = settings.getMinRSquared();
+            if (rSquared == null || rSquared < minRSquared) {
+                reason = String.format("R-Squared ниже минимума: %s < %.3f", 
+                        rSquared != null ? String.format("%.3f", rSquared) : "null", minRSquared);
+                log.debug("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.debug("   ✅ {}: R-Squared выше минимума: {} >= {}", pairName, 
+                    NumberFormatter.format(rSquared, 3), NumberFormatter.format(minRSquared, 3));
+        }
+
+        // 8. Проверка минимальной корреляции (если включена в настройках)
+        if (settings.isUseMinCorrelationFilter()) {
+            Double correlation = data.getPearsonCorr();
+            double minCorrelation = settings.getMinCorrelation();
+            if (correlation == null || Math.abs(correlation) < minCorrelation) {
+                reason = String.format("Корреляция ниже минимума: %s < %.3f", 
+                        correlation != null ? String.format("%.3f", Math.abs(correlation)) : "null", minCorrelation);
+                log.debug("   ❌ {}: {}", pairName, reason);
+                return reason;
+            }
+            log.debug("   ✅ {}: Корреляция выше минимума: {} >= {}", pairName, 
+                    NumberFormatter.format(Math.abs(correlation), 3), NumberFormatter.format(minCorrelation, 3));
+        }
+
         return null; // Пара прошла критические проверки
     }
 
