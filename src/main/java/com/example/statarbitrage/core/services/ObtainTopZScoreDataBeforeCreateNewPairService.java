@@ -340,7 +340,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
     }
 
     /**
-     * Расчет скора пиксельного спреда (НОВАЯ ВЕРСИЯ: с расчетом из candlesMap)
+     * Расчет скора пиксельного спреда (НОВАЯ ВЕРСИЯ: с расчетом из candlesMap и волатильностью)
      */
     private double calculatePixelSpreadScoreComponent(ZScoreData data, Settings settings, Map<String, List<Candle>> candlesMap) {
         try {
@@ -358,11 +358,11 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
                 if (avgSpread > 0) {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
-                    double totalScore = calculateScoreFromPixelSpread(avgSpread, maxWeight);
+                    double baseScore = calculateScoreFromPixelSpread(avgSpread, maxWeight);
 
                     log.info("    📏 Пиксельный спред (существующая пара): avg={}px → {} баллов",
-                            String.format("%.1f", avgSpread), String.format("%.1f", totalScore));
-                    return totalScore;
+                            String.format("%.1f", avgSpread), String.format("%.1f", baseScore));
+                    return baseScore;
                 }
             }
 
@@ -377,10 +377,15 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
                 if (currentSpread > 0) {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
-                    double totalScore = calculateScoreFromPixelSpread(currentSpread, maxWeight);
+                    double baseScore = calculateScoreFromPixelSpread(currentSpread, maxWeight);
+                    
+                    // Добавляем бонус за волатильность пиксельного спреда
+                    double volatilityBonus = calculateVolatilityBonusFromCandles(longCandles, shortCandles, maxWeight);
+                    double totalScore = baseScore + volatilityBonus;
 
-                    log.info("    📏 Пиксельный спред (вычисленный текущий): {}px → {} баллов",
-                            String.format("%.1f", currentSpread), String.format("%.1f", totalScore));
+                    log.info("    📏 Пиксельный спред (вычисленный): {}px → {} баллов (базовый: {}, бонус волатильности: {})",
+                            String.format("%.1f", currentSpread), String.format("%.1f", totalScore), 
+                            String.format("%.1f", baseScore), String.format("%.1f", volatilityBonus));
                     return totalScore;
                 }
             }
@@ -422,8 +427,8 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
         double score = maxWeight * scoreRatio;
 
-        log.debug("    📏 Пиксельный спред {}px → ratio={:.1%} → {} баллов",
-                String.format("%.1f", avgSpread), scoreRatio, String.format("%.1f", score));
+        log.debug("    📏 Пиксельный спред {}px → ratio={}% → {} баллов",
+                String.format("%.1f", avgSpread), String.format("%.0f", scoreRatio * 100), String.format("%.1f", score));
 
         return score;
     }
@@ -561,6 +566,205 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         }
 
         return bonusScore;
+    }
+
+    /**
+     * Вычисляет бонус за волатильность НАСТОЯЩЕГО пиксельного спреда из данных свечей
+     * Использует PixelSpreadService для правильного расчета пиксельного спреда на основе чарта
+     * Анализирует циклы пиксельного спреда между низким (10%) и высоким (90%) диапазонами
+     */
+    private double calculateVolatilityBonusFromCandles(List<Candle> longCandles, List<Candle> shortCandles, double maxWeight) {
+        try {
+            if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+                return 0.0;
+            }
+
+            log.debug("    🎯 Начинаем анализ волатильности пиксельного спреда: LONG {} свечей, SHORT {} свечей",
+                    longCandles.size(), shortCandles.size());
+
+            // Используем PixelSpreadService для правильного расчета пиксельного спреда по всем свечам
+            List<Double> pixelSpreads = calculatePixelSpreadHistoryFromCandles(longCandles, shortCandles);
+
+            if (pixelSpreads.size() < 10) {
+                log.debug("    🎯 Недостаточно данных для анализа волатильности ({} точек)", pixelSpreads.size());
+                return 0.0;
+            }
+
+            // Определяем диапазоны для анализа циклов
+            double minSpread = pixelSpreads.stream().mapToDouble(Double::doubleValue).min().orElse(0.0);
+            double maxSpread = pixelSpreads.stream().mapToDouble(Double::doubleValue).max().orElse(0.0);
+
+            if (maxSpread - minSpread < 50) {
+                log.debug("    🎯 Низкая волатильность пиксельного спреда: диапазон {}px", String.format("%.1f", maxSpread - minSpread));
+                return 0.0; // Слишком низкая волатильность
+            }
+
+            log.debug("    🎯 Диапазон пиксельного спреда: {}-{}px на {} точках",
+                    String.format("%.1f", minSpread), String.format("%.1f", maxSpread), pixelSpreads.size());
+
+            // Анализируем циклы между низким (10% от диапазона) и высоким (90% от диапазона)
+            double lowThreshold = minSpread + (maxSpread - minSpread) * 0.1;   // 10% от диапазона
+            double highThreshold = minSpread + (maxSpread - minSpread) * 0.9;  // 90% от диапазона
+
+            int cycles = 0;
+            boolean wasInLowZone = false;
+            boolean wasInHighZone = false;
+
+            for (double spread : pixelSpreads) {
+                if (spread <= lowThreshold) {
+                    if (!wasInLowZone && wasInHighZone) {
+                        // Переходим из высокой зоны в низкую - начинается новый цикл
+                        wasInHighZone = false;
+                    }
+                    wasInLowZone = true;
+                } else if (spread >= highThreshold && wasInLowZone) {
+                    // Цикл завершен: от низкого к высокому
+                    cycles++;
+                    wasInLowZone = false;
+                    wasInHighZone = true;
+                }
+            }
+
+            // Начисляем бонус за волатильность
+            double volatilityBonus = 0.0;
+            if (cycles >= 2) {
+                // Бонус 15% от веса за хорошую волатильность (2+ цикла)
+                volatilityBonus = maxWeight * 0.15;
+                log.debug("    🎯 БОНУС волатильности пиксельного спреда: {} циклов → +{} баллов (15% от веса)",
+                        cycles, String.format("%.1f", volatilityBonus));
+            } else if (cycles == 1) {
+                // Малый бонус 7% от веса за умеренную волатильность (1 цикл)
+                volatilityBonus = maxWeight * 0.07;
+                log.debug("    🎯 Малый бонус волатильности пиксельного спреда: {} цикл → +{} баллов (7% от веса)",
+                        cycles, String.format("%.1f", volatilityBonus));
+            } else {
+                log.debug("    🎯 Нет циклов волатильности пиксельного спреда: пороги {}-{}px, циклы: {}",
+                        String.format("%.1f", lowThreshold), String.format("%.1f", highThreshold), cycles);
+            }
+
+            return volatilityBonus;
+
+        } catch (Exception e) {
+            log.warn("    🎯 Ошибка анализа волатильности пиксельного спреда: {}", e.getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Вычисляет историю пиксельного спреда из свечей, используя логику PixelSpreadService
+     * Но без создания PairData (упрощенная версия для анализа волатильности)
+     */
+    private List<Double> calculatePixelSpreadHistoryFromCandles(List<Candle> longCandles, List<Candle> shortCandles) {
+        List<Double> pixelSpreads = new ArrayList<>();
+        
+        // Сортировка по времени
+        List<Candle> sortedLongCandles = new ArrayList<>(longCandles);
+        List<Candle> sortedShortCandles = new ArrayList<>(shortCandles);
+        sortedLongCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        sortedShortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        
+        // Извлекаем цены и времена
+        List<Date> longTimes = sortedLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = sortedLongCandles.stream().map(Candle::getClose).toList();
+        
+        List<Date> shortTimes = sortedShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = sortedShortCandles.stream().map(Candle::getClose).toList();
+        
+        // Найти диапазон цен для нормализации (как в PixelSpreadService)
+        double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
+        double longPriceRange = maxLongPrice - minLongPrice;
+        
+        double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
+        double shortPriceRange = maxShortPrice - minShortPrice;
+        
+        if (longPriceRange == 0.0 || shortPriceRange == 0.0) {
+            return pixelSpreads; // Возвращаем пустой список
+        }
+        
+        // Используем стандартный диапазон Z-Score для нормализации (как в PixelSpreadService)
+        double minZScore = -3.0;
+        double maxZScore = 3.0;
+        double zRange = maxZScore - minZScore;
+        
+        // Нормализация long цен в диапазон Z-Score
+        List<Double> scaledLongPrices = longPrices.stream()
+                .map(price -> minZScore + ((price - minLongPrice) / longPriceRange) * zRange)
+                .toList();
+        
+        // Нормализация short цен в диапазон Z-Score  
+        List<Double> scaledShortPrices = shortPrices.stream()
+                .map(price -> minZScore + ((price - minShortPrice) / shortPriceRange) * zRange)
+                .toList();
+        
+        // Создаем синхронизированные временные точки (как в PixelSpreadService)
+        Set<Long> allTimestamps = new HashSet<>();
+        longTimes.forEach(date -> allTimestamps.add(date.getTime()));
+        shortTimes.forEach(date -> allTimestamps.add(date.getTime()));
+        
+        List<Long> sortedTimestamps = allTimestamps.stream().sorted().toList();
+        
+        // Константы как в PixelSpreadService
+        int chartHeight = 720;
+        
+        // Находим диапазон масштабированных значений
+        double minValue = Math.min(
+                scaledLongPrices.stream().min(Double::compareTo).orElse(-3.0),
+                scaledShortPrices.stream().min(Double::compareTo).orElse(-3.0)
+        );
+        double maxValue = Math.max(
+                scaledLongPrices.stream().max(Double::compareTo).orElse(3.0),
+                scaledShortPrices.stream().max(Double::compareTo).orElse(3.0)
+        );
+        
+        // Вычисляем пиксельное расстояние для всех временных точек (как в PixelSpreadService)
+        for (Long timestamp : sortedTimestamps) {
+            Double longPrice = findNearestPriceForVolatility(longTimes, scaledLongPrices, timestamp);
+            Double shortPrice = findNearestPriceForVolatility(shortTimes, scaledShortPrices, timestamp);
+            
+            if (longPrice != null && shortPrice != null) {
+                double longPixelY = convertValueToPixelForVolatility(longPrice, minValue, maxValue, chartHeight);
+                double shortPixelY = convertValueToPixelForVolatility(shortPrice, minValue, maxValue, chartHeight);
+                double pixelDistance = Math.abs(longPixelY - shortPixelY);
+                pixelSpreads.add(pixelDistance);
+            }
+        }
+        
+        return pixelSpreads;
+    }
+    
+    /**
+     * Находит ближайшую цену для заданного времени (копия метода из PixelSpreadService)
+     */
+    private Double findNearestPriceForVolatility(List<Date> timeAxis, List<Double> prices, long targetTimestamp) {
+        if (timeAxis.isEmpty() || prices.isEmpty()) return null;
+        
+        int bestIndex = 0;
+        long bestDiff = Math.abs(timeAxis.get(0).getTime() - targetTimestamp);
+        
+        for (int i = 1; i < timeAxis.size(); i++) {
+            long diff = Math.abs(timeAxis.get(i).getTime() - targetTimestamp);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestIndex = i;
+            }
+        }
+        
+        return prices.get(bestIndex);
+    }
+    
+    /**
+     * Конвертирует значение в пиксельную координату Y (копия метода из PixelSpreadService)
+     */
+    private double convertValueToPixelForVolatility(double value, double minValue, double maxValue, int chartHeight) {
+        if (maxValue - minValue == 0) return chartHeight / 2.0;
+        
+        // Нормализуем значение в диапазон [0, 1]
+        double normalized = (value - minValue) / (maxValue - minValue);
+        
+        // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
+        return chartHeight - (normalized * chartHeight);
     }
 
     /**
