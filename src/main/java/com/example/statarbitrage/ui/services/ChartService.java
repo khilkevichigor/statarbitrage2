@@ -1028,14 +1028,14 @@ public class ChartService {
         if (inRange) {
             Date entryDate = new Date(entryTimestamp);
             List<Date> lineX = Arrays.asList(entryDate, entryDate);
-            // Используем диапазон от 0 до 1 для базового чарта
-            List<Double> lineY = Arrays.asList(0.0, 1.0);
+            // ИСПРАВЛЕНО: Используем диапазон Z-Score для совместимости с добавляемыми компонентами
+            List<Double> lineY = Arrays.asList(-3.0, 3.0);
 
             XYSeries entryLine = chart.addSeries("Entry", lineX, lineY);
             entryLine.setLineColor(Color.BLUE);
             entryLine.setMarker(new None());
             entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
-            log.debug("✅ Линия входа добавлена на комбинированный чарт");
+            log.debug("✅ Линия входа добавлена на комбинированный чарт с Z-Score диапазоном");
         }
 
         return chart;
