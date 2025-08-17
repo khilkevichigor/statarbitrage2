@@ -61,6 +61,7 @@ public class StatisticsComponent extends VerticalLayout {
                     new StatisticRow("Выход: Z MAX", stats.getExitByZMaxToday(), stats.getExitByZMaxTotal()),
                     new StatisticRow("Выход: TIME", stats.getExitByTimeToday(), stats.getExitByTimeTotal()),
                     new StatisticRow("Выход: BREAKEVEN", stats.getExitByBreakevenToday(), stats.getExitByBreakevenTotal()),
+                    new StatisticRow("Выход: Z<0 МИН ПРОФИТ", stats.getExitByNegativeZMinProfitToday(), stats.getExitByNegativeZMinProfitTotal()),
                     new StatisticRow("Выход: MANUALLY", stats.getExitByManuallyToday(), stats.getExitByManuallyTotal()),
 
                     new StatisticRow("Профит нереализованный", getSumProfitUnrealizedToday(stats), getSumProfitUnrealizedTotal(stats)),

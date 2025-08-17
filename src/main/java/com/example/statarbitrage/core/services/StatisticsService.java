@@ -92,6 +92,9 @@ public class StatisticsService {
                 .exitByBreakevenToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_BREAKEVEN.name()))
                 .exitByBreakevenTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_BREAKEVEN.name()))
 
+                .exitByNegativeZMinProfitToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_BY_NEGATIVE_Z_MIN_PROFIT.name()))
+                .exitByNegativeZMinProfitTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_BY_NEGATIVE_Z_MIN_PROFIT.name()))
+
                 .exitByManuallyToday(tradeHistoryRepository.getByExitReasonForToday(ExitReasonType.EXIT_REASON_MANUALLY.name()))
                 .exitByManuallyTotal(tradeHistoryRepository.getAllByExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name()))
 

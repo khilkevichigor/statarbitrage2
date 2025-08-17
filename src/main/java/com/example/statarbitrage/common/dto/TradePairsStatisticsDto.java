@@ -49,6 +49,9 @@ public class TradePairsStatisticsDto {
     private long exitByBreakevenToday;
     private long exitByBreakevenTotal;
 
+    private long exitByNegativeZMinProfitToday;
+    private long exitByNegativeZMinProfitTotal;
+
     private long exitByManuallyToday;
     private long exitByManuallyTotal;
 
