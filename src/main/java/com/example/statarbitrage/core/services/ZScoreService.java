@@ -246,6 +246,55 @@ public class ZScoreService {
             return Collections.emptyList();
         }
 
+        // Выводим статистику по ZScore данным перед отбором
+        double maxZScore = zScoreDataList.stream()
+                .mapToDouble(data -> {
+                    List<ZScoreParam> params = data.getZScoreHistory();
+                    return params != null && !params.isEmpty() 
+                        ? params.get(params.size() - 1).getZscore()
+                        : (data.getLatestZScore() != null ? data.getLatestZScore() : 0.0);
+                })
+                .max().orElse(0.0);
+
+        double minPValue = zScoreDataList.stream()
+                .mapToDouble(data -> {
+                    List<ZScoreParam> params = data.getZScoreHistory();
+                    if (params != null && !params.isEmpty()) {
+                        return params.get(params.size() - 1).getPvalue();
+                    } else if (data.getPearsonCorrPValue() != null) {
+                        return data.getPearsonCorrPValue();
+                    }
+                    return Double.MAX_VALUE;
+                })
+                .min().orElse(Double.MAX_VALUE);
+
+        double minRSquared = zScoreDataList.stream()
+                .mapToDouble(data -> data.getAvgRSquared() != null ? data.getAvgRSquared() : 0.0)
+                .min().orElse(0.0);
+
+        double maxADF = zScoreDataList.stream()
+                .mapToDouble(data -> {
+                    List<ZScoreParam> params = data.getZScoreHistory();
+                    if (params != null && !params.isEmpty()) {
+                        return params.get(params.size() - 1).getAdfpvalue();
+                    } else if (data.getJohansenCointPValue() != null) {
+                        return data.getJohansenCointPValue();
+                    }
+                    return 0.0;
+                })
+                .max().orElse(0.0);
+
+        double minCorrelation = zScoreDataList.stream()
+                .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
+                .min().orElse(0.0);
+
+        log.info("📊 Статистика перед отбором топ-{} пар:", topN);
+        log.info("   🔥 Максимальный Z-Score: {}", maxZScore);
+        log.info("   📉 Минимальный P-Value: {}", minPValue);
+        log.info("   📈 Минимальный R-Squared: {}", minRSquared);
+        log.info("   🔍 Максимальный ADF: {}", maxADF);
+        log.info("   🔗 Минимальная корреляция: {}", minCorrelation);
+
         List<ZScoreData> bestPairs = new ArrayList<>();
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
