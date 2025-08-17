@@ -317,6 +317,10 @@ public class PairData {
     private boolean useBonusScoring;
     @CsvExportable(order = 109)
     private double bonusScoringWeight;
+    @CsvExportable(order = 110)
+    private boolean settingsUseExitNegativeZMinProfitPercent;
+    @CsvExportable(order = 111)
+    private double settingsExitNegativeZMinProfitPercent;
 
     public PairData(String longTicker, String shortTicker) {
         this.longTicker = longTicker;

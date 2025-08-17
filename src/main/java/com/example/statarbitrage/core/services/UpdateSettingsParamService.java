@@ -50,6 +50,8 @@ public class UpdateSettingsParamService {
         pairData.setSettingsUseExitZMaxPercent(settings.isUseExitZMaxPercent());
         pairData.setSettingsUseExitTimeHours(settings.isUseExitTimeMinutes());
         pairData.setSettingsUseExitBreakEvenPercent(settings.isUseExitBreakEvenPercent());
+        pairData.setSettingsExitNegativeZMinProfitPercent(settings.getExitNegativeZMinProfitPercent());
+        pairData.setSettingsUseExitNegativeZMinProfitPercent(settings.isUseExitNegativeZMinProfitPercent());
         pairData.setSettingsMinimumLotBlacklist(settings.getMinimumLotBlacklist());
         pairData.setUseZScoreScoring(settings.isUseZScoreScoring());
         pairData.setZScoreScoringWeight(settings.getZScoreScoringWeight());

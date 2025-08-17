@@ -55,6 +55,12 @@ public class ExitStrategyService {
             return ExitReasonType.EXIT_REASON_BY_BREAKEVEN.name();
         }
 
+        if (isNegativeZMinProfitTriggered(zScoreCurrent, profit, settings)) {
+            log.info("Выход по отрицательному Z-Score с минимальным профитом: zScoreCurrent = {}, profit = {}%, minProfit = {}%", 
+                    zScoreCurrent, profit, settings.getExitNegativeZMinProfitPercent());
+            return ExitReasonType.EXIT_REASON_BY_NEGATIVE_Z_MIN_PROFIT.name();
+        }
+
         return null;
     }
 
@@ -91,5 +97,23 @@ public class ExitStrategyService {
             return false;
         }
         return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() >= settings.getExitBreakEvenPercent(); //1% чтобы гарантировать БУ
+    }
+
+    /**
+     * Проверяет условие выхода при отрицательном Z-Score с минимальным профитом
+     * 
+     * @param zScoreCurrent текущий Z-Score
+     * @param profit текущий профит в процентах  
+     * @param settings настройки торговли
+     * @return true если нужно закрывать позицию
+     */
+    private boolean isNegativeZMinProfitTriggered(double zScoreCurrent, double profit, Settings settings) {
+        if (!settings.isUseExitNegativeZMinProfitPercent()) {
+            return false;
+        }
+        
+        // Z-Score стал отрицательным (направление торговли изменилось)
+        // И у нас есть минимальный требуемый профит
+        return zScoreCurrent < 0.0 && profit >= settings.getExitNegativeZMinProfitPercent();
     }
 }

@@ -41,6 +41,7 @@ public class Settings {
     private double exitZMaxPercent;
     private double exitTimeMinutes;
     private double exitBreakEvenPercent; //% профита для закрытия по БУ
+    private double exitNegativeZMinProfitPercent; //% минимального профита при Z < 0
 
     private double usePairs;
 
@@ -76,6 +77,8 @@ public class Settings {
     private boolean useExitTimeMinutes = true;
     @Builder.Default
     private boolean useExitBreakEvenPercent = true;
+    @Builder.Default
+    private boolean useExitNegativeZMinProfitPercent = true;
     @Builder.Default
     private boolean useCointegrationStabilityFilter = true; //todo добавить на UI
 
