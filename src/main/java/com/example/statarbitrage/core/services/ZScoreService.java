@@ -250,7 +250,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs);
+            Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs, candlesMap);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
 

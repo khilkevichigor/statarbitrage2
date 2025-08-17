@@ -1,5 +1,6 @@
 package com.example.statarbitrage.core.services;
 
+import com.example.statarbitrage.common.dto.Candle;
 import com.example.statarbitrage.common.dto.ZScoreData;
 import com.example.statarbitrage.common.dto.ZScoreParam;
 import com.example.statarbitrage.common.model.Settings;
@@ -28,7 +29,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
      * - Z-Score + Пиксельный спред + Коинтеграция + Качество модели + Статистика + Бонусы
      * - Максимальный скор: сумма всех весов (настраивается)
      */
-    public Optional<ZScoreData> getBestZScoreData(Settings settings, List<ZScoreData> dataList) {
+    public Optional<ZScoreData> getBestZScoreData(Settings settings, List<ZScoreData> dataList, Map<String, List<Candle>> candlesMap) {
         if (dataList == null || dataList.isEmpty()) {
             return Optional.empty();
         }
@@ -49,7 +50,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             } else {
                 filteredList.add(data);
                 // Рассчитываем качественный скор для лога
-                double qualityScore = calculatePairQualityScore(data, settings);
+                double qualityScore = calculatePairQualityScore(data, settings, candlesMap);
                 log.info("📊 Пара {}/{} прошла фильтрацию. Качественный скор: {}",
                         data.getUnderValuedTicker(), data.getOverValuedTicker(),
                         NumberFormatter.format(qualityScore, 2));
@@ -71,7 +72,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         List<PairCandidate> candidates = new ArrayList<>();
 
         for (ZScoreData z : filteredList) {
-            PairCandidate candidate = evaluatePair(z, settings);
+            PairCandidate candidate = evaluatePair(z, settings, candlesMap);
             if (candidate != null) {
                 candidates.add(candidate);
             }
@@ -108,7 +109,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
      * Упрощенный метод - вся логика скоринга в FilterIncompleteZScoreParamsServiceV2
      * ДОБАВЛЕНА ПРОВЕРКА на минимальный Z-Score
      */
-    private PairCandidate evaluatePair(ZScoreData z, Settings settings) {
+    private PairCandidate evaluatePair(ZScoreData z, Settings settings, Map<String, List<Candle>> candlesMap) {
         List<ZScoreParam> params = z.getZScoreHistory();
 
         double zVal, pValue, adf, corr, rSquared;
@@ -139,7 +140,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         // ====== ПОЛНЫЙ КАЛКУЛЯТОР СКОРА с ПИКСЕЛЬНЫМ СПРЕДОМ ======
         // Используем полную систему скоринга с настраиваемыми весами включая пиксельный спред!
 
-        double fullQualityScore = calculatePairQualityScore(z, settings);
+        double fullQualityScore = calculatePairQualityScore(z, settings, candlesMap);
 
         return new PairCandidate(z, fullQualityScore, zVal, corr, adf, pValue, rSquared);
     }
@@ -277,7 +278,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
     /**
      * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
      */
-    public double calculatePairQualityScore(ZScoreData data, Settings settings) {
+    public double calculatePairQualityScore(ZScoreData data, Settings settings, Map<String, List<Candle>> candlesMap) {
         double totalScore = 0.0;
         List<ZScoreParam> params = data.getZScoreHistory();
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
@@ -296,7 +297,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
         // ====== 2. ПИКСЕЛЬНЫЙ СПРЕД (настраиваемый вес, высокий приоритет!) ======
         if (settings.isUsePixelSpreadScoring()) {
-            double pixelSpreadScore = calculatePixelSpreadScoreComponent(data, settings);
+            double pixelSpreadScore = calculatePixelSpreadScoreComponent(data, settings, candlesMap);
             totalScore += pixelSpreadScore;
             log.info("  📏 Пиксельный спред: {} очков (вес={})",
                     NumberFormatter.format(pixelSpreadScore, 1), settings.getPixelSpreadScoringWeight());
@@ -339,59 +340,77 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
     }
 
     /**
-     * Расчет скора пиксельного спреда
+     * Расчет скора пиксельного спреда (НОВАЯ ВЕРСИЯ: с расчетом из candlesMap)
      */
-    private double calculatePixelSpreadScoreComponent(ZScoreData data, Settings settings) {
+    private double calculatePixelSpreadScoreComponent(ZScoreData data, Settings settings, Map<String, List<Candle>> candlesMap) {
         try {
-            // Ищем существующую PairData по тикерам
             String longTicker = data.getUnderValuedTicker();  // undervalued = long
             String shortTicker = data.getOverValuedTicker(); // overvalued = short
 
-            // Получаем PairData из базы (если существует)
+            // Сначала пробуем найти существующую PairData (старая логика)
             var existingPairs = pairDataService.findByTickers(longTicker, shortTicker);
 
             if (!existingPairs.isEmpty()) {
                 var pairData = existingPairs.get(0);
 
-                // Получаем статистику пиксельного спреда
+                // Получаем статистику пиксельного спреда из существующей пары
                 double avgSpread = pixelSpreadService.getAveragePixelSpread(pairData);
-                double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
 
                 if (avgSpread > 0) {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
+                    double totalScore = calculateScoreFromPixelSpread(avgSpread, maxWeight);
 
-                    // Логика начисления баллов (нормализуем на полный вес)
-                    double scoreRatio;
-                    if (avgSpread < 20) {
-                        scoreRatio = 0.0;
-                    } else if (avgSpread < 40) {
-                        scoreRatio = 0.25 + (avgSpread - 20) / 20 * 0.25; // 25-50%
-                    } else if (avgSpread < 80) {
-                        scoreRatio = 0.50 + (avgSpread - 40) / 40 * 0.25; // 50-75%
-                    } else {
-                        scoreRatio = 0.75 + Math.min((avgSpread - 80) / 40, 1.0) * 0.25; // 75-100%
-                    }
-
-                    // Бонус за высокий максимум (дополнительная волатильность)
-                    if (maxSpread > 100) {
-                        scoreRatio = Math.min(scoreRatio + 0.1, 1.0); // +10% бонус
-                    }
-
-                    double totalScore = maxWeight * scoreRatio;
-
-                    log.info("    📏 Пиксельный спред: avg={:.1f}px, max={:.1f}px → {:.1f} баллов ({:.0f}% от {})",
-                            avgSpread, maxSpread, totalScore, scoreRatio * 100, maxWeight);
-
+                    log.info("    📏 Пиксельный спред (существующая пара): avg={:.1f}px → {:.1f} баллов",
+                            avgSpread, totalScore);
                     return totalScore;
                 }
             }
 
+            // НОВАЯ ЛОГИКА: если существующей пары нет, вычисляем из candlesMap
+            if (candlesMap != null && candlesMap.containsKey(longTicker) && candlesMap.containsKey(shortTicker)) {
+                List<Candle> longCandles = candlesMap.get(longTicker);
+                List<Candle> shortCandles = candlesMap.get(shortTicker);
+
+                // Используем быстрый метод (только текущие цены) для лучшей производительности при скоринге
+                double currentSpread = pixelSpreadService.calculateCurrentPixelSpreadFromCandles(
+                        longCandles, shortCandles, longTicker, shortTicker);
+
+                if (currentSpread > 0) {
+                    double maxWeight = settings.getPixelSpreadScoringWeight();
+                    double totalScore = calculateScoreFromPixelSpread(currentSpread, maxWeight);
+
+                    log.info("    📏 Пиксельный спред (вычисленный текущий): {:.1f}px → {:.1f} баллов",
+                            currentSpread, totalScore);
+                    return totalScore;
+                }
+            }
+
+            log.debug("    📏 Нет данных для пиксельного спреда пары {}/{}", longTicker, shortTicker);
             return 0.0; // Нет данных о пиксельном спреде
 
         } catch (Exception e) {
             log.warn("    📏 Ошибка расчета скора пиксельного спреда: {}", e.getMessage());
             return 0.0;
         }
+    }
+
+    /**
+     * Вычисляет скор из значения пиксельного спреда
+     */
+    private double calculateScoreFromPixelSpread(double avgSpread, double maxWeight) {
+        // Логика начисления баллов (нормализуем на полный вес)
+        double scoreRatio;
+        if (avgSpread < 20) {
+            scoreRatio = 0.0;
+        } else if (avgSpread < 40) {
+            scoreRatio = 0.25 + (avgSpread - 20) / 20 * 0.25; // 25-50%
+        } else if (avgSpread < 80) {
+            scoreRatio = 0.50 + (avgSpread - 40) / 40 * 0.25; // 50-75%
+        } else {
+            scoreRatio = 0.75 + Math.min((avgSpread - 80) / 40, 1.0) * 0.25; // 75-100%
+        }
+
+        return maxWeight * scoreRatio;
     }
 
     /**
