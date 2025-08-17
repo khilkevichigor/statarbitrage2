@@ -293,6 +293,30 @@ public class PairData {
     private boolean settingsUseExitBreakEvenPercent;
     @CsvExportable(order = 97)
     private String settingsMinimumLotBlacklist;
+    @CsvExportable(order = 98)
+    private boolean useZScoreScoring;
+    @CsvExportable(order = 99)
+    private double zScoreScoringWeight;
+    @CsvExportable(order = 100)
+    private boolean usePixelSpreadScoring;
+    @CsvExportable(order = 101)
+    private double pixelSpreadScoringWeight;
+    @CsvExportable(order = 102)
+    private boolean useCointegrationScoring;
+    @CsvExportable(order = 103)
+    private double cointegrationScoringWeight;
+    @CsvExportable(order = 104)
+    private boolean useModelQualityScoring;
+    @CsvExportable(order = 105)
+    private double modelQualityScoringWeight;
+    @CsvExportable(order = 106)
+    private boolean useStatisticsScoring;
+    @CsvExportable(order = 107)
+    private double statisticsScoringWeight;
+    @CsvExportable(order = 108)
+    private boolean useBonusScoring;
+    @CsvExportable(order = 109)
+    private double bonusScoringWeight;
 
     public PairData(String longTicker, String shortTicker) {
         this.longTicker = longTicker;

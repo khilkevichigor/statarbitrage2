@@ -51,5 +51,17 @@ public class UpdateSettingsParamService {
         pairData.setSettingsUseExitTimeHours(settings.isUseExitTimeMinutes());
         pairData.setSettingsUseExitBreakEvenPercent(settings.isUseExitBreakEvenPercent());
         pairData.setSettingsMinimumLotBlacklist(settings.getMinimumLotBlacklist());
+        pairData.setUseZScoreScoring(settings.isUseZScoreScoring());
+        pairData.setZScoreScoringWeight(settings.getZScoreScoringWeight());
+        pairData.setUsePixelSpreadScoring(settings.isUsePixelSpreadScoring());
+        pairData.setPixelSpreadScoringWeight(settings.getPixelSpreadScoringWeight());
+        pairData.setUseCointegrationScoring(settings.isUseCointegrationScoring());
+        pairData.setCointegrationScoringWeight(settings.getCointegrationScoringWeight());
+        pairData.setUseModelQualityScoring(settings.isUseModelQualityScoring());
+        pairData.setModelQualityScoringWeight(settings.getModelQualityScoringWeight());
+        pairData.setUseStatisticsScoring(settings.isUseStatisticsScoring());
+        pairData.setStatisticsScoringWeight(settings.getStatisticsScoringWeight());
+        pairData.setUseBonusScoring(settings.isUseBonusScoring());
+        pairData.setBonusScoringWeight(settings.getBonusScoringWeight());
     }
 }
