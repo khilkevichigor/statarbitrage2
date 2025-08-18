@@ -4,6 +4,7 @@ import com.example.statarbitrage.bot.BotConfig;
 import com.example.statarbitrage.common.events.SendAsTextEvent;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.core.services.EventSendService;
+import com.example.statarbitrage.formatters.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,6 +73,7 @@ public class TelegramNotificationService implements NotificationService {
                         Профит: %.2f USDT (%.2f%%)
                         Баланс: было %.2f $, стало: %.2f $
                         Дельта баланса: %s $
+                        Продолжительность: %s
                         %s
                         %s""",
                 pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
@@ -80,6 +82,7 @@ public class TelegramNotificationService implements NotificationService {
                 pairData.getProfitPercentChanges(),
                 pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
                 deltaString.startsWith("-") ? EMOJI_RED : EMOJI_GREEN + " " + deltaString,
+                TimeFormatterUtil.formatDurationFromMillis(pairData.getUpdatedTime() - pairData.getEntryTime()),
                 pairData.getExitReason(),
                 pairData.getUuid()
         );
