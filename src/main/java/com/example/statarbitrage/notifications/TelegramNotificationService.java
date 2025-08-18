@@ -79,7 +79,7 @@ public class TelegramNotificationService implements NotificationService {
                 pairData.getProfitUSDTChanges(),
                 pairData.getProfitPercentChanges(),
                 pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
-                deltaString,
+                deltaString.startsWith("-") ? EMOJI_RED : EMOJI_GREEN + " " + deltaString,
                 pairData.getExitReason(),
                 pairData.getUuid()
         );
