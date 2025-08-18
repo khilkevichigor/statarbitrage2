@@ -68,16 +68,16 @@ public class TelegramNotificationService implements NotificationService {
                 : safeScale(delta, 2).toPlainString();
         return String.format(
                 """
-                        %s Пара закрыта
+                        Пара закрыта
                         %s
-                        Профит: %.2f USDT (%.2f%%)
+                        Профит: %s %.2f USDT (%.2f%%)
                         Баланс: было %.2f $, стало: %.2f $
                         Дельта баланса: %s $
                         Продолжительность: %s
                         %s
                         %s""",
-                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
                 pairData.getPairName(),
+                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED,
                 pairData.getProfitUSDTChanges(),
                 pairData.getProfitPercentChanges(),
                 pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
