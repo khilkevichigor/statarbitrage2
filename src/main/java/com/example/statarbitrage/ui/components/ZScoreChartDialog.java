@@ -1,7 +1,9 @@
 package com.example.statarbitrage.ui.components;
 
+import com.example.statarbitrage.common.model.ChartSettings;
 import com.example.statarbitrage.common.model.PairData;
 import com.example.statarbitrage.common.model.Settings;
+import com.example.statarbitrage.core.services.ChartSettingsService;
 import com.example.statarbitrage.core.services.PixelSpreadService;
 import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.ui.services.ChartService;
@@ -34,9 +36,12 @@ import java.math.RoundingMode;
 @UIScope
 public class ZScoreChartDialog extends Dialog {
 
+    private static final String CHART_TYPE = "ZSCORE_CHART_DIALOG";
+
     private final SettingsService settingsService;
     private final ChartService chartService;
     private final PixelSpreadService pixelSpreadService;
+    private final ChartSettingsService chartSettingsService;
 
     private VerticalLayout content;
     private Image mainChartImage; // Единая область для чартов
@@ -52,10 +57,12 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showProfitCheckbox;
     private PairData currentPairData;
 
-    public ZScoreChartDialog(SettingsService settingsService, ChartService chartService, PixelSpreadService pixelSpreadService) {
+    public ZScoreChartDialog(SettingsService settingsService, ChartService chartService,
+                             PixelSpreadService pixelSpreadService, ChartSettingsService chartSettingsService) {
         this.settingsService = settingsService;
         this.chartService = chartService;
         this.pixelSpreadService = pixelSpreadService;
+        this.chartSettingsService = chartSettingsService;
         initializeDialog();
         createComponents();
         layoutComponents();
@@ -104,33 +111,58 @@ public class ZScoreChartDialog extends Dialog {
     private void createChartSelectionCheckboxes() {
         Settings settings = settingsService.getSettings();
 
+        // Загружаем сохраненные настройки чарта
+        ChartSettings chartSettings = chartSettingsService.getChartSettings(CHART_TYPE);
+
         // Основные чекбоксы для выбора типов чартов
         showZScoreCheckbox = new Checkbox("📊 Z-Score график");
-        showZScoreCheckbox.setValue(false); // Не выбран по умолчанию
-        showZScoreCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showZScoreCheckbox.setValue(chartSettings.isShowZScore());
+        showZScoreCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showZScore", e.getValue());
+            refreshMainChart();
+        });
 
         showCombinedPriceCheckbox = new Checkbox("💰 Наложенные цены");
-        showCombinedPriceCheckbox.setValue(true); // Выбран по умолчанию!
-        showCombinedPriceCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showCombinedPriceCheckbox.setValue(chartSettings.isShowCombinedPrice());
+        showCombinedPriceCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showCombinedPrice", e.getValue());
+            refreshMainChart();
+        });
 
         showPixelSpreadCheckbox = new Checkbox("📏 Пиксельный спред");
-        showPixelSpreadCheckbox.setValue(false); // Не выбран по умолчанию
-        showPixelSpreadCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showPixelSpreadCheckbox.setValue(chartSettings.isShowPixelSpread());
+        showPixelSpreadCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showPixelSpread", e.getValue());
+            refreshMainChart();
+        });
 
         // Дополнительные индикаторы для Z-Score (только если Z-Score выбран)
         showEmaCheckbox = new Checkbox("+ EMA (" + getEmaPeriodFromTimeframe(settings.getTimeframe()) + ")");
-        showEmaCheckbox.setValue(false);
-        showEmaCheckbox.addValueChangeListener(e -> refreshMainChart());
-        showEmaCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
+        showEmaCheckbox.setValue(chartSettings.isShowEma());
+        showEmaCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showEma", e.getValue());
+            refreshMainChart();
+        });
+        showEmaCheckbox.setEnabled(chartSettings.isShowZScore()); // Отключен пока Z-Score не выбран
 
         showStochRsiCheckbox = new Checkbox("+ StochRSI");
-        showStochRsiCheckbox.setValue(false);
-        showStochRsiCheckbox.addValueChangeListener(e -> refreshMainChart());
-        showStochRsiCheckbox.setEnabled(false); // Отключен пока Z-Score не выбран
+        showStochRsiCheckbox.setValue(chartSettings.isShowStochRsi());
+        showStochRsiCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showStochRsi", e.getValue());
+            refreshMainChart();
+        });
+        showStochRsiCheckbox.setEnabled(chartSettings.isShowZScore()); // Отключен пока Z-Score не выбран
 
         showProfitCheckbox = new Checkbox("💹 Профит");
-        showProfitCheckbox.setValue(false);
-        showProfitCheckbox.addValueChangeListener(e -> refreshMainChart());
+        showProfitCheckbox.setValue(chartSettings.isShowProfit());
+        showProfitCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showProfit", e.getValue());
+            refreshMainChart();
+        });
+
+        log.debug("📊 Загружены настройки чарта: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}",
+                chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
+                chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit());
     }
 
     /**
@@ -301,13 +333,22 @@ public class ZScoreChartDialog extends Dialog {
             // Устанавливаем заголовок
             pairTitle.setText(String.format("📊 Z-Score Chart: %s", pairData.getPairName()));
 
-            // Сбрасываем состояние чекбоксов
-            showZScoreCheckbox.setValue(false);
-            showCombinedPriceCheckbox.setValue(true); // Наложенные цены по умолчанию!
-            showPixelSpreadCheckbox.setValue(false);
-            showEmaCheckbox.setValue(false);
-            showStochRsiCheckbox.setValue(false);
-            showProfitCheckbox.setValue(false);
+            // Загружаем сохраненные настройки чекбоксов из базы данных
+            ChartSettings chartSettings = chartSettingsService.getChartSettings(CHART_TYPE);
+            showZScoreCheckbox.setValue(chartSettings.isShowZScore());
+            showCombinedPriceCheckbox.setValue(chartSettings.isShowCombinedPrice());
+            showPixelSpreadCheckbox.setValue(chartSettings.isShowPixelSpread());
+            showEmaCheckbox.setValue(chartSettings.isShowEma());
+            showStochRsiCheckbox.setValue(chartSettings.isShowStochRsi());
+            showProfitCheckbox.setValue(chartSettings.isShowProfit());
+
+            // Управляем доступностью индикаторов Z-Score
+            showEmaCheckbox.setEnabled(chartSettings.isShowZScore());
+            showStochRsiCheckbox.setEnabled(chartSettings.isShowZScore());
+
+            log.debug("📊 Восстановлены настройки чекбоксов: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}",
+                    chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
+                    chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit());
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService
             pixelSpreadService.calculatePixelSpreadIfNeeded(currentPairData);
