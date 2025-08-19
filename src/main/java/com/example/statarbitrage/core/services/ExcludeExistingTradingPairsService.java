@@ -49,7 +49,7 @@ public class ExcludeExistingTradingPairsService {
         if (removed > 0) {
             log.info("Исключено {} уже торгующихся пар из ZScoreData", removed);
         } else {
-            log.info("Нет совпадений с активными торговыми парами — ничего не исключено.");
+            log.debug("Нет совпадений с активными торговыми парами — ничего не исключено.");
         }
     }
 
