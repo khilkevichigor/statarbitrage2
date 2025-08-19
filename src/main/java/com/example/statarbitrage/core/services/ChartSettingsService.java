@@ -72,6 +72,9 @@ public class ChartSettingsService {
             case "showprofit":
                 settings.setShowProfit(value);
                 break;
+            case "showentrypoint":
+                settings.setShowEntryPoint(value);
+                break;
             default:
                 log.warn("⚠️ Неизвестная настройка чарта: {}", settingName);
                 return;
@@ -96,6 +99,7 @@ public class ChartSettingsService {
                 .showEma(false)
                 .showStochRsi(false)
                 .showProfit(false)
+                .showEntryPoint(true)
                 .build();
 
         log.debug("🆕 Созданы настройки по умолчанию для чарта типа: {}", chartType);

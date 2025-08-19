@@ -29,17 +29,17 @@ public class ChartService {
 
     private final PixelSpreadService pixelSpreadService;
 
-    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread) {
-        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {}, PixelSpread: {})",
-                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
+    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
+        log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {}, PixelSpread: {}, EntryPoint: {})",
+                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
 
-        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
+        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
 
         return BitmapEncoder.getBufferedImage(chart);
     }
 
-    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread) {
-        XYChart chart = buildBasicZScoreChart(pairData);
+    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
+        XYChart chart = buildBasicZScoreChart(pairData, showEntryPoint);
 
         List<ZScoreParam> history = pairData.getZScoreHistory();
 
@@ -79,7 +79,7 @@ public class ChartService {
         return chart;
     }
 
-    private XYChart buildBasicZScoreChart(PairData pairData) {
+    private XYChart buildBasicZScoreChart(PairData pairData, boolean showEntryPoint) {
         List<ZScoreParam> history = pairData.getZScoreHistory();
 
         List<Long> timestamps;
@@ -135,33 +135,72 @@ public class ChartService {
         addHorizontalLine(chart, timeAxis, -2.0, Color.RED);
         addHorizontalLine(chart, timeAxis, -3.0, Color.BLUE);
 
-        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
-        long historyStart = timestamps.get(0);
-        long historyEnd = timestamps.get(timestamps.size() - 1);
+        // Отображаем точку входа только если включен соответствующий чекбокс
+        if (showEntryPoint) {
+            long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+            long historyStart = timestamps.get(0);
+            long historyEnd = timestamps.get(timestamps.size() - 1);
 
-        log.debug("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
-                new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
-        log.debug("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
+            log.debug("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
+                    new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
+            log.debug("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
 
-        boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+            boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
 
-        if (inRange) {
-            log.debug("Время входа попадает в диапазон истории - рисуем точную линию входа");
+            if (inRange) {
+                log.debug("Время входа попадает в диапазон истории - рисуем точную линию входа");
 
-            OptionalInt indexOpt = findClosestIndex(timestamps, entryTimestamp);
+                OptionalInt indexOpt = findClosestIndex(timestamps, entryTimestamp);
 
-            if (indexOpt.isPresent()) {
-                int index = indexOpt.getAsInt();
+                if (indexOpt.isPresent()) {
+                    int index = indexOpt.getAsInt();
 
-                Date entryDate = new Date(entryTimestamp);
+                    Date entryDate = new Date(entryTimestamp);
+                    List<Date> lineX = Arrays.asList(entryDate, entryDate);
+
+                    double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
+                    double maxY = zScores.stream().max(Double::compareTo).orElse(2.0);
+                    List<Double> lineY = Arrays.asList(minY, maxY);
+
+                    XYSeries entryLine = chart.addSeries("Entry", lineX, lineY);
+                    entryLine.setLineColor(Color.BLUE);
+                    entryLine.setMarker(new None());
+                    entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+                    double entryZScore = pairData.getZScoreEntry();
+                    List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+                    List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
+
+                    XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score", horizontalLineX, horizontalLineY);
+                    entryHorizontalLine.setLineColor(Color.BLUE);
+                    entryHorizontalLine.setMarker(new None());
+                    entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+                    log.debug("✅ Линия входа добавлена на графике в позиции {}", index);
+                }
+            } else if (entryTimestamp > 0) {
+                log.debug("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
+
+                Date entryDate;
+                int index;
+
+                if (entryTimestamp < historyStart) {
+                    entryDate = new Date(historyStart);
+                    index = 0;
+                    log.debug("Показываем линию входа в начале графика");
+                } else {
+                    entryDate = new Date(historyEnd);
+                    index = timestamps.size() - 1;
+                    log.debug("Показываем линию входа в конце графика");
+                }
+
                 List<Date> lineX = Arrays.asList(entryDate, entryDate);
-
                 double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
                 double maxY = zScores.stream().max(Double::compareTo).orElse(2.0);
                 List<Double> lineY = Arrays.asList(minY, maxY);
 
-                XYSeries entryLine = chart.addSeries("Entry", lineX, lineY);
-                entryLine.setLineColor(Color.BLUE);
+                XYSeries entryLine = chart.addSeries("Entry (approx)", lineX, lineY);
+                entryLine.setLineColor(Color.ORANGE);
                 entryLine.setMarker(new None());
                 entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
@@ -169,51 +208,17 @@ public class ChartService {
                 List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
                 List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
 
-                XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score", horizontalLineX, horizontalLineY);
-                entryHorizontalLine.setLineColor(Color.BLUE);
+                XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score (approx)", horizontalLineX, horizontalLineY);
+                entryHorizontalLine.setLineColor(Color.ORANGE);
                 entryHorizontalLine.setMarker(new None());
                 entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                log.debug("✅ Линия входа добавлена на графике в позиции {}", index);
-            }
-        } else if (entryTimestamp > 0) {
-            log.debug("⚠️ Время входа не попадает в диапазон истории - показываем приблизительную линию");
-
-            Date entryDate;
-            int index;
-
-            if (entryTimestamp < historyStart) {
-                entryDate = new Date(historyStart);
-                index = 0;
-                log.debug("Показываем линию входа в начале графика");
+                log.debug("✅ Приблизительная линия входа добавлена на графике");
             } else {
-                entryDate = new Date(historyEnd);
-                index = timestamps.size() - 1;
-                log.debug("Показываем линию входа в конце графика");
+                log.warn("⚠️ Время входа не задано (0) - линия входа не будет показана");
             }
-
-            List<Date> lineX = Arrays.asList(entryDate, entryDate);
-            double minY = zScores.stream().min(Double::compareTo).orElse(-2.0);
-            double maxY = zScores.stream().max(Double::compareTo).orElse(2.0);
-            List<Double> lineY = Arrays.asList(minY, maxY);
-
-            XYSeries entryLine = chart.addSeries("Entry (approx)", lineX, lineY);
-            entryLine.setLineColor(Color.ORANGE);
-            entryLine.setMarker(new None());
-            entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
-
-            double entryZScore = pairData.getZScoreEntry();
-            List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
-            List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
-
-            XYSeries entryHorizontalLine = chart.addSeries("Entry Z-Score (approx)", horizontalLineX, horizontalLineY);
-            entryHorizontalLine.setLineColor(Color.ORANGE);
-            entryHorizontalLine.setMarker(new None());
-            entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
-
-            log.debug("✅ Приблизительная линия входа добавлена на графике");
         } else {
-            log.warn("⚠️ Время входа не задано (0) - линия входа не будет показана");
+            log.debug("🎯 Отображение точки входа отключено через чекбокс");
         }
 
         return chart;
@@ -441,15 +446,15 @@ public class ChartService {
         return createPriceChart(pairData, false);
     }
 
-    public BufferedImage createPriceChartWithProfit(PairData pairData, boolean showPixelSpread, boolean showProfit) {
-        return createPriceChartInternal(pairData, showPixelSpread, showProfit);
+    public BufferedImage createPriceChartWithProfit(PairData pairData, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
+        return createPriceChartInternal(pairData, showPixelSpread, showProfit, showEntryPoint);
     }
 
     public BufferedImage createPriceChart(PairData pairData, boolean showPixelSpread) {
-        return createPriceChartInternal(pairData, showPixelSpread, false);
+        return createPriceChartInternal(pairData, showPixelSpread, false, false);
     }
 
-    private BufferedImage createPriceChartInternal(PairData pairData, boolean showPixelSpread, boolean showProfit) {
+    private BufferedImage createPriceChartInternal(PairData pairData, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
         String longTicker = pairData.getLongTicker();
         String shortTicker = pairData.getShortTicker();
 
@@ -544,6 +549,12 @@ public class ChartService {
         if (showProfit) {
             addProfitToChart(topChart, pairData);
             addProfitToChart(bottomChart, pairData);
+        }
+
+        // Добавляем точку входа если нужно
+        if (showEntryPoint) {
+            addEntryPointToPriceChart(topChart, pairData, timeLong, longPrices);
+            addEntryPointToPriceChart(bottomChart, pairData, timeShort, shortPrices);
         }
 
         // Объединение 2 графиков
@@ -760,6 +771,52 @@ public class ChartService {
     }
 
     /**
+     * Добавляет точку входа на Price чарт
+     */
+    private void addEntryPointToPriceChart(XYChart chart, PairData pairData, List<Date> timeAxis, List<Double> prices) {
+        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        
+        if (entryTimestamp <= 0 || timeAxis.isEmpty() || prices.isEmpty()) {
+            log.debug("⚠️ Недостаточно данных для отображения точки входа на Price чарт");
+            return;
+        }
+
+        long historyStart = timeAxis.get(0).getTime();
+        long historyEnd = timeAxis.get(timeAxis.size() - 1).getTime();
+
+        Date entryDate;
+        boolean inRange = entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+
+        if (inRange) {
+            entryDate = new Date(entryTimestamp);
+            log.debug("🎯 Время входа попадает в диапазон Price чарта - рисуем точную линию входа");
+        } else if (entryTimestamp < historyStart) {
+            entryDate = new Date(historyStart);
+            log.debug("🎯 Время входа до диапазона Price чарта - показываем линию в начале");
+        } else {
+            entryDate = new Date(historyEnd);
+            log.debug("🎯 Время входа после диапазона Price чарта - показываем линию в конце");
+        }
+
+        // Вертикальная линия входа
+        double minPrice = prices.stream().min(Double::compareTo).orElse(0.0);
+        double maxPrice = prices.stream().max(Double::compareTo).orElse(1.0);
+        
+        List<Date> verticalLineX = Arrays.asList(entryDate, entryDate);
+        List<Double> verticalLineY = Arrays.asList(minPrice, maxPrice);
+
+        Color lineColor = inRange ? Color.BLUE : Color.ORANGE;
+        String seriesName = inRange ? "Entry Point" : "Entry Point (approx)";
+
+        XYSeries entryVerticalLine = chart.addSeries(seriesName, verticalLineX, verticalLineY);
+        entryVerticalLine.setLineColor(lineColor);
+        entryVerticalLine.setMarker(new None());
+        entryVerticalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+        log.debug("✅ Точка входа добавлена на Price чарт");
+    }
+
+    /**
      * Вычисляет пиксельное расстояние между графиками Long и Short цен и сохраняет в историю
      */
     private void calculateAndSavePixelSpread(PairData pairData, List<Date> timeLong, List<Double> scaledLongPrices,
@@ -953,17 +1010,17 @@ public class ChartService {
      */
     public BufferedImage createCombinedChart(PairData pairData, boolean showZScore, boolean showCombinedPrice,
                                              boolean showPixelSpread, boolean showEma, int emaPeriod,
-                                             boolean showStochRsi, boolean showProfit) {
+                                             boolean showStochRsi, boolean showProfit, boolean showEntryPoint) {
         log.debug("🎨 Создание комбинированного чарта для пары: {} (ZScore: {}, Price: {}, PixelSpread: {}, EMA: {}, StochRSI: {}, Profit: {})",
                 pairData.getPairName(), showZScore, showCombinedPrice, showPixelSpread, showEma, showStochRsi, showProfit);
 
         // Если выбран только один тип чарта, используем специализированные методы
         if (showZScore && !showCombinedPrice && !showPixelSpread) {
-            return createZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, false, false);
+            return createZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
         } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
-            return createPriceChart(pairData, false);
+            return createPriceChartInternal(pairData, false, false, showEntryPoint);
         } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
-            return createPixelSpreadChart(pairData);
+            return createPixelSpreadChartInternal(pairData, false, showEntryPoint);
         }
 
         // Для комбинированного чарта используем Z-Score как базу
@@ -971,7 +1028,7 @@ public class ChartService {
 
         if (showZScore) {
             // Если Z-Score выбран, используем его как основу
-            chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread);
+            chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
         } else {
             // Если Z-Score не выбран, создаем базовый чарт для других компонентов
             chart = createBaseCombinedChart(pairData);
@@ -1048,18 +1105,18 @@ public class ChartService {
         pixelSpreadService.addCurrentPixelSpreadPoint(pairData);
     }
 
-    public BufferedImage createPixelSpreadChartWithProfit(PairData pairData, boolean showProfit) {
-        return createPixelSpreadChartInternal(pairData, showProfit);
+    public BufferedImage createPixelSpreadChartWithProfit(PairData pairData, boolean showProfit, boolean showEntryPoint) {
+        return createPixelSpreadChartInternal(pairData, showProfit, showEntryPoint);
     }
 
     /**
      * Создает график пиксельного спреда
      */
     public BufferedImage createPixelSpreadChart(PairData pairData) {
-        return createPixelSpreadChartInternal(pairData, false);
+        return createPixelSpreadChartInternal(pairData, false, false);
     }
 
-    private BufferedImage createPixelSpreadChartInternal(PairData pairData, boolean showProfit) {
+    private BufferedImage createPixelSpreadChartInternal(PairData pairData, boolean showProfit, boolean showEntryPoint) {
         List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
 
         if (pixelHistory == null || pixelHistory.isEmpty()) {
@@ -1099,8 +1156,13 @@ public class ChartService {
             addProfitToChart(chart, pairData);
         }
 
-        log.debug("✅ График пиксельного спреда создан с {} точками для пары {} (профит: {})",
-                pixelHistory.size(), pairData.getPairName(), showProfit);
+        // Добавляем точку входа если нужно
+        if (showEntryPoint) {
+            addEntryPointToPriceChart(chart, pairData, timeAxis, pixelDistances);
+        }
+
+        log.debug("✅ График пиксельного спреда создан с {} точками для пары {} (профит: {}, точка входа: {})",
+                pixelHistory.size(), pairData.getPairName(), showProfit, showEntryPoint);
 
         return BitmapEncoder.getBufferedImage(chart);
     }

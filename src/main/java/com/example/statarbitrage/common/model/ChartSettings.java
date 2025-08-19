@@ -40,4 +40,8 @@ public class ChartSettings {
 
     @Builder.Default
     private boolean showProfit = false;
+
+    // Показать точку входа (вертикальная и горизонтальная линии)
+    @Builder.Default
+    private boolean showEntryPoint = true;
 }

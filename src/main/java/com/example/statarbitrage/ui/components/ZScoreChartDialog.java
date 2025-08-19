@@ -55,6 +55,7 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showEmaCheckbox;
     private Checkbox showStochRsiCheckbox;
     private Checkbox showProfitCheckbox;
+    private Checkbox showEntryPointCheckbox;
     private PairData currentPairData;
 
     public ZScoreChartDialog(SettingsService settingsService, ChartService chartService,
@@ -160,9 +161,17 @@ public class ZScoreChartDialog extends Dialog {
             refreshMainChart();
         });
 
-        log.debug("📊 Загружены настройки чарта: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}",
+        showEntryPointCheckbox = new Checkbox("🎯 Показать точку входа");
+        showEntryPointCheckbox.setValue(chartSettings.isShowEntryPoint());
+        showEntryPointCheckbox.addValueChangeListener(e -> {
+            chartSettingsService.updateChartSetting(CHART_TYPE, "showEntryPoint", e.getValue());
+            refreshMainChart();
+        });
+
+        log.debug("📊 Загружены настройки чарта: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}, EntryPoint={}",
                 chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
-                chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit());
+                chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(), 
+                chartSettings.isShowEntryPoint());
     }
 
     /**
@@ -190,6 +199,7 @@ public class ZScoreChartDialog extends Dialog {
             boolean showZScore = showZScoreCheckbox.getValue();
             boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
             boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
+            boolean showEntryPoint = showEntryPointCheckbox.getValue();
 
             // Управляем доступностью индикаторов Z-Score (но НЕ профит!)
             boolean zScoreEnabled = showZScore;
@@ -222,19 +232,19 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showProfit = showProfitCheckbox.getValue();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
-                chartImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, false, false);
+                chartImage = chartService.createZScoreChart(currentPairData, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
                 log.debug("📊 Создан Z-Score чарт с индикаторами: EMA={}, StochRSI={}, Profit={}", showEma, showStochRsi, showProfit);
 
             } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
                 // Только Price чарт с профитом
                 boolean showProfit = showProfitCheckbox.getValue();
-                chartImage = chartService.createPriceChartWithProfit(currentPairData, false, showProfit);
+                chartImage = chartService.createPriceChartWithProfit(currentPairData, false, showProfit, showEntryPoint);
                 log.debug("📊 Создан Price чарт с Profit={}", showProfit);
 
             } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
                 // Только Pixel Spread чарт с профитом
                 boolean showProfit = showProfitCheckbox.getValue();
-                chartImage = chartService.createPixelSpreadChartWithProfit(currentPairData, showProfit);
+                chartImage = chartService.createPixelSpreadChartWithProfit(currentPairData, showProfit, showEntryPoint);
                 log.debug("📊 Создан Pixel Spread чарт с Profit={}", showProfit);
 
             } else {
@@ -245,7 +255,7 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showProfit = showProfitCheckbox.getValue();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
-                chartImage = chartService.createCombinedChart(currentPairData, showZScore, showCombinedPrice, showPixelSpread, showEma, emaPeriod, showStochRsi, showProfit);
+                chartImage = chartService.createCombinedChart(currentPairData, showZScore, showCombinedPrice, showPixelSpread, showEma, emaPeriod, showStochRsi, showProfit, showEntryPoint);
                 log.debug("📊 Создан комбинированный чарт: ZScore={}, Price={}, PixelSpread={}", showZScore, showCombinedPrice, showPixelSpread);
             }
 
@@ -294,7 +304,7 @@ public class ZScoreChartDialog extends Dialog {
 
         HorizontalLayout mainChartsRow = new HorizontalLayout();
         mainChartsRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        mainChartsRow.add(showZScoreCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox, showProfitCheckbox);
+        mainChartsRow.add(showZScoreCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox, showProfitCheckbox, showEntryPointCheckbox);
 
         HorizontalLayout indicatorsRow = new HorizontalLayout();
         indicatorsRow.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -341,14 +351,16 @@ public class ZScoreChartDialog extends Dialog {
             showEmaCheckbox.setValue(chartSettings.isShowEma());
             showStochRsiCheckbox.setValue(chartSettings.isShowStochRsi());
             showProfitCheckbox.setValue(chartSettings.isShowProfit());
+            showEntryPointCheckbox.setValue(chartSettings.isShowEntryPoint());
 
             // Управляем доступностью индикаторов Z-Score
             showEmaCheckbox.setEnabled(chartSettings.isShowZScore());
             showStochRsiCheckbox.setEnabled(chartSettings.isShowZScore());
 
-            log.debug("📊 Восстановлены настройки чекбоксов: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}",
+            log.debug("📊 Восстановлены настройки чекбоксов: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}, EntryPoint={}",
                     chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
-                    chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit());
+                    chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(), 
+                    chartSettings.isShowEntryPoint());
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService
             pixelSpreadService.calculatePixelSpreadIfNeeded(currentPairData);
