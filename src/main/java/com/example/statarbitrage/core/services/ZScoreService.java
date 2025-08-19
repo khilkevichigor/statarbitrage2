@@ -268,11 +268,11 @@ public class ZScoreService {
                 })
                 .min().orElse(Double.MAX_VALUE);
 
-        double minRSquared = zScoreDataList.stream()
+        double maxRSquared = zScoreDataList.stream()
                 .mapToDouble(data -> data.getAvgRSquared() != null ? data.getAvgRSquared() : 0.0)
-                .min().orElse(0.0);
+                .max().orElse(0.0);
 
-        double maxADF = zScoreDataList.stream()
+        double minADF = zScoreDataList.stream()
                 .mapToDouble(data -> {
                     List<ZScoreParam> params = data.getZScoreHistory();
                     if (params != null && !params.isEmpty()) {
@@ -282,18 +282,18 @@ public class ZScoreService {
                     }
                     return 0.0;
                 })
-                .max().orElse(0.0);
-
-        double minCorrelation = zScoreDataList.stream()
-                .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
                 .min().orElse(0.0);
 
+        double maxCorrelation = zScoreDataList.stream()
+                .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
+                .max().orElse(0.0);
+
         log.info("📊 Статистика перед отбором топ-{} пар:", topN);
-        log.info("   🔥 Максимальный Z-Score: {}", maxZScore);
-        log.info("   📉 Минимальный P-Value: {}", minPValue);
-        log.info("   📈 Минимальный R-Squared: {}", minRSquared);
-        log.info("   🔍 Максимальный ADF: {}", maxADF);
-        log.info("   🔗 Минимальная корреляция: {}", minCorrelation);
+        log.info("   🔥 Лучший Z-Score: {}", maxZScore);
+        log.info("   📉 Лучший P-Value: {}", minPValue);
+        log.info("   📈 Лучший R-Squared: {}", maxRSquared);
+        log.info("   🔍 Лучший ADF: {}", minADF);
+        log.info("   🔗 Лучшая корреляция: {}", maxCorrelation);
 
         List<ZScoreData> bestPairs = new ArrayList<>();
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
