@@ -20,69 +20,78 @@ import java.time.LocalDateTime;
 @Table(name = "positions")
 public class Position {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
-    @Column(unique = true)
+    @Column(name = "position_id", unique = true)
     private String positionId;
 
+    @Column(name = "pair_data_id")
     private Long pairDataId;
 
+    @Column(name = "symbol")
     private String symbol;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "type")
     private PositionType type;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "size", precision = 19, scale = 8)
     private BigDecimal size;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "entry_price", precision = 19, scale = 8)
     private BigDecimal entryPrice;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "closing_price", precision = 19, scale = 8)
     private BigDecimal closingPrice;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "current_price", precision = 19, scale = 8)
     private BigDecimal currentPrice;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "leverage", precision = 19, scale = 8)
     private BigDecimal leverage;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "allocated_amount", precision = 19, scale = 8)
     private BigDecimal allocatedAmount;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "unrealized_pnl_usdt", precision = 19, scale = 8)
     private BigDecimal unrealizedPnLUSDT;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "unrealized_pnl_percent", precision = 19, scale = 8)
     private BigDecimal unrealizedPnLPercent;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "realized_pnl_usdt", precision = 19, scale = 8)
     private BigDecimal realizedPnLUSDT;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "realized_pnl_percent", precision = 19, scale = 8)
     private BigDecimal realizedPnLPercent;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "opening_fees", precision = 19, scale = 8)
     private BigDecimal openingFees;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "funding_fees", precision = 19, scale = 8)
     private BigDecimal fundingFees;
 
-    @Column(precision = 19, scale = 8)
+    @Column(name = "closing_fees", precision = 19, scale = 8)
     private BigDecimal closingFees;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private PositionStatus status;
 
+    @Column(name = "open_time")
     private LocalDateTime openTime;
 
+    @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "metadata", columnDefinition = "TEXT")
     private String metadata;
 
+    @Column(name = "external_order_id")
     private String externalOrderId;
 
     public void calculateUnrealizedPnL() {

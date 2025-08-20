@@ -35,6 +35,7 @@ public class PairData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @CsvExportable(order = 1)
+    @Column(name = "id")
     private Long id;
 
     @CsvExportable(order = 2)
@@ -43,13 +44,16 @@ public class PairData {
 
     @Version
     @CsvExportable(order = 3)
+    @Column(name = "version")
     private Long version;
 
     @Enumerated(EnumType.STRING)
     @CsvExportable(order = 4)
+    @Column(name = "status")
     private TradeStatus status = TradeStatus.SELECTED;
 
     @CsvExportable(order = 5)
+    @Column(name = "error_description")
     private String errorDescription;
 
     //    @Transient
@@ -68,13 +72,13 @@ public class PairData {
     )
     private List<Candle> shortTickerCandles;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "z_score_history_json", columnDefinition = "TEXT")
     private String zScoreHistoryJson;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "profit_history_json", columnDefinition = "TEXT")
     private String profitHistoryJson;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "pixel_spread_history_json", columnDefinition = "TEXT")
     private String pixelSpreadHistoryJson;
 
     @Transient
@@ -87,239 +91,427 @@ public class PairData {
     private List<PixelSpreadHistoryItem> pixelSpreadHistory;
 
     @CsvExportable(order = 6)
+    @Column(name = "long_ticker")
     private String longTicker;
+
     @CsvExportable(order = 7)
+    @Column(name = "short_ticker")
     private String shortTicker;
+
     @CsvExportable(order = 8)
+    @Column(name = "pair_name")
     private String pairName;
 
     @CsvExportable(order = 9)
+    @Column(name = "long_ticker_entry_price")
     private double longTickerEntryPrice;
+
     @CsvExportable(order = 10)
+    @Column(name = "long_ticker_current_price")
     private double longTickerCurrentPrice;
 
     @CsvExportable(order = 11)
+    @Column(name = "short_ticker_entry_price")
     private double shortTickerEntryPrice;
+
     @CsvExportable(order = 12)
+    @Column(name = "short_ticker_current_price")
     private double shortTickerCurrentPrice;
 
     @CsvExportable(order = 13)
+    @Column(name = "mean_entry")
     private double meanEntry;
+
     @CsvExportable(order = 14)
+    @Column(name = "mean_current")
     private double meanCurrent;
 
     @CsvExportable(order = 15)
+    @Column(name = "spread_entry")
     private double spreadEntry;
+
     @CsvExportable(order = 16)
+    @Column(name = "spread_current")
     private double spreadCurrent;
 
     @CsvExportable(order = 17)
+    @Column(name = "z_score_entry")
     private double zScoreEntry;
+
     @CsvExportable(order = 18)
+    @Column(name = "z_score_current")
     private double zScoreCurrent;
 
     @CsvExportable(order = 19)
+    @Column(name = "p_value_entry")
     private double pValueEntry;
+
     @CsvExportable(order = 20)
+    @Column(name = "p_value_current")
     private double pValueCurrent;
 
     @CsvExportable(order = 21)
+    @Column(name = "adf_pvalue_entry")
     private double adfPvalueEntry;
+
     @CsvExportable(order = 22)
+    @Column(name = "adf_pvalue_current")
     private double adfPvalueCurrent;
 
     @CsvExportable(order = 23)
+    @Column(name = "correlation_entry")
     private double correlationEntry;
+
     @CsvExportable(order = 24)
+    @Column(name = "correlation_current")
     private double correlationCurrent;
 
     @CsvExportable(order = 25)
+    @Column(name = "alpha_entry")
     private double alphaEntry;
+
     @CsvExportable(order = 26)
+    @Column(name = "alpha_current")
     private double alphaCurrent;
 
     @CsvExportable(order = 27)
+    @Column(name = "beta_entry")
     private double betaEntry;
+
     @CsvExportable(order = 28)
+    @Column(name = "beta_current")
     private double betaCurrent;
 
     @CsvExportable(order = 29)
+    @Column(name = "std_entry")
     private double stdEntry;
+
     @CsvExportable(order = 30)
+    @Column(name = "std_current")
     private double stdCurrent;
 
     @CsvExportable(order = 31)
+    @Column(name = "z_score_changes")
     private BigDecimal zScoreChanges;
 
     @CsvExportable(order = 32)
+    @Column(name = "long_usdt_changes")
     private BigDecimal longUSDTChanges;
+
     @CsvExportable(order = 33)
+    @Column(name = "long_percent_changes")
     private BigDecimal longPercentChanges;
 
     @CsvExportable(order = 34)
+    @Column(name = "short_usdt_changes")
     private BigDecimal shortUSDTChanges;
+
     @CsvExportable(order = 35)
+    @Column(name = "short_percent_changes")
     private BigDecimal shortPercentChanges;
 
     @CsvExportable(order = 36)
+    @Column(name = "portfolio_before_trade_usdt")
     private BigDecimal portfolioBeforeTradeUSDT;
+
     @CsvExportable(order = 37)
+    @Column(name = "profit_usdt_changes")
     private BigDecimal profitUSDTChanges;
+
     @CsvExportable(order = 38)
+    @Column(name = "portfolio_after_trade_usdt")
     private BigDecimal portfolioAfterTradeUSDT;
+
     @CsvExportable(order = 39)
+    @Column(name = "profit_percent_changes")
     private BigDecimal profitPercentChanges;
 
     @CsvExportable(order = 40)
+    @Column(name = "minutes_to_min_profit_percent")
     private long minutesToMinProfitPercent;
+
     @CsvExportable(order = 41)
+    @Column(name = "minutes_to_max_profit_percent")
     private long minutesToMaxProfitPercent;
 
     @CsvExportable(order = 42)
+    @Column(name = "min_profit_percent_changes")
     private BigDecimal minProfitPercentChanges;
+
     @CsvExportable(order = 43)
+    @Column(name = "max_profit_percent_changes")
     private BigDecimal maxProfitPercentChanges;
 
     @CsvExportable(order = 44)
+    @Column(name = "formatted_time_to_min_profit")
     private String formattedTimeToMinProfit;
+
     @CsvExportable(order = 45)
+    @Column(name = "formatted_time_to_max_profit")
     private String formattedTimeToMaxProfit;
+
     @CsvExportable(order = 46)
+    @Column(name = "formatted_profit_long")
     private String formattedProfitLong;
+
     @CsvExportable(order = 47)
+    @Column(name = "formatted_profit_short")
     private String formattedProfitShort;
+
     @CsvExportable(order = 48)
+    @Column(name = "formatted_profit_common")
     private String formattedProfitCommon;
 
     @CsvExportable(order = 49)
+    @Column(name = "timestamp")
     private long timestamp;
+
     @CsvExportable(order = 50)
+    @Column(name = "entry_time")
     private long entryTime;
+
     @CsvExportable(order = 51)
+    @Column(name = "updated_time")
     private long updatedTime;
 
     @CsvExportable(order = 52)
+    @Column(name = "max_z")
     private BigDecimal maxZ;
+
     @CsvExportable(order = 53)
+    @Column(name = "min_z")
     private BigDecimal minZ;
+
     @CsvExportable(order = 54)
+    @Column(name = "max_long")
     private BigDecimal maxLong;
+
     @CsvExportable(order = 55)
+    @Column(name = "min_long")
     private BigDecimal minLong;
+
     @CsvExportable(order = 56)
+    @Column(name = "max_short")
     private BigDecimal maxShort;
+
     @CsvExportable(order = 57)
+    @Column(name = "min_short")
     private BigDecimal minShort;
+
     @CsvExportable(order = 58)
+    @Column(name = "max_corr")
     private BigDecimal maxCorr;
+
     @CsvExportable(order = 59)
+    @Column(name = "min_corr")
     private BigDecimal minCorr;
 
     @CsvExportable(order = 60)
+    @Column(name = "exit_reason")
     private String exitReason;
 
     @CsvExportable(order = 61)
+    @Column(name = "close_at_breakeven")
     private boolean closeAtBreakeven;
 
     @CsvExportable(order = 62)
+    @Column(name = "settings_timeframe")
     private String settingsTimeframe;
+
     @CsvExportable(order = 63)
+    @Column(name = "settings_candle_limit")
     private double settingsCandleLimit;
+
     @CsvExportable(order = 64)
+    @Column(name = "settings_min_z")
     private double settingsMinZ;
+
     @CsvExportable(order = 65)
+    @Column(name = "settings_min_window_size")
     private double settingsMinWindowSize;
+
     @CsvExportable(order = 66)
+    @Column(name = "settings_min_p_value")
     private double settingsMinPValue;
+
     @CsvExportable(order = 67)
+    @Column(name = "settings_max_adf_value")
     private double settingsMaxAdfValue;
+
     @CsvExportable(order = 68)
+    @Column(name = "settings_min_r_squared")
     private double settingsMinRSquared;
+
     @CsvExportable(order = 69)
+    @Column(name = "settings_min_correlation")
     private double settingsMinCorrelation;
+
     @CsvExportable(order = 70)
+    @Column(name = "settings_min_volume")
     private double settingsMinVolume;
+
     @CsvExportable(order = 71)
+    @Column(name = "settings_check_interval")
     private double settingsCheckInterval;
+
     @CsvExportable(order = 72)
+    @Column(name = "settings_max_long_margin_size")
     private double settingsMaxLongMarginSize;
+
     @CsvExportable(order = 73)
+    @Column(name = "settings_max_short_margin_size")
     private double settingsMaxShortMarginSize;
+
     @CsvExportable(order = 74)
+    @Column(name = "settings_leverage")
     private double settingsLeverage;
+
     @CsvExportable(order = 75)
+    @Column(name = "settings_exit_take")
     private double settingsExitTake;
+
     @CsvExportable(order = 76)
+    @Column(name = "settings_exit_stop")
     private double settingsExitStop;
+
     @CsvExportable(order = 77)
+    @Column(name = "settings_exit_z_min")
     private double settingsExitZMin;
+
     @CsvExportable(order = 78)
+    @Column(name = "settings_exit_z_max")
     private double settingsExitZMax;
+
     @CsvExportable(order = 79)
+    @Column(name = "settings_exit_z_max_percent")
     private double settingsExitZMaxPercent;
+
     @CsvExportable(order = 80)
+    @Column(name = "settings_exit_time_minutes")
     private double settingsExitTimeMinutes;
+
     @CsvExportable(order = 81)
+    @Column(name = "settings_exit_breakeven_percent")
     private double settingsExitBreakEvenPercent;
+
     @CsvExportable(order = 82)
+    @Column(name = "settings_use_pairs")
     private double settingsUsePairs;
+
     @CsvExportable(order = 83)
+    @Column(name = "settings_auto_trading_enabled")
     private boolean settingsAutoTradingEnabled;
+
     @CsvExportable(order = 84)
+    @Column(name = "settings_use_min_z_filter")
     private boolean settingsUseMinZFilter;
+
     @CsvExportable(order = 85)
+    @Column(name = "settings_use_min_r_squared_filter")
     private boolean settingsUseMinRSquaredFilter;
+
     @CsvExportable(order = 86)
+    @Column(name = "settings_use_min_p_value_filter")
     private boolean settingsUseMinPValueFilter;
+
     @CsvExportable(order = 87)
+    @Column(name = "settings_use_max_adf_value_filter")
     private boolean settingsUseMaxAdfValueFilter;
+
     @CsvExportable(order = 88)
+    @Column(name = "settings_use_min_correlation_filter")
     private boolean settingsUseMinCorrelationFilter;
+
     @CsvExportable(order = 89)
+    @Column(name = "settings_use_min_volume_filter")
     private boolean settingsUseMinVolumeFilter;
+
     @CsvExportable(order = 90)
+    @Column(name = "settings_use_exit_take")
     private boolean settingsUseExitTake;
+
     @CsvExportable(order = 91)
+    @Column(name = "settings_use_exit_stop")
     private boolean settingsUseExitStop;
+
     @CsvExportable(order = 92)
+    @Column(name = "settings_use_exit_z_min")
     private boolean settingsUseExitZMin;
+
     @CsvExportable(order = 93)
+    @Column(name = "settings_use_exit_z_max")
     private boolean settingsUseExitZMax;
+
     @CsvExportable(order = 94)
+    @Column(name = "settings_use_exit_z_max_percent")
     private boolean settingsUseExitZMaxPercent;
+
     @CsvExportable(order = 95)
+    @Column(name = "settings_use_exit_time_hours")
     private boolean settingsUseExitTimeHours;
+
     @CsvExportable(order = 96)
+    @Column(name = "settings_use_exit_break_even_percent")
     private boolean settingsUseExitBreakEvenPercent;
+
     @CsvExportable(order = 97)
+    @Column(name = "settings_minimum_lot_blacklist")
     private String settingsMinimumLotBlacklist;
+
     @CsvExportable(order = 98)
+    @Column(name = "use_z_score_scoring")
     private boolean useZScoreScoring;
+
     @CsvExportable(order = 99)
+    @Column(name = "z_score_scoring_weight")
     private double zScoreScoringWeight;
+
     @CsvExportable(order = 100)
+    @Column(name = "use_pixel_spread_scoring")
     private boolean usePixelSpreadScoring;
+
     @CsvExportable(order = 101)
+    @Column(name = "pixel_spread_scoring_weight")
     private double pixelSpreadScoringWeight;
+
     @CsvExportable(order = 102)
+    @Column(name = "use_cointegration_scoring")
     private boolean useCointegrationScoring;
+
     @CsvExportable(order = 103)
+    @Column(name = "cointegration_scoring_weight")
     private double cointegrationScoringWeight;
+
     @CsvExportable(order = 104)
+    @Column(name = "use_model_quality_scoring")
     private boolean useModelQualityScoring;
+
     @CsvExportable(order = 105)
+    @Column(name = "model_quality_scoring_weight")
     private double modelQualityScoringWeight;
+
     @CsvExportable(order = 106)
+    @Column(name = "use_statistics_scoring")
     private boolean useStatisticsScoring;
+
     @CsvExportable(order = 107)
+    @Column(name = "statistics_scoring_weight")
     private double statisticsScoringWeight;
+
     @CsvExportable(order = 108)
+    @Column(name = "use_bonus_scoring")
     private boolean useBonusScoring;
+
     @CsvExportable(order = 109)
+    @Column(name = "bonus_scoring_weight")
     private double bonusScoringWeight;
+
     @CsvExportable(order = 110)
+    @Column(name = "settings_use_exit_negative_z_min_profit_percent")
     private boolean settingsUseExitNegativeZMinProfitPercent;
+
     @CsvExportable(order = 111)
+    @Column(name = "settings_exit_negative_z_min_profit_percent")
     private double settingsExitNegativeZMinProfitPercent;
 
     public PairData(String longTicker, String shortTicker) {
