@@ -23,6 +23,7 @@ public class CandlesService {
         return candlesMap;
     }
 
+    //todo сделать умнее - через кэш или бд - зачем каждую минуту это делать! если объем есть то можно целый день работать, ну или чекать 1раз/час
     public Map<String, List<Candle>> getApplicableCandlesMap(Settings settings, List<String> tradingTickers) {
         List<String> applicableTickers = getApplicableTickers(settings, tradingTickers, "1D", true);
         Map<String, List<Candle>> candlesMap = getCandles(settings, applicableTickers, true);
