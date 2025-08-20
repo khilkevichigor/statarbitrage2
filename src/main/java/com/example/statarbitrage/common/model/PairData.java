@@ -56,20 +56,16 @@ public class PairData {
     @Column(name = "error_description")
     private String errorDescription;
 
-    //    @Transient
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-            name = "pair_data_long_candles",
-            joinColumns = @JoinColumn(name = "pair_data_id")
-    )
+    @Column(name = "long_ticker_candles_json", columnDefinition = "TEXT")
+    private String longTickerCandlesJson;
+
+    @Column(name = "short_ticker_candles_json", columnDefinition = "TEXT")
+    private String shortTickerCandlesJson;
+
+    @Transient
     private List<Candle> longTickerCandles;
 
-    //    @Transient
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-            name = "pair_data_short_candles",
-            joinColumns = @JoinColumn(name = "pair_data_id")
-    )
+    @Transient
     private List<Candle> shortTickerCandles;
 
     @Column(name = "z_score_history_json", columnDefinition = "TEXT")
@@ -814,6 +810,96 @@ public class PairData {
         }
         pixelSpreadHistoryJson = null;
         log.debug("🔢 История пиксельного спреда очищена для пары {}", pairName);
+    }
+
+    /**
+     * Получить список длинных свечей
+     */
+    public List<Candle> getLongTickerCandles() {
+        if (longTickerCandles == null && longTickerCandlesJson != null && !longTickerCandlesJson.isEmpty()) {
+            loadLongTickerCandlesFromJson();
+        }
+        return longTickerCandles != null ? longTickerCandles : new ArrayList<>();
+    }
+
+    /**
+     * Установить список длинных свечей
+     */
+    public void setLongTickerCandles(List<Candle> longTickerCandles) {
+        this.longTickerCandles = longTickerCandles;
+        saveLongTickerCandlesToJson();
+    }
+
+    /**
+     * Получить список коротких свечей
+     */
+    public List<Candle> getShortTickerCandles() {
+        if (shortTickerCandles == null && shortTickerCandlesJson != null && !shortTickerCandlesJson.isEmpty()) {
+            loadShortTickerCandlesFromJson();
+        }
+        return shortTickerCandles != null ? shortTickerCandles : new ArrayList<>();
+    }
+
+    /**
+     * Установить список коротких свечей
+     */
+    public void setShortTickerCandles(List<Candle> shortTickerCandles) {
+        this.shortTickerCandles = shortTickerCandles;
+        saveShortTickerCandlesToJson();
+    }
+
+    /**
+     * Сериализация длинных свечей в JSON для сохранения в БД
+     */
+    private void saveLongTickerCandlesToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.longTickerCandlesJson = mapper.writeValueAsString(longTickerCandles);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации длинных свечей для пары {}", pairName, e);
+        }
+    }
+
+    /**
+     * Десериализация длинных свечей из JSON при загрузке из БД
+     */
+    private void loadLongTickerCandlesFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<List<Candle>> typeRef = new TypeReference<>() {
+            };
+            this.longTickerCandles = mapper.readValue(longTickerCandlesJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации длинных свечей для пары {}", pairName, e);
+            this.longTickerCandles = new ArrayList<>();
+        }
+    }
+
+    /**
+     * Сериализация коротких свечей в JSON для сохранения в БД
+     */
+    private void saveShortTickerCandlesToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.shortTickerCandlesJson = mapper.writeValueAsString(shortTickerCandles);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации коротких свечей для пары {}", pairName, e);
+        }
+    }
+
+    /**
+     * Десериализация коротких свечей из JSON при загрузке из БД
+     */
+    private void loadShortTickerCandlesFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<List<Candle>> typeRef = new TypeReference<>() {
+            };
+            this.shortTickerCandles = mapper.readValue(shortTickerCandlesJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации коротких свечей для пары {}", pairName, e);
+            this.shortTickerCandles = new ArrayList<>();
+        }
     }
 
 
