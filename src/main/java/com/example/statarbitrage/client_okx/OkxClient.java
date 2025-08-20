@@ -221,7 +221,7 @@ public class OkxClient {
         return candlesMap;
     }
 
-    public List<String> getValidTickers(List<String> swapTickers, String timeFrame, double limit, double minVolume, boolean isSorted) {
+    public List<String> getValidTickersV1(List<String> swapTickers, String timeFrame, double limit, double minVolume, boolean isSorted) {
         long startTime = System.currentTimeMillis();
         AtomicInteger count = new AtomicInteger();
         // Используем 5 потоков для соблюдения лимитов OKX API
@@ -290,11 +290,83 @@ public class OkxClient {
         }
 
         long endTime = System.currentTimeMillis();
-        log.debug("Всего откинули {} тикера с низким volume", count.intValue());
-        log.debug("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.info("Всего откинули {} тикера с низким volume", count.intValue());
+        log.info("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
 
         return isSorted ? result.stream().sorted().toList() : result;
     }
+
+    public List<String> getValidTickersV2(List<String> swapTickers, String timeFrame, double limit, double minQuoteVolume, boolean isSorted) {
+        long startTime = System.currentTimeMillis();
+        AtomicInteger skippedCount = new AtomicInteger();
+        int threadCount = 5;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        List<String> validTickers = Collections.synchronizedList(new ArrayList<>());
+        int volumeAverageCount = 2; // кол-во последних свечей для усреднения
+        int candleLimit = (int) limit;
+
+        // Разбиваем тикеры на батчи
+        List<List<String>> batches = IntStream.range(0, (swapTickers.size() + BATCH_SIZE - 1) / BATCH_SIZE)
+                .mapToObj(i -> swapTickers.subList(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, swapTickers.size())))
+                .toList();
+
+        log.debug("🔍 Валидируем {} тикеров в {} потоков (батчей: {})", swapTickers.size(), threadCount, batches.size());
+
+        for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
+            List<String> batch = batches.get(batchIndex);
+            log.debug("🔄 Валидируем батч {}/{} ({} тикеров)", batchIndex + 1, batches.size(), batch.size());
+
+            List<CompletableFuture<Void>> futures = batch.stream()
+                    .map(symbol -> CompletableFuture.runAsync(() -> {
+                        try {
+                            List<Candle> candles = getCandleList(symbol, timeFrame, candleLimit);
+                            if (candles.size() < volumeAverageCount) {
+                                log.warn("⚠️ Недостаточно свечей для {}", symbol);
+                                skippedCount.getAndIncrement();
+                                return;
+                            }
+
+                            // Берём последние N свечей
+                            List<Candle> lastCandles = candles.subList(candles.size() - volumeAverageCount, candles.size());
+
+                            // Средний объём в quote валюте (volume * close)
+                            double averageQuoteVolume = lastCandles.stream()
+                                    .mapToDouble(c -> c.getVolume() * c.getClose()) //объём в quote валюте (например USDT)
+                                    .average()
+                                    .orElse(0.0);
+
+                            if (averageQuoteVolume >= minQuoteVolume) {
+                                validTickers.add(symbol);
+                            } else {
+                                skippedCount.getAndIncrement();
+                            }
+                        } catch (Exception e) {
+                            log.error("❌ Ошибка при обработке {}: {}", symbol, e.getMessage(), e);
+                        }
+                    }, executor))
+                    .toList();
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+            // Пауза между батчами для rate-limit
+            if (batchIndex < batches.size() - 1) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        executor.shutdown();
+
+        long endTime = System.currentTimeMillis();
+        log.info("Всего откинули {} тикеров с низким объёмом", skippedCount.get());
+        log.info("✅ Отобрано {} тикеров за {}с", validTickers.size(), String.format("%.2f", (endTime - startTime) / 1000.0));
+
+        return isSorted ? validTickers.stream().sorted().toList() : validTickers;
+    }
+
 
     /**
      * Получает текущую цену (last price) для указанного символа

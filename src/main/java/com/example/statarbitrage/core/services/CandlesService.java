@@ -40,7 +40,7 @@ public class CandlesService {
                 .filter(ticker -> !tradingTickers.contains(ticker))
                 .toList();
         double minVolume = settings.isUseMinVolumeFilter() ? settings.getMinVolume() * 1_000_000 : 0.0;
-        return okxClient.getValidTickers(filteredTickers, timeFrame, settings.getCandleLimit(), minVolume, isSorted);
+        return okxClient.getValidTickersV2(filteredTickers, timeFrame, settings.getCandleLimit(), minVolume, isSorted);
     }
 
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap, Settings settings) {
