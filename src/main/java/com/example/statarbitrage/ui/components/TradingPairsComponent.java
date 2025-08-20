@@ -466,12 +466,12 @@ public class TradingPairsComponent extends VerticalLayout {
      */
     private Button createChartButton(PairData pair) {
         Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
-        chartButton.getElement().setAttribute("title", "Показать Z-Score график");
+        chartButton.getElement().setAttribute("title", "Показать график");
         chartButton.getStyle().set("color", "#2196F3");
 
         chartButton.addClickListener(event -> {
             try {
-                log.debug("📊 Открываем Z-Score чарт для пары: {}", pair.getPairName());
+                log.debug("📊 Открываем чарт для пары: {}", pair.getPairName());
                 zScoreChartDialog.showChart(pair);
             } catch (Exception e) {
                 log.error("❌ Ошибка при показе чарта для пары: {}", pair.getPairName(), e);
