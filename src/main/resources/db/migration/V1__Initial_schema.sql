@@ -1,9 +1,8 @@
--- Flyway initial migration for StatArbitrage application
--- Creates all tables for the existing JPA entities
+-- Initial schema based on JPA entities with proper AUTOINCREMENT IDs
 
 -- Settings table
-CREATE TABLE IF NOT EXISTS settings (
-    id BIGINT PRIMARY KEY,
+CREATE TABLE settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     timeframe TEXT,
     candle_limit REAL,
     min_z REAL,
@@ -58,9 +57,9 @@ CREATE TABLE IF NOT EXISTS settings (
     bonus_scoring_weight REAL DEFAULT 5.0
 );
 
--- Chart settings table
-CREATE TABLE IF NOT EXISTS chart_settings (
-    id BIGINT PRIMARY KEY,
+-- ChartSettings table
+CREATE TABLE chart_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     chart_type TEXT UNIQUE NOT NULL,
     show_z_score BOOLEAN DEFAULT TRUE,
     show_combined_price BOOLEAN DEFAULT TRUE,
@@ -71,9 +70,9 @@ CREATE TABLE IF NOT EXISTS chart_settings (
     show_entry_point BOOLEAN DEFAULT TRUE
 );
 
--- Trade history table
-CREATE TABLE IF NOT EXISTS trade_history (
-    id BIGINT PRIMARY KEY,
+-- TradeHistory table
+CREATE TABLE trade_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     long_ticker TEXT,
     short_ticker TEXT,
     pair_uuid TEXT,
@@ -105,19 +104,16 @@ CREATE TABLE IF NOT EXISTS trade_history (
     timestamp TEXT
 );
 
--- Pair data main table
-CREATE TABLE IF NOT EXISTS pair_data (
-    id BIGINT PRIMARY KEY,
+-- PairData table - based on entity with all @Column annotations
+CREATE TABLE pair_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     uuid TEXT NOT NULL UNIQUE,
-    version INTEGER,
+    version BIGINT,
     status TEXT,
     error_description TEXT,
-    z_score_history_json TEXT,
-    profit_history_json TEXT,
-    pixel_spread_history_json TEXT,
+    pair_name TEXT,
     long_ticker TEXT,
     short_ticker TEXT,
-    pair_name TEXT,
     long_ticker_entry_price REAL,
     long_ticker_current_price REAL,
     short_ticker_entry_price REAL,
@@ -140,34 +136,45 @@ CREATE TABLE IF NOT EXISTS pair_data (
     beta_current REAL,
     std_entry REAL,
     std_current REAL,
-    long_qty_entry DECIMAL,
-    long_qty_current DECIMAL,
-    short_qty_entry DECIMAL,
-    short_qty_current DECIMAL,
-    long_margin_entry DECIMAL,
-    long_margin_current DECIMAL,
-    short_margin_entry DECIMAL,
-    short_margin_current DECIMAL,
-    profit_usdt_current DECIMAL,
-    profit_percent_current DECIMAL,
+    z_score_changes DECIMAL,
+    long_usdt_changes DECIMAL,
+    long_percent_changes DECIMAL,
+    short_usdt_changes DECIMAL,
+    short_percent_changes DECIMAL,
+    portfolio_before_trade_usdt DECIMAL,
+    profit_usdt_changes DECIMAL,
+    portfolio_after_trade_usdt DECIMAL,
     profit_percent_changes DECIMAL,
-    profit_percent_entry DECIMAL,
-    profit_percent_max DECIMAL,
-    profit_percent_min DECIMAL,
-    total_position_size_usdt_current DECIMAL,
-    total_position_size_usdt_entry DECIMAL,
-    total_position_size_usdt_max DECIMAL,
-    total_position_size_usdt_min DECIMAL,
-    trading_amount_usdt DECIMAL,
-    timestamp INTEGER,
-    entry_time INTEGER,
-    updated_time INTEGER,
-    candle_check_time INTEGER,
+    minutes_to_min_profit_percent BIGINT,
+    minutes_to_max_profit_percent BIGINT,
+    min_profit_percent_changes DECIMAL,
+    max_profit_percent_changes DECIMAL,
+    formatted_time_to_min_profit TEXT,
+    formatted_time_to_max_profit TEXT,
+    formatted_profit_long TEXT,
+    formatted_profit_short TEXT,
+    formatted_profit_common TEXT,
+    timestamp BIGINT,
+    entry_time BIGINT,
+    updated_time BIGINT,
+    max_z DECIMAL,
+    min_z DECIMAL,
+    max_long DECIMAL,
+    min_long DECIMAL,
+    max_short DECIMAL,
+    min_short DECIMAL,
+    max_corr DECIMAL,
+    min_corr DECIMAL,
+    exit_reason TEXT,
+    close_at_breakeven BOOLEAN DEFAULT FALSE,
+    z_score_history_json TEXT,
+    profit_history_json TEXT,
+    pixel_spread_history_json TEXT,
     settings_timeframe TEXT,
     settings_candle_limit REAL,
     settings_min_z REAL,
     settings_min_window_size REAL,
-    settings_max_p_value REAL,
+    settings_min_p_value REAL,
     settings_max_adf_value REAL,
     settings_min_r_squared REAL,
     settings_min_correlation REAL,
@@ -182,12 +189,12 @@ CREATE TABLE IF NOT EXISTS pair_data (
     settings_exit_z_max REAL,
     settings_exit_z_max_percent REAL,
     settings_exit_time_minutes REAL,
-    settings_exit_break_even_percent REAL,
+    settings_exit_breakeven_percent REAL,
     settings_use_pairs REAL,
     settings_auto_trading_enabled BOOLEAN,
     settings_use_min_z_filter BOOLEAN,
     settings_use_min_r_squared_filter BOOLEAN,
-    settings_use_max_p_value_filter BOOLEAN,
+    settings_use_min_p_value_filter BOOLEAN,
     settings_use_max_adf_value_filter BOOLEAN,
     settings_use_min_correlation_filter BOOLEAN,
     settings_use_min_volume_filter BOOLEAN,
@@ -215,32 +222,60 @@ CREATE TABLE IF NOT EXISTS pair_data (
     settings_exit_negative_z_min_profit_percent REAL
 );
 
--- Pair data candles tables (for ElementCollections)
-CREATE TABLE IF NOT EXISTS pair_data_long_candles (
-    pair_data_id BIGINT,
-    open_price REAL,
-    high_price REAL,
-    low_price REAL,
-    close_price REAL,
-    volume REAL,
-    timestamp INTEGER,
+-- Additional tables for PairData @ElementCollection fields
+CREATE TABLE pair_data_long_candles (
+    pair_data_id BIGINT NOT NULL,
+    timestamp BIGINT,
+    open_price DECIMAL,
+    high_price DECIMAL,
+    low_price DECIMAL,
+    close_price DECIMAL,
+    volume DECIMAL,
     FOREIGN KEY (pair_data_id) REFERENCES pair_data(id)
 );
 
-CREATE TABLE IF NOT EXISTS pair_data_short_candles (
-    pair_data_id BIGINT,
-    open_price REAL,
-    high_price REAL,
-    low_price REAL,
-    close_price REAL,
-    volume REAL,
-    timestamp INTEGER,
+CREATE TABLE pair_data_short_candles (
+    pair_data_id BIGINT NOT NULL,
+    timestamp BIGINT,
+    open_price DECIMAL,
+    high_price DECIMAL,
+    low_price DECIMAL,
+    close_price DECIMAL,
+    volume DECIMAL,
     FOREIGN KEY (pair_data_id) REFERENCES pair_data(id)
+);
+
+-- Position table
+CREATE TABLE positions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    position_id TEXT UNIQUE,
+    pair_data_id BIGINT,
+    symbol TEXT,
+    type TEXT,
+    size DECIMAL(19,8),
+    entry_price DECIMAL(19,8),
+    closing_price DECIMAL(19,8),
+    current_price DECIMAL(19,8),
+    leverage DECIMAL(19,8),
+    allocated_amount DECIMAL(19,8),
+    unrealized_pnl_usdt DECIMAL(19,8),
+    unrealized_pnl_percent DECIMAL(19,8),
+    realized_pnl_usdt DECIMAL(19,8),
+    realized_pnl_percent DECIMAL(19,8),
+    opening_fees DECIMAL(19,8),
+    funding_fees DECIMAL(19,8),
+    closing_fees DECIMAL(19,8),
+    status TEXT,
+    open_time TIMESTAMP,
+    last_updated TIMESTAMP,
+    metadata TEXT,
+    external_order_id TEXT
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_pairdata_uuid ON pair_data(uuid);
-CREATE INDEX IF NOT EXISTS idx_pairdata_status ON pair_data(status);
-CREATE INDEX IF NOT EXISTS idx_pairdata_timestamp ON pair_data(timestamp);
-CREATE INDEX IF NOT EXISTS idx_chart_settings_type ON chart_settings(chart_type);
-CREATE INDEX IF NOT EXISTS idx_trade_history_uuid ON trade_history(pair_uuid);
+CREATE INDEX idx_pairdata_uuid ON pair_data(uuid);
+CREATE INDEX idx_pairdata_status ON pair_data(status);
+CREATE INDEX idx_chart_settings_type ON chart_settings(chart_type);
+CREATE INDEX idx_trade_history_uuid ON trade_history(pair_uuid);
+CREATE INDEX idx_positions_status ON positions(status);
+CREATE INDEX idx_positions_pair_data_id ON positions(pair_data_id);
