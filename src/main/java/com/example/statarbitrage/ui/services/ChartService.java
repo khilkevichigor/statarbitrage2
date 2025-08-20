@@ -423,7 +423,7 @@ public class ChartService {
 
         XYSeries profitSeries = chart.addSeries("Profit %", profitTimeAxis, profitValues);
         profitSeries.setYAxisGroup(1);
-        profitSeries.setLineColor(Color.GREEN);
+        profitSeries.setLineColor(Color.ORANGE);
         profitSeries.setMarker(new None());
         profitSeries.setLineStyle(new BasicStroke(2.0f));
 
