@@ -290,8 +290,8 @@ public class OkxClient {
         }
 
         long endTime = System.currentTimeMillis();
-        log.info("Всего откинули {} тикера с низким volume", count.intValue());
-        log.info("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.debug("Всего откинули {} тикера с низким volume", count.intValue());
+        log.debug("✅ Всего отобрано {} тикеров в {} потоков за {}с", result.size(), threadCount, String.format("%.2f", (endTime - startTime) / 1000.0));
 
         return isSorted ? result.stream().sorted().toList() : result;
     }
@@ -361,8 +361,8 @@ public class OkxClient {
         executor.shutdown();
 
         long endTime = System.currentTimeMillis();
-        log.info("Всего откинули {} тикеров с низким объёмом", skippedCount.get());
-        log.info("✅ Отобрано {} тикеров за {}с", validTickers.size(), String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.debug("Всего откинули {} тикеров с низким объёмом", skippedCount.get());
+        log.debug("✅ Отобрано {} тикеров за {}с", validTickers.size(), String.format("%.2f", (endTime - startTime) / 1000.0));
 
         return isSorted ? validTickers.stream().sorted().toList() : validTickers;
     }
