@@ -394,7 +394,7 @@ public class ChartService {
     private void addProfitToChart(XYChart chart, PairData pairData) {
         List<ProfitHistoryItem> profitHistory = pairData.getProfitHistory();
         if (profitHistory == null || profitHistory.isEmpty()) {
-            log.warn("📊 История профита пуста для пары {}, график профита не будет добавлен.", pairData.getPairName());
+            log.debug("📊 История профита пуста для пары {}, график профита не будет добавлен.", pairData.getPairName());
             return;
         }
 
@@ -410,7 +410,7 @@ public class ChartService {
         }
 
         if (filteredProfitHistory.isEmpty()) {
-            log.warn("📊 История профита все еще пуста после всех проверок для пары {}", pairData.getPairName());
+            log.debug("📊 История профита все еще пуста после всех проверок для пары {}", pairData.getPairName());
             return;
         }
 
@@ -775,7 +775,7 @@ public class ChartService {
      */
     private void addEntryPointToPriceChart(XYChart chart, PairData pairData, List<Date> timeAxis, List<Double> prices) {
         long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
-        
+
         if (entryTimestamp <= 0 || timeAxis.isEmpty() || prices.isEmpty()) {
             log.debug("⚠️ Недостаточно данных для отображения точки входа на Price чарт");
             return;
@@ -801,7 +801,7 @@ public class ChartService {
         // Вертикальная линия входа
         double minPrice = prices.stream().min(Double::compareTo).orElse(0.0);
         double maxPrice = prices.stream().max(Double::compareTo).orElse(1.0);
-        
+
         List<Date> verticalLineX = Arrays.asList(entryDate, entryDate);
         List<Double> verticalLineY = Arrays.asList(minPrice, maxPrice);
 
