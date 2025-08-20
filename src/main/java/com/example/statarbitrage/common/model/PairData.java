@@ -510,6 +510,27 @@ public class PairData {
     @Column(name = "settings_exit_negative_z_min_profit_percent")
     private double settingsExitNegativeZMinProfitPercent;
 
+    // ===== Поля усреднения =====
+    @CsvExportable(order = 112)
+    @Column(name = "settings_auto_averaging_enabled")
+    private boolean settingsAutoAveragingEnabled;
+
+    @CsvExportable(order = 113)
+    @Column(name = "settings_averaging_drawdown_threshold")
+    private double settingsAveragingDrawdownThreshold;
+
+    @CsvExportable(order = 114)
+    @Column(name = "settings_averaging_volume_multiplier")
+    private double settingsAveragingVolumeMultiplier;
+
+    @CsvExportable(order = 115)
+    @Column(name = "averaging_count")
+    private int averagingCount = 0;
+
+    @CsvExportable(order = 116)
+    @Column(name = "last_averaging_timestamp")
+    private long lastAveragingTimestamp;
+
     public PairData(String longTicker, String shortTicker) {
         this.longTicker = longTicker;
         this.shortTicker = shortTicker;

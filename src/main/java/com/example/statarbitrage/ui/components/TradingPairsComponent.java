@@ -5,8 +5,10 @@ import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.NumberFormatter;
 import com.example.statarbitrage.core.processors.StartNewTradeProcessor;
 import com.example.statarbitrage.core.processors.UpdateTradeProcessor;
+import com.example.statarbitrage.core.services.AveragingService;
 import com.example.statarbitrage.core.services.PairDataService;
 import com.example.statarbitrage.core.services.PixelSpreadService;
+import com.example.statarbitrage.core.services.SettingsService;
 import com.example.statarbitrage.formatters.TimeFormatterUtil;
 import com.example.statarbitrage.ui.dto.StartNewTradeRequest;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
@@ -39,6 +41,8 @@ public class TradingPairsComponent extends VerticalLayout {
     private final UpdateTradeProcessor updateTradeProcessor;
     private final ZScoreChartDialog zScoreChartDialog;
     private final PixelSpreadService pixelSpreadService;
+    private final AveragingService averagingService;
+    private final SettingsService settingsService;
 
     private final Grid<PairData> selectedPairsGrid;
     private final Grid<PairData> tradingPairsGrid;
@@ -54,13 +58,17 @@ public class TradingPairsComponent extends VerticalLayout {
             StartNewTradeProcessor startNewTradeProcessor,
             UpdateTradeProcessor updateTradeProcessor,
             ZScoreChartDialog zScoreChartDialog,
-            PixelSpreadService pixelSpreadService
+            PixelSpreadService pixelSpreadService,
+            AveragingService averagingService,
+            SettingsService settingsService
     ) {
         this.pairDataService = pairDataService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.zScoreChartDialog = zScoreChartDialog;
         this.pixelSpreadService = pixelSpreadService;
+        this.averagingService = averagingService;
+        this.settingsService = settingsService;
 
         this.selectedPairsGrid = new Grid<>(PairData.class, false);
         this.tradingPairsGrid = new Grid<>(PairData.class, false);
@@ -302,6 +310,31 @@ public class TradingPairsComponent extends VerticalLayout {
         return actionButton;
     }
 
+    private Button createAveragingButton(PairData pairData) {
+        Button actionButton = new Button("Усреднить", event -> {
+            try {
+                var settings = settingsService.getSettings();
+                var result = averagingService.performManualAveraging(pairData, settings);
+
+                if (result.isSuccess()) {
+                    Notification.show(result.getMessage());
+                    log.info("✅ Усреднение выполнено для пары: {}", pairData.getPairName());
+                } else {
+                    Notification.show("Ошибка: " + result.getMessage());
+                    log.error("❌ Ошибка усреднения для пары: {}", pairData.getPairName());
+                }
+
+                notifyUIUpdate();
+            } catch (Exception e) {
+                log.error("❌ Ошибка при усреднении для пары: {}", pairData.getPairName(), e);
+                Notification.show("Ошибка при усреднении: " + e.getMessage());
+            }
+        });
+
+        actionButton.getStyle().set("color", "orange");
+        return actionButton;
+    }
+
     public void updateSelectedPairs() {
         try {
             List<PairData> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.SELECTED);
@@ -431,10 +464,13 @@ public class TradingPairsComponent extends VerticalLayout {
         buttonsLayout.setSpacing(true);
         buttonsLayout.setPadding(false);
 
+        // Кнопка Усреднить
+        Button averageButton = createAveragingButton(pair);
+
         // Кнопка Закрыть
         Button closeButton = createStopTradingButton(pair);
 
-        buttonsLayout.add(closeButton);
+        buttonsLayout.add(averageButton, closeButton);
         return buttonsLayout;
     }
 

@@ -271,6 +271,8 @@ public class SettingsComponent extends VerticalLayout {
 
         add(createScoringWeightsSection());
 
+        add(createAveragingSection());
+
         // Bind fields to settings object
         bindFields(
                 timeframeField,
@@ -411,7 +413,7 @@ public class SettingsComponent extends VerticalLayout {
 
         // Создаем поля для весов скоринга
         NumberField zScoreWeightField = new NumberField("Z-Score сила (очки)");
-        NumberField pixelSpreadWeightField = new NumberField("Пиксельный спред (очки)");  
+        NumberField pixelSpreadWeightField = new NumberField("Пиксельный спред (очки)");
         NumberField cointegrationWeightField = new NumberField("Коинтеграция (очки)");
         NumberField modelQualityWeightField = new NumberField("Качество модели (очки)");
         NumberField statisticsWeightField = new NumberField("Статистика (очки)");
@@ -420,7 +422,7 @@ public class SettingsComponent extends VerticalLayout {
         // Создаем чекбоксы для включения/выключения компонентов
         Checkbox useZScoreScoringCheckbox = new Checkbox("Использовать Z-Score скоринг");
         Checkbox usePixelSpreadScoringCheckbox = new Checkbox("Использовать пиксельный спред скоринг");
-        Checkbox useCointegrationScoringCheckbox = new Checkbox("Использовать коинтеграцию скоринг"); 
+        Checkbox useCointegrationScoringCheckbox = new Checkbox("Использовать коинтеграцию скоринг");
         Checkbox useModelQualityScoringCheckbox = new Checkbox("Использовать качество модели скоринг");
         Checkbox useStatisticsScoringCheckbox = new Checkbox("Использовать статистику скоринг");
         Checkbox useBonusScoringCheckbox = new Checkbox("Использовать бонусы скоринг");
@@ -443,7 +445,7 @@ public class SettingsComponent extends VerticalLayout {
 
         scoringForm.add(
                 zScoreLayout,
-                pixelSpreadLayout, 
+                pixelSpreadLayout,
                 cointegrationLayout,
                 modelQualityLayout,
                 statisticsLayout,
@@ -460,6 +462,51 @@ public class SettingsComponent extends VerticalLayout {
 
         return createDetailsCard("🎯 Веса системы скоринга",
                 "Настройка весов компонентов для оценки качества торговых пар", scoringForm);
+    }
+
+    private Details createAveragingSection() {
+        FormLayout averagingForm = createFormLayout();
+
+        // Создаем поля для усреднения
+        Checkbox autoAveragingCheckbox = new Checkbox("Автоусреднение");
+        NumberField averagingDrawdownThresholdField = new NumberField("Просадка для срабатывания (%)");
+        NumberField averagingVolumeMultiplierField = new NumberField("Множитель объема");
+
+        // Настраиваем свойства полей
+        setNumberFieldProperties(averagingDrawdownThresholdField, 0.1, 0.1);
+        setNumberFieldProperties(averagingVolumeMultiplierField, 0.1, 1.0);
+
+        // Настраиваем placeholder и helper text
+        averagingDrawdownThresholdField.setPlaceholder("1.23");
+        averagingDrawdownThresholdField.setHelperText("Порог просадки в процентах для автоматического усреднения");
+
+        averagingVolumeMultiplierField.setPlaceholder("1.23");
+        averagingVolumeMultiplierField.setHelperText("Множитель объема для позиции усреднения");
+
+        // Создаем компоновку для поля просадки (включается только при автоусреднении)
+        HorizontalLayout drawdownLayout = new HorizontalLayout();
+        drawdownLayout.setAlignItems(HorizontalLayout.Alignment.CENTER);
+        drawdownLayout.setSpacing(true);
+        drawdownLayout.add(averagingDrawdownThresholdField);
+        drawdownLayout.setFlexGrow(1, averagingDrawdownThresholdField);
+
+        // Логика активации/деактивации поля просадки
+        averagingDrawdownThresholdField.setEnabled(currentSettings.isAutoAveragingEnabled());
+        autoAveragingCheckbox.addValueChangeListener(event -> {
+            averagingDrawdownThresholdField.setEnabled(event.getValue());
+        });
+
+        averagingForm.add(
+                autoAveragingCheckbox,
+                averagingDrawdownThresholdField,
+                averagingVolumeMultiplierField
+        );
+
+        // Привязываем поля к настройкам
+        bindAveragingFields(autoAveragingCheckbox, averagingDrawdownThresholdField, averagingVolumeMultiplierField);
+
+        return createDetailsCard("🎯 Усреднение",
+                "Настройки автоматического и ручного усреднения позиций", averagingForm);
     }
 
     private Details createDetailsCard(String title, String description, FormLayout content) {
@@ -611,34 +658,34 @@ public class SettingsComponent extends VerticalLayout {
     /**
      * Привязывает поля скоринга к настройкам
      */
-    private void bindScoringFields(NumberField zScoreWeightField, NumberField pixelSpreadWeightField, 
-                                  NumberField cointegrationWeightField, NumberField modelQualityWeightField,
-                                  NumberField statisticsWeightField, NumberField bonusWeightField,
-                                  Checkbox useZScoreScoringCheckbox, Checkbox usePixelSpreadScoringCheckbox,
-                                  Checkbox useCointegrationScoringCheckbox, Checkbox useModelQualityScoringCheckbox,
-                                  Checkbox useStatisticsScoringCheckbox, Checkbox useBonusScoringCheckbox) {
+    private void bindScoringFields(NumberField zScoreWeightField, NumberField pixelSpreadWeightField,
+                                   NumberField cointegrationWeightField, NumberField modelQualityWeightField,
+                                   NumberField statisticsWeightField, NumberField bonusWeightField,
+                                   Checkbox useZScoreScoringCheckbox, Checkbox usePixelSpreadScoringCheckbox,
+                                   Checkbox useCointegrationScoringCheckbox, Checkbox useModelQualityScoringCheckbox,
+                                   Checkbox useStatisticsScoringCheckbox, Checkbox useBonusScoringCheckbox) {
 
         // Bind scoring weight fields
         settingsBinder.forField(zScoreWeightField)
                 .withValidator(new DoubleRangeValidator("Вес Z-Score должен быть больше 0", 0.0, Double.MAX_VALUE))
                 .bind(Settings::getZScoreScoringWeight, Settings::setZScoreScoringWeight);
-        
+
         settingsBinder.forField(pixelSpreadWeightField)
                 .withValidator(new DoubleRangeValidator("Вес пиксельного спреда должен быть больше 0", 0.0, Double.MAX_VALUE))
                 .bind(Settings::getPixelSpreadScoringWeight, Settings::setPixelSpreadScoringWeight);
-                
+
         settingsBinder.forField(cointegrationWeightField)
                 .withValidator(new DoubleRangeValidator("Вес коинтеграции должен быть больше 0", 0.0, Double.MAX_VALUE))
                 .bind(Settings::getCointegrationScoringWeight, Settings::setCointegrationScoringWeight);
-                
+
         settingsBinder.forField(modelQualityWeightField)
                 .withValidator(new DoubleRangeValidator("Вес качества модели должен быть больше 0", 0.0, Double.MAX_VALUE))
                 .bind(Settings::getModelQualityScoringWeight, Settings::setModelQualityScoringWeight);
-                
+
         settingsBinder.forField(statisticsWeightField)
                 .withValidator(new DoubleRangeValidator("Вес статистики должен быть больше 0", 0.0, Double.MAX_VALUE))
                 .bind(Settings::getStatisticsScoringWeight, Settings::setStatisticsScoringWeight);
-                
+
         settingsBinder.forField(bonusWeightField)
                 .withValidator(new DoubleRangeValidator("Вес бонусов должен быть больше 0", 0.0, Double.MAX_VALUE))
                 .bind(Settings::getBonusScoringWeight, Settings::setBonusScoringWeight);
@@ -650,6 +697,28 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(useModelQualityScoringCheckbox).bind(Settings::isUseModelQualityScoring, Settings::setUseModelQualityScoring);
         settingsBinder.forField(useStatisticsScoringCheckbox).bind(Settings::isUseStatisticsScoring, Settings::setUseStatisticsScoring);
         settingsBinder.forField(useBonusScoringCheckbox).bind(Settings::isUseBonusScoring, Settings::setUseBonusScoring);
+    }
+
+    /**
+     * Привязывает поля усреднения к настройкам
+     */
+    private void bindAveragingFields(Checkbox autoAveragingCheckbox,
+                                     NumberField averagingDrawdownThresholdField,
+                                     NumberField averagingVolumeMultiplierField) {
+
+        // Bind averaging checkbox
+        settingsBinder.forField(autoAveragingCheckbox)
+                .bind(Settings::isAutoAveragingEnabled, Settings::setAutoAveragingEnabled);
+
+        // Bind averaging drawdown threshold field
+        settingsBinder.forField(averagingDrawdownThresholdField)
+                .withValidator(new DoubleRangeValidator("Просадка должна быть больше 0.1%", 0.1, 100.0))
+                .bind(Settings::getAveragingDrawdownThreshold, Settings::setAveragingDrawdownThreshold);
+
+        // Bind averaging volume multiplier field
+        settingsBinder.forField(averagingVolumeMultiplierField)
+                .withValidator(new DoubleRangeValidator("Множитель объема должен быть больше 1.0", 1.0, 10.0))
+                .bind(Settings::getAveragingVolumeMultiplier, Settings::setAveragingVolumeMultiplier);
     }
 
     private void setupValidation() {

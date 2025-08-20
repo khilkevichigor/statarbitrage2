@@ -210,6 +210,19 @@ public class Settings {
     @Column(name = "bonus_scoring_weight")
     private double bonusScoringWeight = 5.0;
 
+    // ===== Усреднение =====
+    @Builder.Default
+    @Column(name = "auto_averaging_enabled")
+    private boolean autoAveragingEnabled = false;
+
+    @Builder.Default
+    @Column(name = "averaging_drawdown_threshold")
+    private double averagingDrawdownThreshold = 5.0;
+
+    @Builder.Default
+    @Column(name = "averaging_volume_multiplier")
+    private double averagingVolumeMultiplier = 1.5;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

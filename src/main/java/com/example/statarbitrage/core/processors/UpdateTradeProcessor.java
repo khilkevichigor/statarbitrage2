@@ -37,6 +37,7 @@ public class UpdateTradeProcessor {
     private final CloseByStopService closeByStopService;
     private final CsvExportService csvExportService;
     private final ChartService chartService;
+    private final AveragingService averagingService;
 
 
     //todo система очков для прибыльных/убыточных пар через бд - сделать таблицу торгуемых пар! начислять баллы по профиту! при отборе новых пар - брать былллы из этой таблицы
@@ -105,6 +106,16 @@ public class UpdateTradeProcessor {
         chartService.addCurrentPixelSpreadPoint(pairData); // Добавляем новую точку
 
         pairDataService.addChanges(pairData); // обновляем профит до проверки стратегии выхода
+
+        // Проверяем автоусреднение после обновления профита
+        if (averagingService.shouldPerformAutoAveraging(pairData, settings)) {
+            AveragingService.AveragingResult averagingResult = averagingService.performAutoAveraging(pairData, settings);
+            if (averagingResult.isSuccess()) {
+                log.info("✅ Автоусреднение выполнено для пары {}: {}", pairData.getPairName(), averagingResult.getMessage());
+            } else {
+                log.warn("⚠️ Автоусреднение не удалось для пары {}: {}", pairData.getPairName(), averagingResult.getMessage());
+            }
+        }
 
         if (request.isCloseManually()) {
             return handleManualClose(pairData, settings);
