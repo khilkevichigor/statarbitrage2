@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -25,10 +26,12 @@ public class ValidateMinimumLotRequirementsService {
      */
     public boolean validate(TradingProvider provider, PairData pairData, BigDecimal longAmount, BigDecimal shortAmount) {
         // Проверка блэклиста ДО основной валидации
-        if (isInBlacklist(pairData.getLongTicker()) || isInBlacklist(pairData.getShortTicker())) {
-            log.warn("❌ БЛОКИРОВКА: Пара {} заблокирована из-за тикеров в блэклисте минимальных лотов", 
-                    pairData.getPairName());
-            return false;
+        for (String ticker : List.of(pairData.getLongTicker(), pairData.getShortTicker())) {
+            if (isInBlacklist(ticker)) {
+                log.warn("❌ БЛОКИРОВКА: Пара {} заблокирована из-за тикера {} в блэклисте минимальных лотов",
+                        pairData.getPairName(), ticker);
+                return false;
+            }
         }
         try {
             BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
