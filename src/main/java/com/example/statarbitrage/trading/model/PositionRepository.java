@@ -8,7 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface PositionRepository extends JpaRepository<Position, Long> {
-    Optional<Position> findByPairDataIdAndType(Long pairDataId, PositionType type);
+    Optional<Position> findFirstByPairDataIdAndTypeOrderByIdDesc(Long pairDataId, PositionType type);
+
+    List<Position> findAllByPairDataIdAndType(Long pairDataId, PositionType type);
 
     List<Position> findAllByStatus(PositionStatus status);
 

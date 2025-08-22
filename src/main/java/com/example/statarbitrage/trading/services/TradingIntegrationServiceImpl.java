@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,8 +34,14 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     public void loadOpenPositions() {
         log.info("Загрузка открытых позиций из базы данных...");
         List<Position> openPositions = positionRepository.findAllByStatus(PositionStatus.OPEN);
-        tradingProviderFactory.getCurrentProvider().loadPositions(openPositions);
-        log.info("Загружено {} открытых позиций.", openPositions.size());
+
+        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        if (provider != null) {
+            provider.loadPositions(openPositions);
+            log.info("Загружено {} открытых позиций.", openPositions.size());
+        } else {
+            log.warn("⚠️ TradingProvider не инициализирован, пропускаем загрузку позиций");
+        }
     }
 
     @Override
@@ -103,8 +110,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
         synchronized (openPositionLock) {
             try {
-                Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
-                Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
+                Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
+                Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
 
                 if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
                     log.warn("Не найдены ID позиций для пары {}. Закрытие невозможно.", pairData.getPairName());
@@ -142,8 +149,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public Positioninfo verifyPositionsClosed(PairData pairData) {
-        Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
-        Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
+        Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
 
         if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
@@ -174,8 +181,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public Positioninfo getOpenPositionsInfo(PairData pairData) {
-        Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
-        Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
+        Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
 
         if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", pairData.getPairName());
@@ -208,8 +215,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     public Positioninfo getPositionInfo(PairData pairData) {
         log.debug("Запрос информации о позициях для пары {}", pairData.getPairName());
 
-        Optional<Position> longPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG);
-        Optional<Position> shortPositionOpt = positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
+        Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
 
         if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}", pairData.getPairName());
@@ -245,8 +252,14 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     @Override
     public void removePairFromLocalStorage(PairData pairData) {
         log.debug("Удаляем сохранённые ID позиций из репозитория для пары {}", pairData.getPairName());
-        positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.LONG).ifPresent(positionRepository::delete);
-        positionRepository.findByPairDataIdAndType(pairData.getId(), PositionType.SHORT).ifPresent(positionRepository::delete);
+        List<Position> longPositions = positionRepository.findAllByPairDataIdAndType(pairData.getId(), PositionType.LONG);
+        List<Position> shortPositions = positionRepository.findAllByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
+
+        positionRepository.deleteAll(longPositions);
+        positionRepository.deleteAll(shortPositions);
+
+        log.debug("Удалены позиции для пары {}: {} лонг позиций, {} шорт позиций",
+                pairData.getPairName(), longPositions.size(), shortPositions.size());
     }
 
     @Override
@@ -356,18 +369,76 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     }
 
     private void savePositions(PairData pairData, TradeResult longResult, TradeResult shortResult) {
-        Position longPosition = longResult.getPosition();
-        longPosition.setPairDataId(pairData.getId());
-        positionRepository.save(longPosition);
+        // Обрабатываем лонг позицию
+        Position newLongPosition = longResult.getPosition();
+        newLongPosition.setPairDataId(pairData.getId());
 
-        Position shortPosition = shortResult.getPosition();
-        shortPosition.setPairDataId(pairData.getId());
-        positionRepository.save(shortPosition);
+        Optional<Position> existingLongOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
+        Position finalLongPosition;
 
-        log.debug("💾 Сохранены позиции в БД для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
+        if (existingLongOpt.isPresent()) {
+            // Усреднение - обновляем существующую позицию актуальными данными от OKX
+            Position existingLong = existingLongOpt.get();
+            log.debug("🔄 Обновление существующей ЛОНГ позиции при усреднении для пары {}", pairData.getPairName());
+
+            // Обновляем актуальными данными от OKX после усреднения
+            existingLong.setSize(newLongPosition.getSize());
+            existingLong.setEntryPrice(newLongPosition.getEntryPrice()); // Новая средняя цена
+            existingLong.setCurrentPrice(newLongPosition.getCurrentPrice());
+            existingLong.setOpeningFees(newLongPosition.getOpeningFees());
+            existingLong.setLastUpdated(LocalDateTime.now());
+
+            finalLongPosition = positionRepository.save(existingLong);
+            log.debug("✅ Обновлена ЛОНГ позиция: новая средняя цена={}, размер={}",
+                    existingLong.getEntryPrice(), existingLong.getSize());
+        } else {
+            // Первое открытие позиции
+            finalLongPosition = positionRepository.save(newLongPosition);
+            log.debug("💾 Создана новая ЛОНГ позиция для пары {}: ID = {}", pairData.getPairName(), newLongPosition.getPositionId());
+        }
+
+        // Обрабатываем шорт позицию
+        Position newShortPosition = shortResult.getPosition();
+        newShortPosition.setPairDataId(pairData.getId());
+
+        Optional<Position> existingShortOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
+        Position finalShortPosition;
+
+        if (existingShortOpt.isPresent()) {
+            // Усреднение - обновляем существующую позицию актуальными данными от OKX
+            Position existingShort = existingShortOpt.get();
+            log.debug("🔄 Обновление существующей ШОРТ позиции при усреднении для пары {}", pairData.getPairName());
+
+            // Обновляем актуальными данными от OKX после усреднения
+            existingShort.setSize(newShortPosition.getSize());
+            existingShort.setEntryPrice(newShortPosition.getEntryPrice()); // Новая средняя цена
+            existingShort.setCurrentPrice(newShortPosition.getCurrentPrice());
+            existingShort.setOpeningFees(newShortPosition.getOpeningFees());
+            existingShort.setLastUpdated(LocalDateTime.now());
+
+            finalShortPosition = positionRepository.save(existingShort);
+            log.debug("✅ Обновлена ШОРТ позиция: новая средняя цена={}, размер={}",
+                    existingShort.getEntryPrice(), existingShort.getSize());
+        } else {
+            // Первое открытие позиции
+            finalShortPosition = positionRepository.save(newShortPosition);
+            log.debug("💾 Создана новая ШОРТ позиция для пары {}: ID = {}", pairData.getPairName(), newShortPosition.getPositionId());
+        }
+
+        // Синхронизируем с OKX для получения актуальных данных после усреднения
+        if (existingLongOpt.isPresent() || existingShortOpt.isPresent()) {
+            log.debug("🔄 Синхронизация с OKX после усреднения для получения актуальных данных");
+            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+            if (provider != null) {
+                provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
+                log.debug("✅ Синхронизация с OKX завершена");
+            }
+        }
+
+        log.debug("💾 Обработаны позиции для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
                 pairData.getPairName(),
-                longPosition.getPositionId(),
-                shortPosition.getPositionId());
+                finalLongPosition.getPositionId(),
+                finalShortPosition.getPositionId());
     }
 
     private ArbitragePairTradeInfo buildSuccess(TradeResult longResult, TradeResult shortResult, BigDecimal balanceUSDT, PairData pairData) {
