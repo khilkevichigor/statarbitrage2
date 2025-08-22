@@ -249,6 +249,8 @@ public class RealOkxTradingProvider implements TradingProvider {
                 position.setRealizedPnLUSDT(realPnLData.getRealizedPnl());
                 position.setClosingFees(realPnLData.getFee().abs()); // Комиссии всегда положительные
                 position.setFundingFees(realPnLData.getFundingFee());
+                position.setAllocatedAmount(realPnLData.getMargin());
+                position.setClosingPrice(realPnLData.getAverageClosePrice());
 
                 // Рассчитываем процентный P&L
                 if (position.getAllocatedAmount() != null && position.getAllocatedAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -275,11 +277,17 @@ public class RealOkxTradingProvider implements TradingProvider {
             // 4. Освобождаем средства и уведомляем портфолио
             okxPortfolioManager.releaseReservedBalance(position.getAllocatedAmount());
 
+            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnLUSDT());
+
             // Безопасное сложение комиссий с проверкой на null
-            BigDecimal openingFees = position.getOpeningFees();
-            BigDecimal closingFees = position.getClosingFees();
-            BigDecimal totalFees = openingFees.add(closingFees).add(realPnLData != null ? realPnLData.getFundingFee() : BigDecimal.ZERO);
-            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnLUSDT(), totalFees);
+            BigDecimal openingFees = safe(position.getOpeningFees());
+            BigDecimal closingFees = safe(position.getClosingFees());
+            BigDecimal fundingFee  = safe(position.getFundingFees());
+
+            log.info("Комиссии после закрытия: openingFees={}, closingFees={}, fundingFee={}",
+                    openingFees, closingFees, fundingFee);
+
+            BigDecimal totalFees = openingFees.add(closingFees).add(fundingFee);
 
             // 5. Формируем итоговый результат
             TradeResult finalResult = TradeResult.success(
@@ -288,8 +296,8 @@ public class RealOkxTradingProvider implements TradingProvider {
                     position.getSymbol(),
                     position.getRealizedPnLUSDT(),
                     position.getRealizedPnLPercent(),
-                    realPnLData.getMargin(), //todo неправильно брать из деталей ордера на закрытие - нужно из истории!
-                    realPnLData.getAverageClosePrice(),
+                    position.getAllocatedAmount(),
+                    position.getClosingPrice(),
                     totalFees,
                     closeOrderResult.getExternalOrderId(),
                     position
@@ -316,6 +324,10 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.error("❌ Ошибка при закрытии позиции {}: ", positionId, e);
             return TradeResult.failure(TradeOperationType.CLOSE_POSITION, "UNKNOWN", e.getMessage());
         }
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 
     private TradeResult failWithLog(String message, TradeOperationType type, String symbol) {

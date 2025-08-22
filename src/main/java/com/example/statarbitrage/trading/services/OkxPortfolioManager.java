@@ -107,7 +107,7 @@ public class OkxPortfolioManager {
         invalidateCache();
     }
 
-    public void onPositionClosed(Position position, BigDecimal pnl, BigDecimal fees) {
+    public void onPositionClosed(Position position, BigDecimal pnl) {
         // Для OKX данные о позициях обновляются автоматически
         log.debug("📉 OKX: Закрыта позиция {} | PnL: {}", position.getSymbol(), pnl);
         invalidateCache();
