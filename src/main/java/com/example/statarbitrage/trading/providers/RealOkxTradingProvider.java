@@ -1031,11 +1031,11 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Находит внутреннюю позицию по символу инструмента
      */
     private Position findPositionBySymbol(String symbol) {
-        log.info("🔍 findPositionBySymbol: Поиск позиции для символа '{}'", symbol);
-        log.info("🔍 findPositionBySymbol: Всего позиций в памяти: {}", positions.size());
+        log.debug("🔍 findPositionBySymbol: Поиск позиции для символа '{}'", symbol);
+        log.debug("🔍 findPositionBySymbol: Всего позиций в памяти: {}", positions.size());
         
         positions.values().forEach(pos -> {
-            log.info("🔍 findPositionBySymbol: Позиция {} - символ='{}', статус={}", 
+            log.debug("🔍 findPositionBySymbol: Позиция {} - символ='{}', статус={}",
                     pos.getPositionId(), pos.getSymbol(), pos.getStatus());
         });
         
@@ -1045,7 +1045,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 .findFirst()
                 .orElse(null);
                 
-        log.info("🔍 findPositionBySymbol: Найденная позиция для '{}': {}", symbol, found != null ? found.getPositionId() : "НЕ НАЙДЕНА");
+        log.debug("🔍 findPositionBySymbol: Найденная позиция для '{}': {}", symbol, found != null ? found.getPositionId() : "НЕ НАЙДЕНА");
         
         return found;
     }

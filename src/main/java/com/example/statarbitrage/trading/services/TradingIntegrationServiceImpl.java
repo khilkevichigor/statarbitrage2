@@ -200,12 +200,12 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         if (areBothOpen(longPosition, shortPosition)) {
 //            calculateUnrealizedPnL(longPosition, shortPosition);
             // Отладочное логирование для выявления null значений
-            log.info("🔍 ОТЛАДКА: longPosition.getUnrealizedPnLUSDT() = {}", longPosition.getUnrealizedPnLUSDT());
-            log.info("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLUSDT() = {}", shortPosition.getUnrealizedPnLUSDT());
-            log.info("🔍 ОТЛАДКА: longPosition.getUnrealizedPnLPercent() = {}", longPosition.getUnrealizedPnLPercent());
-            log.info("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLPercent() = {}", shortPosition.getUnrealizedPnLPercent());
-            log.info("🔍 ОТЛАДКА: longPosition = {}", longPosition);
-            log.info("🔍 ОТЛАДКА: shortPosition = {}", shortPosition);
+            log.debug("🔍 ОТЛАДКА: longPosition.getUnrealizedPnLUSDT() = {}", longPosition.getUnrealizedPnLUSDT());
+            log.debug("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLUSDT() = {}", shortPosition.getUnrealizedPnLUSDT());
+            log.debug("🔍 ОТЛАДКА: longPosition.getUnrealizedPnLPercent() = {}", longPosition.getUnrealizedPnLPercent());
+            log.debug("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLPercent() = {}", shortPosition.getUnrealizedPnLPercent());
+            log.debug("🔍 ОТЛАДКА: longPosition = {}", longPosition);
+            log.debug("🔍 ОТЛАДКА: shortPosition = {}", shortPosition);
             
             BigDecimal totalPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
             BigDecimal totalPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
