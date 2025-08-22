@@ -269,7 +269,10 @@ public class RealOkxTradingProvider implements TradingProvider {
             // 4. Освобождаем средства и уведомляем портфолио
             okxPortfolioManager.releaseReservedBalance(position.getAllocatedAmount());
 
-            BigDecimal totalFees = position.getOpeningFees().add(position.getClosingFees());
+            // Безопасное сложение комиссий с проверкой на null
+            BigDecimal openingFees = position.getOpeningFees() != null ? position.getOpeningFees() : BigDecimal.ZERO;
+            BigDecimal closingFees = position.getClosingFees() != null ? position.getClosingFees() : BigDecimal.ZERO;
+            BigDecimal totalFees = openingFees.add(closingFees);
             okxPortfolioManager.onPositionClosed(position, position.getRealizedPnLUSDT(), totalFees);
 
             // 5. Формируем итоговый результат
@@ -1002,7 +1005,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.info("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, маржа={}, комиссия={}, комиссия за фандинг={}",
+                log.debug("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, маржа={}, комиссия={}, комиссия за фандинг={}",
                         instId,
                         internalPosition.getUnrealizedPnLUSDT(),
                         internalPosition.getUnrealizedPnLPercent(),
