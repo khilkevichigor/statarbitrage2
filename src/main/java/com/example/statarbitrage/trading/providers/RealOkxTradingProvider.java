@@ -420,6 +420,12 @@ public class RealOkxTradingProvider implements TradingProvider {
         log.info("Загружено {} позиций в RealOkxTradingProvider", positions.size());
     }
 
+    @Override
+    public void updatePositionInMemory(String positionId, Position updatedPosition) {
+        positions.put(positionId, updatedPosition);
+        log.debug("🔄 Обновлена позиция в памяти: ID = {}, символ = {}", positionId, updatedPosition.getSymbol());
+    }
+
     // Приватные методы для работы с OKX API
 
     private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
@@ -1025,11 +1031,23 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Находит внутреннюю позицию по символу инструмента
      */
     private Position findPositionBySymbol(String symbol) {
-        return positions.values().stream()
+        log.info("🔍 findPositionBySymbol: Поиск позиции для символа '{}'", symbol);
+        log.info("🔍 findPositionBySymbol: Всего позиций в памяти: {}", positions.size());
+        
+        positions.values().forEach(pos -> {
+            log.info("🔍 findPositionBySymbol: Позиция {} - символ='{}', статус={}", 
+                    pos.getPositionId(), pos.getSymbol(), pos.getStatus());
+        });
+        
+        Position found = positions.values().stream()
                 .filter(pos -> symbol.equals(pos.getSymbol()))
                 .filter(pos -> pos.getStatus() == PositionStatus.OPEN)
                 .findFirst()
                 .orElse(null);
+                
+        log.info("🔍 findPositionBySymbol: Найденная позиция для '{}': {}", symbol, found != null ? found.getPositionId() : "НЕ НАЙДЕНА");
+        
+        return found;
     }
 
     /**

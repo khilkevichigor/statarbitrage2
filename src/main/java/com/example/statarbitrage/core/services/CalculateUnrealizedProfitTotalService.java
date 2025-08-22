@@ -69,7 +69,7 @@ public class CalculateUnrealizedProfitTotalService {
                 totalWeightedProfit = totalWeightedProfit.add(pairWeightedPnlPercent.multiply(pairTotalAlloc));
                 totalAllocatedAmount = totalAllocatedAmount.add(pairTotalAlloc);
 
-                log.info("📊 Пара {}: allocatedAmount={}, weightedPnL%={}",
+                log.debug("📊 Пара {}: allocatedAmount={}, weightedPnL%={}",
                         pair.getPairName(), pairTotalAlloc, pairWeightedPnlPercent);
 
             } catch (Exception e) {
@@ -80,7 +80,7 @@ public class CalculateUnrealizedProfitTotalService {
         // Общий взвешенный процентный профит
         if (totalAllocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal result = totalWeightedProfit.divide(totalAllocatedAmount, 8, RoundingMode.HALF_UP);
-            log.info("✅ Общий взвешенный PnL%: {} (totalAllocated: {})", result, totalAllocatedAmount);
+            log.debug("✅ Общий взвешенный PnL%: {} (totalAllocated: {})", result, totalAllocatedAmount);
             return result;
         } else {
             log.warn("⚠️ Общий allocatedAmount равен нулю");

@@ -158,6 +158,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        // ВАЖНО: обновляем цены позиций для получения актуального статуса
 //        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
         Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
@@ -190,6 +191,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        // ВАЖНО: обновляем цены позиций перед получением данных о PnL
 //        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
         Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
@@ -197,6 +199,14 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
         if (areBothOpen(longPosition, shortPosition)) {
 //            calculateUnrealizedPnL(longPosition, shortPosition);
+            // Отладочное логирование для выявления null значений
+            log.info("🔍 ОТЛАДКА: longPosition.getUnrealizedPnLUSDT() = {}", longPosition.getUnrealizedPnLUSDT());
+            log.info("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLUSDT() = {}", shortPosition.getUnrealizedPnLUSDT());
+            log.info("🔍 ОТЛАДКА: longPosition.getUnrealizedPnLPercent() = {}", longPosition.getUnrealizedPnLPercent());
+            log.info("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLPercent() = {}", shortPosition.getUnrealizedPnLPercent());
+            log.info("🔍 ОТЛАДКА: longPosition = {}", longPosition);
+            log.info("🔍 ОТЛАДКА: shortPosition = {}", shortPosition);
+            
             BigDecimal totalPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
             BigDecimal totalPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
 
@@ -367,8 +377,11 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         if (existingLongOpt.isPresent()) {
             // Усреднение - обновляем существующую позицию актуальными данными от OKX
             Position existingLong = existingLongOpt.get();
-            log.debug("🔄 Обновление существующей ЛОНГ позиции при усреднении для пары {}", pairData.getPairName());
+            log.debug("🔄 Обновление существующей ЛОНГ позиции при усреднении для пары {}: ID = {}", pairData.getPairName(), existingLong.getPositionId());
 
+            // ВАЖНО: сохраняем тот же positionId при усреднении
+            String existingPositionId = existingLong.getPositionId();
+            
             // Обновляем актуальными данными от OKX после усреднения
             existingLong.setSize(newLongPosition.getSize());
             existingLong.setEntryPrice(newLongPosition.getEntryPrice()); // Новая средняя цена
@@ -377,8 +390,15 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             existingLong.setLastUpdated(LocalDateTime.now());
 
             finalLongPosition = positionRepository.save(existingLong);
-            log.debug("✅ Обновлена ЛОНГ позиция: новая средняя цена={}, размер={}",
-                    existingLong.getEntryPrice(), existingLong.getSize());
+            
+            // Обновляем ConcurrentHashMap в TradingProvider
+            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+            if (provider != null) {
+                provider.updatePositionInMemory(existingPositionId, existingLong);
+            }
+            
+            log.debug("✅ Обновлена ЛОНГ позиция: ID = {}, новая средняя цена={}, размер={}",
+                    existingPositionId, existingLong.getEntryPrice(), existingLong.getSize());
         } else {
             // Первое открытие позиции
             finalLongPosition = positionRepository.save(newLongPosition);
@@ -395,7 +415,10 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         if (existingShortOpt.isPresent()) {
             // Усреднение - обновляем существующую позицию актуальными данными от OKX
             Position existingShort = existingShortOpt.get();
-            log.debug("🔄 Обновление существующей ШОРТ позиции при усреднении для пары {}", pairData.getPairName());
+            log.debug("🔄 Обновление существующей ШОРТ позиции при усреднении для пары {}: ID = {}", pairData.getPairName(), existingShort.getPositionId());
+
+            // ВАЖНО: сохраняем тот же positionId при усреднении
+            String existingPositionId = existingShort.getPositionId();
 
             // Обновляем актуальными данными от OKX после усреднения
             existingShort.setSize(newShortPosition.getSize());
@@ -405,8 +428,15 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             existingShort.setLastUpdated(LocalDateTime.now());
 
             finalShortPosition = positionRepository.save(existingShort);
-            log.debug("✅ Обновлена ШОРТ позиция: новая средняя цена={}, размер={}",
-                    existingShort.getEntryPrice(), existingShort.getSize());
+            
+            // Обновляем ConcurrentHashMap в TradingProvider
+            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+            if (provider != null) {
+                provider.updatePositionInMemory(existingPositionId, existingShort);
+            }
+            
+            log.debug("✅ Обновлена ШОРТ позиция: ID = {}, новая средняя цена={}, размер={}",
+                    existingPositionId, existingShort.getEntryPrice(), existingShort.getSize());
         } else {
             // Первое открытие позиции
             finalShortPosition = positionRepository.save(newShortPosition);

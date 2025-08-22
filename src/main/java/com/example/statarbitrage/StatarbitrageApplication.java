@@ -48,13 +48,13 @@ public class StatarbitrageApplication {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
-        log.info("🚀 Статарбитраж приложение готово к работе!");
-
         // Проверка геолокации при запуске
         geolocationService.checkGeolocationOnStartup();
 
         // Проверка Cointegration API
         checkCointegrationApiHealth();
+
+        log.info("🚀 Статарбитраж приложение готово к работе!");
 
         updateTradingPairsAfterRestart();
     }
@@ -66,11 +66,11 @@ public class StatarbitrageApplication {
     }
 
     private void checkCointegrationApiHealth() {
-        log.info("🚀 Проверка работоспособности API коинтеграции...");
+        log.debug("🚀 Проверка работоспособности API коинтеграции...");
         boolean healthy = healthCheck.isHealthy();
 
         if (healthy) {
-            log.info("🧪 Тестирование API коинтеграции...");
+            log.debug("🧪 Тестирование API коинтеграции...");
             try {
                 Map<String, List<Candle>> testData = new HashMap<>();
                 testData.put("BTC-USDT", Arrays.asList(
@@ -88,7 +88,7 @@ public class StatarbitrageApplication {
                         .build();
 
                 pythonRestClient.discoverPairs(testData, settings);
-                log.info("✅ Интеграционный тест API коинтеграции прошел успешно!");
+                log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
 
             } catch (Exception e) {
                 log.error("❌ Ошибка при выполнении интеграционного теста API коинтеграции: {}", e.getMessage(), e);

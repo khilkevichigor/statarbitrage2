@@ -29,9 +29,9 @@ public class CointegrationApiHealthCheck {
 
             boolean healthy = response.statusCode() == 200;
             if (healthy) {
-                log.info("✅ Cointegration API is healthy");
+                log.info("✅ API коинтеграции в норме");
             } else {
-                log.warn("⚠️ Cointegration API health check failed: {}", response.statusCode());
+                log.warn("⚠️ Ошибка API коинтеграции: {}", response.statusCode());
             }
             return healthy;
 

@@ -92,4 +92,9 @@ public class Real3CommasTradingProvider implements TradingProvider {
     public void loadPositions(List<Position> positions) {
         // Stub implementation
     }
+
+    @Override
+    public void updatePositionInMemory(String positionId, Position updatedPosition) {
+        // Stub implementation - 3Commas provider не реализован
+    }
 }

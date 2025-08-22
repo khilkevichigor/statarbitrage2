@@ -143,7 +143,7 @@ public class GeolocationService {
      * Проверка геолокации при запуске приложения
      */
     public void checkGeolocationOnStartup() {
-        log.info("🌍 Проверка геолокации при запуске...");
+        log.debug("🌍 Проверка геолокации при запуске...");
 
         try {
             String country = checkCountryViaIpApi();
