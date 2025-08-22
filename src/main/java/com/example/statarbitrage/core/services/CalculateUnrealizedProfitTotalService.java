@@ -89,6 +89,41 @@ public class CalculateUnrealizedProfitTotalService {
     }
 
     /**
+     * Расчет взвешенного процентного профита для конкретной пары позиций
+     * Формула: (PnL%_long * allocation_long + PnL%_short * allocation_short) / (allocation_long + allocation_short)
+     */
+    public BigDecimal getPairUnrealizedProfitPercentTotal(Position longPosition, Position shortPosition) {
+        if (longPosition == null || shortPosition == null) {
+            log.warn("⚠️ Одна из позиций равна null: long={}, short={}", longPosition != null, shortPosition != null);
+            return BigDecimal.ZERO;
+        }
+
+        // Безопасное получение allocated amounts
+        BigDecimal longAlloc = safeGet(longPosition.getAllocatedAmount());
+        BigDecimal shortAlloc = safeGet(shortPosition.getAllocatedAmount());
+        BigDecimal totalAlloc = longAlloc.add(shortAlloc);
+
+        if (totalAlloc.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("⚠️ Нулевое allocatedAmount для пары: long={}, short={}", longAlloc, shortAlloc);
+            return BigDecimal.ZERO;
+        }
+
+        // Безопасное получение процентных PnL
+        BigDecimal longPnlPercent = safeGet(longPosition.getUnrealizedPnLPercent());
+        BigDecimal shortPnlPercent = safeGet(shortPosition.getUnrealizedPnLPercent());
+
+        // Взвешенный процентный профит: (P1 * A1 + P2 * A2) / (A1 + A2)
+        BigDecimal weightedPnlPercent = longPnlPercent.multiply(longAlloc)
+                .add(shortPnlPercent.multiply(shortAlloc))
+                .divide(totalAlloc, 8, RoundingMode.HALF_UP);
+
+        log.debug("📊 Взвешенный PnL% для пары: long={}% ({}), short={}% ({}) -> result={}%",
+                longPnlPercent, longAlloc, shortPnlPercent, shortAlloc, weightedPnlPercent);
+
+        return weightedPnlPercent;
+    }
+
+    /**
      * Безопасное получение значения с заменой null на ZERO
      */
     private BigDecimal safeGet(BigDecimal value) {

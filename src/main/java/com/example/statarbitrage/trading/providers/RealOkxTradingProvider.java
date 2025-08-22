@@ -239,7 +239,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 Thread.currentThread().interrupt();
                 log.warn("⚠️ Прерван ожидание появления позиции в истории OKX");
             }
-            
+
             OkxPositionHistoryData realPnLData = getRealizedPnLFromOkx(position.getSymbol(), position.getPositionId());
             if (realPnLData != null) {
                 log.info("📊 Используем реальный P&L от OKX: realizedPnl={}, fee={}, fundingFee={}",
@@ -305,6 +305,10 @@ public class RealOkxTradingProvider implements TradingProvider {
                     finalResult.getPnlPercent(),
                     finalResult.getExternalOrderId()
             );
+
+            // Удаляем позицию из памяти после успешного закрытия
+            positions.remove(positionId);
+            log.info("🗑️ Позиция {} удалена из памяти после успешного закрытия", positionId);
 
             return finalResult;
 
@@ -1033,20 +1037,20 @@ public class RealOkxTradingProvider implements TradingProvider {
     private Position findPositionBySymbol(String symbol) {
         log.debug("🔍 findPositionBySymbol: Поиск позиции для символа '{}'", symbol);
         log.debug("🔍 findPositionBySymbol: Всего позиций в памяти: {}", positions.size());
-        
+
         positions.values().forEach(pos -> {
             log.debug("🔍 findPositionBySymbol: Позиция {} - символ='{}', статус={}",
                     pos.getPositionId(), pos.getSymbol(), pos.getStatus());
         });
-        
+
         Position found = positions.values().stream()
                 .filter(pos -> symbol.equals(pos.getSymbol()))
                 .filter(pos -> pos.getStatus() == PositionStatus.OPEN)
                 .findFirst()
                 .orElse(null);
-                
+
         log.debug("🔍 findPositionBySymbol: Найденная позиция для '{}': {}", symbol, found != null ? found.getPositionId() : "НЕ НАЙДЕНА");
-        
+
         return found;
     }
 
@@ -1678,24 +1682,24 @@ public class RealOkxTradingProvider implements TradingProvider {
      */
     public OkxPositionHistoryData getRealizedPnLFromOkx(String symbol, String positionId) {
         log.debug("==> getRealizedPnLFromOkx: Получение реального P&L для {} (позиция: {})", symbol, positionId);
-        
+
         // Делаем несколько попыток найти позицию в истории с интервалами
         int maxAttempts = 3;
         int attemptDelayMs = 2000; // 2 секунды между попытками
-        
+
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             log.info("🔄 Попытка {}/{} поиска позиции {} в истории OKX", attempt, maxAttempts, symbol);
-            
+
             List<OkxPositionHistoryData> history = getPositionsHistory(symbol);
-            
+
             // Ищем последнюю закрытую позицию по времени закрытия
             Optional<OkxPositionHistoryData> latestClosedPosition = history.stream()
                     .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
                     .max(Comparator.comparing(OkxPositionHistoryData::getCloseTime));
-            
+
             if (latestClosedPosition.isPresent()) {
                 OkxPositionHistoryData positionData = latestClosedPosition.get();
-                
+
                 // ЛОГИРОВАНИЕ ВСЕХ ПОЛЕЙ НАЙДЕННОЙ ПОЗИЦИИ
                 log.info("✅ === НАЙДЕНА ПОСЛЕДНЯЯ ЗАКРЫТАЯ ПОЗИЦИЯ {} НА ПОПЫТКЕ {} ===", symbol, attempt);
                 log.info("🔹 instrumentType     : {} (тип инструмента)", positionData.getInstrumentType());
@@ -1717,10 +1721,10 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.info("🔹 fee                : {} (комиссия)", positionData.getFee());
                 log.info("🔹 fundingFee         : {} (фандинг комиссия)", positionData.getFundingFee());
                 log.info("✅ === КОНЕЦ ИНФОРМАЦИИ О НАЙДЕННОЙ ПОЗИЦИИ ===");
-                
+
                 return positionData;
             }
-            
+
             // Если это не последняя попытка, ждем перед следующей
             if (attempt < maxAttempts) {
                 log.info("⏳ Позиция {} не найдена, ждем {} мс перед попыткой {}", symbol, attemptDelayMs, attempt + 1);
@@ -1733,7 +1737,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 }
             }
         }
-        
+
         log.warn("⚠️ Не найдена закрытая позиция в истории OKX для {} после {} попыток (позиция: {})", symbol, maxAttempts, positionId);
         return null;
     }

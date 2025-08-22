@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -206,9 +207,11 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             log.debug("🔍 ОТЛАДКА: shortPosition.getUnrealizedPnLPercent() = {}", shortPosition.getUnrealizedPnLPercent());
             log.debug("🔍 ОТЛАДКА: longPosition = {}", longPosition);
             log.debug("🔍 ОТЛАДКА: shortPosition = {}", shortPosition);
-            
+
             BigDecimal totalPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
-            BigDecimal totalPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
+
+            // Рассчитываем взвешенный процентный профит пары
+            BigDecimal totalPnlPercent = calculatePairWeightedPnlPercent(longPosition, shortPosition);
 
             log.debug("Текущий PnL для открытых позиций пары {}: {} USDT ({} %)", pairData.getPairName(), totalPnlUSDT, totalPnlPercent);
 
@@ -381,7 +384,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
             // ВАЖНО: сохраняем тот же positionId при усреднении
             String existingPositionId = existingLong.getPositionId();
-            
+
             // Обновляем актуальными данными от OKX после усреднения
             existingLong.setSize(newLongPosition.getSize());
             existingLong.setEntryPrice(newLongPosition.getEntryPrice()); // Новая средняя цена
@@ -390,13 +393,13 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             existingLong.setLastUpdated(LocalDateTime.now());
 
             finalLongPosition = positionRepository.save(existingLong);
-            
+
             // Обновляем ConcurrentHashMap в TradingProvider
             TradingProvider provider = tradingProviderFactory.getCurrentProvider();
             if (provider != null) {
                 provider.updatePositionInMemory(existingPositionId, existingLong);
             }
-            
+
             log.debug("✅ Обновлена ЛОНГ позиция: ID = {}, новая средняя цена={}, размер={}",
                     existingPositionId, existingLong.getEntryPrice(), existingLong.getSize());
         } else {
@@ -428,13 +431,13 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             existingShort.setLastUpdated(LocalDateTime.now());
 
             finalShortPosition = positionRepository.save(existingShort);
-            
+
             // Обновляем ConcurrentHashMap в TradingProvider
             TradingProvider provider = tradingProviderFactory.getCurrentProvider();
             if (provider != null) {
                 provider.updatePositionInMemory(existingPositionId, existingShort);
             }
-            
+
             log.debug("✅ Обновлена ШОРТ позиция: ID = {}, новая средняя цена={}, размер={}",
                     existingPositionId, existingShort.getEntryPrice(), existingShort.getSize());
         } else {
@@ -618,5 +621,47 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 .longPosition(longPos)
                 .shortPosition(shortPos)
                 .build();
+    }
+
+    /**
+     * Расчет взвешенного процентного профита для пары позиций
+     * Формула: (PnL%_long * allocation_long + PnL%_short * allocation_short) / (allocation_long + allocation_short)
+     */
+    private BigDecimal calculatePairWeightedPnlPercent(Position longPosition, Position shortPosition) {
+        if (longPosition == null || shortPosition == null) {
+            log.warn("⚠️ Одна из позиций равна null: long={}, short={}", longPosition != null, shortPosition != null);
+            return BigDecimal.ZERO;
+        }
+
+        // Безопасное получение allocated amounts
+        BigDecimal longAlloc = safeGet(longPosition.getAllocatedAmount());
+        BigDecimal shortAlloc = safeGet(shortPosition.getAllocatedAmount());
+        BigDecimal totalAlloc = longAlloc.add(shortAlloc);
+
+        if (totalAlloc.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("⚠️ Нулевое allocatedAmount для пары: long={}, short={}", longAlloc, shortAlloc);
+            return BigDecimal.ZERO;
+        }
+
+        // Безопасное получение процентных PnL
+        BigDecimal longPnlPercent = safeGet(longPosition.getUnrealizedPnLPercent());
+        BigDecimal shortPnlPercent = safeGet(shortPosition.getUnrealizedPnLPercent());
+
+        // Взвешенный процентный профит: (P1 * A1 + P2 * A2) / (A1 + A2)
+        BigDecimal weightedPnlPercent = longPnlPercent.multiply(longAlloc)
+                .add(shortPnlPercent.multiply(shortAlloc))
+                .divide(totalAlloc, 8, RoundingMode.HALF_UP);
+
+        log.debug("📊 Взвешенный PnL% для пары: long={}% ({}), short={}% ({}) -> result={}%",
+                longPnlPercent, longAlloc, shortPnlPercent, shortAlloc, weightedPnlPercent);
+
+        return weightedPnlPercent;
+    }
+
+    /**
+     * Безопасное получение значения с заменой null на ZERO
+     */
+    private BigDecimal safeGet(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }
