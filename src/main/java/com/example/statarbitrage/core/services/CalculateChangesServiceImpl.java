@@ -67,11 +67,11 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.debug("--> getFromClosedPositions для пары {}", pairData.getPairName());
 
-        BigDecimal totalRealizedPnlUSDT = safeScale(safeGet(longPosition.getRealizedPnLUSDT()).add(safeGet(shortPosition.getRealizedPnLUSDT())), 8);
-        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8);
+        BigDecimal totalRealizedPnlUSDT = safeScale(longPosition.getRealizedPnLUSDT().add(shortPosition.getRealizedPnLUSDT()), 8);
+        BigDecimal totalRealizedPnlPercent = safeScale(longPosition.getRealizedPnLPercent().add(shortPosition.getRealizedPnLPercent()), 8);
         BigDecimal totalFees = safeScale(
-                safeGet(longPosition.getOpeningFees()).add(safeGet(longPosition.getClosingFees())).add(safeGet(longPosition.getFundingFees()))
-                        .add(safeGet(shortPosition.getOpeningFees())).add(safeGet(shortPosition.getClosingFees())).add(safeGet(shortPosition.getFundingFees())),
+                longPosition.getOpeningFees().add(longPosition.getClosingFees()).add(longPosition.getFundingFees())
+                        .add(shortPosition.getOpeningFees()).add(shortPosition.getClosingFees()).add(shortPosition.getFundingFees()),
                 8);
 
         log.debug("Реализованный PnL: {} USDT ({} %), комиссии: {}", totalRealizedPnlUSDT, totalRealizedPnlPercent, totalFees);
@@ -132,11 +132,11 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
-        changesData.setLongUSDTChanges(safeScale(isPositionsClosed ? safeGet(longPosition.getRealizedPnLUSDT()) : safeGet(longPosition.getUnrealizedPnLUSDT()), 8));
-        changesData.setLongPercentChanges(safeScale(isPositionsClosed ? safeGet(longPosition.getRealizedPnLPercent()) : safeGet(longPosition.getUnrealizedPnLPercent()), 8));
+        changesData.setLongUSDTChanges(safeScale(isPositionsClosed ? longPosition.getRealizedPnLUSDT() : longPosition.getUnrealizedPnLUSDT(), 8));
+        changesData.setLongPercentChanges(safeScale(isPositionsClosed ? longPosition.getRealizedPnLPercent() : longPosition.getUnrealizedPnLPercent(), 8));
 
-        changesData.setShortUSDTChanges(safeScale(isPositionsClosed ? safeGet(shortPosition.getRealizedPnLUSDT()) : safeGet(shortPosition.getUnrealizedPnLUSDT()), 8));
-        changesData.setShortPercentChanges(safeScale(isPositionsClosed ? safeGet(shortPosition.getRealizedPnLPercent()) : safeGet(shortPosition.getUnrealizedPnLPercent()), 8));
+        changesData.setShortUSDTChanges(safeScale(isPositionsClosed ? shortPosition.getRealizedPnLUSDT() : shortPosition.getUnrealizedPnLUSDT(), 8));
+        changesData.setShortPercentChanges(safeScale(isPositionsClosed ? shortPosition.getRealizedPnLPercent() : shortPosition.getUnrealizedPnLPercent(), 8));
 
         changesData.setProfitUSDTChanges(pnlUSDT);
         changesData.setProfitPercentChanges(pnlPercent);
