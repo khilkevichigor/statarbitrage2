@@ -359,7 +359,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             double maxWeight = settings.getZScoreScoringWeight();
             double zScorePoints = Math.min(Math.abs(zScore) * (maxWeight / 5.0), maxWeight); // Нормализуем по весу
             totalScore += zScorePoints;
-            log.info("  🎯 Z-Score компонент: {} очков (Z-score={}, вес={})",
+            log.debug("  🎯 Z-Score компонент: {} очков (Z-score={}, вес={})",
                     NumberFormatter.format(zScorePoints, 1), NumberFormatter.format(zScore, 2), maxWeight);
         }
 
@@ -367,7 +367,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         if (settings.isUsePixelSpreadScoring()) {
             double pixelSpreadScore = calculatePixelSpreadScoreComponent(data, settings, candlesMap);
             totalScore += pixelSpreadScore;
-            log.info("  📏 Пиксельный спред: {} очков (вес={})",
+            log.debug("  📏 Пиксельный спред: {} очков (вес={})",
                     NumberFormatter.format(pixelSpreadScore, 1), settings.getPixelSpreadScoringWeight());
         }
 
@@ -375,7 +375,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         if (settings.isUseCointegrationScoring()) {
             double cointegrationScore = calculateCointegrationScoreComponent(data, params, settings);
             totalScore += cointegrationScore;
-            log.info("  🔬 Коинтеграция: {} очков (вес={})",
+            log.debug("  🔬 Коинтеграция: {} очков (вес={})",
                     NumberFormatter.format(cointegrationScore, 1), settings.getCointegrationScoringWeight());
         }
 
@@ -383,7 +383,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         if (settings.isUseModelQualityScoring()) {
             double modelQualityScore = calculateModelQualityScoreComponent(data, params, settings);
             totalScore += modelQualityScore;
-            log.info("  📊 Качество модели: {} очков (вес={})",
+            log.debug("  📊 Качество модели: {} очков (вес={})",
                     NumberFormatter.format(modelQualityScore, 1), settings.getModelQualityScoringWeight());
         }
 
@@ -391,7 +391,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         if (settings.isUseStatisticsScoring()) {
             double statisticalScore = calculateStatisticalSignificanceScoreComponent(data, params, settings);
             totalScore += statisticalScore;
-            log.info("  📊 Статистика: {} очков (вес={})",
+            log.debug("  📊 Статистика: {} очков (вес={})",
                     NumberFormatter.format(statisticalScore, 1), settings.getStatisticsScoringWeight());
         }
 
@@ -399,7 +399,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         if (settings.isUseBonusScoring()) {
             double bonusScore = calculateBonusScoreComponent(data, settings);
             totalScore += bonusScore;
-            log.info("  🎁 Бонусы: {} очков (вес={})",
+            log.debug("  🎁 Бонусы: {} очков (вес={})",
                     NumberFormatter.format(bonusScore, 1), settings.getBonusScoringWeight());
         }
 
