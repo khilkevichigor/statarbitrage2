@@ -196,7 +196,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
 
         if (areBothOpen(longPosition, shortPosition)) {
-            calculateUnrealizedPnL(longPosition, shortPosition);
+//            calculateUnrealizedPnL(longPosition, shortPosition);
             BigDecimal totalPnlUSDT = longPosition.getUnrealizedPnLUSDT().add(shortPosition.getUnrealizedPnLUSDT());
             BigDecimal totalPnlPercent = longPosition.getUnrealizedPnLPercent().add(shortPosition.getUnrealizedPnLPercent());
 
@@ -547,10 +547,10 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         return isOpen(longPos) && isOpen(shortPos);
     }
 
-    private void calculateUnrealizedPnL(Position longPos, Position shortPos) {
-        if (longPos != null) longPos.calculateUnrealizedPnL();
-        if (shortPos != null) shortPos.calculateUnrealizedPnL();
-    }
+//    private void calculateUnrealizedPnL(Position longPos, Position shortPos) {
+//        if (longPos != null) longPos.calculateUnrealizedPnL();
+//        if (shortPos != null) shortPos.calculateUnrealizedPnL();
+//    }
 
     private Positioninfo buildOpenPositionInfo(Position longPos, Position shortPos, BigDecimal totalPnLUSDT, BigDecimal totalPnLPercent) {
         return Positioninfo.builder()

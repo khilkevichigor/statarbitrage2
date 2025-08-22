@@ -1,6 +1,7 @@
 package com.example.statarbitrage.trading.providers;
 
 import com.example.statarbitrage.client_okx.OkxClient;
+import com.example.statarbitrage.common.dto.OkxPositionHistoryData;
 import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.interfaces.TradingProviderType;
 import com.example.statarbitrage.trading.model.*;
@@ -82,6 +83,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String PUBLIC_INSTRUMENTS_ENDPOINT = "/api/v5/public/instruments";
     private static final String ACCOUNT_CONFIG_ENDPOINT = "/api/v5/account/config";
     private static final String SET_LEVERAGE_ENDPOINT = "/api/v5/account/set-leverage";
+    private static final String POSITIONS_HISTORY_ENDPOINT = "/api/v5/account/positions-history";
 
     @Override
     public Portfolio getPortfolio() {
@@ -229,8 +231,36 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return closeOrderResult;
             }
 
-            // 2. Рассчитываем и сохраняем реализованный PnL
-            position.calculateAndSetRealizedPnL(closeOrderResult.getPnlUSDT(), closeOrderResult.getFees());
+            // 2. Получаем реальный P&L от OKX API вместо ручного расчета
+            OkxPositionHistoryData realPnLData = getRealizedPnLFromOkx(position.getSymbol(), position.getPositionId());
+            if (realPnLData != null) {
+                log.info("📊 Используем реальный P&L от OKX: realizedPnl={}, fee={}, fundingFee={}", 
+                        realPnLData.getRealizedPnl(), realPnLData.getFee(), realPnLData.getFundingFee());
+                
+                // Используем точные данные от OKX
+                position.setRealizedPnLUSDT(realPnLData.getRealizedPnl());
+                position.setClosingFees(realPnLData.getFee().abs()); // Комиссии всегда положительные
+                position.setFundingFees(realPnLData.getFundingFee());
+                
+                // Рассчитываем процентный P&L
+                if (position.getAllocatedAmount() != null && position.getAllocatedAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal pnlPercent = realPnLData.getRealizedPnl()
+                            .divide(position.getAllocatedAmount(), 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100));
+                    position.setRealizedPnLPercent(pnlPercent);
+                }
+                
+                // Сбрасываем нереализованный P&L
+                position.setUnrealizedPnLUSDT(BigDecimal.ZERO);
+                position.setUnrealizedPnLPercent(BigDecimal.ZERO);
+                
+                log.info("✅ P&L обновлен реальными данными OKX: realizedPnL={} USDT ({}%)", 
+                        position.getRealizedPnLUSDT(), position.getRealizedPnLPercent());
+            } else {
+                log.warn("⚠️ Не удалось получить реальные данные P&L от OKX");
+                // Fallback на старый способ
+//                position.calculateAndSetRealizedPnL(closeOrderResult.getPnlUSDT(), closeOrderResult.getFees());
+            }
 
             // 3. Обновляем статус и время последнего обновления
             position.setStatus(PositionStatus.CLOSED);
@@ -914,7 +944,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.debug("🔹 avgPx          : {} USDT (средняя цена входа)", avgPx);
             log.debug("🔹 markPx         : {} USDT (маркировочная цена)", markPx);
             log.debug("🔹 upl            : {} USDT (нереализованный PnL)", upl);
-            log.debug("🔹 uplRatio       : {} % (PnL в процентах)", uplRatio); //это какие-то сырые данные, не то что отображается на бирже!
+            log.debug("🔹 uplRatio       : {} % (PnL в процентах)", uplRatio); // это какие-то сырые данные, не то что отображается на бирже!
             log.debug("🔹 realizedPnl    : {} USDT (реализованный PnL)", realizedPnlUSDT);
             log.debug("🔹 bePx           : {} USDT (цена безубыточности)", bePx);
             log.debug("🔹 lever          : {}x (плечо)", lever);
@@ -933,28 +963,52 @@ public class RealOkxTradingProvider implements TradingProvider {
             BigDecimal scaledAvgPx = safeScale(avgPx, 8);
             BigDecimal scaledMarkPx = safeScale(markPx, 8);
             BigDecimal scaledUpl = safeScale(upl, 8);
-//            BigDecimal scaledUplRatio = safeScale(uplRatio, 8);
+            BigDecimal scaledUplRatio = safeScale(uplRatio, 8);
             BigDecimal scaledRealizedPnl = safeScale(realizedPnlUSDT, 8);
             BigDecimal scaledFee = safeScale(fee, 8);
             BigDecimal scaledFundingFee = safeScale(fundingFee, 8);
             // Ищем и обновляем внутреннюю позицию
             Position internalPosition = findPositionBySymbol(instId);
             if (internalPosition != null) {
-                if (scaledMarkPx != null) internalPosition.setCurrentPrice(scaledMarkPx);
-                if (scaledUpl != null) internalPosition.setUnrealizedPnLUSDT(scaledUpl);
-//                if (scaledUplRatio != null) internalPosition.setUnrealizedPnLPercent(scaledUplRatio); //не будем сетить сырые данные по pnl
-                if (scaledRealizedPnl != null) internalPosition.setRealizedPnLUSDT(scaledRealizedPnl);
-                if (scaledAvgPx != null) internalPosition.setEntryPrice(scaledAvgPx);
-                if (scaledFee != null) internalPosition.setOpeningFees(scaledFee);
-                if (scaledFundingFee != null) internalPosition.setFundingFees(scaledFundingFee);
-                if (!"N/A".equals(pos)) internalPosition.setSize(new BigDecimal(pos).abs());
+                if (scaledMarkPx != null) {
+                    internalPosition.setCurrentPrice(scaledMarkPx);
+                }
+                if (scaledUpl != null) {
+                    internalPosition.setUnrealizedPnLUSDT(scaledUpl);
+                }
+                if (scaledUplRatio != null) {
+                    internalPosition.setUnrealizedPnLPercent(scaledUplRatio);
+                }
+                if (scaledRealizedPnl != null) {
+                    internalPosition.setRealizedPnLUSDT(scaledRealizedPnl);
+                }
+                if (scaledAvgPx != null) {
+                    internalPosition.setEntryPrice(scaledAvgPx);
+                }
+                if (!"N/A".equals(pos)) {
+                    internalPosition.setSize(new BigDecimal(pos).abs());
+                }
+                if (scaledFee != null) {
+                    internalPosition.setOpeningFees(scaledFee);
+                }
+                if (scaledFundingFee != null) {
+                    internalPosition.setFundingFees(scaledFundingFee);
+                }
 
-                internalPosition.calculateUnrealizedPnL(); //а вот тут уже высчитаем нереализованный pnl тк Position может быть только открытой!
+//                internalPosition.calculateUnrealizedPnL(); //а вот тут уже высчитаем нереализованный pnl тк Position может быть только открытой!
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.debug("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, комиссия={}, комиссия за фандинг={}",
-                        instId, scaledUpl, internalPosition.getUnrealizedPnLPercent(), scaledRealizedPnl, scaledMarkPx, pos, scaledFee, scaledFundingFee);
+                log.info("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, комиссия={}, комиссия за фандинг={}",
+                        instId,
+                        internalPosition.getUnrealizedPnLUSDT(),
+                        internalPosition.getUnrealizedPnLPercent(),
+                        internalPosition.getRealizedPnLUSDT(),
+                        internalPosition.getCurrentPrice(),
+                        internalPosition.getSize(),
+                        internalPosition.getOpeningFees(),
+                        internalPosition.getFundingFees()
+                );
             } else {
                 log.debug("⚠️ Внутренняя позиция для {} не найдена, пропускаем", instId);
             }
@@ -1450,6 +1504,136 @@ public class RealOkxTradingProvider implements TradingProvider {
         }
     }
 
+
+    /**
+     * Получение истории закрытых позиций от OKX API
+     */
+    public List<OkxPositionHistoryData> getPositionsHistory(String symbol) {
+        log.debug("==> getPositionsHistory: Запрос истории позиций для {}", symbol);
+
+        if (!geolocationService.isGeolocationAllowed()) {
+            log.error("❌ БЛОКИРОВКА: Получение истории позиций заблокировано из-за геолокации!");
+            return Collections.emptyList();
+        }
+
+        try {
+            String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
+            String endpoint = POSITIONS_HISTORY_ENDPOINT + "?instType=SWAP&instId=" + symbol;
+            
+            String timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS).toString();
+            String signature = generateSignature("GET", endpoint, "", timestamp);
+
+            Request request = new Request.Builder()
+                    .url(baseUrl + endpoint)
+                    .addHeader("OK-ACCESS-KEY", apiKey)
+                    .addHeader("OK-ACCESS-SIGN", signature)
+                    .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
+                    .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body().string();
+                log.debug("Ответ OKX на запрос истории позиций {}: HTTP {} | {}", symbol, response.code(), responseBody);
+                
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+                if (!"0".equals(jsonResponse.get("code").getAsString())) {
+                    log.error("❌ Ошибка OKX API при запросе истории позиций {}: {}", symbol, jsonResponse.get("msg").getAsString());
+                    return Collections.emptyList();
+                }
+
+                JsonArray data = jsonResponse.getAsJsonArray("data");
+                List<OkxPositionHistoryData> historyList = new ArrayList<>();
+                
+                for (JsonElement element : data) {
+                    JsonObject positionJson = element.getAsJsonObject();
+                    OkxPositionHistoryData historyData = parsePositionHistory(positionJson);
+                    if (historyData != null) {
+                        historyList.add(historyData);
+                    }
+                }
+                
+                log.debug("✅ Получено {} записей истории позиций для {}", historyList.size(), symbol);
+                return historyList;
+                
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении истории позиций для {}: {}", symbol, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Парсинг данных истории позиции из JSON OKX
+     */
+    private OkxPositionHistoryData parsePositionHistory(JsonObject positionJson) {
+        try {
+            OkxPositionHistoryData historyData = new OkxPositionHistoryData();
+            historyData.setInstrumentType(getJsonStringValue(positionJson, "instType"));
+            historyData.setInstrumentId(getJsonStringValue(positionJson, "instId"));
+            historyData.setPositionId(getJsonStringValue(positionJson, "posId"));
+            historyData.setPositionType(getJsonStringValue(positionJson, "posType"));
+            
+            historyData.setOpenSize(safeParseDecimal(getJsonStringValue(positionJson, "openSize")));
+            historyData.setCloseSize(safeParseDecimal(getJsonStringValue(positionJson, "closeSize")));
+            historyData.setAverageOpenPrice(safeParseDecimal(getJsonStringValue(positionJson, "avgOpenPrice")));
+            historyData.setAverageClosePrice(safeParseDecimal(getJsonStringValue(positionJson, "avgClosePrice")));
+            historyData.setRealizedPnl(safeParseDecimal(getJsonStringValue(positionJson, "realizedPnl")));
+            historyData.setPnl(safeParseDecimal(getJsonStringValue(positionJson, "pnl")));
+            historyData.setPnlRatio(safeParseDecimal(getJsonStringValue(positionJson, "pnlRatio")));
+            
+            historyData.setOpenTime(getJsonStringValue(positionJson, "openTime"));
+            historyData.setCloseTime(getJsonStringValue(positionJson, "closeTime"));
+            historyData.setCurrency(getJsonStringValue(positionJson, "ccy"));
+            historyData.setLeverage(safeParseDecimal(getJsonStringValue(positionJson, "lever")));
+            historyData.setMargin(safeParseDecimal(getJsonStringValue(positionJson, "margin")));
+            historyData.setFee(safeParseDecimal(getJsonStringValue(positionJson, "fee")));
+            historyData.setFundingFee(safeParseDecimal(getJsonStringValue(positionJson, "fundingFee")));
+            
+            return historyData;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при парсинге истории позиции: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Безопасный парсинг BigDecimal из строки
+     */
+    private BigDecimal safeParseDecimal(String value) {
+        if (value == null || value.isEmpty() || "N/A".equals(value)) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (Exception e) {
+            log.debug("⚠️ Ошибка при парсинге числа '{}': {}", value, e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * Получение реального P&L от OKX API для закрытой позиции
+     */
+    public OkxPositionHistoryData getRealizedPnLFromOkx(String symbol, String positionId) {
+        log.debug("==> getRealizedPnLFromOkx: Получение реального P&L для {} (позиция: {})", symbol, positionId);
+        
+        List<OkxPositionHistoryData> history = getPositionsHistory(symbol);
+        
+        // Ищем последнюю закрытую позицию по времени закрытия
+        Optional<OkxPositionHistoryData> latestClosedPosition = history.stream()
+                .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
+                .max(Comparator.comparing(h -> h.getCloseTime()));
+        
+        if (latestClosedPosition.isPresent()) {
+            OkxPositionHistoryData positionData = latestClosedPosition.get();
+            log.debug("✅ Найдена последняя закрытая позиция {}: realizedPnl={}, fee={}, fundingFee={}", 
+                    symbol, positionData.getRealizedPnl(), positionData.getFee(), positionData.getFundingFee());
+            return positionData;
+        }
+        
+        log.warn("⚠️ Не найдена закрытая позиция в истории OKX для {} (позиция: {})", symbol, positionId);
+        return null;
+    }
 
     /**
      * Безопасное извлечение строкового значения из JsonObject с защитой от null
