@@ -83,7 +83,7 @@ public class CalculateUnrealizedProfitTotalService {
             log.debug("✅ Общий взвешенный PnL%: {} (totalAllocated: {})", result, totalAllocatedAmount);
             return result;
         } else {
-            log.warn("⚠️ Общий allocatedAmount равен нулю");
+            log.debug("⚠️ Общий allocatedAmount равен нулю");
             return BigDecimal.ZERO;
         }
     }
