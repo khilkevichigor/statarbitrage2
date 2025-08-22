@@ -318,7 +318,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
                 if (result.isSuccess()) {
                     Notification.show(result.getMessage());
-                    log.info("✅ Усреднение выполнено для пары: {}", pairData.getPairName());
+                    log.debug("✅ Усреднение выполнено для пары: {}", pairData.getPairName());
                 } else {
                     Notification.show("Ошибка: " + result.getMessage());
                     log.error("❌ Ошибка усреднения для пары: {}", pairData.getPairName());

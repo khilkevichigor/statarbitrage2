@@ -282,7 +282,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             // Безопасное сложение комиссий с проверкой на null
             BigDecimal openingFees = safe(position.getOpeningFees());
             BigDecimal closingFees = safe(position.getClosingFees());
-            BigDecimal fundingFee  = safe(position.getFundingFees());
+            BigDecimal fundingFee = safe(position.getFundingFees());
 
             log.info("Комиссии после закрытия: openingFees={}, closingFees={}, fundingFee={}",
                     openingFees, closingFees, fundingFee);
@@ -789,7 +789,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                     //todo по моему не правильно данные ордера пихать в TradeResult!!! нужно брать факт из истории если это было закрытие сделки
                     TradeResult result = TradeResult.success(null, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId, null);
-                    log.info("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
+                    log.debug("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
                     return result;
                 }
 

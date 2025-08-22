@@ -35,6 +35,7 @@ public class AveragingService {
      */
     @Transactional
     public AveragingResult performManualAveraging(PairData pairData, Settings settings) {
+        log.info("");
         log.info("🔄 Начало ручного усреднения для пары: {}", pairData.getPairName());
 
         return executeAveraging(pairData, settings, "MANUAL");

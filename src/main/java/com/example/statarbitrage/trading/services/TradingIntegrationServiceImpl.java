@@ -312,7 +312,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         TradeResult result = provider.openLongPosition(pairData.getLongTicker(), amount, leverage);
 
         if (result.isSuccess()) {
-            log.info("✅ ЛОНГ позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
+            log.debug("✅ ЛОНГ позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
                     pairData.getLongTicker(),
                     result.getPositionId(),
                     result.getPnlUSDT(),
@@ -330,7 +330,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         TradeResult result = provider.openShortPosition(pairData.getShortTicker(), amount, leverage);
 
         if (result.isSuccess()) {
-            log.info("✅ ШОРТ позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
+            log.debug("✅ ШОРТ позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
                     pairData.getShortTicker(),
                     result.getPositionId(),
                     result.getPnlUSDT(),
@@ -463,7 +463,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     }
 
     private ArbitragePairTradeInfo buildSuccess(TradeResult longResult, TradeResult shortResult, BigDecimal balanceUSDT, PairData pairData) {
-        log.info("✅ УСПЕХ: Арбитражная пара открыта — ЛОНГ: {} (ID: {}), ШОРТ: {} (ID: {}), БАЛАНС 'ДО': {} USDT",
+        log.debug("✅ УСПЕХ: Арбитражная пара открыта — ЛОНГ: {} (ID: {}), ШОРТ: {} (ID: {}), БАЛАНС 'ДО': {} USDT",
                 pairData.getLongTicker(),
                 longResult.getPositionId(),
                 pairData.getShortTicker(),
