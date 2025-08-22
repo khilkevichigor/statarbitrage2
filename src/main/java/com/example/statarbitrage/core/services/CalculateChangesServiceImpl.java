@@ -26,6 +26,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     public ChangesData getChanges(PairData pairData) {
         log.debug("==> getChanges: НАЧАЛО для пары {}", pairData.getPairName());
         try {
+
             log.debug("Запрашиваем информацию о позициях...");
             Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(pairData);
             log.debug("Получена информация о позициях: {}", positionsInfo);

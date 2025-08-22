@@ -8,9 +8,11 @@ import com.example.statarbitrage.common.model.TradeStatus;
 import com.example.statarbitrage.common.utils.FormatUtil;
 import com.example.statarbitrage.core.services.*;
 import com.example.statarbitrage.notifications.NotificationService;
+import com.example.statarbitrage.trading.interfaces.TradingProvider;
 import com.example.statarbitrage.trading.model.ArbitragePairTradeInfo;
 import com.example.statarbitrage.trading.model.Positioninfo;
 import com.example.statarbitrage.trading.services.TradingIntegrationService;
+import com.example.statarbitrage.trading.services.TradingProviderFactory;
 import com.example.statarbitrage.ui.dto.UpdateTradeRequest;
 import com.example.statarbitrage.ui.services.ChartService;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +36,10 @@ public class UpdateTradeProcessor {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
-    private final CloseByStopService closeByStopService;
     private final CsvExportService csvExportService;
     private final ChartService chartService;
     private final AveragingService averagingService;
+    private final TradingProviderFactory tradingProviderFactory;
 
 
     //todo сделать кнопку к паре "усреднить" (если коинтеграция еще не ушла, ну или самому смотреть и усреднять как посчитаешь)
@@ -81,6 +83,9 @@ public class UpdateTradeProcessor {
 
         //todo здесь сетить настройки в пару для дальнейшей аналитики чатЖПТ
         pairDataService.updateSettingsParam(pairData, settings);
+
+        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
+        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
         if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);

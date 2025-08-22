@@ -96,7 +96,7 @@ public class TradeAndSimulationScheduler {
             return updatablePairs;
         }
 
-        updatePositionsPrices();
+//        updatePositionsPrices();
         processTradeUpdates(updatablePairs);
         updateUI();
 

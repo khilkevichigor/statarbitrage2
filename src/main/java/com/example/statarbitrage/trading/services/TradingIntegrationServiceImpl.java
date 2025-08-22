@@ -158,7 +158,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        provider.updatePositionPrices();
+//        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
         Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
         Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
@@ -190,7 +190,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        provider.updatePositionPrices();
+//        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
 
         Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
         Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
@@ -243,7 +243,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
 
         log.debug("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
-        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
+//        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
         log.debug("Цены для пары {} обновлены.", pairData.getPairName());
 
         return buildPositionInfo(false, longPosition, shortPosition);
