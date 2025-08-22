@@ -43,11 +43,6 @@ public interface TradingIntegrationService {
     void removePairFromLocalStorage(PairData pairData);
 
     /**
-     * Обновление цен и PnL для всех активных пар - СИНХРОННО
-     */
-    void updateAllPositions();
-
-    /**
      * Получение информации о портфолио
      */
     Portfolio getPortfolioInfo();

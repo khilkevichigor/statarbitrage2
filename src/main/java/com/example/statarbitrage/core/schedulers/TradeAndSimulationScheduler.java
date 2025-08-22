@@ -112,14 +112,6 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-    private void updatePositionsPrices() {
-        try {
-            tradingIntegrationServiceImpl.updateAllPositions();
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении цен позиций: {}", e.getMessage());
-        }
-    }
-
     private void processTradeUpdates(List<PairData> updatablePairs) {
         updatablePairs.forEach(this::updateSingleTrade);
     }

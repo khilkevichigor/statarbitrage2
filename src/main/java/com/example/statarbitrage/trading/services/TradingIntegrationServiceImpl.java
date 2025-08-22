@@ -263,18 +263,6 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     }
 
     @Override
-    public void updateAllPositions() {
-        TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-        try {
-            log.debug("🔄 Обновление цен по всем открытым позициям...");
-            provider.updatePositionPrices();
-            log.debug("✅ Обновление цен завершено успешно.");
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении цен по позициям: {}", e.getMessage(), e);
-        }
-    }
-
-    @Override
     public Portfolio getPortfolioInfo() {
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         return provider.getPortfolio();

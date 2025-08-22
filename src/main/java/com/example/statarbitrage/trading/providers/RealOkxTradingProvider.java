@@ -314,27 +314,9 @@ public class RealOkxTradingProvider implements TradingProvider {
         return TradeResult.failure(type, symbol, message);
     }
 
-
-    @Override
-    public List<Position> getActivePositions() {
-        try {
-            // Синхронизируем позиции с OKX
-            syncPositionsWithOkx();
-        } catch (Exception e) {
-            log.error("❌ Ошибка при синхронизации активных позиций с OKX", e);
-        }
-        // Возвращаем текущие известные позиции (даже если синхронизация упала)
-        return new ArrayList<>(positions.values());
-    }
-
     @Override
     public Position getPosition(String positionId) {
         return positions.get(positionId);
-    }
-
-    @Override
-    public void updatePositionPrices() {
-        updatePositionsInternal(null);
     }
 
     @Override

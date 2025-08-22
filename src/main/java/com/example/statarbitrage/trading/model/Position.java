@@ -94,6 +94,7 @@ public class Position {
     @Column(name = "external_order_id")
     private String externalOrderId;
 
+    @Deprecated
     public void calculateUnrealizedPnL() {
         if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
             unrealizedPnLUSDT = BigDecimal.ZERO;
@@ -122,6 +123,7 @@ public class Position {
         }
     }
 
+    @Deprecated
     public void calculateAndSetRealizedPnL(BigDecimal closedPnlUSDT, BigDecimal closingFees) {
         if (entryPrice == null || closedPnlUSDT == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
             log.warn("❌ Недостаточно данных для расчета реализованного PnL: entryPrice={}, closedPnlUSDT={}, size={}", entryPrice, closedPnlUSDT, size);

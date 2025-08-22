@@ -40,19 +40,9 @@ public interface TradingProvider {
     TradeResult closePosition(String positionId);
 
     /**
-     * Получение всех активных позиций
-     */
-    List<Position> getActivePositions();
-
-    /**
      * Получение позиции по ID
      */
     Position getPosition(String positionId);
-
-    /**
-     * Обновление цен всех позиций - СИНХРОННО
-     */
-    void updatePositionPrices();
 
     /**
      * Обновление цен всех позиций - СИНХРОННО
