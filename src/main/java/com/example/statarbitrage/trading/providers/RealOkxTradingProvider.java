@@ -186,8 +186,25 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return logAndReturnError("Ошибка размещения ордера: " + orderResult.getErrorMessage(), orderResult);
             }
 
-            // 🧩 Создание позиции
-            Position position = createPositionFromTradeResult(orderResult, positionType, amount, leverage);
+            // 📍 Получение реального positionId из OKX
+            String realPositionId = null;
+            try {
+                // Небольшая задержка чтобы позиция успела появиться в системе OKX
+                Thread.sleep(1000);
+                
+                JsonObject realPosition = getRealPositionFromOkx(symbol);
+                if (realPosition != null && realPosition.has("posId")) {
+                    realPositionId = realPosition.get("posId").getAsString();
+                    log.info("✅ Получен реальный positionId от OKX: {}", realPositionId);
+                } else {
+                    log.warn("⚠️ Не удалось получить реальный positionId от OKX для {}, будет использован временный", symbol);
+                }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при получении positionId от OKX: {}", e.getMessage(), e);
+            }
+
+            // 🧩 Создание позиции с реальным positionId
+            Position position = createPositionFromTradeResult(orderResult, positionType, amount, leverage, realPositionId);
             positions.put(position.getPositionId(), position);
             okxPortfolioManager.onPositionOpened(position);
             log.debug("Позиция создана и сохранена. ID: {}", position.getPositionId());
@@ -605,16 +622,20 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
 
-    private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage) {
-        // positionId - реальный ID позиции от OKX (если есть в TradeResult)
-        String okxPositionId = tradeResult.getPositionId(); // Получаем от OKX
+    private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage, String realPositionId) {
+        // positionId - используем реальный ID от OKX если получен, иначе fallback логика
+        String okxPositionId = realPositionId;
         
-        // Fallback: если OKX не вернул positionId в деталях ордера (что часто бывает при открытии)
-        // используем временный ID. При следующей синхронизации получим реальный posId из /api/v5/account/positions
         if (okxPositionId == null || okxPositionId.isEmpty() || okxPositionId.equals("N/A")) {
-            okxPositionId = "temp_" + java.util.UUID.randomUUID().toString().substring(0, 8);
-            log.info("⚠️ OKX не вернул positionId для {}, используем временный: {}. Реальный ID будет получен при синхронизации.", 
-                    tradeResult.getSymbol(), okxPositionId);
+            // Пытаемся получить ID из TradeResult (может быть в detalях ордера)
+            okxPositionId = tradeResult.getPositionId();
+            
+            // Последний fallback: временный ID
+            if (okxPositionId == null || okxPositionId.isEmpty() || okxPositionId.equals("N/A")) {
+                okxPositionId = "temp_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                log.info("⚠️ OKX не вернул positionId для {}, используем временный: {}.", 
+                        tradeResult.getSymbol(), okxPositionId);
+            }
         }
         
         return Position.builder()
