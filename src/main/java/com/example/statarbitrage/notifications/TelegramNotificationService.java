@@ -77,7 +77,7 @@ public class TelegramNotificationService implements NotificationService {
                         %s
                         %s""",
                 pairData.getPairName(),
-                pairData.getProfitPercentChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED, pairData.getProfitUSDTChanges(), pairData.getProfitPercentChanges(),
+                pairData.getProfitUSDTChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED, pairData.getProfitUSDTChanges(), pairData.getProfitPercentChanges(),
                 pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
                 deltaString.startsWith("-") ? EMOJI_RED : EMOJI_GREEN, deltaString,
                 TimeFormatterUtil.formatDurationFromMillis(pairData.getUpdatedTime() - pairData.getEntryTime()),

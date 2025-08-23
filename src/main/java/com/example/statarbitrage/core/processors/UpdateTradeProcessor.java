@@ -42,7 +42,6 @@ public class UpdateTradeProcessor {
     private final TradingProviderFactory tradingProviderFactory;
 
 
-    //todo сделать кнопку к паре "усреднить" (если коинтеграция еще не ушла, ну или самому смотреть и усреднять как посчитаешь)
     //todo подумать о том что бы брать больше 300 свечей, и может сразу для нескольких ТФ что бы в чарте переключаться и смотреть что происходит
     //todo система очков для прибыльных/убыточных пар через бд - сделать таблицу торгуемых пар! начислять баллы по профиту! при отборе новых пар - брать былллы из этой таблицы
 
@@ -61,6 +60,7 @@ public class UpdateTradeProcessor {
 
     // +/- todo сделать колонку максимальная просадка по Z-скор (ПРОВЕРИТЬ)
 
+    // + todo сделать кнопку к паре "усреднить" (если коинтеграция еще не ушла, ну или самому смотреть и усреднять как посчитаешь)
     // + todo пофиксить чарт наложенных цен - диапазон отображения меньше или уменьшается и чарт съезжает вправо когда выбираешь пиксельный или zscore спред
     // + todo экспорт закрытых сделок в csv
     // + todo добавить чарт профита под чарт z-скор (не работает)
@@ -90,10 +90,6 @@ public class UpdateTradeProcessor {
         if (arePositionsClosed(pairData)) {
             return handleNoOpenPositions(pairData);
         }
-
-//        if(closeByStopService.isShouldCloseByStop(pairData, settings)){
-//            //todo
-//        }
 
         final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(pairData, settings);
         final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
