@@ -609,8 +609,16 @@ public class RealOkxTradingProvider implements TradingProvider {
         // positionId - реальный ID позиции от OKX (если есть в TradeResult)
         String okxPositionId = tradeResult.getPositionId(); // Получаем от OKX
         
+        // Fallback: если OKX не вернул positionId в деталях ордера (что часто бывает при открытии)
+        // используем временный ID. При следующей синхронизации получим реальный posId из /api/v5/account/positions
+        if (okxPositionId == null || okxPositionId.isEmpty() || okxPositionId.equals("N/A")) {
+            okxPositionId = "temp_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+            log.info("⚠️ OKX не вернул positionId для {}, используем временный: {}. Реальный ID будет получен при синхронизации.", 
+                    tradeResult.getSymbol(), okxPositionId);
+        }
+        
         return Position.builder()
-                .positionId(okxPositionId)  // Реальный ID от OKX
+                .positionId(okxPositionId)  // Реальный ID от OKX или временный
                 .symbol(tradeResult.getSymbol())
                 .type(type)
                 .size(tradeResult.getExecutedSize())      // Используем реально исполненный размер
@@ -752,7 +760,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     JsonObject orderInfo = data.get(0).getAsJsonObject();
-                    log.debug("Полная информация по ордеру {}: {}", orderId, orderInfo);
+                    log.info("🔍 ПОЛНАЯ ИНФОРМАЦИЯ ПО ОРДЕРУ {}: {}", orderId, orderInfo);
 
                     /*
                     avgPx
