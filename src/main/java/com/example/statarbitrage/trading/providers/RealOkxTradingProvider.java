@@ -446,7 +446,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     // Приватные методы для работы с OKX API
 
-    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) {
+    private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) { //todo возвращать OrderResult
         log.debug("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);
         TradeOperationType tradeOperationType = posSide.equalsIgnoreCase("long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT;
 
@@ -544,7 +544,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
                     log.debug("Ордер успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
-                    return getOrderDetails(orderId, symbol, tradeOperationType);
+                    return getOrderDetails(orderId, symbol, tradeOperationType); //todo создать OrderResult
                 }
                 log.error("Не удалось получить ID ордера из ответа API.");
                 return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить ID ордера");
@@ -608,6 +608,8 @@ public class RealOkxTradingProvider implements TradingProvider {
 
 
     private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage, String realPositionId) {
+        //todo здесь создавать position не по OrderResult а брать инфу из открытых позиций okx/api/positions!
+
         // positionId - используем реальный ID от OKX если получен, иначе fallback логика
         String okxPositionId = realPositionId;
 
@@ -768,6 +770,60 @@ public class RealOkxTradingProvider implements TradingProvider {
                     JsonObject orderInfo = data.get(0).getAsJsonObject();
                     log.info("🔍 ПОЛНАЯ ИНФОРМАЦИЯ ПО ОРДЕРУ {}: {}", orderId, orderInfo);
 
+                    // Детализированное логирование всех полей ответа с описанием (на основе реального ответа OKX)
+                    log.info("📊 === ДЕТАЛИ ОРДЕРА {} ===", orderId);
+                    log.info("🔹 instId              : {} (ID торгового инструмента)", getJsonStringValue(orderInfo, "instId"));
+                    log.info("🔹 instType            : {} (Тип инструмента)", getJsonStringValue(orderInfo, "instType"));
+                    log.info("🔹 ordId               : {} (ID ордера)", getJsonStringValue(orderInfo, "ordId"));
+                    log.info("🔹 clOrdId             : {} (Пользовательский ID ордера)", getJsonStringValue(orderInfo, "clOrdId"));
+                    log.info("🔹 tag                 : {} (Тег ордера)", getJsonStringValue(orderInfo, "tag"));
+                    log.info("🔹 px                  : {} (Цена ордера)", getJsonStringValue(orderInfo, "px"));
+                    log.info("🔹 pxUsd               : {} (Цена ордера в USD)", getJsonStringValue(orderInfo, "pxUsd"));
+                    log.info("🔹 pxVol               : {} (Цена для волатильности)", getJsonStringValue(orderInfo, "pxVol"));
+                    log.info("🔹 pxType              : {} (Тип цены)", getJsonStringValue(orderInfo, "pxType"));
+                    log.info("🔹 sz                  : {} (Размер ордера)", getJsonStringValue(orderInfo, "sz"));
+                    log.info("🔹 pnl                 : {} USDT (Прибыль/убыток по позиции)", getJsonStringValue(orderInfo, "pnl"));
+                    log.info("🔹 ordType             : {} (Тип ордера: market/limit)", getJsonStringValue(orderInfo, "ordType"));
+                    log.info("🔹 side                : {} (Сторона: buy/sell)", getJsonStringValue(orderInfo, "side"));
+                    log.info("🔹 posSide             : {} (Сторона позиции: long/short/net)", getJsonStringValue(orderInfo, "posSide"));
+                    log.info("🔹 tdMode              : {} (Торговый режим: isolated/cross)", getJsonStringValue(orderInfo, "tdMode"));
+                    log.info("🔹 accFillSz           : {} (Накопленный исполненный размер)", getJsonStringValue(orderInfo, "accFillSz"));
+                    log.info("🔹 avgPx               : {} (Средняя цена исполнения)", getJsonStringValue(orderInfo, "avgPx"));
+                    log.info("🔹 fillPx              : {} (Последняя цена исполнения)", getJsonStringValue(orderInfo, "fillPx"));
+                    log.info("🔹 fillSz              : {} (Последний размер исполнения)", getJsonStringValue(orderInfo, "fillSz"));
+                    log.info("🔹 fillTime            : {} (Время последнего исполнения)", getJsonStringValue(orderInfo, "fillTime"));
+                    log.info("🔹 tradeId             : {} (ID последней сделки)", getJsonStringValue(orderInfo, "tradeId"));
+                    log.info("🔹 state               : {} (Статус ордера)", getJsonStringValue(orderInfo, "state"));
+                    log.info("🔹 lever               : {} (Плечо)", getJsonStringValue(orderInfo, "lever"));
+                    log.info("🔹 fee                 : {} (Комиссия)", getJsonStringValue(orderInfo, "fee"));
+                    log.info("🔹 feeCcy              : {} (Валюта комиссии)", getJsonStringValue(orderInfo, "feeCcy"));
+                    log.info("🔹 rebate              : {} (Рибейт)", getJsonStringValue(orderInfo, "rebate"));
+                    log.info("🔹 rebateCcy           : {} (Валюта рибейта)", getJsonStringValue(orderInfo, "rebateCcy"));
+                    log.info("🔹 ccy                 : {} (Валюта маржи)", getJsonStringValue(orderInfo, "ccy"));
+                    log.info("🔹 category            : {} (Категория ордера)", getJsonStringValue(orderInfo, "category"));
+                    log.info("🔹 cTime               : {} (Время создания)", getJsonStringValue(orderInfo, "cTime"));
+                    log.info("🔹 uTime               : {} (Время обновления)", getJsonStringValue(orderInfo, "uTime"));
+                    log.info("🔹 reduceOnly          : {} (Только закрытие)", getJsonStringValue(orderInfo, "reduceOnly"));
+                    log.info("🔹 quickMgnType        : {} (Тип быстрой маржи)", getJsonStringValue(orderInfo, "quickMgnType"));
+                    log.info("🔹 algoId              : {} (ID алгоритма)", getJsonStringValue(orderInfo, "algoId"));
+                    log.info("🔹 algoClOrdId         : {} (Алгоритмический пользовательский ID)", getJsonStringValue(orderInfo, "algoClOrdId"));
+                    log.info("🔹 attachAlgoClOrdId   : {} (Прикрепленный алго ID)", getJsonStringValue(orderInfo, "attachAlgoClOrdId"));
+                    log.info("🔹 tpTriggerPx         : {} (Цена срабатывания тейк-профита)", getJsonStringValue(orderInfo, "tpTriggerPx"));
+                    log.info("🔹 tpTriggerPxType     : {} (Тип цены тейк-профита)", getJsonStringValue(orderInfo, "tpTriggerPxType"));
+                    log.info("🔹 tpOrdPx             : {} (Цена ордера тейк-профита)", getJsonStringValue(orderInfo, "tpOrdPx"));
+                    log.info("🔹 slTriggerPx         : {} (Цена срабатывания стоп-лосса)", getJsonStringValue(orderInfo, "slTriggerPx"));
+                    log.info("🔹 slTriggerPxType     : {} (Тип цены стоп-лосса)", getJsonStringValue(orderInfo, "slTriggerPxType"));
+                    log.info("🔹 slOrdPx             : {} (Цена ордера стоп-лосса)", getJsonStringValue(orderInfo, "slOrdPx"));
+                    log.info("🔹 source              : {} (Источник)", getJsonStringValue(orderInfo, "source"));
+                    log.info("🔹 cancelSource        : {} (Источник отмены)", getJsonStringValue(orderInfo, "cancelSource"));
+                    log.info("🔹 cancelSourceReason  : {} (Причина отмены)", getJsonStringValue(orderInfo, "cancelSourceReason"));
+                    log.info("🔹 isTpLimit           : {} (Является ли тейк-профит лимитным)", getJsonStringValue(orderInfo, "isTpLimit"));
+                    log.info("🔹 stpId               : {} (ID самоторговли)", getJsonStringValue(orderInfo, "stpId"));
+                    log.info("🔹 stpMode             : {} (Режим самоторговли)", getJsonStringValue(orderInfo, "stpMode"));
+                    log.info("🔹 tgtCcy              : {} (Целевая валюта)", getJsonStringValue(orderInfo, "tgtCcy"));
+                    log.info("🔹 tradeQuoteCcy       : {} (Валюта котировки торговли)", getJsonStringValue(orderInfo, "tradeQuoteCcy"));
+                    log.info("📊 === КОНЕЦ ДЕТАЛЕЙ ОРДЕРА ===");
+
                     /*
                     avgPx
                     Средняя цена заполнения. Если не заполнено ни одной, возвращается "".
@@ -797,22 +853,13 @@ public class RealOkxTradingProvider implements TradingProvider {
                      */
                     BigDecimal pnlUSDT = new BigDecimal(orderInfo.get("pnl").getAsString());
 
-                    // Извлекаем positionId из ответа OKX API
-                    String okxPositionId = null;
-                    if (orderInfo.has("posId") && !orderInfo.get("posId").isJsonNull()) {
-                        okxPositionId = orderInfo.get("posId").getAsString();
-                        log.info("🎯 Найден OKX positionId в деталях ордера: {}", okxPositionId);
-                    } else {
-                        log.warn("⚠️ positionId не найден в деталях ордера {}", orderId);
-                    }
-
-                    log.debug("✅ Детали ордера {} успешно извлечены: symbol={} | pnlUSDT={} | size={} | avgPx={} | fee={} | positionId={}",
-                            orderId, symbol, pnlUSDT, size, avgPx, fee, okxPositionId);
+                    log.debug("✅ Детали ордера успешно извлечены: orderId={} | symbol={} | pnlUSDT={} | size={} | avgPx={} | fee={}",
+                            orderId, symbol, pnlUSDT, size, avgPx, fee);
 
                     // TODO: сверить запрошенный и исполненный объем, при несовпадении вернуть failure
 
                     //todo по моему не правильно данные ордера пихать в TradeResult!!! нужно брать факт из истории если это было закрытие сделки
-                    TradeResult result = TradeResult.success(okxPositionId, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId, null);
+                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId, null);
                     log.debug("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
                     return result;
                 }
