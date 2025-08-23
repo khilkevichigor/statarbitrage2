@@ -226,7 +226,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public Positioninfo getPositionInfo(PairData pairData) {
-        log.debug("Запрос информации о позициях для пары {}", pairData.getPairName());
+        log.info("Запрос информации о позициях для пары {}", pairData.getPairName());
 
         Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
         Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
@@ -242,22 +242,32 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         Position longPosition = provider.getPosition(longPositionOpt.get().getPositionId());
         Position shortPosition = provider.getPosition(shortPositionOpt.get().getPositionId());
 
+        // Если позиции null в памяти провайдера, используем данные из БД (закрытые позиции)
+        if (longPosition == null) {
+            longPosition = longPositionOpt.get();
+            log.info("ЛОНГ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", longPosition.getStatus());
+        }
+        if (shortPosition == null) {
+            shortPosition = shortPositionOpt.get();  
+            log.info("ШОРТ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", shortPosition.getStatus());
+        }
+
         if (positionsAreNull(longPosition, shortPosition, pairData)) {
             log.error("Позиции равны null для пары {}", pairData.getPairName());
             return Positioninfo.builder().build();
         }
 
         boolean bothClosed = isClosed(longPosition) && isClosed(shortPosition);
-        log.debug("Статус позиций для пары {}: ЛОНГ закрыта={}, ШОРТ закрыта={}", pairData.getPairName(), isClosed(longPosition), isClosed(shortPosition));
+        log.info("Статус позиций для пары {}: ЛОНГ закрыта={}, ШОРТ закрыта={}", pairData.getPairName(), isClosed(longPosition), isClosed(shortPosition));
 
         if (bothClosed) {
-            log.debug("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
+            log.info("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
             return buildPositionInfo(true, longPosition, shortPosition);
         }
 
-        log.debug("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
+        log.info("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
 //        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-        log.debug("Цены для пары {} обновлены.", pairData.getPairName());
+        log.info("Цены для пары {} обновлены.", pairData.getPairName());
 
         return buildPositionInfo(false, longPosition, shortPosition);
     }
