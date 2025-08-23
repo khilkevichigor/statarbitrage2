@@ -1654,8 +1654,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             String realizedPnl = getJsonStringValue(positionJson, "realizedPnl");
             String pnl = getJsonStringValue(positionJson, "pnl");
             String pnlRatio = getJsonStringValue(positionJson, "pnlRatio");
-            String openTime = getJsonStringValue(positionJson, "openTime");
-            String closeTime = getJsonStringValue(positionJson, "closeTime");
+            // OKX API возвращает cTime (creation time) и uTime (update time)
+            String cTime = getJsonStringValue(positionJson, "cTime");
+            String uTime = getJsonStringValue(positionJson, "uTime");
             String ccy = getJsonStringValue(positionJson, "ccy");
             String lever = getJsonStringValue(positionJson, "lever");
             String margin = getJsonStringValue(positionJson, "margin");
@@ -1675,8 +1676,8 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.debug("🔹 realizedPnl    : {} (реализованный PnL)", realizedPnl);
             log.debug("🔹 pnl            : {} (общий PnL)", pnl);
             log.debug("🔹 pnlRatio       : {} (PnL в процентах)", pnlRatio);
-            log.debug("🔹 openTime       : {} (время открытия)", openTime);
-            log.debug("🔹 closeTime      : {} (время закрытия)", closeTime);
+            log.debug("🔹 cTime          : {} (время создания)", cTime);
+            log.debug("🔹 uTime          : {} (время обновления)", uTime);
             log.debug("🔹 ccy            : {} (валюта)", ccy);
             log.debug("🔹 lever          : {} (плечо)", lever);
             log.debug("🔹 margin         : {} (маржа)", margin);
@@ -1698,8 +1699,8 @@ public class RealOkxTradingProvider implements TradingProvider {
             historyData.setPnl(safeParseDecimal(pnl));
             historyData.setPnlRatio(safeParseDecimal(pnlRatio));
 
-            historyData.setOpenTime(openTime);
-            historyData.setCloseTime(closeTime);
+            historyData.setOpenTime(cTime);  // Используем cTime для времени открытия
+            historyData.setCloseTime(uTime); // Используем uTime для времени обновления/закрытия
             historyData.setCurrency(ccy);
             historyData.setLeverage(safeParseDecimal(lever));
             historyData.setMargin(safeParseDecimal(margin));
@@ -1828,6 +1829,43 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.debug("⚠️ Ошибка при извлечении поля '{}': {}", fieldName, e.getMessage());
         }
         return "N/A";
+    }
+
+    /**
+     * ВРЕМЕННЫЙ ТЕСТОВЫЙ МЕТОД: Получение positionId для FARTCOIN-USDT-SWAP
+     * TODO: Удалить после тестирования
+     */
+    public void testGetFartcoinPositionHistory() {
+        String symbol = "FARTCOIN-USDT-SWAP";
+        log.info("🧪 ТЕСТ: Запрос истории позиций для {}", symbol);
+        
+        List<OkxPositionHistoryData> history = getPositionsHistory(symbol);
+        
+        if (history.isEmpty()) {
+            log.warn("⚠️ ТЕСТ: Нет истории позиций для {}", symbol);
+            return;
+        }
+        
+        log.info("🧪 ТЕСТ: Найдено {} записей истории для {}", history.size(), symbol);
+        
+        for (int i = 0; i < history.size(); i++) {
+            OkxPositionHistoryData pos = history.get(i);
+            log.info("🧪 ТЕСТ: Позиция #{}: positionId='{}', openTime='{}', closeTime='{}', realizedPnl='{}'", 
+                    i+1, pos.getPositionId(), pos.getOpenTime(), pos.getCloseTime(), pos.getRealizedPnl());
+        }
+        
+        // Показать самую последнюю закрытую позицию
+        Optional<OkxPositionHistoryData> latestClosed = history.stream()
+                .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
+                .max(Comparator.comparing(OkxPositionHistoryData::getCloseTime));
+                
+        if (latestClosed.isPresent()) {
+            OkxPositionHistoryData latest = latestClosed.get();
+            log.info("🎯 ТЕСТ: Последняя закрытая позиция - positionId='{}', closeTime='{}'", 
+                    latest.getPositionId(), latest.getCloseTime());
+        } else {
+            log.warn("⚠️ ТЕСТ: Нет закрытых позиций в истории");
+        }
     }
 
 }
