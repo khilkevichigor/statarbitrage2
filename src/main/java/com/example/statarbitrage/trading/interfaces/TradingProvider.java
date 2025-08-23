@@ -78,9 +78,5 @@ public interface TradingProvider {
      * Загрузка существующих позиций в провайдер
      */
     void loadPositions(List<Position> positions);
-    
-    /**
-     * Обновление позиции в памяти (для синхронизации при усреднении)
-     */
-    void updatePositionInMemory(String positionId, Position updatedPosition);
+
 }

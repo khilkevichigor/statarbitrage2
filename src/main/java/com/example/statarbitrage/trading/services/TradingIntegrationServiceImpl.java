@@ -404,11 +404,6 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
             finalLongPosition = positionRepository.save(existingLong);
 
-            // Обновляем ConcurrentHashMap в TradingProvider
-            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-            if (provider != null) {
-                provider.updatePositionInMemory(existingPositionId, existingLong);
-            }
 
             log.debug("✅ Обновлена ЛОНГ позиция: ID = {}, новая средняя цена={}, размер={}",
                     existingPositionId, existingLong.getEntryPrice(), existingLong.getSize());
@@ -442,11 +437,6 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
             finalShortPosition = positionRepository.save(existingShort);
 
-            // Обновляем ConcurrentHashMap в TradingProvider
-            TradingProvider provider = tradingProviderFactory.getCurrentProvider();
-            if (provider != null) {
-                provider.updatePositionInMemory(existingPositionId, existingShort);
-            }
 
             log.debug("✅ Обновлена ШОРТ позиция: ID = {}, новая средняя цена={}, размер={}",
                     existingPositionId, existingShort.getEntryPrice(), existingShort.getSize());

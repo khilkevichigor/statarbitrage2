@@ -45,6 +45,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private final OkxPortfolioManager okxPortfolioManager;
     private final OkxClient okxClient;
     private final GeolocationService geolocationService;
+    private final PositionRepository positionRepository;
 
     // OKX API конфигурация
     @Value("${okx.api.key:}")
@@ -66,9 +67,6 @@ public class RealOkxTradingProvider implements TradingProvider {
             .writeTimeout(10, TimeUnit.SECONDS)
             .build();
 
-    // Хранилище позиций для синхронизации с OKX
-    private final ConcurrentHashMap<String, Position> positions = new ConcurrentHashMap<>();
-    private final List<TradeResult> tradeHistory = new ArrayList<>();
 
     // Кэш информации о торговых инструментах
     private final ConcurrentHashMap<String, InstrumentInfo> instrumentInfoCache = new ConcurrentHashMap<>();
@@ -205,12 +203,10 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 🧩 Создание позиции с реальным positionId
             Position position = createPositionFromTradeResult(orderResult, positionType, amount, leverage, realPositionId);
-            positions.put(position.getPositionId(), position);
+            position = positionRepository.save(position);
             okxPortfolioManager.onPositionOpened(position);
             log.debug("Позиция создана и сохранена. ID: {}", position.getPositionId());
 
-            // 📜 История
-            tradeHistory.add(orderResult);
             log.debug("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     positionType.name(), symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
@@ -233,10 +229,11 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public TradeResult closePosition(String positionId) {
         try {
-            Position position = positions.get(positionId);
-            if (position == null) {
+            Optional<Position> positionOpt = positionRepository.findByPositionId(positionId);
+            if (positionOpt.isEmpty()) {
                 return failWithLog("Позиция не найдена: " + positionId, TradeOperationType.CLOSE_POSITION, "UNKNOWN");
             }
+            Position position = positionOpt.get();
 
             if (position.getStatus() != PositionStatus.OPEN) {
                 return failWithLog("Позиция не открыта: " + position.getStatus(), TradeOperationType.CLOSE_POSITION, position.getSymbol());
@@ -320,8 +317,6 @@ public class RealOkxTradingProvider implements TradingProvider {
                     position
             );
 
-            tradeHistory.add(finalResult);
-
             log.info("⚫ Закрыта позиция на OKX: {} {} | Цена: {} | PnL: {} USDT ({} %) | OrderID: {}",
                     position.getSymbol(),
                     position.getDirectionString(),
@@ -331,9 +326,9 @@ public class RealOkxTradingProvider implements TradingProvider {
                     finalResult.getExternalOrderId()
             );
 
-            // Удаляем позицию из памяти после успешного закрытия
-            positions.remove(positionId);
-            log.info("🗑️ Позиция {} удалена из памяти после успешного закрытия", positionId);
+            // Сохраняем обновленную позицию в БД
+            positionRepository.save(position);
+            log.info("💾 Позиция {} сохранена в БД после закрытия", positionId);
 
             return finalResult;
 
@@ -354,7 +349,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     @Override
     public Position getPosition(String positionId) {
-        return positions.get(positionId);
+        return positionRepository.findByPositionId(positionId).orElse(null);
     }
 
     @Override
@@ -438,26 +433,16 @@ public class RealOkxTradingProvider implements TradingProvider {
 
     @Override
     public List<TradeResult> getTradeHistory(int limit) {
-        return tradeHistory.stream()
-                .sorted((a, b) -> b.getExecutionTime().compareTo(a.getExecutionTime()))
-                .limit(limit)
-                .toList();
+        // TODO: Реализовать через БД или убрать метод
+        return List.of();
     }
 
     @Override
     public void loadPositions(List<Position> positionsToLoad) {
-        positions.clear();
-        for (Position position : positionsToLoad) {
-            positions.put(position.getPositionId(), position);
-        }
-        log.info("Загружено {} позиций в RealOkxTradingProvider", positions.size());
+        // Позиции уже в БД, ничего делать не нужно
+        log.info("Позиции уже хранятся в БД, loadPositions пропущен");
     }
 
-    @Override
-    public void updatePositionInMemory(String positionId, Position updatedPosition) {
-        positions.put(positionId, updatedPosition);
-        log.debug("🔄 Обновлена позиция в памяти: ID = {}, символ = {}", positionId, updatedPosition.getSymbol());
-    }
 
     // Приватные методы для работы с OKX API
 
@@ -1062,6 +1047,9 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
+                // Сохраняем обновленную позицию в БД
+                positionRepository.save(internalPosition);
+
                 log.debug("✅ Обновлена позиция {}: posId={}, нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, маржа={}, комиссия={}, комиссия за фандинг={}",
                         instId,
                         posId,
@@ -1087,17 +1075,12 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Находит внутреннюю позицию по символу инструмента
      */
     private Position findPositionBySymbol(String symbol) {
-        log.debug("🔍 findPositionBySymbol: Поиск позиции для символа '{}'", symbol);
-        log.debug("🔍 findPositionBySymbol: Всего позиций в памяти: {}", positions.size());
+        log.debug("🔍 findPositionBySymbol: Поиск открытой позиции для символа '{}' в БД", symbol);
 
-        positions.values().forEach(pos -> {
-            log.debug("🔍 findPositionBySymbol: Позиция {} - символ='{}', статус={}",
-                    pos.getPositionId(), pos.getSymbol(), pos.getStatus());
-        });
+        List<Position> openPositions = positionRepository.findAllByStatus(PositionStatus.OPEN);
 
-        Position found = positions.values().stream()
+        Position found = openPositions.stream()
                 .filter(pos -> symbol.equals(pos.getSymbol()))
-                .filter(pos -> pos.getStatus() == PositionStatus.OPEN)
                 .findFirst()
                 .orElse(null);
 
@@ -1839,30 +1822,30 @@ public class RealOkxTradingProvider implements TradingProvider {
     public void testGetFartcoinPositionHistory() {
         String symbol = "FARTCOIN-USDT-SWAP";
         log.info("🧪 ТЕСТ: Запрос истории позиций для {}", symbol);
-        
+
         List<OkxPositionHistoryData> history = getPositionsHistory(symbol);
-        
+
         if (history.isEmpty()) {
             log.warn("⚠️ ТЕСТ: Нет истории позиций для {}", symbol);
             return;
         }
-        
+
         log.info("🧪 ТЕСТ: Найдено {} записей истории для {}", history.size(), symbol);
-        
+
         for (int i = 0; i < history.size(); i++) {
             OkxPositionHistoryData pos = history.get(i);
-            log.info("🧪 ТЕСТ: Позиция #{}: positionId='{}', openTime='{}', closeTime='{}', realizedPnl='{}'", 
-                    i+1, pos.getPositionId(), pos.getOpenTime(), pos.getCloseTime(), pos.getRealizedPnl());
+            log.info("🧪 ТЕСТ: Позиция #{}: positionId='{}', openTime='{}', closeTime='{}', realizedPnl='{}'",
+                    i + 1, pos.getPositionId(), pos.getOpenTime(), pos.getCloseTime(), pos.getRealizedPnl());
         }
-        
+
         // Показать самую последнюю закрытую позицию
         Optional<OkxPositionHistoryData> latestClosed = history.stream()
                 .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
                 .max(Comparator.comparing(OkxPositionHistoryData::getCloseTime));
-                
+
         if (latestClosed.isPresent()) {
             OkxPositionHistoryData latest = latestClosed.get();
-            log.info("🎯 ТЕСТ: Последняя закрытая позиция - positionId='{}', closeTime='{}'", 
+            log.info("🎯 ТЕСТ: Последняя закрытая позиция - positionId='{}', closeTime='{}'",
                     latest.getPositionId(), latest.getCloseTime());
         } else {
             log.warn("⚠️ ТЕСТ: Нет закрытых позиций в истории");
