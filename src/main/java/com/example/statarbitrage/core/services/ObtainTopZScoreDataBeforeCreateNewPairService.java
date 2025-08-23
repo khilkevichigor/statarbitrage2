@@ -87,7 +87,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         candidates.sort(Comparator.comparingDouble(PairCandidate::getCompositeScore).reversed());
 
         PairCandidate best = candidates.get(0);
-        log.info("🏆 ОБЪЕДИНЕННАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с полным скором {}! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
+        log.debug("🏆 ОБЪЕДИНЕННАЯ СИСТЕМА: Выбрана лучшая пара {}/{} с полным скором {}! Детали: Z-Score={}, Корр={}, P-Value(corr)={}, P-Value(coint)={}, R²={}",
                 best.getData().getUnderValuedTicker(),
                 best.getData().getOverValuedTicker(),
                 NumberFormatter.format(best.getCompositeScore(), 2),
@@ -428,7 +428,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
                     double baseScore = calculateScoreFromPixelSpread(avgSpread, maxWeight);
 
-                    log.info("    📏 Пиксельный спред (существующая пара): avg={}px → {} баллов",
+                    log.debug("    📏 Пиксельный спред (существующая пара): avg={}px → {} баллов",
                             String.format("%.1f", avgSpread), String.format("%.1f", baseScore));
                     return baseScore;
                 }
@@ -455,7 +455,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                     
                     double totalScore = baseScore + volatilityBonus + currentSpreadBonus;
 
-                    log.info("    📏 Пиксельный спред (вычисленный): {}px → {} баллов (базовый: {}, волатильность: {}, текущий спред: {})",
+                    log.debug("    📏 Пиксельный спред (вычисленный): {}px → {} баллов (базовый: {}, волатильность: {}, текущий спред: {})",
                             String.format("%.1f", currentSpread), String.format("%.1f", totalScore), 
                             String.format("%.1f", baseScore), String.format("%.1f", volatilityBonus),
                             String.format("%.1f", currentSpreadBonus));
@@ -516,7 +516,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
         if (!hasJohansen && !hasAdf) {
-            log.info("  🔬 {}: Нет данных коинтеграции", pairName);
+            log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
             return 0.0;
         }
 
@@ -525,7 +525,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
         if (hasJohansen && hasAdf) {
             // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 50% от полного веса
-            log.info("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight / 2, maxWeight / 2);
+            log.debug("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight / 2, maxWeight / 2);
 
             // Johansen (50% от веса)
             double johansenPValue = data.getJohansenCointPValue();
@@ -537,34 +537,34 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * (maxWeight / 2.0);
             score += adfScore;
 
-            log.info("    Johansen: {} очков (p-value={})",
+            log.debug("    Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
-            log.info("    ADF: {} очков (p-value={})",
+            log.debug("    ADF: {} очков (p-value={})",
                     NumberFormatter.format(adfScore, 1),
                     NumberFormatter.format(adfPValue, 6));
 
         } else if (hasJohansen) {
             // ТОЛЬКО JOHANSEN - полный вес
-            log.info("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
+            log.debug("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
 
             double johansenPValue = data.getJohansenCointPValue();
             double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * maxWeight;
             score += johansenScore;
 
-            log.info("     Johansen: {} очков (p-value={})",
+            log.debug("     Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
 
         } else if (hasAdf) {
             // ТОЛЬКО ADF - полный вес
-            log.info("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
+            log.debug("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
 
             Double adfPValue = getAdfPValue(data, params);
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * maxWeight;
             score += adfScore;
 
-            log.info("    ADF: {} очков (p-value={})",
+            log.debug("    ADF: {} очков (p-value={})",
                     NumberFormatter.format(adfScore, 1),
                     NumberFormatter.format(adfPValue, 6));
         }
@@ -574,7 +574,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
                 double traceBonus = maxWeight * 0.05; // 5% от основного веса
                 score += traceBonus;
-                log.info("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
+                log.debug("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
             }
         }
 

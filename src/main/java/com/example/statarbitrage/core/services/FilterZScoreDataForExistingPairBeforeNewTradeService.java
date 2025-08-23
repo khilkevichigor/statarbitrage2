@@ -536,7 +536,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
 
                     double totalScore = maxWeight * scoreRatio;
 
-                    log.info("    📏 Пиксельный спред: avg={}px, max={}px → {} баллов ({}% от {})",
+                    log.debug("    📏 Пиксельный спред: avg={}px, max={}px → {} баллов ({}% от {})",
                             String.format("%.1f", avgSpread), String.format("%.1f", maxSpread),
                             String.format("%.1f", totalScore), String.format("%.0f", scoreRatio * 100), maxWeight);
 
@@ -568,7 +568,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
         String pairName = data.getUnderValuedTicker() + "/" + data.getOverValuedTicker();
 
         if (!hasJohansen && !hasAdf) {
-            log.info("  🔬 {}: Нет данных коинтеграции", pairName);
+            log.debug("  🔬 {}: Нет данных коинтеграции", pairName);
             return 0.0;
         }
 
@@ -577,7 +577,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
 
         if (hasJohansen && hasAdf) {
             // ОБА ТЕСТА ДОСТУПНЫ - равные веса по 50% от полного веса
-            log.info("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight / 2, maxWeight / 2);
+            log.debug("  🔬 {}: Динамические веса - оба теста ({}+{})", pairName, maxWeight / 2, maxWeight / 2);
 
             // Johansen (50% от веса)
             double johansenPValue = data.getJohansenCointPValue();
@@ -589,34 +589,34 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * (maxWeight / 2.0);
             score += adfScore;
 
-            log.info("    Johansen: {} очков (p-value={})",
+            log.debug("    Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
-            log.info("    ADF: {} очков (p-value={})",
+            log.debug("    ADF: {} очков (p-value={})",
                     NumberFormatter.format(adfScore, 1),
                     NumberFormatter.format(adfPValue, 6));
 
         } else if (hasJohansen) {
             // ТОЛЬКО JOHANSEN - полный вес
-            log.info("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
+            log.debug("  🔬 {}: Динамические веса - только Johansen ({})", pairName, maxWeight);
 
             double johansenPValue = data.getJohansenCointPValue();
             double johansenScore = Math.max(0, (0.05 - johansenPValue) / 0.05) * maxWeight;
             score += johansenScore;
 
-            log.info("    Johansen: {} очков (p-value={})",
+            log.debug("    Johansen: {} очков (p-value={})",
                     NumberFormatter.format(johansenScore, 1),
                     NumberFormatter.format(johansenPValue, 6));
 
         } else if (hasAdf) {
             // ТОЛЬКО ADF - полный вес
-            log.info("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
+            log.debug("  🔬 {}: Динамические веса - только ADF ({})", pairName, maxWeight);
 
             Double adfPValue = getAdfPValue(data, params);
             double adfScore = Math.max(0, (0.05 - Math.min(adfPValue, 0.05)) / 0.05) * maxWeight;
             score += adfScore;
 
-            log.info("    ADF: {} очков (p-value={})",
+            log.debug("    ADF: {} очков (p-value={})",
                     NumberFormatter.format(adfScore, 1),
                     NumberFormatter.format(adfPValue, 6));
         }
@@ -626,7 +626,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
             if (data.getJohansenTraceStatistic() > data.getJohansenCriticalValue95()) {
                 double traceBonus = maxWeight * 0.05; // 5% от основного веса
                 score += traceBonus;
-                log.info("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
+                log.debug("    Бонус trace statistic: +{} очков", NumberFormatter.format(traceBonus, 1));
             }
         }
 

@@ -311,7 +311,7 @@ public class ZScoreService {
                 });
                 //берем только те новые тикеры которых еще нет в торговле
                 if (actualBestTickers.contains(best.getUnderValuedTicker()) || actualBestTickers.contains(best.getOverValuedTicker())) {
-                    log.warn("⚠️ Пропускаем пару {}/{} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
+                    log.debug("⚠️ Пропускаем пару {}/{} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
                             best.getUnderValuedTicker(), best.getOverValuedTicker());
                     continue;
                 }
