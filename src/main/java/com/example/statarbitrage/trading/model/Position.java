@@ -26,8 +26,8 @@ public class Position {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "position_id", unique = true)
-    private String positionId;
+    @Column(name = "position_id")
+    private String positionId; // Реальный ID позиции от OKX (например "2716523748303249408")
 
     @Column(name = "pair_data_id")
     private Long pairDataId;

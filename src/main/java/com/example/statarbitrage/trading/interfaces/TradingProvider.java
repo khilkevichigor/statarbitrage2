@@ -42,7 +42,7 @@ public interface TradingProvider {
     /**
      * Получение позиции по ID
      */
-    Position getPosition(String positionId);
+    Position getPosition(String positionId); // positionId - теперь ID от OKX
 
     /**
      * Обновление цен всех позиций - СИНХРОННО

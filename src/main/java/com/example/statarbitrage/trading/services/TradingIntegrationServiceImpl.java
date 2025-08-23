@@ -226,7 +226,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public Positioninfo getPositionInfo(PairData pairData) {
-        log.info("Запрос информации о позициях для пары {}", pairData.getPairName());
+        log.debug("Запрос информации о позициях для пары {}", pairData.getPairName());
 
         Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.LONG);
         Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(pairData.getId(), PositionType.SHORT);
@@ -245,11 +245,11 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         // Если позиции null в памяти провайдера, используем данные из БД (закрытые позиции)
         if (longPosition == null) {
             longPosition = longPositionOpt.get();
-            log.info("ЛОНГ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", longPosition.getStatus());
+            log.debug("ЛОНГ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", longPosition.getStatus());
         }
         if (shortPosition == null) {
             shortPosition = shortPositionOpt.get();  
-            log.info("ШОРТ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", shortPosition.getStatus());
+            log.debug("ШОРТ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", shortPosition.getStatus());
         }
 
         if (positionsAreNull(longPosition, shortPosition, pairData)) {
@@ -265,9 +265,9 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             return buildPositionInfo(true, longPosition, shortPosition);
         }
 
-        log.info("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
+        log.debug("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
 //        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-        log.info("Цены для пары {} обновлены.", pairData.getPairName());
+        log.debug("Цены для пары {} обновлены.", pairData.getPairName());
 
         return buildPositionInfo(false, longPosition, shortPosition);
     }

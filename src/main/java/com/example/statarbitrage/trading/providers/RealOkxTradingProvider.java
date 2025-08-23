@@ -606,10 +606,11 @@ public class RealOkxTradingProvider implements TradingProvider {
 
 
     private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage) {
-        String positionId = UUID.randomUUID().toString();
-
+        // positionId - реальный ID позиции от OKX (если есть в TradeResult)
+        String okxPositionId = tradeResult.getPositionId(); // Получаем от OKX
+        
         return Position.builder()
-                .positionId(positionId)
+                .positionId(okxPositionId)  // Реальный ID от OKX
                 .symbol(tradeResult.getSymbol())
                 .type(type)
                 .size(tradeResult.getExecutedSize())      // Используем реально исполненный размер
@@ -781,14 +782,23 @@ public class RealOkxTradingProvider implements TradingProvider {
                     В других условиях всегда равен 0.
                      */
                     BigDecimal pnlUSDT = new BigDecimal(orderInfo.get("pnl").getAsString());
+                    
+                    // Извлекаем positionId из ответа OKX API
+                    String okxPositionId = null;
+                    if (orderInfo.has("posId") && !orderInfo.get("posId").isJsonNull()) {
+                        okxPositionId = orderInfo.get("posId").getAsString();
+                        log.debug("🎯 Найден OKX positionId в деталях ордера: {}", okxPositionId);
+                    } else {
+                        log.warn("⚠️ positionId не найден в деталях ордера {}", orderId);
+                    }
 
-                    log.debug("✅ Детали ордера {} успешно извлечены: symbol={} | pnlUSDT={} | size={} | avgPx={} | fee={}",
-                            orderId, symbol, pnlUSDT, size, avgPx, fee);
+                    log.debug("✅ Детали ордера {} успешно извлечены: symbol={} | pnlUSDT={} | size={} | avgPx={} | fee={} | positionId={}",
+                            orderId, symbol, pnlUSDT, size, avgPx, fee, okxPositionId);
 
                     // TODO: сверить запрошенный и исполненный объем, при несовпадении вернуть failure
 
                     //todo по моему не правильно данные ордера пихать в TradeResult!!! нужно брать факт из истории если это было закрытие сделки
-                    TradeResult result = TradeResult.success(null, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId, null);
+                    TradeResult result = TradeResult.success(okxPositionId, tradeOperationType, symbol, pnlUSDT, null, size, avgPx, fee, orderId, null);
                     log.debug("<== getOrderDetails: КОНЕЦ (Успех) для orderId={}. Результат: {}", orderId, result);
                     return result;
                 }
@@ -1704,8 +1714,27 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             List<OkxPositionHistoryData> history = getPositionsHistory(symbol);
 
-            // Ищем последнюю закрытую позицию по времени закрытия
-            Optional<OkxPositionHistoryData> latestClosedPosition = history.stream()
+            // Ищем позицию по точному OKX positionId, если нет - берем последнюю по времени (fallback)
+            Optional<OkxPositionHistoryData> targetPosition = Optional.empty();
+            
+            if (positionId != null && !positionId.isEmpty() && !positionId.equals("N/A")) {
+                // Точный поиск по OKX positionId
+                targetPosition = history.stream()
+                        .filter(h -> positionId.equals(h.getPositionId()))
+                        .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
+                        .findFirst();
+                
+                if (targetPosition.isPresent()) {
+                    log.info("🎯 Найдена позиция по точному OKX positionId: {}", positionId);
+                } else {
+                    log.debug("🔍 Позиция с точным OKX positionId {} не найдена, используем fallback поиск", positionId);
+                }
+            }
+            
+            // Fallback: берем последнюю закрытую позицию по времени
+            Optional<OkxPositionHistoryData> latestClosedPosition = targetPosition.isPresent() ? 
+                targetPosition : 
+                history.stream()
                     .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
                     .max(Comparator.comparing(OkxPositionHistoryData::getCloseTime));
 
