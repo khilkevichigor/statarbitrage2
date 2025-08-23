@@ -1062,8 +1062,9 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
-                log.debug("✅ Обновлена позиция {}: нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, маржа={}, комиссия={}, комиссия за фандинг={}",
+                log.debug("✅ Обновлена позиция {}: posId={}, нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, маржа={}, комиссия={}, комиссия за фандинг={}",
                         instId,
+                        posId,
                         internalPosition.getUnrealizedPnLUSDT(),
                         internalPosition.getUnrealizedPnLPercent(),
                         internalPosition.getRealizedPnLUSDT(),
