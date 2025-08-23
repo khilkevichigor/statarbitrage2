@@ -191,7 +191,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             try {
                 // Небольшая задержка чтобы позиция успела появиться в системе OKX
                 Thread.sleep(1000);
-                
+
                 JsonObject realPosition = getRealPositionFromOkx(symbol);
                 if (realPosition != null && realPosition.has("posId")) {
                     realPositionId = realPosition.get("posId").getAsString();
@@ -625,19 +625,19 @@ public class RealOkxTradingProvider implements TradingProvider {
     private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage, String realPositionId) {
         // positionId - используем реальный ID от OKX если получен, иначе fallback логика
         String okxPositionId = realPositionId;
-        
+
         if (okxPositionId == null || okxPositionId.isEmpty() || okxPositionId.equals("N/A")) {
             // Пытаемся получить ID из TradeResult (может быть в detalях ордера)
             okxPositionId = tradeResult.getPositionId();
-            
+
             // Последний fallback: временный ID
             if (okxPositionId == null || okxPositionId.isEmpty() || okxPositionId.equals("N/A")) {
                 okxPositionId = "temp_" + java.util.UUID.randomUUID().toString().substring(0, 8);
-                log.info("⚠️ OKX не вернул positionId для {}, используем временный: {}.", 
+                log.info("⚠️ OKX не вернул positionId для {}, используем временный: {}.",
                         tradeResult.getSymbol(), okxPositionId);
             }
         }
-        
+
         return Position.builder()
                 .positionId(okxPositionId)  // Реальный ID от OKX или временный
                 .symbol(tradeResult.getSymbol())
@@ -811,12 +811,12 @@ public class RealOkxTradingProvider implements TradingProvider {
                     В других условиях всегда равен 0.
                      */
                     BigDecimal pnlUSDT = new BigDecimal(orderInfo.get("pnl").getAsString());
-                    
+
                     // Извлекаем positionId из ответа OKX API
                     String okxPositionId = null;
                     if (orderInfo.has("posId") && !orderInfo.get("posId").isJsonNull()) {
                         okxPositionId = orderInfo.get("posId").getAsString();
-                        log.debug("🎯 Найден OKX positionId в деталях ордера: {}", okxPositionId);
+                        log.info("🎯 Найден OKX positionId в деталях ордера: {}", okxPositionId);
                     } else {
                         log.warn("⚠️ positionId не найден в деталях ордера {}", orderId);
                     }
@@ -1745,27 +1745,27 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Ищем позицию по точному OKX positionId, если нет - берем последнюю по времени (fallback)
             Optional<OkxPositionHistoryData> targetPosition = Optional.empty();
-            
+
             if (positionId != null && !positionId.isEmpty() && !positionId.equals("N/A")) {
                 // Точный поиск по OKX positionId
                 targetPosition = history.stream()
                         .filter(h -> positionId.equals(h.getPositionId()))
                         .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
                         .findFirst();
-                
+
                 if (targetPosition.isPresent()) {
                     log.info("🎯 Найдена позиция по точному OKX positionId: {}", positionId);
                 } else {
                     log.debug("🔍 Позиция с точным OKX positionId {} не найдена, используем fallback поиск", positionId);
                 }
             }
-            
+
             // Fallback: берем последнюю закрытую позицию по времени
-            Optional<OkxPositionHistoryData> latestClosedPosition = targetPosition.isPresent() ? 
-                targetPosition : 
-                history.stream()
-                    .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
-                    .max(Comparator.comparing(OkxPositionHistoryData::getCloseTime));
+            Optional<OkxPositionHistoryData> latestClosedPosition = targetPosition.isPresent() ?
+                    targetPosition :
+                    history.stream()
+                            .filter(h -> h.getCloseTime() != null && !h.getCloseTime().equals("N/A"))
+                            .max(Comparator.comparing(OkxPositionHistoryData::getCloseTime));
 
             if (latestClosedPosition.isPresent()) {
                 OkxPositionHistoryData positionData = latestClosedPosition.get();

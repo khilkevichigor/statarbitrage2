@@ -248,7 +248,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             log.debug("ЛОНГ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", longPosition.getStatus());
         }
         if (shortPosition == null) {
-            shortPosition = shortPositionOpt.get();  
+            shortPosition = shortPositionOpt.get();
             log.debug("ШОРТ позиция не найдена в памяти провайдера, используем данные из БД: статус={}", shortPosition.getStatus());
         }
 
@@ -258,10 +258,10 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         }
 
         boolean bothClosed = isClosed(longPosition) && isClosed(shortPosition);
-        log.info("Статус позиций для пары {}: ЛОНГ закрыта={}, ШОРТ закрыта={}", pairData.getPairName(), isClosed(longPosition), isClosed(shortPosition));
+        log.debug("Статус позиций для пары {}: ЛОНГ закрыта={}, ШОРТ закрыта={}", pairData.getPairName(), isClosed(longPosition), isClosed(shortPosition));
 
         if (bothClosed) {
-            log.info("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
+            log.debug("Обе позиции для пары {} уже закрыты.", pairData.getPairName());
             return buildPositionInfo(true, longPosition, shortPosition);
         }
 
@@ -514,7 +514,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 position.setClosingPrice(result.getExecutionPrice());
             }
             position.setLastUpdated(LocalDateTime.now());
-            
+
             positionRepository.save(position);
             log.debug("✅ Позиция {} успешно закрыта и обновлена в БД. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
                     positionLabel, position.getPositionId(), safeGet(result.getPnlUSDT()), safeGet(result.getPnlPercent()), safeGet(result.getFees()));
