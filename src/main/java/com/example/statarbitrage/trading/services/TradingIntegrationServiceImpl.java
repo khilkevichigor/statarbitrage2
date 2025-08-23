@@ -492,10 +492,22 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         TradeResult result = provider.closePosition(position.getPositionId());
 
         if (result.isSuccess()) {
+            // Обновляем позицию данными от OKX
             position.setStatus(PositionStatus.CLOSED);
+            if (result.getPnlUSDT() != null) {
+                position.setRealizedPnLUSDT(result.getPnlUSDT());
+            }
+            if (result.getPnlPercent() != null) {
+                position.setRealizedPnLPercent(result.getPnlPercent());
+            }
+            if (result.getExecutionPrice() != null) {
+                position.setClosingPrice(result.getExecutionPrice());
+            }
+            position.setLastUpdated(LocalDateTime.now());
+            
             positionRepository.save(position);
             log.debug("✅ Позиция {} успешно закрыта и обновлена в БД. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
-                    positionLabel, position.getPositionId(), result.getPnlUSDT(), result.getPnlPercent(), result.getFees());
+                    positionLabel, position.getPositionId(), safeGet(result.getPnlUSDT()), safeGet(result.getPnlPercent()), safeGet(result.getFees()));
         } else {
             log.warn("❌ Не удалось закрыть {} позицию. ID: {}, Ошибка: {}",
                     positionLabel, position.getPositionId(), result.getErrorMessage());
@@ -505,15 +517,15 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     }
 
     private void logSuccess(PairData pairData, TradeResult longResult, TradeResult shortResult) {
-        BigDecimal totalPnLUSDT = longResult.getPnlUSDT().add(shortResult.getPnlUSDT());
-        BigDecimal totalPnLPercent = longResult.getPnlPercent().add(shortResult.getPnlPercent());
-        BigDecimal totalFees = longResult.getFees().add(shortResult.getFees());
+        BigDecimal totalPnLUSDT = safeGet(longResult.getPnlUSDT()).add(safeGet(shortResult.getPnlUSDT()));
+        BigDecimal totalPnLPercent = safeGet(longResult.getPnlPercent()).add(safeGet(shortResult.getPnlPercent()));
+        BigDecimal totalFees = safeGet(longResult.getFees()).add(safeGet(shortResult.getFees()));
 
         log.debug("✅ Арбитражная пара: {} УСПЕШНО закрыта.", pairData.getPairName());
         log.debug("📈 Общий доход (PnL): {} USDT ({} %)", totalPnLUSDT, totalPnLPercent);
         log.debug("💸 Общая комиссия: {} USDT", totalFees);
-        log.debug("🟢 ЛОНГ: PnL = {} USDT ({} %), комиссия = {}", longResult.getPnlUSDT(), longResult.getPnlPercent(), longResult.getFees());
-        log.debug("🔴 ШОРТ: PnL = {} USDT ({} %), комиссия = {}", shortResult.getPnlUSDT(), shortResult.getPnlPercent(), shortResult.getFees());
+        log.debug("🟢 ЛОНГ: PnL = {} USDT ({} %), комиссия = {}", safeGet(longResult.getPnlUSDT()), safeGet(longResult.getPnlPercent()), safeGet(longResult.getFees()));
+        log.debug("🔴 ШОРТ: PnL = {} USDT ({} %), комиссия = {}", safeGet(shortResult.getPnlUSDT()), safeGet(shortResult.getPnlPercent()), safeGet(shortResult.getFees()));
     }
 
     private void logFailure(PairData pairData, TradeResult longResult, TradeResult shortResult) {

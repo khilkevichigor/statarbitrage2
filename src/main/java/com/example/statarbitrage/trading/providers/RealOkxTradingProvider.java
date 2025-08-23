@@ -1545,7 +1545,7 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Получение истории закрытых позиций от OKX API
      */
     public List<OkxPositionHistoryData> getPositionsHistory(String symbol) {
-        log.debug("==> getPositionsHistory: Запрос истории позиций для {}", symbol);
+        log.info("==> getPositionsHistory: Запрос истории позиций для {}", symbol);
 
         if (!geolocationService.isGeolocationAllowed()) {
             log.error("❌ БЛОКИРОВКА: Получение истории позиций заблокировано из-за геолокации!");
@@ -1569,7 +1569,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
-                log.debug("Ответ OKX на запрос истории позиций {}: HTTP {} | {}", symbol, response.code(), responseBody);
+                log.info("Ответ OKX на запрос истории позиций {}: HTTP {} | {}", symbol, response.code(), responseBody);
 
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
@@ -1588,7 +1588,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     }
                 }
 
-                log.debug("✅ Получено {} записей истории позиций для {}", historyList.size(), symbol);
+                log.info("✅ Получено {} записей истории позиций для {}", historyList.size(), symbol);
                 return historyList;
 
             }
