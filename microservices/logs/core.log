@@ -37,8 +37,8 @@ Standard Commons Logging discovery in action with spring-jcl: please remove comm
 
  :: Spring Boot ::                (v3.5.0)
 
-22:20:31.578 [main] INFO  [CORE] com.example.core.CoreApplication - Starting CoreApplication using Java 17.0.9 with PID 63221 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core)
-22:20:31.582 [main] INFO  [CORE] com.example.core.CoreApplication - The following 1 profile is active: "default"
+22:20:31.578 [main] INFO  [CORE] com.example.core.CoreApplicationOld - Starting CoreApplication using Java 17.0.9 with PID 63221 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core)
+22:20:31.582 [main] INFO  [CORE] com.example.core.CoreApplicationOld - The following 1 profile is active: "default"
 22:20:32.026 [main] INFO  [CORE] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
 22:20:32.038 [main] INFO  [CORE] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
 22:20:32.129 [main] INFO  [CORE] o.s.i.c.DefaultConfiguringBeanFactoryPostProcessor - No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
@@ -71,7 +71,7 @@ Standard Commons Logging discovery in action with spring-jcl: please remove comm
 22:20:34.652 [main] INFO  [CORE] o.s.i.c.PublishSubscribeChannel - Channel 'core-service.errorChannel' has 1 subscriber(s).
 22:20:34.652 [main] INFO  [CORE] o.s.i.endpoint.EventDrivenConsumer - started bean '_org.springframework.integration.errorLogger'
 22:20:34.699 [main] INFO  [CORE] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-22:20:34.710 [main] INFO  [CORE] com.example.core.CoreApplication - Started CoreApplication in 3.528 seconds (process running for 3.88)
+22:20:34.710 [main] INFO  [CORE] com.example.core.CoreApplicationOld - Started CoreApplication in 3.528 seconds (process running for 3.88)
 ✅ Микросервис Core успешно запущен!
 22:23:21.245 [http-nio-8080-exec-1] INFO  [CORE] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
 22:23:21.247 [http-nio-8080-exec-1] INFO  [CORE] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'

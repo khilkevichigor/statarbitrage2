@@ -306,13 +306,13 @@ done
 cp -r ../src/main/java/com/example/statarbitrage/* core/src/main/java/com/example/core/
 
 # Обновить package в каждом файле
-find core/src/main/java -name "*.java" -exec sed -i '' 's/package com.example.statarbitrage/package com.example.core/g' {} \;
+find core/src/main/java -name "*.java" -exec sed -i '' 's/package com.example.core/package com.example.core/g' {} \;
 ```
 
 #### Шаг 2: Исправить импорты
+
 ```java
 // Было:
-import com.example.statarbitrage.service.TradingService;
 
 // Стало:
 import com.example.core.service.TradingService;
