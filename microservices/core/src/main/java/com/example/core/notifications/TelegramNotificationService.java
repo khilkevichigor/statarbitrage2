@@ -1,8 +1,8 @@
 package com.example.core.notifications;
 
-import com.example.core.common.model.PairData;
 import com.example.core.formatters.TimeFormatterUtil;
 import com.example.shared.events.NotificationEvent;
+import com.example.shared.models.PairData;
 import com.example.shared.utils.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-import static com.example.core.common.utils.BigDecimalUtil.safeScale;
+import static com.example.shared.utils.BigDecimalUtil.safeScale;
 
 @Slf4j
 @Service
@@ -30,10 +30,10 @@ public class TelegramNotificationService implements NotificationService {
                 NotificationEvent.NotificationType.TELEGRAM,
                 NotificationEvent.Priority.HIGH
         );
-        sendNotification(event);
+        sendEvent(event);
     }
 
-    private void sendNotification(NotificationEvent event) {
+    private void sendEvent(NotificationEvent event) {
         log.debug("Отправка сообщения в телеграм {}", event.toString());
         try {
             eventPublisher.publish("notification-events-out-0", event);

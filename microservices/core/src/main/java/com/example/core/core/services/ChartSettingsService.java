@@ -1,7 +1,7 @@
 package com.example.core.core.services;
 
-import com.example.core.common.model.ChartSettings;
 import com.example.core.core.repositories.ChartSettingsRepository;
+import com.example.shared.models.ChartSettings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

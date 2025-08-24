@@ -1,7 +1,7 @@
 package com.example.core.core.services;
 
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.Settings;
+import com.example.shared.models.PairData;
+import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -56,7 +56,7 @@ public class ExitStrategyService {
         }
 
         if (isNegativeZMinProfitTriggered(zScoreCurrent, profit, settings)) {
-            log.info("Выход по отрицательному Z-Score с минимальным профитом: zScoreCurrent = {}, profit = {}%, minProfit = {}%", 
+            log.info("Выход по отрицательному Z-Score с минимальным профитом: zScoreCurrent = {}, profit = {}%, minProfit = {}%",
                     zScoreCurrent, profit, settings.getExitNegativeZMinProfitPercent());
             return ExitReasonType.EXIT_REASON_BY_NEGATIVE_Z_MIN_PROFIT.name();
         }
@@ -101,17 +101,17 @@ public class ExitStrategyService {
 
     /**
      * Проверяет условие выхода при отрицательном Z-Score с минимальным профитом
-     * 
+     *
      * @param zScoreCurrent текущий Z-Score
-     * @param profit текущий профит в процентах  
-     * @param settings настройки торговли
+     * @param profit        текущий профит в процентах
+     * @param settings      настройки торговли
      * @return true если нужно закрывать позицию
      */
     private boolean isNegativeZMinProfitTriggered(double zScoreCurrent, double profit, Settings settings) {
         if (!settings.isUseExitNegativeZMinProfitPercent()) {
             return false;
         }
-        
+
         // Z-Score стал отрицательным (направление торговли изменилось)
         // И у нас есть минимальный требуемый профит
         return zScoreCurrent < 0.0 && profit >= settings.getExitNegativeZMinProfitPercent();

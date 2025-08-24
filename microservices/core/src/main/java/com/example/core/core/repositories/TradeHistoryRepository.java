@@ -1,7 +1,7 @@
 package com.example.core.core.repositories;
 
-import com.example.core.common.model.TradeHistory;
-import com.example.core.common.model.TradeStatus;
+import com.example.shared.models.TradeHistory;
+import com.example.shared.models.TradeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

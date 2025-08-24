@@ -1,7 +1,7 @@
 package com.example.core.trading.services;
 
-import com.example.core.trading.model.Portfolio;
-import com.example.core.trading.model.Position;
+import com.example.shared.models.Portfolio;
+import com.example.shared.models.Position;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

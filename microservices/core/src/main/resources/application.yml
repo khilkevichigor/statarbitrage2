@@ -52,6 +52,10 @@ spring:
         notification-events-out-0:
           destination: notification.events
           content-type: application/json
+        # Исходящие события csv
+        csv-events-out-0:
+          destination: csv.events
+          content-type: application/json
         # Исходящие торговые события
         trading-events-out-0:
           destination: trading.events
@@ -76,6 +80,9 @@ spring:
           notification-events-out-0:
             producer:
               routing-key-expression: "'notification'"
+          csv-events-out-0:
+            producer:
+              routing-key-expression: "'csv'"
           trading-events-out-0:
             producer:
               routing-key-expression: "'trading'"

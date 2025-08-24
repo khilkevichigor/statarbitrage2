@@ -1,4 +1,4 @@
-package com.example.core.common.model;
+package com.example.shared.models;
 
 /**
  * Статус торговой операции

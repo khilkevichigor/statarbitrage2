@@ -1,6 +1,6 @@
 package com.example.core.core.repositories;
 
-import com.example.core.common.model.ChartSettings;
+import com.example.shared.models.ChartSettings;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

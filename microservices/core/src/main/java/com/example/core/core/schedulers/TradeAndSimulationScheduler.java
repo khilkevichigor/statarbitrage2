@@ -1,9 +1,6 @@
 package com.example.core.core.schedulers;
 
 import com.example.core.common.events.UpdateUiEvent;
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.Settings;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.core.processors.FetchPairsProcessor;
 import com.example.core.core.processors.StartNewTradeProcessor;
 import com.example.core.core.processors.UpdateTradeProcessor;
@@ -14,6 +11,9 @@ import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.ui.dto.FetchPairsRequest;
 import com.example.core.ui.dto.StartNewTradeRequest;
 import com.example.core.ui.dto.UpdateTradeRequest;
+import com.example.shared.models.PairData;
+import com.example.shared.models.Settings;
+import com.example.shared.models.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -1,9 +1,9 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.Candle;
-import com.example.core.common.dto.PixelSpreadHistoryItem;
-import com.example.core.common.dto.ZScoreParam;
-import com.example.core.common.model.PairData;
+import com.example.shared.models.Candle;
+import com.example.shared.models.PairData;
+import com.example.shared.models.PixelSpreadHistoryItem;
+import com.example.shared.models.ZScoreParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -584,7 +584,7 @@ public class PixelSpreadService {
         double pixelDistance = Math.abs(longPixelY - shortPixelY);
 
         log.debug("✅ Быстрый пиксельный спред для пары {}: {} px (последние цены: LONG={}, SHORT={})",
-                pairName, String.format("%.1f", pixelDistance), 
+                pairName, String.format("%.1f", pixelDistance),
                 String.format("%.8f", lastLongPrice), String.format("%.8f", lastShortPrice));
 
         return pixelDistance;

@@ -1,7 +1,5 @@
 package com.example.core.ui.components;
 
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.common.utils.NumberFormatter;
 import com.example.core.core.processors.StartNewTradeProcessor;
 import com.example.core.core.processors.UpdateTradeProcessor;
@@ -12,6 +10,8 @@ import com.example.core.core.services.SettingsService;
 import com.example.core.formatters.TimeFormatterUtil;
 import com.example.core.ui.dto.StartNewTradeRequest;
 import com.example.core.ui.dto.UpdateTradeRequest;
+import com.example.shared.models.PairData;
+import com.example.shared.models.TradeStatus;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.Grid;
@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static com.example.core.common.utils.BigDecimalUtil.safeScale;
+import static com.example.shared.utils.BigDecimalUtil.safeScale;
 
 @Slf4j
 @SpringComponent

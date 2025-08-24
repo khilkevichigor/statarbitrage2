@@ -1,16 +1,11 @@
 package com.example.core.core.processors;
 
-import com.example.core.common.dto.Candle;
 import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.Settings;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.core.services.*;
 import com.example.core.notifications.NotificationService;
-import com.example.core.trading.model.ArbitragePairTradeInfo;
-import com.example.core.trading.model.TradeResult;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.ui.dto.StartNewTradeRequest;
+import com.example.shared.models.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

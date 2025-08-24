@@ -1,11 +1,11 @@
 package com.example.core.core.services;
 
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.core.repositories.PairDataRepository;
-import com.example.core.trading.model.Position;
-import com.example.core.trading.model.Positioninfo;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.models.PairData;
+import com.example.shared.models.Position;
+import com.example.shared.models.Positioninfo;
+import com.example.shared.models.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

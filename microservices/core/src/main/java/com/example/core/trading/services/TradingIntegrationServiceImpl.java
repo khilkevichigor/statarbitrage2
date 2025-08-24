@@ -1,11 +1,10 @@
 package com.example.core.trading.services;
 
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.Settings;
+import com.example.core.core.repositories.PositionRepository;
 import com.example.core.core.services.PortfolioService;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
-import com.example.core.trading.model.*;
+import com.example.shared.models.*;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

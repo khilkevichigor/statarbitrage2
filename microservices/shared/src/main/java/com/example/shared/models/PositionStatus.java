@@ -1,4 +1,4 @@
-package com.example.core.trading.model;
+package com.example.shared.models;
 
 /**
  * Статус торговой позиции

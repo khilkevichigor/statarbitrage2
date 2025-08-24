@@ -1,8 +1,8 @@
 package com.example.core.ui.components;
 
-import com.example.core.common.model.Settings;
 import com.example.core.core.schedulers.TradeAndSimulationScheduler;
 import com.example.core.core.services.SettingsService;
+import com.example.shared.models.Settings;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;

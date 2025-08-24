@@ -2,11 +2,12 @@ package com.example.core.trading.providers;
 
 import com.example.core.client_okx.OkxClient;
 import com.example.core.common.dto.OkxPositionHistoryData;
+import com.example.core.core.repositories.PositionRepository;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
-import com.example.core.trading.model.*;
 import com.example.core.trading.services.GeolocationService;
 import com.example.core.trading.services.OkxPortfolioManager;
+import com.example.shared.models.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -31,7 +32,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import static com.example.core.common.utils.BigDecimalUtil.safeScale;
+import static com.example.shared.utils.BigDecimalUtil.safeScale;
 
 /**
  * Реальная торговля через OKX API

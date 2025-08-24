@@ -1,7 +1,5 @@
 package com.example.core.ui.views;
 
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.core.processors.FetchPairsProcessor;
 import com.example.core.core.services.PairDataService;
 import com.example.core.ui.components.PortfolioComponent;
@@ -11,6 +9,8 @@ import com.example.core.ui.components.TradingPairsComponent;
 import com.example.core.ui.dto.FetchPairsRequest;
 import com.example.core.ui.interfaces.UIUpdateable;
 import com.example.core.ui.services.UIUpdateService;
+import com.example.shared.models.PairData;
+import com.example.shared.models.TradeStatus;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;

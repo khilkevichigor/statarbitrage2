@@ -1,6 +1,7 @@
 package com.example.core.common.dto;
 
-import com.example.core.common.model.Settings;
+import com.example.shared.models.Candle;
+import com.example.shared.models.Settings;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

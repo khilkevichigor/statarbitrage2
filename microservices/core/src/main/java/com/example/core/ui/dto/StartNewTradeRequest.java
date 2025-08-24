@@ -1,6 +1,6 @@
 package com.example.core.ui.dto;
 
-import com.example.core.common.model.PairData;
+import com.example.shared.models.PairData;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,14 +1,14 @@
-package com.example.core.core.services;
+package com.example.csv.service;
 
-import com.example.shared.events.CsvEvent;
 import com.example.shared.models.CsvExportable;
 import com.example.shared.models.PairData;
-import com.example.shared.utils.EventPublisher;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -25,64 +25,47 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class CsvExportService {
+public class AppendPairDataToCsvService {
 
     private static final String CSV_FILE_PREFIX = "closed_trades_";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private final EventPublisher eventPublisher;
 
-    public synchronized void appendPairDataToCsv(PairData pairData) {
-        CsvEvent event = new CsvEvent(
-                pairData
-        );
-        sendEvent(event);
-    }
-
-    private void sendEvent(CsvEvent event) {
-        log.debug("Отправка события {}", event.toString());
+    public void appendPairDataToCsv(PairData pairData) {
         try {
-            eventPublisher.publish("csv-events-out-0", event);
+            pairData.updateFormattedFieldsBeforeExportToCsv();
+
+            List<Field> exportableFields = getExportableFields(PairData.class);
+            String schemaSignature = getSchemaSignature(exportableFields);
+
+            File existingFile = findExistingFile(schemaSignature);
+            String csvFileName;
+            boolean isNewFile;
+
+            if (existingFile != null) {
+                csvFileName = existingFile.getName();
+                isNewFile = false;
+            } else {
+                String timestamp = DateTimeFormatter.ofPattern("MM_dd_yyyy_HH_mm").format(LocalDateTime.now());
+                csvFileName = CSV_FILE_PREFIX + timestamp + "_" + schemaSignature + ".csv";
+                isNewFile = true;
+            }
+
+            try (PrintWriter writer = new PrintWriter(new FileWriter(csvFileName, true))) {
+                if (isNewFile) {
+                    writer.println(getCsvHeader(exportableFields));
+                }
+                writer.println(toCsvRow(pairData, exportableFields));
+                log.info("✅ Пара {} успешно добавлена в CSV журнал: {}\n", pairData.getPairName(), csvFileName);
+
+            } catch (IOException | IllegalAccessException e) {
+                log.error("❌ Ошибка при записи в CSV файл: {}\n", e.getMessage(), e);
+            }
+        } catch (NoSuchAlgorithmException e) {
+            log.error("❌ Ошибка при создании сигнатуры схемы для CSV: {}\n", e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Ошибка отправки события {}", e.getMessage(), e);
+            log.error("❌ Непредвиденная ошибка при экспорте в CSV: {}\n", e.getMessage(), e);
         }
     }
-
-//        try {
-//            pairData.updateFormattedFieldsBeforeExportToCsv();
-//
-//            List<Field> exportableFields = getExportableFields(PairData.class);
-//            String schemaSignature = getSchemaSignature(exportableFields);
-//
-//            File existingFile = findExistingFile(schemaSignature);
-//            String csvFileName;
-//            boolean isNewFile;
-//
-//            if (existingFile != null) {
-//                csvFileName = existingFile.getName();
-//                isNewFile = false;
-//            } else {
-//                String timestamp = DateTimeFormatter.ofPattern("MM_dd_yyyy_HH_mm").format(LocalDateTime.now());
-//                csvFileName = CSV_FILE_PREFIX + timestamp + "_" + schemaSignature + ".csv";
-//                isNewFile = true;
-//            }
-//
-//            try (PrintWriter writer = new PrintWriter(new FileWriter(csvFileName, true))) {
-//                if (isNewFile) {
-//                    writer.println(getCsvHeader(exportableFields));
-//                }
-//                writer.println(toCsvRow(pairData, exportableFields));
-//                log.info("✅ Пара {} успешно добавлена в CSV журнал: {}\n", pairData.getPairName(), csvFileName);
-//
-//            } catch (IOException | IllegalAccessException e) {
-//                log.error("❌ Ошибка при записи в CSV файл: {}\n", e.getMessage(), e);
-//            }
-//        } catch (NoSuchAlgorithmException e) {
-//            log.error("❌ Ошибка при создании сигнатуры схемы для CSV: {}\n", e.getMessage(), e);
-//        } catch (Exception e) {
-//            log.error("❌ Непредвиденная ошибка при экспорте в CSV: {}\n", e.getMessage(), e);
-//        }
-//    }
 
     private File findExistingFile(String schemaSignature) {
         File dir = new File(".");

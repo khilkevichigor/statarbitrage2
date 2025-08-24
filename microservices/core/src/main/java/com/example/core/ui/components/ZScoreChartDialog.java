@@ -1,12 +1,12 @@
 package com.example.core.ui.components;
 
-import com.example.core.common.model.ChartSettings;
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.Settings;
 import com.example.core.core.services.ChartSettingsService;
 import com.example.core.core.services.PixelSpreadService;
 import com.example.core.core.services.SettingsService;
 import com.example.core.ui.services.ChartService;
+import com.example.shared.models.ChartSettings;
+import com.example.shared.models.PairData;
+import com.example.shared.models.Settings;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -170,7 +170,7 @@ public class ZScoreChartDialog extends Dialog {
 
         log.debug("📊 Загружены настройки чарта: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}, EntryPoint={}",
                 chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
-                chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(), 
+                chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(),
                 chartSettings.isShowEntryPoint());
     }
 
@@ -359,7 +359,7 @@ public class ZScoreChartDialog extends Dialog {
 
             log.debug("📊 Восстановлены настройки чекбоксов: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}, EntryPoint={}",
                     chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
-                    chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(), 
+                    chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(),
                     chartSettings.isShowEntryPoint());
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService

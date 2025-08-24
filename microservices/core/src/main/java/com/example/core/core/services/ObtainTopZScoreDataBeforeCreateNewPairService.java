@@ -1,10 +1,10 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.Candle;
 import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.dto.ZScoreParam;
-import com.example.core.common.model.Settings;
 import com.example.core.common.utils.NumberFormatter;
+import com.example.shared.models.Candle;
+import com.example.shared.models.Settings;
+import com.example.shared.models.ZScoreParam;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -218,7 +218,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 log.debug("   ❌ {}: {}", pairName, reason);
                 return reason;
             }
-            log.debug("   ✅ {}: Z-score выше минимума: {} >= {}", pairName, 
+            log.debug("   ✅ {}: Z-score выше минимума: {} >= {}", pairName,
                     NumberFormatter.format(currentZScore, 2), NumberFormatter.format(minZ, 2));
         }
 
@@ -231,8 +231,8 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 log.debug("   ❌ {}: {}", pairName, reason);
                 return reason;
             }
-            log.debug("   ✅ {}: P-Value корреляции в норме: {} <= {}", pairName, 
-                    correlationPValue != null ? NumberFormatter.format(correlationPValue, 6) : "null", 
+            log.debug("   ✅ {}: P-Value корреляции в норме: {} <= {}", pairName,
+                    correlationPValue != null ? NumberFormatter.format(correlationPValue, 6) : "null",
                     NumberFormatter.format(maxPValue, 6));
         }
 
@@ -245,8 +245,8 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 log.debug("   ❌ {}: {}", pairName, reason);
                 return reason;
             }
-            log.debug("   ✅ {}: ADF P-Value в норме: {} <= {}", pairName, 
-                    adfPValue != null ? NumberFormatter.format(adfPValue, 6) : "null", 
+            log.debug("   ✅ {}: ADF P-Value в норме: {} <= {}", pairName,
+                    adfPValue != null ? NumberFormatter.format(adfPValue, 6) : "null",
                     NumberFormatter.format(maxAdfValue, 6));
         }
 
@@ -255,12 +255,12 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             Double rSquared = getRSquared(data);
             double minRSquared = settings.getMinRSquared();
             if (rSquared == null || rSquared < minRSquared) {
-                reason = String.format("R-Squared ниже минимума: %s < %.3f", 
+                reason = String.format("R-Squared ниже минимума: %s < %.3f",
                         rSquared != null ? String.format("%.3f", rSquared) : "null", minRSquared);
                 log.debug("   ❌ {}: {}", pairName, reason);
                 return reason;
             }
-            log.debug("   ✅ {}: R-Squared выше минимума: {} >= {}", pairName, 
+            log.debug("   ✅ {}: R-Squared выше минимума: {} >= {}", pairName,
                     NumberFormatter.format(rSquared, 3), NumberFormatter.format(minRSquared, 3));
         }
 
@@ -269,12 +269,12 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             Double correlation = data.getPearsonCorr();
             double minCorrelation = settings.getMinCorrelation();
             if (correlation == null || Math.abs(correlation) < minCorrelation) {
-                reason = String.format("Корреляция ниже минимума: %s < %.3f", 
+                reason = String.format("Корреляция ниже минимума: %s < %.3f",
                         correlation != null ? String.format("%.3f", Math.abs(correlation)) : "null", minCorrelation);
                 log.debug("   ❌ {}: {}", pairName, reason);
                 return reason;
             }
-            log.debug("   ✅ {}: Корреляция выше минимума: {} >= {}", pairName, 
+            log.debug("   ✅ {}: Корреляция выше минимума: {} >= {}", pairName,
                     NumberFormatter.format(Math.abs(correlation), 3), NumberFormatter.format(minCorrelation, 3));
         }
 
@@ -446,17 +446,17 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 if (currentSpread > 0) {
                     double maxWeight = settings.getPixelSpreadScoringWeight();
                     double baseScore = calculateScoreFromPixelSpread(currentSpread, maxWeight);
-                    
+
                     // Добавляем бонус за волатильность пиксельного спреда
                     double volatilityBonus = calculateVolatilityBonusFromCandles(longCandles, shortCandles, maxWeight);
-                    
+
                     // Добавляем бонус за достаточно большой текущий пиксельный спред
                     double currentSpreadBonus = calculateCurrentSpreadBonus(currentSpread, maxWeight);
-                    
+
                     double totalScore = baseScore + volatilityBonus + currentSpreadBonus;
 
                     log.debug("    📏 Пиксельный спред (вычисленный): {}px → {} баллов (базовый: {}, волатильность: {}, текущий спред: {})",
-                            String.format("%.1f", currentSpread), String.format("%.1f", totalScore), 
+                            String.format("%.1f", currentSpread), String.format("%.1f", totalScore),
                             String.format("%.1f", baseScore), String.format("%.1f", volatilityBonus),
                             String.format("%.1f", currentSpreadBonus));
                     return totalScore;
@@ -729,58 +729,58 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
      */
     private List<Double> calculatePixelSpreadHistoryFromCandles(List<Candle> longCandles, List<Candle> shortCandles) {
         List<Double> pixelSpreads = new ArrayList<>();
-        
+
         // Сортировка по времени
         List<Candle> sortedLongCandles = new ArrayList<>(longCandles);
         List<Candle> sortedShortCandles = new ArrayList<>(shortCandles);
         sortedLongCandles.sort(Comparator.comparing(Candle::getTimestamp));
         sortedShortCandles.sort(Comparator.comparing(Candle::getTimestamp));
-        
+
         // Извлекаем цены и времена
         List<Date> longTimes = sortedLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
         List<Double> longPrices = sortedLongCandles.stream().map(Candle::getClose).toList();
-        
+
         List<Date> shortTimes = sortedShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
         List<Double> shortPrices = sortedShortCandles.stream().map(Candle::getClose).toList();
-        
+
         // Найти диапазон цен для нормализации (как в PixelSpreadService)
         double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
         double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
         double longPriceRange = maxLongPrice - minLongPrice;
-        
+
         double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
         double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
         double shortPriceRange = maxShortPrice - minShortPrice;
-        
+
         if (longPriceRange == 0.0 || shortPriceRange == 0.0) {
             return pixelSpreads; // Возвращаем пустой список
         }
-        
+
         // Используем стандартный диапазон Z-Score для нормализации (как в PixelSpreadService)
         double minZScore = -3.0;
         double maxZScore = 3.0;
         double zRange = maxZScore - minZScore;
-        
+
         // Нормализация long цен в диапазон Z-Score
         List<Double> scaledLongPrices = longPrices.stream()
                 .map(price -> minZScore + ((price - minLongPrice) / longPriceRange) * zRange)
                 .toList();
-        
+
         // Нормализация short цен в диапазон Z-Score  
         List<Double> scaledShortPrices = shortPrices.stream()
                 .map(price -> minZScore + ((price - minShortPrice) / shortPriceRange) * zRange)
                 .toList();
-        
+
         // Создаем синхронизированные временные точки (как в PixelSpreadService)
         Set<Long> allTimestamps = new HashSet<>();
         longTimes.forEach(date -> allTimestamps.add(date.getTime()));
         shortTimes.forEach(date -> allTimestamps.add(date.getTime()));
-        
+
         List<Long> sortedTimestamps = allTimestamps.stream().sorted().toList();
-        
+
         // Константы как в PixelSpreadService
         int chartHeight = 720;
-        
+
         // Находим диапазон масштабированных значений
         double minValue = Math.min(
                 scaledLongPrices.stream().min(Double::compareTo).orElse(-3.0),
@@ -790,12 +790,12 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 scaledLongPrices.stream().max(Double::compareTo).orElse(3.0),
                 scaledShortPrices.stream().max(Double::compareTo).orElse(3.0)
         );
-        
+
         // Вычисляем пиксельное расстояние для всех временных точек (как в PixelSpreadService)
         for (Long timestamp : sortedTimestamps) {
             Double longPrice = findNearestPriceForVolatility(longTimes, scaledLongPrices, timestamp);
             Double shortPrice = findNearestPriceForVolatility(shortTimes, scaledShortPrices, timestamp);
-            
+
             if (longPrice != null && shortPrice != null) {
                 double longPixelY = convertValueToPixelForVolatility(longPrice, minValue, maxValue, chartHeight);
                 double shortPixelY = convertValueToPixelForVolatility(shortPrice, minValue, maxValue, chartHeight);
@@ -803,19 +803,19 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 pixelSpreads.add(pixelDistance);
             }
         }
-        
+
         return pixelSpreads;
     }
-    
+
     /**
      * Находит ближайшую цену для заданного времени (копия метода из PixelSpreadService)
      */
     private Double findNearestPriceForVolatility(List<Date> timeAxis, List<Double> prices, long targetTimestamp) {
         if (timeAxis.isEmpty() || prices.isEmpty()) return null;
-        
+
         int bestIndex = 0;
         long bestDiff = Math.abs(timeAxis.get(0).getTime() - targetTimestamp);
-        
+
         for (int i = 1; i < timeAxis.size(); i++) {
             long diff = Math.abs(timeAxis.get(i).getTime() - targetTimestamp);
             if (diff < bestDiff) {
@@ -823,19 +823,19 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
                 bestIndex = i;
             }
         }
-        
+
         return prices.get(bestIndex);
     }
-    
+
     /**
      * Конвертирует значение в пиксельную координату Y (копия метода из PixelSpreadService)
      */
     private double convertValueToPixelForVolatility(double value, double minValue, double maxValue, int chartHeight) {
         if (maxValue - minValue == 0) return chartHeight / 2.0;
-        
+
         // Нормализуем значение в диапазон [0, 1]
         double normalized = (value - minValue) / (maxValue - minValue);
-        
+
         // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
         return chartHeight - (normalized * chartHeight);
     }
@@ -846,7 +846,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
      */
     private double calculateCurrentSpreadBonus(double currentSpread, double maxWeight) {
         double bonusRatio = 0.0;
-        
+
         if (currentSpread <= 0) {
             // Нулевой спред - никаких бонусов
             bonusRatio = 0.0;
@@ -883,13 +883,13 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             log.debug("    📐 Большой текущий спред: {}px → +{}% убывающего бонуса",
                     String.format("%.1f", currentSpread), String.format("%.0f", bonusRatio * 100));
         }
-        
+
         double bonus = maxWeight * bonusRatio;
-        
+
         if (bonus != 0.0) {
             log.debug("    📐 Бонус за текущий спред: {} баллов", String.format("%.1f", bonus));
         }
-        
+
         return bonus;
     }
 

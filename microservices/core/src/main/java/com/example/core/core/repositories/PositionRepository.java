@@ -1,5 +1,8 @@
-package com.example.core.trading.model;
+package com.example.core.core.repositories;
 
+import com.example.shared.models.Position;
+import com.example.shared.models.PositionStatus;
+import com.example.shared.models.PositionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

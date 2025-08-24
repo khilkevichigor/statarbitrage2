@@ -1,13 +1,9 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.Candle;
 import com.example.core.common.dto.ChangesData;
 import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.Settings;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.core.repositories.PairDataRepository;
-import com.example.core.trading.model.TradeResult;
+import com.example.shared.models.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

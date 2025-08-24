@@ -1,7 +1,7 @@
 package com.example.core.common.utils;
 
-import com.example.core.common.model.Settings;
 import com.example.core.core.repositories.SettingsRepository;
+import com.example.shared.models.Settings;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package com.example.core.common.model;
+package com.example.shared.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

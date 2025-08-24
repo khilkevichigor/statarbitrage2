@@ -1,15 +1,13 @@
-package com.example.core.common.dto;
+package com.example.shared.models;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ProfitHistoryItem {
+public class PixelSpreadHistoryItem {
     private long timestamp;
-    private double profitPercent;
+    private double pixelDistance;
 }

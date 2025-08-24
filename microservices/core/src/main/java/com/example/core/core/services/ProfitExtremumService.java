@@ -2,7 +2,7 @@ package com.example.core.core.services;
 
 import com.example.core.common.dto.ChangesData;
 import com.example.core.common.dto.ProfitExtremum;
-import com.example.core.common.model.PairData;
+import com.example.shared.models.PairData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

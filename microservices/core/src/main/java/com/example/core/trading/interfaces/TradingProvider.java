@@ -1,8 +1,8 @@
 package com.example.core.trading.interfaces;
 
-import com.example.core.trading.model.Portfolio;
-import com.example.core.trading.model.Position;
-import com.example.core.trading.model.TradeResult;
+import com.example.shared.models.Portfolio;
+import com.example.shared.models.Position;
+import com.example.shared.models.TradeResult;
 
 import java.math.BigDecimal;
 import java.util.List;

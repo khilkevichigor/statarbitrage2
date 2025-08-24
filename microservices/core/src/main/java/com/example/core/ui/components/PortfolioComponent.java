@@ -2,9 +2,9 @@ package com.example.core.ui.components;
 
 import com.example.core.core.services.SettingsService;
 import com.example.core.trading.interfaces.TradingProviderType;
-import com.example.core.trading.model.Portfolio;
-import com.example.core.trading.model.TradingProviderSwitchResult;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.models.Portfolio;
+import com.example.shared.models.TradingProviderSwitchResult;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;

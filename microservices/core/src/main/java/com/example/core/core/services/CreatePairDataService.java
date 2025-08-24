@@ -1,10 +1,10 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.Candle;
 import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.model.PairData;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.common.utils.CandlesUtil;
+import com.example.shared.models.Candle;
+import com.example.shared.models.PairData;
+import com.example.shared.models.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -82,7 +82,7 @@ public class CreatePairDataService {
 
             log.debug("🔢 Пиксельный спред для {}/{}: avg={}px, max={}px, current={}px",
                     pairData.getLongTicker(), pairData.getShortTicker(),
-                    String.format("%.1f", avgSpread), String.format("%.1f", maxSpread), 
+                    String.format("%.1f", avgSpread), String.format("%.1f", maxSpread),
                     String.format("%.1f", currentSpread));
 
         } catch (Exception e) {

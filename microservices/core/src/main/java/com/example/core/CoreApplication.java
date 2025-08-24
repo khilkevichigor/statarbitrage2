@@ -2,18 +2,21 @@ package com.example.core;
 
 import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
-import com.example.core.common.dto.Candle;
-import com.example.core.common.model.Settings;
-import com.example.core.common.model.TradeStatus;
 import com.example.core.core.processors.UpdateTradeProcessor;
 import com.example.core.core.repositories.PairDataRepository;
 import com.example.core.trading.services.GeolocationService;
 import com.example.core.ui.dto.UpdateTradeRequest;
+import com.example.shared.models.Candle;
+import com.example.shared.models.Settings;
+import com.example.shared.models.TradeStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -24,6 +27,9 @@ import java.util.Map;
 
 @Slf4j
 @SpringBootApplication(scanBasePackages = {"com.example.core", "com.example.shared"})
+@EntityScan(basePackages = {"com.example.shared.models"})
+@EnableJpaRepositories(basePackages = {"com.example.core.core.repositories"})
+@ComponentScan(basePackages = {"com.example.core", "com.example.shared"})
 @EnableScheduling
 @EnableAsync
 public class CoreApplication {

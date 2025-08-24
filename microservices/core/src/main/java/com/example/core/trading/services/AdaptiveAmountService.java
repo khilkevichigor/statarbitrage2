@@ -1,7 +1,7 @@
 package com.example.core.trading.services;
 
-import com.example.core.common.model.PairData;
 import com.example.core.trading.interfaces.TradingProvider;
+import com.example.shared.models.PairData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

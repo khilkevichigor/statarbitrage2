@@ -2,10 +2,10 @@ package com.example.core.core.services;
 
 import com.example.core.common.dto.ChangesData;
 import com.example.core.common.dto.ProfitExtremum;
-import com.example.core.common.model.PairData;
-import com.example.core.trading.model.Position;
-import com.example.core.trading.model.Positioninfo;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.models.PairData;
+import com.example.shared.models.Position;
+import com.example.shared.models.Positioninfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import static com.example.core.common.utils.BigDecimalUtil.safeGet;
-import static com.example.core.common.utils.BigDecimalUtil.safeScale;
+import static com.example.shared.utils.BigDecimalUtil.safeGet;
+import static com.example.shared.utils.BigDecimalUtil.safeScale;
 
 @Slf4j
 @Service

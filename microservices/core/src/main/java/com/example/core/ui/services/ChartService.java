@@ -1,11 +1,7 @@
 package com.example.core.ui.services;
 
-import com.example.core.common.dto.Candle;
-import com.example.core.common.dto.PixelSpreadHistoryItem;
-import com.example.core.common.dto.ProfitHistoryItem;
-import com.example.core.common.dto.ZScoreParam;
-import com.example.core.common.model.PairData;
 import com.example.core.core.services.PixelSpreadService;
+import com.example.shared.models.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchart.BitmapEncoder;

@@ -1,4 +1,4 @@
-package com.example.core.trading.model;
+package com.example.shared.models;
 
 import lombok.Builder;
 import lombok.Data;

@@ -1,7 +1,7 @@
 package com.example.core.client_okx;
 
-import com.example.core.common.dto.Candle;
-import com.example.core.common.model.Settings;
+import com.example.shared.models.Candle;
+import com.example.shared.models.Settings;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
