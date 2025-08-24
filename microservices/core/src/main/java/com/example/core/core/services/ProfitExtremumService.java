@@ -1,7 +1,7 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.ChangesData;
-import com.example.core.common.dto.ProfitExtremum;
+import com.example.shared.dto.ChangesData;
+import com.example.shared.dto.ProfitExtremum;
 import com.example.shared.models.PairData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

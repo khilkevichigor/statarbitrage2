@@ -5,7 +5,7 @@ import com.example.core.client_python.PythonRestClient;
 import com.example.core.core.processors.UpdateTradeProcessor;
 import com.example.core.core.repositories.PairDataRepository;
 import com.example.core.trading.services.GeolocationService;
-import com.example.core.ui.dto.UpdateTradeRequest;
+import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;

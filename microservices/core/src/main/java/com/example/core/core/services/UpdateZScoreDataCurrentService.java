@@ -1,6 +1,6 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.ZScoreData;
+import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.PairData;
 import com.example.shared.models.ZScoreParam;
 import lombok.RequiredArgsConstructor;

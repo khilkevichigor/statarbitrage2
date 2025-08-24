@@ -1,8 +1,8 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.ChangesData;
-import com.example.core.common.dto.ProfitExtremum;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.dto.ChangesData;
+import com.example.shared.dto.ProfitExtremum;
 import com.example.shared.models.PairData;
 import com.example.shared.models.Position;
 import com.example.shared.models.Positioninfo;

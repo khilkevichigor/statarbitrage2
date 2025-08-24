@@ -1,9 +1,9 @@
 package com.example.core.core.processors;
 
-import com.example.core.common.dto.ZScoreData;
 import com.example.core.core.services.*;
 import com.example.core.trading.services.TradingIntegrationService;
-import com.example.core.ui.dto.StartNewTradeRequest;
+import com.example.shared.dto.StartNewTradeRequest;
+import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -6,7 +6,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 @Slf4j
-public class BigDecimalUtil {
+public final class BigDecimalUtil {
+    private BigDecimalUtil() {
+    }
+
     public static BigDecimal safeScale(String str, int scale) {
         if (str == null || str.trim().isEmpty() || "N/A".equals(str)) return null;
         try {

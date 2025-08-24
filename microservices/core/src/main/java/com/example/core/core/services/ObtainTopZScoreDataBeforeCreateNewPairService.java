@@ -1,10 +1,10 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.utils.NumberFormatter;
+import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.example.shared.models.ZScoreParam;
+import com.example.shared.utils.NumberFormatter;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.example.core.client_python;
 
-import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.dto.cointegration.*;
+import com.example.shared.dto.ZScoreData;
+import com.example.shared.dto.cointegration.*;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.example.shared.models.ZScoreParam;

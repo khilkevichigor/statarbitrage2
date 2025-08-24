@@ -1,16 +1,16 @@
 package com.example.core.ui.components;
 
-import com.example.core.common.utils.NumberFormatter;
-import com.example.core.common.utils.TimeFormatterUtil;
 import com.example.core.core.processors.StartNewTradeProcessor;
 import com.example.core.core.processors.UpdateTradeProcessor;
 import com.example.core.core.services.AveragingService;
 import com.example.core.core.services.PairDataService;
 import com.example.core.core.services.SettingsService;
-import com.example.core.ui.dto.StartNewTradeRequest;
-import com.example.core.ui.dto.UpdateTradeRequest;
+import com.example.shared.dto.StartNewTradeRequest;
+import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.models.PairData;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.utils.NumberFormatter;
+import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.Grid;

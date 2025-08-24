@@ -1,15 +1,16 @@
 package com.example.core.core.processors;
 
-import com.example.core.common.dto.ZScoreData;
 import com.example.core.core.services.CandlesService;
 import com.example.core.core.services.PairDataService;
 import com.example.core.core.services.SettingsService;
 import com.example.core.core.services.ZScoreService;
-import com.example.core.ui.dto.FetchPairsRequest;
+import com.example.shared.dto.FetchPairsRequest;
+import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
 import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -92,10 +93,10 @@ public class FetchPairsProcessor {
         int index = 1;
         for (ZScoreData data : dataList) {
             // Use NumberFormatter.format which handles nulls and returns "N/A"
-            String cointegrationPValue = com.example.core.common.utils.NumberFormatter.format(data.getJohansenCointPValue(), 5);
-            String avgAdfPValue = com.example.core.common.utils.NumberFormatter.format(data.getAvgAdfPvalue(), 5);
-            String latestZscore = com.example.core.common.utils.NumberFormatter.format(data.getLatestZScore(), 2);
-            String correlation = com.example.core.common.utils.NumberFormatter.format(data.getPearsonCorr(), 2);
+            String cointegrationPValue = NumberFormatter.format(data.getJohansenCointPValue(), 5);
+            String avgAdfPValue = NumberFormatter.format(data.getAvgAdfPvalue(), 5);
+            String latestZscore = NumberFormatter.format(data.getLatestZScore(), 2);
+            String correlation = NumberFormatter.format(data.getPearsonCorr(), 2);
 
             log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%s | adf=%s | z=%s | corr=%s",
                     index++, data.getUnderValuedTicker(), data.getOverValuedTicker(),

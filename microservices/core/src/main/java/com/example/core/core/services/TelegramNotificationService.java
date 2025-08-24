@@ -1,9 +1,9 @@
 package com.example.core.core.services;
 
-import com.example.core.common.utils.TimeFormatterUtil;
 import com.example.shared.events.NotificationEvent;
 import com.example.shared.models.PairData;
 import com.example.shared.utils.EventPublisher;
+import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

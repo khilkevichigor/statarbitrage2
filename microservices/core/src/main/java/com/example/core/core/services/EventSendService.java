@@ -1,6 +1,6 @@
 package com.example.core.core.services;
 
-import com.example.core.common.events.UpdateUiEvent;
+import com.example.shared.events.UpdateUiEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;

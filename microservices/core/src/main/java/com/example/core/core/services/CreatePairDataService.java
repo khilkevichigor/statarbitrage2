@@ -1,10 +1,10 @@
 package com.example.core.core.services;
 
-import com.example.core.common.dto.ZScoreData;
-import com.example.core.common.utils.CandlesUtil;
+import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
 import com.example.shared.models.PairData;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
