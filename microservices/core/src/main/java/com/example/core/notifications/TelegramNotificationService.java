@@ -21,7 +21,6 @@ public class TelegramNotificationService implements NotificationService {
     private static final String EMOJI_RED = "🔴";
 
     private final EventSendService eventSendService;
-//    private final BotConfig botConfig;
 
     @Override
     public void notifyOpen(PairData pairData) {
@@ -37,7 +36,6 @@ public class TelegramNotificationService implements NotificationService {
 
     private void sendNotification(String text) {
         SendAsTextEvent event = SendAsTextEvent.builder()
-//                .chatId(String.valueOf(botConfig.getOwnerChatId()))
                 .text(text)
                 .enableMarkdown(false)
                 .build();
