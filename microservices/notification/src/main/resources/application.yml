@@ -155,5 +155,5 @@ logging:
     com.example.notification: INFO
     org.springframework.cloud.stream: DEBUG
     com.example.statarbitrage.client_python.PythonRestClient: DEBUG
-  pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [NOTIFICATION] %logger{36} - %msg%n"
+#  pattern:
+#    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [NOTIFICATION] %logger{36} - %msg%n"
