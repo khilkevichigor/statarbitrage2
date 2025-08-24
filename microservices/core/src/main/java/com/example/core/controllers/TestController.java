@@ -1,0 +1,26 @@
+package com.example.core.controllers;
+
+import com.example.shared.events.NotificationEvent;
+import com.example.shared.utils.EventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class TestController {
+    
+    @Autowired
+    private EventPublisher eventPublisher;
+    
+    @GetMapping("/test")
+    public String test() {
+        NotificationEvent event = new NotificationEvent(
+            "🎉 Система работает!", 
+            "test_user", 
+            NotificationEvent.NotificationType.TELEGRAM,
+            NotificationEvent.Priority.HIGH
+        );
+        eventPublisher.publish("notification-events-out-0", event);
+        return "Событие отправлено!";
+    }
+}
