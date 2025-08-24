@@ -1,7 +1,5 @@
 package com.example.core.notifications;
 
-//import com.example.core.bot.BotConfig;
-
 import com.example.core.common.model.PairData;
 import com.example.core.formatters.TimeFormatterUtil;
 import com.example.shared.events.NotificationEvent;
