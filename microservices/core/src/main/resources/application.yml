@@ -116,4 +116,3 @@ management:
 logging:
   level:
     com.example.core: INFO
-    org.springframework.cloud.stream: DEBUG
