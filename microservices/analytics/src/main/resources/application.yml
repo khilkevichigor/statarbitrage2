@@ -1,0 +1,44 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: analytics-service
+    
+  profiles:
+    active: default
+
+  cloud:
+    function:
+      definition: processAnalyticsEvent
+    stream:
+      bindings:
+        processAnalyticsEvent-in-0:
+          destination: analytics.events
+          content-type: application/json
+          group: analytics-group
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.analytics: INFO
+    org.springframework.cloud.stream: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [ANALYTICS] %logger{36} - %msg%n"
+
+# Настройки аналитики
+analytics:
+  calculations:
+    correlation-window: 100
+    volatility-window: 50
+    performance-update-interval: 60000  # 1 минута в мс
+  storage:
+    keep-history-days: 30

@@ -1,0 +1,46 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: csv-service
+    
+  profiles:
+    active: default
+    
+  cloud:
+    function:
+      definition: processCsvExportEvent
+    stream:
+      bindings:
+        processCsvExportEvent-in-0:
+          destination: csv.events
+          content-type: application/json
+          group: csv-group
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.csv: INFO
+    org.springframework.cloud.stream: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [CSV] %logger{36} - %msg%n"
+
+# Настройки экспорта CSV
+csv:
+  export:
+    output-directory: "./exports"
+    date-format: "MM_dd_yyyy_HH_mm"
+    encoding: "UTF-8"
+    delimiter: ","
+  files:
+    max-file-size: 50MB
+    compress-large-files: true

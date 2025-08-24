@@ -1,0 +1,33 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: cointegration-service
+    
+  profiles:
+    active: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.cointegration: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [COINTEGRATION] %logger{36} - %msg%n"
+
+# Настройки коинтеграции
+cointegration:
+  python-api:
+    url: "http://localhost:8000"
+    timeout: 30000  # 30 секунд
+  analysis:
+    min-observations: 100
+    p-value-threshold: 0.05

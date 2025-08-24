@@ -1,0 +1,32 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: okx-service
+    
+  profiles:
+    active: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.okx: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [OKX] %logger{36} - %msg%n"
+
+okx:
+  api:
+    base-url: "https://www.okx.com"
+    sandbox-mode: true
+  connection:
+    timeout: 30000
+    retry-attempts: 3

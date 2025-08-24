@@ -1,0 +1,46 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ui-service
+    
+  profiles:
+    active: default
+    
+  cloud:
+    function:
+      definition: processUiUpdateEvent
+    stream:
+      bindings:
+        processUiUpdateEvent-in-0:
+          destination: ui.events
+          content-type: application/json
+          group: ui-group
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.ui: INFO
+    org.springframework.cloud.stream: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [UI] %logger{36} - %msg%n"
+
+# Настройки UI
+ui:
+  websocket:
+    endpoint: "/ws"
+    topic-prefix: "/topic"
+  refresh:
+    interval: 1000  # 1 секунда в мс
+  vaadin:
+    production-mode: false
+    push-mode: automatic

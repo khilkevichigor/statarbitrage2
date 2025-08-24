@@ -1,0 +1,30 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: trading-service
+    
+  profiles:
+    active: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.trading: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [TRADING] %logger{36} - %msg%n"
+
+trading:
+  enabled: true
+  risk:
+    max-position-size: 1000
+    stop-loss-percentage: 5.0

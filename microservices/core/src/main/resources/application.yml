@@ -1,0 +1,70 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: core-service
+    
+  profiles:
+    active: default
+    
+  datasource:
+    url: jdbc:sqlite:../data/core-db.sqlite
+    driver-class-name: org.sqlite.JDBC
+    
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    
+  flyway:
+    enabled: false
+    
+  cloud:
+    stream:
+      bindings:
+        # Исходящие события
+        trading-events-out-0:
+          destination: trading.events
+          content-type: application/json
+        notification-events-out-0:
+          destination: notification.events
+          content-type: application/json
+        statistics-events-out-0:
+          destination: statistics.events
+          content-type: application/json
+        # Входящие события
+        okx-events-in-0:
+          destination: okx.events
+          content-type: application/json
+          group: core-group
+        python-events-in-0:
+          destination: python.events
+          content-type: application/json
+          group: core-group
+          
+      rabbit:
+        bindings:
+          trading-events-out-0:
+            producer:
+              routing-key-expression: "'trading'"
+          notification-events-out-0:
+            producer:
+              routing-key-expression: "'notification'"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.core: INFO
+    org.springframework.cloud.stream: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [CORE] %logger{36} - %msg%n"
