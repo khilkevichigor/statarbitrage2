@@ -1,9 +1,9 @@
 package com.example.core.ui.views;
 
 import com.example.core.ui.components.TradingPairsComponent;
-import com.example.core.ui.interfaces.UIUpdateable;
 import com.example.core.ui.layout.MainLayout;
 import com.example.core.ui.services.UIUpdateService;
+import com.example.core.ui.services.UIUpdateable;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;

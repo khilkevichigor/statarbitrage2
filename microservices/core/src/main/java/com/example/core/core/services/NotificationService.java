@@ -1,4 +1,4 @@
-package com.example.core.notifications;
+package com.example.core.core.services;
 
 import com.example.shared.models.PairData;
 import org.springframework.stereotype.Service;

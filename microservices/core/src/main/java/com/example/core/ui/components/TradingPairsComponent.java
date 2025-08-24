@@ -1,13 +1,12 @@
 package com.example.core.ui.components;
 
 import com.example.core.common.utils.NumberFormatter;
+import com.example.core.common.utils.TimeFormatterUtil;
 import com.example.core.core.processors.StartNewTradeProcessor;
 import com.example.core.core.processors.UpdateTradeProcessor;
 import com.example.core.core.services.AveragingService;
 import com.example.core.core.services.PairDataService;
-import com.example.core.core.services.PixelSpreadService;
 import com.example.core.core.services.SettingsService;
-import com.example.core.formatters.TimeFormatterUtil;
 import com.example.core.ui.dto.StartNewTradeRequest;
 import com.example.core.ui.dto.UpdateTradeRequest;
 import com.example.shared.models.PairData;
@@ -40,7 +39,6 @@ public class TradingPairsComponent extends VerticalLayout {
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final ZScoreChartDialog zScoreChartDialog;
-    private final PixelSpreadService pixelSpreadService;
     private final AveragingService averagingService;
     private final SettingsService settingsService;
 
@@ -58,7 +56,6 @@ public class TradingPairsComponent extends VerticalLayout {
             StartNewTradeProcessor startNewTradeProcessor,
             UpdateTradeProcessor updateTradeProcessor,
             ZScoreChartDialog zScoreChartDialog,
-            PixelSpreadService pixelSpreadService,
             AveragingService averagingService,
             SettingsService settingsService
     ) {
@@ -66,7 +63,6 @@ public class TradingPairsComponent extends VerticalLayout {
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.zScoreChartDialog = zScoreChartDialog;
-        this.pixelSpreadService = pixelSpreadService;
         this.averagingService = averagingService;
         this.settingsService = settingsService;
 

@@ -1,4 +1,4 @@
-package com.example.core.ui.interfaces;
+package com.example.core.ui.services;
 
 /**
  * Интерфейс для View, которые могут обновляться через UIUpdateService

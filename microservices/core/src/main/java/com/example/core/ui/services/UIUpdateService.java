@@ -1,6 +1,5 @@
 package com.example.core.ui.services;
 
-import com.example.core.ui.interfaces.UIUpdateable;
 import com.vaadin.flow.component.UI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

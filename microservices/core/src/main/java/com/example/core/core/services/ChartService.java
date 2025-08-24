@@ -1,6 +1,5 @@
-package com.example.core.ui.services;
+package com.example.core.core.services;
 
-import com.example.core.core.services.PixelSpreadService;
 import com.example.shared.models.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -2,7 +2,6 @@ package com.example.core.core.processors;
 
 import com.example.core.common.dto.ZScoreData;
 import com.example.core.core.services.*;
-import com.example.core.notifications.NotificationService;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.ui.dto.StartNewTradeRequest;
 import com.example.shared.models.*;

@@ -7,6 +7,5 @@ import lombok.Data;
 @Data
 @Builder
 @AllArgsConstructor
-//@NoArgsConstructor
 public class UpdateUiEvent {
 }

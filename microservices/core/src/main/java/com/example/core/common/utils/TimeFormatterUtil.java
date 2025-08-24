@@ -1,4 +1,4 @@
-package com.example.core.formatters;
+package com.example.core.common.utils;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

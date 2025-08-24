@@ -1,7 +1,5 @@
 package com.example.core.core.services;
 
-import com.example.core.common.events.SendAsPhotoEvent;
-import com.example.core.common.events.SendAsTextEvent;
 import com.example.core.common.events.UpdateUiEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
