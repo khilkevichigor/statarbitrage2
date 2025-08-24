@@ -5,7 +5,5 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface NotificationService {
-    void notifyOpen(PairData pairData);
-
     void notifyClose(PairData pairData);
 }

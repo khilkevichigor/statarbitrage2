@@ -1,10 +1,11 @@
 package com.example.core.notifications;
 
 //import com.example.core.bot.BotConfig;
-import com.example.core.common.events.SendAsTextEvent;
+
 import com.example.core.common.model.PairData;
-import com.example.core.core.services.EventSendService;
 import com.example.core.formatters.TimeFormatterUtil;
+import com.example.shared.events.NotificationEvent;
+import com.example.shared.utils.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,41 +21,27 @@ public class TelegramNotificationService implements NotificationService {
     private static final String EMOJI_GREEN = "🟢";
     private static final String EMOJI_RED = "🔴";
 
-    private final EventSendService eventSendService;
-
-    @Override
-    public void notifyOpen(PairData pairData) {
-        String message = formatOpenMessage(pairData);
-        sendNotification(message);
-    }
+    private final EventPublisher eventPublisher;
 
     @Override
     public void notifyClose(PairData pairData) {
         String message = formatCloseMessage(pairData);
-        sendNotification(message);
+        NotificationEvent event = new NotificationEvent(
+                message,
+                "test_user",
+                NotificationEvent.NotificationType.TELEGRAM,
+                NotificationEvent.Priority.HIGH
+        );
+        sendNotification(event);
     }
 
-    private void sendNotification(String text) {
-        SendAsTextEvent event = SendAsTextEvent.builder()
-                .text(text)
-                .enableMarkdown(false)
-                .build();
+    private void sendNotification(NotificationEvent event) {
         log.debug("Отправка сообщения в телеграм {}", event.toString());
         try {
-            eventSendService.sendTelegramMessageAsTextEvent(event);
+            eventPublisher.publish("notification-events-out-0", event);
         } catch (Exception e) {
             log.error("Ошибка отправки сообщения в телеграм {}", e.getMessage(), e);
         }
-    }
-
-    private String formatOpenMessage(PairData pairData) {
-        return String.format(
-                "Пара открыта\n" +
-                        "%s\n" +
-                        "%s",
-                pairData.getPairName(),
-                pairData.getUuid()
-        );
     }
 
     private String formatCloseMessage(PairData pairData) {
