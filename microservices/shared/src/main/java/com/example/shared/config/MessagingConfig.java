@@ -1,15 +1,15 @@
 package com.example.shared.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.converter.MappingJackson2MessageConverter;
-import org.springframework.messaging.converter.MessageConverter;
+import lombok.extern.slf4j.Slf4j;
 
 @Configuration
+@Slf4j
 public class MessagingConfig {
     
-    @Bean
-    public MessageConverter messageConverter() {
-        return new MappingJackson2MessageConverter();
+    public MessagingConfig() {
+        log.info("📨 Messaging Configuration загружена");
+        // Простая конфигурация для разработки
+        // В продакшене здесь будут настройки RabbitMQ
     }
 }

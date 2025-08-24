@@ -76,3 +76,11 @@ Standard Commons Logging discovery in action with spring-jcl: please remove comm
 22:23:21.245 [http-nio-8080-exec-1] INFO  [CORE] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
 22:23:21.247 [http-nio-8080-exec-1] INFO  [CORE] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
 22:23:21.273 [http-nio-8080-exec-1] INFO  [CORE] o.s.web.servlet.DispatcherServlet - Completed initialization in 25 ms
+23:35:02.620 [SpringApplicationShutdownHook] INFO  [CORE] o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+23:35:02.761 [tomcat-shutdown] INFO  [CORE] o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+23:35:02.826 [SpringApplicationShutdownHook] INFO  [CORE] o.s.i.endpoint.EventDrivenConsumer - Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+23:35:02.827 [SpringApplicationShutdownHook] INFO  [CORE] o.s.i.c.PublishSubscribeChannel - Channel 'core-service.errorChannel' has 0 subscriber(s).
+23:35:02.828 [SpringApplicationShutdownHook] INFO  [CORE] o.s.i.endpoint.EventDrivenConsumer - stopped bean '_org.springframework.integration.errorLogger'
+23:35:02.839 [SpringApplicationShutdownHook] INFO  [CORE] o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+23:35:02.855 [SpringApplicationShutdownHook] INFO  [CORE] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+23:35:02.859 [SpringApplicationShutdownHook] INFO  [CORE] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
