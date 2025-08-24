@@ -85,6 +85,7 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
   jackson:
     time-zone: UTC
@@ -111,12 +112,12 @@ spring:
 
 telegram:
   bot:
-    name: ${TELEGRAM_BOT_NAME:}
-    token: ${TELEGRAM_BOT_TOKEN:YOUR_BOT_TOKEN}
+    name: ${TELEGRAM_BOT_NAME:@stat_arbitrage_bot}
+    token: ${TELEGRAM_BOT_TOKEN:7660742650:AAFTi_rfdfcuMk9B4qxGmOUMU-1x2Tpc3cs}
     owner:
       chat:
-        id: ${TELEGRAM_BOT_OWNER_CHAT_ID:0}
-    username: ${TELEGRAM_BOT_USERNAME:your_bot_username}
+        id: ${TELEGRAM_BOT_OWNER_CHAT_ID:159178617}
+#    username: ${TELEGRAM_BOT_USERNAME:your_bot_username}
 
 okx:
   api:
