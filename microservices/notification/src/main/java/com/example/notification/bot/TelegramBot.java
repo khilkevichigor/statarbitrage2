@@ -113,6 +113,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void sendMessage(SendMessage message) {
         try {
             execute(message);
+            log.info("Сообщение отправлено успешно.");
         } catch (TelegramApiException e) {
             log.error("Ошибка отправки сообщения в телеграм. Сообщение {}. Ошибка {}", message.getText(), e.getMessage(), e);
             e.printStackTrace();

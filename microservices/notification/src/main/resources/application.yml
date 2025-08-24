@@ -85,10 +85,15 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
   jackson:
     time-zone: UTC
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: statarbitrage
+    password: statarbitrage123
 
   flyway:
     enabled: true
@@ -117,7 +122,6 @@ telegram:
     owner:
       chat:
         id: ${TELEGRAM_BOT_OWNER_CHAT_ID:159178617}
-#    username: ${TELEGRAM_BOT_USERNAME:your_bot_username}
 
 okx:
   api:
