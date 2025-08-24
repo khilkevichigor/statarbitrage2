@@ -14,14 +14,6 @@ import org.springframework.stereotype.Service;
 public class EventSendService {
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    public void sendTelegramMessageAsTextEvent(SendAsTextEvent event) {
-        applicationEventPublisher.publishEvent(event);
-    }
-
-    public void sendTelegramMessageAsPhotoEvent(SendAsPhotoEvent event) {
-        applicationEventPublisher.publishEvent(event);
-    }
-
     public void updateUI(UpdateUiEvent event) {
         applicationEventPublisher.publishEvent(event);
     }
