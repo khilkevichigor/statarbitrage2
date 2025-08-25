@@ -1,6 +1,7 @@
 package com.example.okx.controller;
 
 import com.example.okx.service.OkxClient;
+import com.example.shared.dto.OkxTickerDto;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.google.gson.JsonArray;
@@ -79,14 +80,27 @@ public class OkxController {
     }
 
     /**
-     * Получить тикер по символу
+     * Получить тикер по символу (DTO)
      */
     @GetMapping("/ticker")
-    public JsonArray getTicker(@RequestParam String symbol) {
+    public OkxTickerDto getTicker(@RequestParam String symbol) {
+        try {
+            return okxClient.getTickerDto(symbol);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении тикера для {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Ошибка при получении тикера для " + symbol + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Получить тикер по символу (JsonArray) - для совместимости
+     */
+    @GetMapping("/ticker/raw")
+    public JsonArray getTickerRaw(@RequestParam String symbol) {
         try {
             return okxClient.getTicker(symbol);
         } catch (Exception e) {
-            log.error("❌ Ошибка при получении тикера для {}: {}", symbol, e.getMessage(), e);
+            log.error("❌ Ошибка при получении raw тикера для {}: {}", symbol, e.getMessage(), e);
             throw new RuntimeException("Ошибка при получении тикера для " + symbol + ": " + e.getMessage(), e);
         }
     }

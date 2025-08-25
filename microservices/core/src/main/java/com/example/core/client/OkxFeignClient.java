@@ -1,16 +1,9 @@
 package com.example.core.client;
 
-import com.example.shared.models.Candle;
-import com.google.gson.JsonArray;
+import com.example.shared.dto.OkxTickerDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
 @FeignClient(name = "okx-service", url = "${okx.service.url:http://localhost:8088}")
 public interface OkxFeignClient {
@@ -46,5 +39,5 @@ public interface OkxFeignClient {
 //    );
 
     @GetMapping("/api/okx/ticker")
-    JsonArray getTicker(@RequestParam String symbol);
+    OkxTickerDto getTicker(@RequestParam String symbol);
 }

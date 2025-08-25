@@ -111,8 +111,6 @@ public class StartNewTradeProcessor {
 
         tradeHistoryService.updateTradeLog(pairData, settings);
 
-//        notificationService.notifyOpen(pairData); //todo пока отключил
-
         return pairData;
     }
 

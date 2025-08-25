@@ -8,6 +8,7 @@ import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.core.trading.services.GeolocationService;
 import com.example.core.trading.services.OkxPortfolioManager;
 import com.example.shared.dto.OkxPositionHistoryData;
+import com.example.shared.dto.OkxTickerDto;
 import com.example.shared.models.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -379,13 +380,10 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public BigDecimal getCurrentPrice(String symbol) {
         try {
-            // Получаем тикер через OkxClient
-//            JsonArray ticker = okxClient.getTicker(symbol);
-            JsonArray ticker = okxFeignClient.getTicker(symbol);
-            if (ticker != null && !ticker.isEmpty()) {
-                JsonObject tickerData = ticker.get(0).getAsJsonObject();
-                String lastPrice = tickerData.get("last").getAsString();
-                return new BigDecimal(lastPrice);
+            // Получаем тикер через OkxFeignClient как DTO
+            OkxTickerDto ticker = okxFeignClient.getTicker(symbol);
+            if (ticker != null && ticker.getLast() != null) {
+                return ticker.getLast();
             } else {
                 log.warn("Получен пустой тикер для символа {}", symbol);
                 return null;
