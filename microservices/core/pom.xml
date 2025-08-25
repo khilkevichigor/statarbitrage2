@@ -67,6 +67,12 @@
             <artifactId>spring-cloud-stream-binder-rabbit</artifactId>
         </dependency>
 
+        <!-- Spring Cloud OpenFeign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
         <!-- База данных -->
         <dependency>
             <groupId>org.xerial</groupId>

@@ -27,7 +27,7 @@ public class CsvService {
     }
 
     private void handleCsvExportEvent(CsvEvent event) {
-        log.info("📄 Получено событие для экспорта CSV: {}", event);
+        log.info("📄 Получено событие для экспорта CSV: {}", event.getEventType());
 
         try {
             // Обработка различных типов событий для экспорта

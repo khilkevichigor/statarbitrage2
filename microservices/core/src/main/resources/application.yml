@@ -46,6 +46,8 @@ spring:
     password: statarbitrage123
 
   cloud:
+    compatibility-verifier:
+      enabled: false
     stream:
       bindings:
         # Исходящие события уведомлений

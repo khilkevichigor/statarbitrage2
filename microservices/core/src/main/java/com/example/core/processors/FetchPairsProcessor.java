@@ -1,6 +1,6 @@
 package com.example.core.processors;
 
-import com.example.core.services.CandlesService;
+import com.example.core.client.CandlesFeignClient;
 import com.example.core.services.PairDataService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.ZScoreService;
@@ -23,7 +23,7 @@ import java.util.*;
 public class FetchPairsProcessor {
     private final PairDataService pairDataService;
     private final ZScoreService zScoreService;
-    private final CandlesService candlesService;
+    private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
 
     public List<PairData> fetchPairs(FetchPairsRequest request) {
@@ -75,7 +75,8 @@ public class FetchPairsProcessor {
 
     private Map<String, List<Candle>> getCandles(Settings settings, List<String> tradingTickers) {
         long start = System.currentTimeMillis();
-        Map<String, List<Candle>> map = candlesService.getApplicableCandlesMap(settings, tradingTickers);
+        CandlesFeignClient.CandlesRequest request = new CandlesFeignClient.CandlesRequest(settings, tradingTickers);
+        Map<String, List<Candle>> map = candlesFeignClient.getApplicableCandlesMap(request);
         log.debug("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
         return map;
     }

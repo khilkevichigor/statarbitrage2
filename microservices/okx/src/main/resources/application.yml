@@ -1,12 +1,44 @@
 server:
   port: 8088
+  servlet:
+    session:
+      timeout: 30m
 
 spring:
   application:
     name: okx-service
-    
+
   profiles:
     active: default
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+  jackson:
+    time-zone: UTC
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: statarbitrage
+    password: statarbitrage123
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    stream:
+      bindings:
+        okxEventsConsumer-in-0:
+          destination: okx.events
+          content-type: application/json
+          group: okx-group
+      rabbit:
+        bindings:
+          okxEventsConsumer-in-0:
+            consumer:
+              routing-key-expression: "'okx'"
 
 management:
   endpoints:
@@ -20,13 +52,3 @@ management:
 logging:
   level:
     com.example.okx: INFO
-  pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [OKX] %logger{36} - %msg%n"
-
-okx:
-  api:
-    base-url: "https://www.okx.com"
-    sandbox-mode: true
-  connection:
-    timeout: 30000
-    retry-attempts: 3

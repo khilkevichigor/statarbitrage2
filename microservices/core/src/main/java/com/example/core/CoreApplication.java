@@ -14,6 +14,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -30,6 +31,7 @@ import java.util.Map;
 @EntityScan(basePackages = {"com.example.shared.models"})
 @EnableJpaRepositories(basePackages = {"com.example.core.repositories"})
 @ComponentScan(basePackages = {"com.example.core", "com.example.shared"})
+@EnableFeignClients(basePackages = {"com.example.core.client"})
 @EnableScheduling
 @EnableAsync
 public class CoreApplication {
