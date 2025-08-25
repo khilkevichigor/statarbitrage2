@@ -3,6 +3,7 @@ package com.example.okx.controller;
 import com.example.okx.service.OkxClient;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
+import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -73,5 +74,13 @@ public class OkxController {
             @RequestParam(defaultValue = "false") boolean sorted
     ) {
         return okxClient.getValidTickersV2(symbols, timeFrame, limit, minQuoteVolume, sorted);
+    }
+
+    /**
+     * Получить тикер по символу
+     */
+    @GetMapping("/ticker")
+    public JsonArray getTicker(@RequestParam String symbol) {
+        return okxClient.getTicker(symbol);
     }
 }

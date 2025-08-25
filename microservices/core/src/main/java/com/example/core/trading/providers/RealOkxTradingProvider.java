@@ -1,5 +1,6 @@
 package com.example.core.trading.providers;
 
+import com.example.core.client.OkxFeignClient;
 import com.example.core.client_okx.OkxClient;
 import com.example.core.repositories.PositionRepository;
 import com.example.core.trading.interfaces.TradingProvider;
@@ -47,6 +48,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private final OkxClient okxClient;
     private final GeolocationService geolocationService;
     private final PositionRepository positionRepository;
+    private final OkxFeignClient okxFeignClient;
 
     // OKX API конфигурация
     @Value("${okx.api.key:}")
@@ -378,7 +380,8 @@ public class RealOkxTradingProvider implements TradingProvider {
     public BigDecimal getCurrentPrice(String symbol) {
         try {
             // Получаем тикер через OkxClient
-            JsonArray ticker = okxClient.getTicker(symbol);
+//            JsonArray ticker = okxClient.getTicker(symbol);
+            JsonArray ticker = okxFeignClient.getTicker(symbol);
             if (ticker != null && !ticker.isEmpty()) {
                 JsonObject tickerData = ticker.get(0).getAsJsonObject();
                 String lastPrice = tickerData.get("last").getAsString();

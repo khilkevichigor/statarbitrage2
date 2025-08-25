@@ -16,7 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CandlesService {
 
-    private final OkxFeignClient okxClient;
+    private final OkxFeignClient okxFeignClient;
 
     public Map<String, List<Candle>> getApplicableCandlesMap(PairData pairData, Settings settings) {
         Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
@@ -33,16 +33,16 @@ public class CandlesService {
     }
 
     private Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
-        return okxClient.getCandlesMap(swapTickers, settings.getTimeframe(), (int) settings.getCandleLimit(), isSorted);
+        return okxFeignClient.getCandlesMap(swapTickers, settings.getTimeframe(), (int) settings.getCandleLimit(), isSorted);
     }
 
     private List<String> getApplicableTickers(Settings settings, List<String> tradingTickers, String timeFrame, boolean isSorted) {
-        List<String> swapTickers = okxClient.getAllSwapTickers(isSorted);
+        List<String> swapTickers = okxFeignClient.getAllSwapTickers(isSorted);
         List<String> filteredTickers = swapTickers.stream()
                 .filter(ticker -> !tradingTickers.contains(ticker))
                 .toList();
         double minVolume = settings.isUseMinVolumeFilter() ? settings.getMinVolume() * 1_000_000 : 0.0;
-        return okxClient.getValidTickers(filteredTickers, timeFrame, (int) settings.getCandleLimit(), minVolume, isSorted);
+        return okxFeignClient.getValidTickers(filteredTickers, timeFrame, (int) settings.getCandleLimit(), minVolume, isSorted);
     }
 
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap, Settings settings) {
