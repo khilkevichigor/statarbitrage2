@@ -24,7 +24,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UpdateTradeProcessor {
     private final PairDataService pairDataService;
-    //    private final CandlesService candlesService;
     private final SettingsService settingsService;
     private final TradeHistoryService tradeHistoryService;
     private final ZScoreService zScoreService;
@@ -184,7 +183,6 @@ public class UpdateTradeProcessor {
     }
 
     private Map<String, Object> updateZScoreDataForExistingPair(PairData pairData, Settings settings) {
-//        final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
         CandlesRequest request = new CandlesRequest(pairData, settings);
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(request);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
