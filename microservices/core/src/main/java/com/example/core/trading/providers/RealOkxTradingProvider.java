@@ -1,14 +1,13 @@
 package com.example.core.trading.providers;
 
 import com.example.core.client.OkxFeignClient;
-import com.example.core.client_okx.OkxClient;
 import com.example.core.repositories.PositionRepository;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.core.trading.services.GeolocationService;
 import com.example.core.trading.services.OkxPortfolioManager;
-import com.example.shared.dto.OkxPositionHistoryData;
-import com.example.shared.dto.OkxTickerDto;
+import com.example.shared.dto.okx.OkxPositionHistoryData;
+import com.example.shared.dto.okx.OkxTickerDto;
 import com.example.shared.models.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -46,7 +45,7 @@ import static com.example.shared.utils.BigDecimalUtil.safeScale;
 @RequiredArgsConstructor
 public class RealOkxTradingProvider implements TradingProvider {
     private final OkxPortfolioManager okxPortfolioManager;
-    private final OkxClient okxClient;
+    //    private final OkxClient okxClient;
     private final GeolocationService geolocationService;
     private final PositionRepository positionRepository;
     private final OkxFeignClient okxFeignClient;

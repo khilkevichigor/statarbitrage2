@@ -1,4 +1,4 @@
-package com.example.shared.dto;
+package com.example.shared.dto.okx;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;

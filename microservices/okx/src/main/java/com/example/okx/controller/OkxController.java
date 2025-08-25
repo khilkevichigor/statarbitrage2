@@ -1,10 +1,9 @@
 package com.example.okx.controller;
 
 import com.example.okx.service.OkxClient;
-import com.example.shared.dto.OkxTickerDto;
+import com.example.shared.dto.okx.OkxTickerDto;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
-import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -95,13 +94,13 @@ public class OkxController {
     /**
      * Получить тикер по символу (JsonArray) - для совместимости
      */
-    @GetMapping("/ticker/raw")
-    public JsonArray getTickerRaw(@RequestParam String symbol) {
-        try {
-            return okxClient.getTicker(symbol);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении raw тикера для {}: {}", symbol, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при получении тикера для " + symbol + ": " + e.getMessage(), e);
-        }
-    }
+//    @GetMapping("/ticker/raw")
+//    public JsonArray getTickerRaw(@RequestParam String symbol) {
+//        try {
+//            return okxClient.getTicker(symbol);
+//        } catch (Exception e) {
+//            log.error("❌ Ошибка при получении raw тикера для {}: {}", symbol, e.getMessage(), e);
+//            throw new RuntimeException("Ошибка при получении тикера для " + symbol + ": " + e.getMessage(), e);
+//        }
+//    }
 }

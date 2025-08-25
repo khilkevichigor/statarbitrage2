@@ -1,6 +1,6 @@
 package com.example.okx.service;
 
-import com.example.shared.dto.OkxTickerDto;
+import com.example.shared.dto.okx.OkxTickerDto;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.google.gson.JsonArray;
@@ -61,6 +61,7 @@ public class OkxClient {
     }
 
     public List<String> getAllSwapTickers(boolean isSorted) {
+        applyRateLimit(); // Добавляем rate limiting
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/public/instruments?instType=SWAP")
                 .build();
@@ -88,6 +89,7 @@ public class OkxClient {
     }
 
     public List<Double> getCloses(String symbol, String timeFrame, int limit) {
+        applyRateLimit(); // Добавляем rate limiting
         JsonArray candles = getCandles(symbol, timeFrame, limit);
         List<Double> closes = new ArrayList<>();
         for (int i = candles.size() - 1; i >= 0; i--) {
@@ -98,7 +100,7 @@ public class OkxClient {
         return closes;
     }
 
-    public JsonArray getCandles(String symbol, String timeFrame, double limit) {
+    private JsonArray getCandles(String symbol, String timeFrame, double limit) {
         applyRateLimit(); // Применяем rate limiting
 
         int candlesLimit = (int) limit;
@@ -143,9 +145,21 @@ public class OkxClient {
         return candles;
     }
 
-    public JsonArray getTicker(String symbol) {
-        applyRateLimit(); // Добавляем rate limiting
+    /**
+     * Получает тикер в виде DTO
+     */
+    public OkxTickerDto getTickerDto(String symbol) {
+        try {
+            applyRateLimit(); // Добавляем rate limiting
+            JsonArray tickerData = getTicker(symbol);
+            return OkxTickerDto.fromJsonArray(tickerData);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении DTO тикера для {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Ошибка при получении тикера для " + symbol, e);
+        }
+    }
 
+    private JsonArray getTicker(String symbol) {
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/market/ticker?instId=" + symbol)
                 .build();
@@ -158,19 +172,6 @@ public class OkxClient {
         } catch (IOException e) {
             log.error("❌ Ошибка: " + e.getMessage(), e);
             throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Получает тикер в виде DTO
-     */
-    public OkxTickerDto getTickerDto(String symbol) {
-        try {
-            JsonArray tickerData = getTicker(symbol);
-            return OkxTickerDto.fromJsonArray(tickerData);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении DTO тикера для {}: {}", symbol, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при получении тикера для " + symbol, e);
         }
     }
 
