@@ -1,7 +1,9 @@
 package com.example.core.processors;
 
+import com.example.core.client.CandlesFeignClient;
 import com.example.core.services.*;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.*;
@@ -19,13 +21,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StartNewTradeProcessor {
     private final PairDataService pairDataService;
-    private final CandlesService candlesService;
+    //    private final CandlesService candlesService;
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final TradeHistoryService tradeHistoryService;
     private final StartNewTradeValidationService startNewTradeValidationService;
-    private final NotificationService notificationService;
+    //    private final NotificationService notificationService;
+    private final CandlesFeignClient candlesFeignClient;
 
     @Transactional
     public PairData startNewTrade(StartNewTradeRequest request) {
@@ -76,7 +79,9 @@ public class StartNewTradeProcessor {
     }
 
     private Optional<ZScoreData> updateZScoreDataForExistingPair(PairData pairData, Settings settings) {
-        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+//        Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        CandlesRequest request = new CandlesRequest(pairData, settings);
+        Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(request);
         return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(pairData, settings, candlesMap);
     }
 

@@ -4,6 +4,7 @@ import com.example.core.client.CandlesFeignClient;
 import com.example.core.services.PairDataService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.ZScoreService;
+import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
@@ -75,7 +76,7 @@ public class FetchPairsProcessor {
 
     private Map<String, List<Candle>> getCandles(Settings settings, List<String> tradingTickers) {
         long start = System.currentTimeMillis();
-        CandlesFeignClient.CandlesRequest request = new CandlesFeignClient.CandlesRequest(settings, tradingTickers);
+        CandlesRequest request = new CandlesRequest(settings, tradingTickers);
         Map<String, List<Candle>> map = candlesFeignClient.getApplicableCandlesMap(request);
         log.debug("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
         return map;

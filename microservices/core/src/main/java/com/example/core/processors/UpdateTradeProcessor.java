@@ -1,9 +1,11 @@
 package com.example.core.processors;
 
+import com.example.core.client.CandlesFeignClient;
 import com.example.core.services.*;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.trading.services.TradingProviderFactory;
+import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.*;
@@ -22,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UpdateTradeProcessor {
     private final PairDataService pairDataService;
-    private final CandlesService candlesService;
+    //    private final CandlesService candlesService;
     private final SettingsService settingsService;
     private final TradeHistoryService tradeHistoryService;
     private final ZScoreService zScoreService;
@@ -33,6 +35,7 @@ public class UpdateTradeProcessor {
     private final ChartService chartService;
     private final AveragingService averagingService;
     private final TradingProviderFactory tradingProviderFactory;
+    private final CandlesFeignClient candlesFeignClient;
 
 
     //todo сделать проверку zScore - что он пересекал +3 и -3 несколько раз - говорит о том что пара гуляет туда-сюда
@@ -181,7 +184,9 @@ public class UpdateTradeProcessor {
     }
 
     private Map<String, Object> updateZScoreDataForExistingPair(PairData pairData, Settings settings) {
-        final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+//        final Map<String, List<Candle>> candlesMap = candlesService.getApplicableCandlesMap(pairData, settings);
+        CandlesRequest request = new CandlesRequest(pairData, settings);
+        Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(request);
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();
         result.put("candlesMap", candlesMap);
