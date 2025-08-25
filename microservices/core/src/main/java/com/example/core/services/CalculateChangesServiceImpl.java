@@ -68,7 +68,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         log.debug("--> getFromClosedPositions для пары {}", pairData.getPairName());
 
         BigDecimal totalRealizedPnlUSDT = safeScale(safeGet(longPosition.getRealizedPnLUSDT()).add(safeGet(shortPosition.getRealizedPnLUSDT())), 8);
-        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8);
+        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8); //todo 0.00 в закрытых парах
         BigDecimal totalFees = safeScale(
                 safeGet(longPosition.getOpeningFees()).add(safeGet(longPosition.getClosingFees())).add(safeGet(longPosition.getFundingFees()))
                         .add(safeGet(shortPosition.getOpeningFees())).add(safeGet(shortPosition.getClosingFees())).add(safeGet(shortPosition.getFundingFees())),
