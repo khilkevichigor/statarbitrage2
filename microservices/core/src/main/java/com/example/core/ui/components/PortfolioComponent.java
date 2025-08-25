@@ -1,6 +1,6 @@
 package com.example.core.ui.components;
 
-import com.example.core.core.services.SettingsService;
+import com.example.core.services.SettingsService;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.models.Portfolio;

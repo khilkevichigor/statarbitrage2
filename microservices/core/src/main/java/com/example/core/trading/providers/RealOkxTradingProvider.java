@@ -1,7 +1,7 @@
 package com.example.core.trading.providers;
 
 import com.example.core.client_okx.OkxClient;
-import com.example.core.core.repositories.PositionRepository;
+import com.example.core.repositories.PositionRepository;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.core.trading.services.GeolocationService;

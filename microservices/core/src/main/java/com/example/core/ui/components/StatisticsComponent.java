@@ -1,6 +1,6 @@
 package com.example.core.ui.components;
 
-import com.example.core.core.services.StatisticsService;
+import com.example.core.services.StatisticsService;
 import com.example.shared.dto.TradePairsStatisticsDto;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;

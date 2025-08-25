@@ -1,10 +1,10 @@
 package com.example.core.ui.components;
 
-import com.example.core.core.processors.StartNewTradeProcessor;
-import com.example.core.core.processors.UpdateTradeProcessor;
-import com.example.core.core.services.AveragingService;
-import com.example.core.core.services.PairDataService;
-import com.example.core.core.services.SettingsService;
+import com.example.core.processors.StartNewTradeProcessor;
+import com.example.core.processors.UpdateTradeProcessor;
+import com.example.core.services.AveragingService;
+import com.example.core.services.PairDataService;
+import com.example.core.services.SettingsService;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.models.PairData;

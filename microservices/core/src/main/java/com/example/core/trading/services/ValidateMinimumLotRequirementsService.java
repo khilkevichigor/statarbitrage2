@@ -1,6 +1,6 @@
 package com.example.core.trading.services;
 
-import com.example.core.core.services.SettingsService;
+import com.example.core.services.SettingsService;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;

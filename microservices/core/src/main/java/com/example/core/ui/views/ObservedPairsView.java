@@ -1,7 +1,7 @@
 package com.example.core.ui.views;
 
-import com.example.core.core.services.ObservedPairsService;
-import com.example.core.core.services.SettingsService;
+import com.example.core.services.ObservedPairsService;
+import com.example.core.services.SettingsService;
 import com.example.core.ui.components.TradingPairsComponent;
 import com.example.core.ui.layout.MainLayout;
 import com.example.core.ui.services.UIUpdateService;

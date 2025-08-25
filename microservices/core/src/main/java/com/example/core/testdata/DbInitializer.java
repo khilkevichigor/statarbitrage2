@@ -1,6 +1,6 @@
 package com.example.core.testdata;
 
-import com.example.core.core.repositories.SettingsRepository;
+import com.example.core.repositories.SettingsRepository;
 import com.example.shared.models.Settings;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;

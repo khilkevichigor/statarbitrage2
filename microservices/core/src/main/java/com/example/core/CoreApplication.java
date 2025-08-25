@@ -2,8 +2,8 @@ package com.example.core;
 
 import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
-import com.example.core.core.processors.UpdateTradeProcessor;
-import com.example.core.core.repositories.PairDataRepository;
+import com.example.core.processors.UpdateTradeProcessor;
+import com.example.core.repositories.PairDataRepository;
 import com.example.core.trading.services.GeolocationService;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.models.Candle;
@@ -28,7 +28,7 @@ import java.util.Map;
 @Slf4j
 @SpringBootApplication(scanBasePackages = {"com.example.core", "com.example.shared"})
 @EntityScan(basePackages = {"com.example.shared.models"})
-@EnableJpaRepositories(basePackages = {"com.example.core.core.repositories"})
+@EnableJpaRepositories(basePackages = {"com.example.core.repositories"})
 @ComponentScan(basePackages = {"com.example.core", "com.example.shared"})
 @EnableScheduling
 @EnableAsync

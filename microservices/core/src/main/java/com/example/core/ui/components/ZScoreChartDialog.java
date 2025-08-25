@@ -1,9 +1,9 @@
 package com.example.core.ui.components;
 
-import com.example.core.core.services.ChartService;
-import com.example.core.core.services.ChartSettingsService;
-import com.example.core.core.services.PixelSpreadService;
-import com.example.core.core.services.SettingsService;
+import com.example.core.services.ChartService;
+import com.example.core.services.ChartSettingsService;
+import com.example.core.services.PixelSpreadService;
+import com.example.core.services.SettingsService;
 import com.example.shared.models.ChartSettings;
 import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;

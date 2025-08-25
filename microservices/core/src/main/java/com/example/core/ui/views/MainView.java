@@ -1,7 +1,7 @@
 package com.example.core.ui.views;
 
-import com.example.core.core.processors.FetchPairsProcessor;
-import com.example.core.core.services.PairDataService;
+import com.example.core.processors.FetchPairsProcessor;
+import com.example.core.services.PairDataService;
 import com.example.core.ui.components.PortfolioComponent;
 import com.example.core.ui.components.SettingsComponent;
 import com.example.core.ui.components.StatisticsComponent;
