@@ -5,12 +5,14 @@ import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.google.gson.JsonArray;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/okx")
 @RequiredArgsConstructor
@@ -81,6 +83,11 @@ public class OkxController {
      */
     @GetMapping("/ticker")
     public JsonArray getTicker(@RequestParam String symbol) {
-        return okxClient.getTicker(symbol);
+        try {
+            return okxClient.getTicker(symbol);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении тикера для {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Ошибка при получении тикера для " + symbol + ": " + e.getMessage(), e);
+        }
     }
 }

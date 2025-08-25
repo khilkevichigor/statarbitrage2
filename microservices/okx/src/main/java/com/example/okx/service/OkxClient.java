@@ -143,7 +143,8 @@ public class OkxClient {
     }
 
     public JsonArray getTicker(String symbol) {
-
+        applyRateLimit(); // Добавляем rate limiting
+        
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/v5/market/ticker?instId=" + symbol)
                 .build();
