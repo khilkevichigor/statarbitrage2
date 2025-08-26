@@ -5,9 +5,10 @@ import com.example.core.services.PortfolioService;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.shared.models.*;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -30,7 +31,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     private final Object openPositionLock = new Object();
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void loadOpenPositions() {
         log.info("Загрузка открытых позиций из базы данных...");
         List<Position> openPositions = positionRepository.findAllByStatus(PositionStatus.OPEN);
@@ -110,8 +111,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
         synchronized (openPositionLock) {
             try {
-                Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
-                Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
+                Optional<Position> longPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
+                Optional<Position> shortPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
 
                 if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
                     log.warn("Не найдены ID позиций для пары {}. Закрытие невозможно.", tradingPair.getPairName());
@@ -149,8 +150,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public Positioninfo verifyPositionsClosed(TradingPair tradingPair) {
-        Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
-        Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
+        Optional<Position> longPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
 
         if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", tradingPair.getPairName());
@@ -182,8 +183,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public Positioninfo getOpenPositionsInfo(TradingPair tradingPair) {
-        Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
-        Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
+        Optional<Position> longPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
 
         if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}. Предполагаем, что позиции закрыты.", tradingPair.getPairName());
@@ -227,8 +228,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     public Positioninfo getPositionInfo(TradingPair tradingPair) {
         log.debug("Запрос информации о позициях для пары {}", tradingPair.getPairName());
 
-        Optional<Position> longPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
-        Optional<Position> shortPositionOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
+        Optional<Position> longPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
+        Optional<Position> shortPositionOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
 
         if (longPositionOpt.isEmpty() || shortPositionOpt.isEmpty()) {
             log.warn("Не найдены ID позиций для пары {}", tradingPair.getPairName());
@@ -274,8 +275,8 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     @Override
     public void deletePositions(TradingPair tradingPair) {
         log.debug("Удаляем сохранённые позиции из бд для пары {}", tradingPair.getPairName());
-        List<Position> longPositions = positionRepository.findAllByPairDataIdAndType(tradingPair.getId(), PositionType.LONG);
-        List<Position> shortPositions = positionRepository.findAllByPairDataIdAndType(tradingPair.getId(), PositionType.SHORT);
+        List<Position> longPositions = positionRepository.findAllByTradingPairIdAndType(tradingPair.getId(), PositionType.LONG);
+        List<Position> shortPositions = positionRepository.findAllByTradingPairIdAndType(tradingPair.getId(), PositionType.SHORT);
 
         positionRepository.deleteAll(longPositions);
         positionRepository.deleteAll(shortPositions);
@@ -381,9 +382,9 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
     private void savePositions(TradingPair tradingPair, TradeResult longResult, TradeResult shortResult) {
         // Обрабатываем лонг позицию
         Position newLongPosition = longResult.getPosition();
-        newLongPosition.setPairDataId(tradingPair.getId());
+        newLongPosition.setTradingPairId(tradingPair.getId());
 
-        Optional<Position> existingLongOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
+        Optional<Position> existingLongOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.LONG);
         Position finalLongPosition;
 
         if (existingLongOpt.isPresent()) {
@@ -414,9 +415,9 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
         // Обрабатываем шорт позицию
         Position newShortPosition = shortResult.getPosition();
-        newShortPosition.setPairDataId(tradingPair.getId());
+        newShortPosition.setTradingPairId(tradingPair.getId());
 
-        Optional<Position> existingShortOpt = positionRepository.findFirstByPairDataIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
+        Optional<Position> existingShortOpt = positionRepository.findFirstByTradingPairIdAndTypeOrderByIdDesc(tradingPair.getId(), PositionType.SHORT);
         Position finalShortPosition;
 
         if (existingShortOpt.isPresent()) {

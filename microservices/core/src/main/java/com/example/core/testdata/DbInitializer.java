@@ -2,9 +2,10 @@ package com.example.core.testdata;
 
 import com.example.core.repositories.SettingsRepository;
 import com.example.shared.models.Settings;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,7 @@ import java.util.List;
 public class DbInitializer {
     private final SettingsRepository settingsRepository;
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void initialize() {
         List<Settings> all = settingsRepository.findAll();
         if (all.isEmpty()) {

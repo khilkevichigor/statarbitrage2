@@ -28,8 +28,8 @@ public class Position {
     @Column(name = "position_id")
     private String positionId; // Реальный ID позиции от OKX (например "2716523748303249408")
 
-    @Column(name = "pair_data_id")
-    private Long pairDataId;
+    @Column(name = "trading_pair_id")
+    private Long tradingPairId;
 
     @Column(name = "symbol")
     private String symbol;

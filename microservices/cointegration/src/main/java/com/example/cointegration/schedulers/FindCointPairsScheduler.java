@@ -9,7 +9,6 @@ import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -22,7 +21,7 @@ public class FindCointPairsScheduler {
     private final CointPairService cointPairService;
     private final FetchCointPairsProcessor fetchCointPairsProcessor;
 
-    @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
+    //    @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
     public void maintainCointPairs() {
         long schedulerStart = System.currentTimeMillis();
         int newCointPairsCount = executeMaintainCointPairs();
