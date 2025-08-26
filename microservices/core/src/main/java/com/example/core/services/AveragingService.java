@@ -1,12 +1,12 @@
 package com.example.core.services;
 
-import com.example.core.repositories.PairDataRepository;
+import com.example.core.repositories.TradingPairRepository;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.models.ArbitragePairTradeInfo;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,57 +24,57 @@ public class AveragingService {
 
     private final TradingIntegrationService tradingIntegrationService;
     private final TradingProviderFactory tradingProviderFactory;
-    private final PairDataRepository pairDataRepository;
+    private final TradingPairRepository tradingPairRepository;
 
     /**
      * Выполняет ручное усреднение позиции для указанной пары
      *
-     * @param pairData торгуемая пара
-     * @param settings настройки торговли
+     * @param tradingPair торгуемая пара
+     * @param settings    настройки торговли
      * @return результат операции усреднения
      */
     @Transactional
-    public AveragingResult performManualAveraging(PairData pairData, Settings settings) {
+    public AveragingResult performManualAveraging(TradingPair tradingPair, Settings settings) {
         log.info("");
-        log.info("🔄 Начало ручного усреднения для пары: {}", pairData.getPairName());
+        log.info("🔄 Начало ручного усреднения для пары: {}", tradingPair.getPairName());
 
-        return executeAveraging(pairData, settings, "MANUAL");
+        return executeAveraging(tradingPair, settings, "MANUAL");
     }
 
     /**
      * Выполняет автоматическое усреднение позиции при достижении порога просадки
      *
-     * @param pairData торгуемая пара
-     * @param settings настройки торговли
+     * @param tradingPair торгуемая пара
+     * @param settings    настройки торговли
      * @return результат операции усреднения
      */
     @Transactional
-    public AveragingResult performAutoAveraging(PairData pairData, Settings settings) {
-        log.info("🤖 Начало автоматического усреднения для пары: {}", pairData.getPairName());
+    public AveragingResult performAutoAveraging(TradingPair tradingPair, Settings settings) {
+        log.info("🤖 Начало автоматического усреднения для пары: {}", tradingPair.getPairName());
 
-        return executeAveraging(pairData, settings, "AUTO");
+        return executeAveraging(tradingPair, settings, "AUTO");
     }
 
     /**
      * Проверяет, нужно ли выполнить автоматическое усреднение для пары
      *
-     * @param pairData торгуемая пара
-     * @param settings настройки торговли
+     * @param tradingPair торгуемая пара
+     * @param settings    настройки торговли
      * @return true, если нужно усреднить
      */
-    public boolean shouldPerformAutoAveraging(PairData pairData, Settings settings) {
+    public boolean shouldPerformAutoAveraging(TradingPair tradingPair, Settings settings) {
         // Проверяем, включено ли автоусреднение
         if (!settings.isAutoAveragingEnabled()) {
             return false;
         }
 
         // Проверяем, что пара в активном трейде
-        if (!isActiveTrade(pairData)) {
+        if (!isActiveTrade(tradingPair)) {
             return false;
         }
 
         // Получаем текущий профит в процентах
-        BigDecimal currentProfitPercent = pairData.getProfitPercentChanges();
+        BigDecimal currentProfitPercent = tradingPair.getProfitPercentChanges();
         if (currentProfitPercent == null) {
             return false;
         }
@@ -87,7 +87,7 @@ public class AveragingService {
 
         if (shouldAverage) {
             log.info("📉 Обнаружена просадка для пары {}: {}% <= {}%. Требуется усреднение.",
-                    pairData.getPairName(), currentProfitDouble, threshold);
+                    tradingPair.getPairName(), currentProfitDouble, threshold);
         }
 
         return shouldAverage;
@@ -96,37 +96,37 @@ public class AveragingService {
     /**
      * Основной метод выполнения усреднения
      */
-    private AveragingResult executeAveraging(PairData pairData, Settings settings, String trigger) {
+    private AveragingResult executeAveraging(TradingPair tradingPair, Settings settings, String trigger) {
         try {
             // Создаем временные настройки с увеличенным объемом
             Settings averagingSettings = createAveragingSettings(settings);
 
             // Открываем дополнительную позицию
-            ArbitragePairTradeInfo tradeResult = tradingIntegrationService.openArbitragePair(pairData, averagingSettings);
+            ArbitragePairTradeInfo tradeResult = tradingIntegrationService.openArbitragePair(tradingPair, averagingSettings);
 
             if (tradeResult == null || !tradeResult.isSuccess()) {
-                log.error("❌ Не удалось выполнить усреднение для пары: {}", pairData.getPairName());
+                log.error("❌ Не удалось выполнить усреднение для пары: {}", tradingPair.getPairName());
                 return AveragingResult.failure("Не удалось открыть позицию для усреднения");
             }
 
             // Обновляем счетчик усреднений
-            pairData.setAveragingCount(pairData.getAveragingCount() + 1);
-            pairData.setLastAveragingTimestamp(System.currentTimeMillis());
+            tradingPair.setAveragingCount(tradingPair.getAveragingCount() + 1);
+            tradingPair.setLastAveragingTimestamp(System.currentTimeMillis());
 
             // Сохраняем изменения
-            pairDataRepository.save(pairData);
+            tradingPairRepository.save(tradingPair);
 
             log.info("✅ Успешно выполнено усреднение #{} для пары: {} (триггер: {})",
-                    pairData.getAveragingCount(), pairData.getPairName(), trigger);
+                    tradingPair.getAveragingCount(), tradingPair.getPairName(), trigger);
 
             return AveragingResult.success(
                     String.format("Выполнено усреднение #%d для пары %s",
-                            pairData.getAveragingCount(), pairData.getPairName())
+                            tradingPair.getAveragingCount(), tradingPair.getPairName())
             );
 
         } catch (Exception e) {
             log.error("💥 Ошибка при выполнении усреднения для пары {}: {}",
-                    pairData.getPairName(), e.getMessage(), e);
+                    tradingPair.getPairName(), e.getMessage(), e);
             return AveragingResult.failure("Ошибка при усреднении: " + e.getMessage());
         }
     }
@@ -157,8 +157,8 @@ public class AveragingService {
     /**
      * Проверяет, находится ли пара в активном трейде
      */
-    private boolean isActiveTrade(PairData pairData) {
-        return pairData.getStatus() == TradeStatus.TRADING;
+    private boolean isActiveTrade(TradingPair tradingPair) {
+        return tradingPair.getStatus() == TradeStatus.TRADING;
     }
 
     /**

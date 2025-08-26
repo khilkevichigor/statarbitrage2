@@ -16,15 +16,15 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pair_data", indexes = {
-        @Index(name = "idx_pairdata_uuid", columnList = "uuid", unique = true)
+@Table(name = "coint_pair", indexes = {
+        @Index(name = "idx_cointpair_uuid", columnList = "uuid", unique = true)
 })
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Slf4j
-public class PairData {
+public class CointPair {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -525,7 +525,7 @@ public class PairData {
     @Column(name = "last_averaging_timestamp")
     private long lastAveragingTimestamp;
 
-    public PairData(String longTicker, String shortTicker) {
+    public CointPair(String longTicker, String shortTicker) {
         this.longTicker = longTicker;
         this.shortTicker = shortTicker;
         this.pairName = getPairName();

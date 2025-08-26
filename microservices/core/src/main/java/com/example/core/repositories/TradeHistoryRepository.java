@@ -84,47 +84,47 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     BigDecimal getAvgProfitPercentTotal();
 
     @Query("SELECT COUNT(*) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status " +
             "AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
     Long getByStatusForToday(@Param("status") TradeStatus status);
 
     @Query("SELECT COUNT(*) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status")
     Long getByStatusTotal(@Param("status") TradeStatus status);
 
     @Query("SELECT COUNT(*) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.exitReason = :reason " +
             "AND DATE(DATETIME(p.entryTime / 1000, 'unixepoch')) = DATE('now')")
     Long getByExitReasonForToday(@Param("reason") String reason);
 
     @Query("SELECT COUNT(*) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.exitReason = :reason")
     Long getAllByExitReason(@Param("reason") String reason);
 
     @Query("SELECT SUM(p.profitUSDTChanges) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = 'CLOSED' " +
             "AND p.entryTime >= :startOfDay")
     BigDecimal getSumRealizedProfitUSDTToday(@Param("startOfDay") Long startOfDay);
 
     @Query("SELECT SUM(p.profitUSDTChanges) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfitUSDTTotal();
 
     @Query("SELECT SUM(p.profitPercentChanges) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = 'CLOSED' " +
             "AND p.entryTime >= :startOfDay")
     BigDecimal getSumRealizedProfitPercentToday(@Param("startOfDay") Long startOfDay);
 
 
     @Query("SELECT SUM(p.profitPercentChanges) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfitPercentTotal();
 }

@@ -1,10 +1,10 @@
 package com.example.core.services;
 
 import com.example.shared.dto.ChangesData;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import org.springframework.stereotype.Service;
 
 @Service
 public interface CalculateChangesService {
-    ChangesData getChanges(PairData pairData);
+    ChangesData getChanges(TradingPair tradingPair);
 }

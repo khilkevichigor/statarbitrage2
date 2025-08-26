@@ -2,7 +2,7 @@ package com.example.core.controllers;
 
 import com.example.shared.events.CsvEvent;
 import com.example.shared.events.NotificationEvent;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import com.example.shared.utils.EventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,10 +28,10 @@ public class TestController {
 
     @GetMapping("/test2")
     public String testCsv() {
-        PairData pairData = new PairData();
-        pairData.setPairName("testPair");
+        TradingPair tradingPair = new TradingPair();
+        tradingPair.setPairName("testPair");
         CsvEvent event = new CsvEvent(
-                pairData
+                tradingPair
         );
         eventPublisher.publish("csv-events-out-0", event);
         return "Событие отправлено!";

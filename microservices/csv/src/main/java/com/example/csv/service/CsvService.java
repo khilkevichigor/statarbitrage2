@@ -1,7 +1,7 @@
 package com.example.csv.service;
 
 import com.example.shared.events.CsvEvent;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -59,9 +59,9 @@ public class CsvService {
         log.info("📋 Экспорт пользовательского отчета в CSV");
 
         try {
-            PairData pairData = event.getPairData();
-            appendPairDataToCsvService.appendPairDataToCsv(pairData);
-            log.info("PairData {} успешно добавлена в csv файл.", pairData.getPairName());
+            TradingPair tradingPair = event.getTradingPair();
+            appendPairDataToCsvService.appendPairDataToCsv(tradingPair);
+            log.info("PairData {} успешно добавлена в csv файл.", tradingPair.getPairName());
         } catch (Exception e) {
             log.error("❌ Ошибка при экспорте пользовательского отчета в CSV: {}", e.getMessage(), e);
         }

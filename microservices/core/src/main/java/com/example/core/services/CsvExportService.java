@@ -1,7 +1,7 @@
 package com.example.core.services;
 
 import com.example.shared.events.CsvEvent;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import com.example.shared.utils.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service;
 public class CsvExportService {
     private final EventPublisher eventPublisher;
 
-    public synchronized void appendPairDataToCsv(PairData pairData) {
+    public synchronized void appendPairDataToCsv(TradingPair tradingPair) {
         CsvEvent event = new CsvEvent(
-                pairData
+                tradingPair
         );
         sendEvent(event);
     }

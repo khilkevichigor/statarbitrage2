@@ -24,19 +24,19 @@ public class ChartService {
 
     private final PixelSpreadService pixelSpreadService;
 
-    public BufferedImage createZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
+    public BufferedImage createZScoreChart(TradingPair tradingPair, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
         log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {}, PixelSpread: {}, EntryPoint: {})",
-                pairData.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
+                tradingPair.getPairName(), showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
 
-        XYChart chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
+        XYChart chart = buildEnhancedZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
 
         return BitmapEncoder.getBufferedImage(chart);
     }
 
-    private XYChart buildEnhancedZScoreChart(PairData pairData, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
-        XYChart chart = buildBasicZScoreChart(pairData, showEntryPoint);
+    private XYChart buildEnhancedZScoreChart(TradingPair tradingPair, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
+        XYChart chart = buildBasicZScoreChart(tradingPair, showEntryPoint);
 
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         if (history.isEmpty()) {
             log.warn("⚠️ История Z-Score пуста - невозможно рассчитать индикаторы");
@@ -60,30 +60,30 @@ public class ChartService {
         }
 
         if (showProfit) {
-            addProfitToChart(chart, pairData);
+            addProfitToChart(chart, tradingPair);
         }
 
         if (showCombinedPrice) {
-            addCombinedPricesToChart(chart, pairData);
+            addCombinedPricesToChart(chart, tradingPair);
         }
 
         if (showPixelSpread) {
-            addPixelSpreadToZScoreChart(chart, pairData);
+            addPixelSpreadToZScoreChart(chart, tradingPair);
         }
 
         return chart;
     }
 
-    private XYChart buildBasicZScoreChart(PairData pairData, boolean showEntryPoint) {
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+    private XYChart buildBasicZScoreChart(TradingPair tradingPair, boolean showEntryPoint) {
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         List<Long> timestamps;
         List<Double> zScores;
 
         if (history.isEmpty()) {
-            log.warn("⚠️ История Z-Score пуста для пары {}, создаем минимальные данные", pairData.getPairName());
+            log.warn("⚠️ История Z-Score пуста для пары {}, создаем минимальные данные", tradingPair.getPairName());
             timestamps = Collections.singletonList(System.currentTimeMillis());
-            zScores = Collections.singletonList(pairData.getZScoreCurrent());
+            zScores = Collections.singletonList(tradingPair.getZScoreCurrent());
         } else {
             timestamps = history.stream()
                     .map(ZScoreParam::getTimestamp)
@@ -92,12 +92,12 @@ public class ChartService {
                     .map(ZScoreParam::getZscore)
                     .collect(Collectors.toList());
 
-            log.debug("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), pairData.getPairName());
+            log.debug("Используем реальную историю Z-Score: {} точек для пары {}", history.size(), tradingPair.getPairName());
         }
 
         log.debug("Временной диапазон графика от: {} - до: {}",
                 new Date(timestamps.get(0)), new Date(timestamps.get(timestamps.size() - 1)));
-        log.debug("Текущий Z-Score: {}", pairData.getZScoreCurrent());
+        log.debug("Текущий Z-Score: {}", tradingPair.getZScoreCurrent());
 
         if (timestamps.size() != zScores.size()) {
             log.warn("⚠️ Неверные входные данные для построения Z-графика");
@@ -108,7 +108,7 @@ public class ChartService {
 
         XYChart chart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title("Z-Score LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+                .title("Z-Score LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
                 .xAxisTitle("Time").yAxisTitle("Z-Score")
                 .build();
 
@@ -132,13 +132,13 @@ public class ChartService {
 
         // Отображаем точку входа только если включен соответствующий чекбокс
         if (showEntryPoint) {
-            long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+            long entryTimestamp = tradingPair.getEntryTime() > 0 ? tradingPair.getEntryTime() : tradingPair.getTimestamp();
             long historyStart = timestamps.get(0);
             long historyEnd = timestamps.get(timestamps.size() - 1);
 
             log.debug("Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
                     new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
-            log.debug("PairData: entryTime={}, timestamp={}", pairData.getEntryTime(), pairData.getTimestamp());
+            log.debug("PairData: entryTime={}, timestamp={}", tradingPair.getEntryTime(), tradingPair.getTimestamp());
 
             boolean inRange = entryTimestamp > 0 && entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
 
@@ -162,7 +162,7 @@ public class ChartService {
                     entryLine.setMarker(new None());
                     entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                    double entryZScore = pairData.getZScoreEntry();
+                    double entryZScore = tradingPair.getZScoreEntry();
                     List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
                     List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
 
@@ -199,7 +199,7 @@ public class ChartService {
                 entryLine.setMarker(new None());
                 entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
 
-                double entryZScore = pairData.getZScoreEntry();
+                double entryZScore = tradingPair.getZScoreEntry();
                 List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
                 List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
 
@@ -386,26 +386,26 @@ public class ChartService {
         return rsiValues;
     }
 
-    private void addProfitToChart(XYChart chart, PairData pairData) {
-        List<ProfitHistoryItem> profitHistory = pairData.getProfitHistory();
+    private void addProfitToChart(XYChart chart, TradingPair tradingPair) {
+        List<ProfitHistoryItem> profitHistory = tradingPair.getProfitHistory();
         if (profitHistory == null || profitHistory.isEmpty()) {
-            log.debug("📊 История профита пуста для пары {}, график профита не будет добавлен.", pairData.getPairName());
+            log.debug("📊 История профита пуста для пары {}, график профита не будет добавлен.", tradingPair.getPairName());
             return;
         }
 
-        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        long entryTimestamp = tradingPair.getEntryTime() > 0 ? tradingPair.getEntryTime() : tradingPair.getTimestamp();
 
         List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
                 .filter(item -> item.getTimestamp() >= entryTimestamp)
                 .collect(Collectors.toList());
 
         if (filteredProfitHistory.isEmpty()) {
-            log.debug("📊 Нет данных профита с момента входа для пары {}, используя все данные", pairData.getPairName());
+            log.debug("📊 Нет данных профита с момента входа для пары {}, используя все данные", tradingPair.getPairName());
             filteredProfitHistory = profitHistory;
         }
 
         if (filteredProfitHistory.isEmpty()) {
-            log.debug("📊 История профита все еще пуста после всех проверок для пары {}", pairData.getPairName());
+            log.debug("📊 История профита все еще пуста после всех проверок для пары {}", tradingPair.getPairName());
             return;
         }
 
@@ -437,25 +437,25 @@ public class ChartService {
         log.debug("✅ График профита успешно добавлен на чарт с точкой на последнем значении");
     }
 
-    public BufferedImage createPriceChart(PairData pairData) {
-        return createPriceChart(pairData, false);
+    public BufferedImage createPriceChart(TradingPair tradingPair) {
+        return createPriceChart(tradingPair, false);
     }
 
-    public BufferedImage createPriceChartWithProfit(PairData pairData, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
-        return createPriceChartInternal(pairData, showPixelSpread, showProfit, showEntryPoint);
+    public BufferedImage createPriceChartWithProfit(TradingPair tradingPair, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
+        return createPriceChartInternal(tradingPair, showPixelSpread, showProfit, showEntryPoint);
     }
 
-    public BufferedImage createPriceChart(PairData pairData, boolean showPixelSpread) {
-        return createPriceChartInternal(pairData, showPixelSpread, false, false);
+    public BufferedImage createPriceChart(TradingPair tradingPair, boolean showPixelSpread) {
+        return createPriceChartInternal(tradingPair, showPixelSpread, false, false);
     }
 
-    private BufferedImage createPriceChartInternal(PairData pairData, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
-        String longTicker = pairData.getLongTicker();
-        String shortTicker = pairData.getShortTicker();
+    private BufferedImage createPriceChartInternal(TradingPair tradingPair, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
 
-        List<Candle> longCandles = pairData.getLongTickerCandles();
-        List<Candle> shortCandles = pairData.getShortTickerCandles();
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
             log.warn("Не найдены свечи для тикеров {} или {}", longTicker, shortTicker);
@@ -508,7 +508,7 @@ public class ChartService {
                 .build();
         topChart.getStyler().setLegendVisible(false);
 
-        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + pairData.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + tradingPair.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
         longSeries.setLineColor(Color.GREEN);
         longSeries.setMarker(new None());
 
@@ -525,7 +525,7 @@ public class ChartService {
                 .build();
         bottomChart.getStyler().setLegendVisible(false);
 
-        XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + pairData.getShortTickerCurrentPrice() + ")", timeShort, shortPrices);
+        XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + tradingPair.getShortTickerCurrentPrice() + ")", timeShort, shortPrices);
         shortSeries.setLineColor(Color.RED);
         shortSeries.setMarker(new None());
 
@@ -536,20 +536,20 @@ public class ChartService {
 
         // Добавляем пиксельный спред если нужно
         if (showPixelSpread) {
-            addPixelSpreadToPriceChart(topChart, pairData, timeLong, longPrices);
-            addPixelSpreadToPriceChart(bottomChart, pairData, timeShort, shortPrices);
+            addPixelSpreadToPriceChart(topChart, tradingPair, timeLong, longPrices);
+            addPixelSpreadToPriceChart(bottomChart, tradingPair, timeShort, shortPrices);
         }
 
         // Добавляем профит если нужно
         if (showProfit) {
-            addProfitToChart(topChart, pairData);
-            addProfitToChart(bottomChart, pairData);
+            addProfitToChart(topChart, tradingPair);
+            addProfitToChart(bottomChart, tradingPair);
         }
 
         // Добавляем точку входа если нужно
         if (showEntryPoint) {
-            addEntryPointToPriceChart(topChart, pairData, timeLong, longPrices);
-            addEntryPointToPriceChart(bottomChart, pairData, timeShort, shortPrices);
+            addEntryPointToPriceChart(topChart, tradingPair, timeLong, longPrices);
+            addEntryPointToPriceChart(bottomChart, tradingPair, timeShort, shortPrices);
         }
 
         // Объединение 2 графиков
@@ -571,13 +571,13 @@ public class ChartService {
         return combinedImage;
     }
 
-    private void addCombinedPricesToChart(XYChart chart, PairData pairData) {
-        String longTicker = pairData.getLongTicker();
-        String shortTicker = pairData.getShortTicker();
+    private void addCombinedPricesToChart(XYChart chart, TradingPair tradingPair) {
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
 
-        List<Candle> longCandles = pairData.getLongTickerCandles();
-        List<Candle> shortCandles = pairData.getShortTickerCandles();
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
             log.warn("⚠️ Не найдены данные для наложения цен на Z-Score чарт: longCandles={}, shortCandles={}, history={}",
@@ -667,17 +667,17 @@ public class ChartService {
         shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
 
         // Используем PixelSpreadService для расчёта пиксельного спреда
-        pixelSpreadService.calculatePixelSpreadIfNeeded(pairData);
+        pixelSpreadService.calculatePixelSpreadIfNeeded(tradingPair);
     }
 
     /**
      * Добавляет пиксельный спред на Z-Score чарт
      */
-    private void addPixelSpreadToZScoreChart(XYChart chart, PairData pairData) {
-        List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
+    private void addPixelSpreadToZScoreChart(XYChart chart, TradingPair tradingPair) {
+        List<PixelSpreadHistoryItem> pixelHistory = tradingPair.getPixelSpreadHistory();
 
         if (pixelHistory == null || pixelHistory.isEmpty()) {
-            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Z-Score чарт", pairData.getPairName());
+            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Z-Score чарт", tradingPair.getPairName());
             return;
         }
 
@@ -692,7 +692,7 @@ public class ChartService {
                 .collect(Collectors.toList());
 
         // Найти диапазон Z-Score для масштабирования пиксельного спреда
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
         double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
         double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
         double zRange = maxZScore - minZScore;
@@ -721,11 +721,11 @@ public class ChartService {
     /**
      * Добавляет пиксельный спред на Price чарт
      */
-    private void addPixelSpreadToPriceChart(XYChart chart, PairData pairData, List<Date> priceTimeAxis, List<Double> prices) {
-        List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
+    private void addPixelSpreadToPriceChart(XYChart chart, TradingPair tradingPair, List<Date> priceTimeAxis, List<Double> prices) {
+        List<PixelSpreadHistoryItem> pixelHistory = tradingPair.getPixelSpreadHistory();
 
         if (pixelHistory == null || pixelHistory.isEmpty()) {
-            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Price чарт", pairData.getPairName());
+            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Price чарт", tradingPair.getPairName());
             return;
         }
 
@@ -768,8 +768,8 @@ public class ChartService {
     /**
      * Добавляет точку входа на Price чарт
      */
-    private void addEntryPointToPriceChart(XYChart chart, PairData pairData, List<Date> timeAxis, List<Double> prices) {
-        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+    private void addEntryPointToPriceChart(XYChart chart, TradingPair tradingPair, List<Date> timeAxis, List<Double> prices) {
+        long entryTimestamp = tradingPair.getEntryTime() > 0 ? tradingPair.getEntryTime() : tradingPair.getTimestamp();
 
         if (entryTimestamp <= 0 || timeAxis.isEmpty() || prices.isEmpty()) {
             log.debug("⚠️ Недостаточно данных для отображения точки входа на Price чарт");
@@ -814,9 +814,9 @@ public class ChartService {
     /**
      * Вычисляет пиксельное расстояние между графиками Long и Short цен и сохраняет в историю
      */
-    private void calculateAndSavePixelSpread(PairData pairData, List<Date> timeLong, List<Double> scaledLongPrices,
+    private void calculateAndSavePixelSpread(TradingPair tradingPair, List<Date> timeLong, List<Double> scaledLongPrices,
                                              List<Date> timeShort, List<Double> scaledShortPrices) {
-        log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", pairData.getPairName());
+        log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", tradingPair.getPairName());
 
         if (timeLong.isEmpty() || timeShort.isEmpty() || scaledLongPrices.isEmpty() || scaledShortPrices.isEmpty()) {
             log.warn("⚠️ Недостаточно данных для вычисления пиксельного спреда");
@@ -860,7 +860,7 @@ public class ChartService {
 
                 // Сохраняем в историю пиксельного спреда
                 PixelSpreadHistoryItem pixelSpreadItem = new PixelSpreadHistoryItem(timestamp, pixelDistance);
-                pairData.addPixelSpreadPoint(pixelSpreadItem);
+                tradingPair.addPixelSpreadPoint(pixelSpreadItem);
 
                 log.trace("🔢 Timestamp: {}, Long: {} px, Short: {} px, Distance: {} px",
                         new Date(timestamp), Math.round(longPixelY), Math.round(shortPixelY), Math.round(pixelDistance));
@@ -868,7 +868,7 @@ public class ChartService {
         }
 
         log.debug("✅ Пиксельный спред вычислен и сохранен. Всего точек: {}",
-                pairData.getPixelSpreadHistory().size());
+                tradingPair.getPixelSpreadHistory().size());
     }
 
     /**
@@ -907,23 +907,23 @@ public class ChartService {
     /**
      * Вычисляет пиксельный спред независимо от отображения объединенных цен
      */
-    public void calculatePixelSpreadIfNeeded(PairData pairData) {
-        if (pairData.getPixelSpreadHistory().isEmpty()) {
+    public void calculatePixelSpreadIfNeeded(TradingPair tradingPair) {
+        if (tradingPair.getPixelSpreadHistory().isEmpty()) {
             log.debug("🔢 Пиксельный спред не вычислен, вычисляем независимо от чекбокса объединенных цен");
-            calculatePixelSpreadForPair(pairData);
+            calculatePixelSpreadForPair(tradingPair);
         }
     }
 
     /**
      * Вычисляет пиксельный спред для пары
      */
-    private void calculatePixelSpreadForPair(PairData pairData) {
-        String longTicker = pairData.getLongTicker();
-        String shortTicker = pairData.getShortTicker();
+    private void calculatePixelSpreadForPair(TradingPair tradingPair) {
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
 
-        List<Candle> longCandles = pairData.getLongTickerCandles();
-        List<Candle> shortCandles = pairData.getShortTickerCandles();
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
             log.warn("⚠️ Не найдены данные для вычисления пиксельного спреда: longCandles={}, shortCandles={}, history={}",
@@ -997,25 +997,25 @@ public class ChartService {
                 scaledShortPrices.size(), minShortPrice, maxShortPrice);
 
         // Вычисляем пиксельное расстояние между графиками long и short
-        calculateAndSavePixelSpread(pairData, timeLong, scaledLongPrices, timeShort, scaledShortPrices);
+        calculateAndSavePixelSpread(tradingPair, timeLong, scaledLongPrices, timeShort, scaledShortPrices);
     }
 
     /**
      * Создает комбинированный чарт с выбранными компонентами
      */
-    public BufferedImage createCombinedChart(PairData pairData, boolean showZScore, boolean showCombinedPrice,
+    public BufferedImage createCombinedChart(TradingPair tradingPair, boolean showZScore, boolean showCombinedPrice,
                                              boolean showPixelSpread, boolean showEma, int emaPeriod,
                                              boolean showStochRsi, boolean showProfit, boolean showEntryPoint) {
         log.debug("🎨 Создание комбинированного чарта для пары: {} (ZScore: {}, Price: {}, PixelSpread: {}, EMA: {}, StochRSI: {}, Profit: {})",
-                pairData.getPairName(), showZScore, showCombinedPrice, showPixelSpread, showEma, showStochRsi, showProfit);
+                tradingPair.getPairName(), showZScore, showCombinedPrice, showPixelSpread, showEma, showStochRsi, showProfit);
 
         // Если выбран только один тип чарта, используем специализированные методы
         if (showZScore && !showCombinedPrice && !showPixelSpread) {
-            return createZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
+            return createZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
         } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
-            return createPriceChartInternal(pairData, false, false, showEntryPoint);
+            return createPriceChartInternal(tradingPair, false, false, showEntryPoint);
         } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
-            return createPixelSpreadChartInternal(pairData, false, showEntryPoint);
+            return createPixelSpreadChartInternal(tradingPair, false, showEntryPoint);
         }
 
         // Для комбинированного чарта используем Z-Score как базу
@@ -1023,17 +1023,17 @@ public class ChartService {
 
         if (showZScore) {
             // Если Z-Score выбран, используем его как основу
-            chart = buildEnhancedZScoreChart(pairData, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
+            chart = buildEnhancedZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
         } else {
             // Если Z-Score не выбран, создаем базовый чарт для других компонентов
-            chart = createBaseCombinedChart(pairData);
+            chart = createBaseCombinedChart(tradingPair);
 
             if (showCombinedPrice) {
-                addCombinedPricesToChart(chart, pairData);
+                addCombinedPricesToChart(chart, tradingPair);
             }
 
             if (showPixelSpread) {
-                addPixelSpreadToZScoreChart(chart, pairData);
+                addPixelSpreadToZScoreChart(chart, tradingPair);
             }
         }
 
@@ -1043,12 +1043,12 @@ public class ChartService {
     /**
      * Создает базовый чарт для комбинирования компонентов (без Z-Score)
      */
-    private XYChart createBaseCombinedChart(PairData pairData) {
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+    private XYChart createBaseCombinedChart(TradingPair tradingPair) {
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         List<Long> timestamps;
         if (history.isEmpty()) {
-            log.warn("⚠️ История Z-Score пуста для пары {}, используем текущее время", pairData.getPairName());
+            log.warn("⚠️ История Z-Score пуста для пары {}, используем текущее время", tradingPair.getPairName());
             timestamps = Collections.singletonList(System.currentTimeMillis());
         } else {
             timestamps = history.stream()
@@ -1060,7 +1060,7 @@ public class ChartService {
 
         XYChart chart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title("Combined Chart: LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+                .title("Combined Chart: LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
                 .xAxisTitle("Time").yAxisTitle("Values")
                 .build();
 
@@ -1071,7 +1071,7 @@ public class ChartService {
         chart.getStyler().setYAxisTitleVisible(false);
 
         // Добавляем точку входа если есть
-        long entryTimestamp = pairData.getEntryTime() > 0 ? pairData.getEntryTime() : pairData.getTimestamp();
+        long entryTimestamp = tradingPair.getEntryTime() > 0 ? tradingPair.getEntryTime() : tradingPair.getTimestamp();
         long historyStart = timestamps.get(0);
         long historyEnd = timestamps.get(timestamps.size() - 1);
 
@@ -1096,26 +1096,26 @@ public class ChartService {
     /**
      * Добавляет новую точку пиксельного спреда
      */
-    public void addCurrentPixelSpreadPoint(PairData pairData) {
-        pixelSpreadService.addCurrentPixelSpreadPoint(pairData);
+    public void addCurrentPixelSpreadPoint(TradingPair tradingPair) {
+        pixelSpreadService.addCurrentPixelSpreadPoint(tradingPair);
     }
 
-    public BufferedImage createPixelSpreadChartWithProfit(PairData pairData, boolean showProfit, boolean showEntryPoint) {
-        return createPixelSpreadChartInternal(pairData, showProfit, showEntryPoint);
+    public BufferedImage createPixelSpreadChartWithProfit(TradingPair tradingPair, boolean showProfit, boolean showEntryPoint) {
+        return createPixelSpreadChartInternal(tradingPair, showProfit, showEntryPoint);
     }
 
     /**
      * Создает график пиксельного спреда
      */
-    public BufferedImage createPixelSpreadChart(PairData pairData) {
-        return createPixelSpreadChartInternal(pairData, false, false);
+    public BufferedImage createPixelSpreadChart(TradingPair tradingPair) {
+        return createPixelSpreadChartInternal(tradingPair, false, false);
     }
 
-    private BufferedImage createPixelSpreadChartInternal(PairData pairData, boolean showProfit, boolean showEntryPoint) {
-        List<PixelSpreadHistoryItem> pixelHistory = pairData.getPixelSpreadHistory();
+    private BufferedImage createPixelSpreadChartInternal(TradingPair tradingPair, boolean showProfit, boolean showEntryPoint) {
+        List<PixelSpreadHistoryItem> pixelHistory = tradingPair.getPixelSpreadHistory();
 
         if (pixelHistory == null || pixelHistory.isEmpty()) {
-            log.warn("📊 История пиксельного спреда пуста для пары {}", pairData.getPairName());
+            log.warn("📊 История пиксельного спреда пуста для пары {}", tradingPair.getPairName());
             return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         }
 
@@ -1131,7 +1131,7 @@ public class ChartService {
 
         XYChart chart = new XYChartBuilder()
                 .width(1920).height(720)
-                .title("Pixel Spread Chart: LONG (" + pairData.getLongTicker() + ") - SHORT (" + pairData.getShortTicker() + ")")
+                .title("Pixel Spread Chart: LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
                 .xAxisTitle("Time").yAxisTitle("Pixel Distance")
                 .build();
 
@@ -1148,16 +1148,16 @@ public class ChartService {
 
         // Добавляем профит если нужно
         if (showProfit) {
-            addProfitToChart(chart, pairData);
+            addProfitToChart(chart, tradingPair);
         }
 
         // Добавляем точку входа если нужно
         if (showEntryPoint) {
-            addEntryPointToPriceChart(chart, pairData, timeAxis, pixelDistances);
+            addEntryPointToPriceChart(chart, tradingPair, timeAxis, pixelDistances);
         }
 
         log.debug("✅ График пиксельного спреда создан с {} точками для пары {} (профит: {}, точка входа: {})",
-                pixelHistory.size(), pairData.getPairName(), showProfit, showEntryPoint);
+                pixelHistory.size(), tradingPair.getPairName(), showProfit, showEntryPoint);
 
         return BitmapEncoder.getBufferedImage(chart);
     }

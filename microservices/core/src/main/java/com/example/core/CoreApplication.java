@@ -3,7 +3,7 @@ package com.example.core;
 import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
 import com.example.core.processors.UpdateTradeProcessor;
-import com.example.core.repositories.PairDataRepository;
+import com.example.core.repositories.TradingPairRepository;
 import com.example.core.trading.services.GeolocationService;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.models.Candle;
@@ -40,9 +40,9 @@ public class CoreApplication {
     private final PythonRestClient pythonRestClient;
     private final GeolocationService geolocationService;
     private final UpdateTradeProcessor updateTradeProcessor;
-    private final PairDataRepository pairDataService;
+    private final TradingPairRepository pairDataService;
 
-    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, PairDataRepository pairDataService) {
+    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, TradingPairRepository pairDataService) {
         this.healthCheck = healthCheck;
         this.pythonRestClient = pythonRestClient;
         this.geolocationService = geolocationService;
@@ -51,9 +51,9 @@ public class CoreApplication {
     }
 
     public static void main(String[] args) {
-        System.out.println("🚀 Запуск микросервиса Core...");
+        log.info("🚀 Запуск микросервиса Core...");
         SpringApplication.run(CoreApplication.class, args);
-        System.out.println("✅ Микросервис Core успешно запущен!");
+        log.info("✅ Микросервис Core успешно запущен!");
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -71,7 +71,7 @@ public class CoreApplication {
 
     private void updateTradingPairsAfterRestart() {
         pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).forEach(pairData -> updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
-                .pairData(pairData)
+                .tradingPair(pairData)
                 .build()));
     }
 

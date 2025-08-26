@@ -1,7 +1,7 @@
 package com.example.core.services;
 
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,60 +10,60 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UpdateSettingsParamService {
-    public void updateSettingsParam(PairData pairData, Settings settings) {
-        if (pairData == null || settings == null) {
+    public void updateSettingsParam(TradingPair tradingPair, Settings settings) {
+        if (tradingPair == null || settings == null) {
             log.warn("updateSettingsParam: pairData или settings равны null");
             return;
         }
-        pairData.setSettingsTimeframe(settings.getTimeframe());
-        pairData.setSettingsCandleLimit(settings.getCandleLimit());
-        pairData.setSettingsMinZ(settings.getMinZ());
-        pairData.setSettingsMinWindowSize(settings.getMinWindowSize());
-        pairData.setSettingsMinPValue(settings.getMaxPValue());
-        pairData.setSettingsMaxAdfValue(settings.getMaxAdfValue());
-        pairData.setSettingsMinRSquared(settings.getMinRSquared());
-        pairData.setSettingsMinCorrelation(settings.getMinCorrelation());
-        pairData.setSettingsMinVolume(settings.getMinVolume());
-        pairData.setSettingsCheckInterval(settings.getCheckInterval());
-        pairData.setSettingsMaxLongMarginSize(settings.getMaxLongMarginSize());
-        pairData.setSettingsMaxShortMarginSize(settings.getMaxShortMarginSize());
-        pairData.setSettingsLeverage(settings.getLeverage());
-        pairData.setSettingsExitTake(settings.getExitTake());
-        pairData.setSettingsExitStop(settings.getExitStop());
-        pairData.setSettingsExitZMin(settings.getExitZMin());
-        pairData.setSettingsExitZMax(settings.getExitZMax());
-        pairData.setSettingsExitZMaxPercent(settings.getExitZMaxPercent());
-        pairData.setSettingsExitTimeMinutes(settings.getExitTimeMinutes());
-        pairData.setSettingsExitBreakEvenPercent(settings.getExitBreakEvenPercent());
-        pairData.setSettingsUsePairs(settings.getUsePairs());
-        pairData.setSettingsAutoTradingEnabled(settings.isAutoTradingEnabled());
-        pairData.setSettingsUseMinZFilter(settings.isUseMinZFilter());
-        pairData.setSettingsUseMinRSquaredFilter(settings.isUseMinRSquaredFilter());
-        pairData.setSettingsUseMinPValueFilter(settings.isUseMaxPValueFilter());
-        pairData.setSettingsUseMaxAdfValueFilter(settings.isUseMaxAdfValueFilter());
-        pairData.setSettingsUseMinCorrelationFilter(settings.isUseMinCorrelationFilter());
-        pairData.setSettingsUseMinVolumeFilter(settings.isUseMinVolumeFilter());
-        pairData.setSettingsUseExitTake(settings.isUseExitTake());
-        pairData.setSettingsUseExitStop(settings.isUseExitStop());
-        pairData.setSettingsUseExitZMin(settings.isUseExitZMin());
-        pairData.setSettingsUseExitZMax(settings.isUseExitZMax());
-        pairData.setSettingsUseExitZMaxPercent(settings.isUseExitZMaxPercent());
-        pairData.setSettingsUseExitTimeHours(settings.isUseExitTimeMinutes());
-        pairData.setSettingsUseExitBreakEvenPercent(settings.isUseExitBreakEvenPercent());
-        pairData.setSettingsExitNegativeZMinProfitPercent(settings.getExitNegativeZMinProfitPercent());
-        pairData.setSettingsUseExitNegativeZMinProfitPercent(settings.isUseExitNegativeZMinProfitPercent());
-        pairData.setSettingsMinimumLotBlacklist(settings.getMinimumLotBlacklist());
-        pairData.setUseZScoreScoring(settings.isUseZScoreScoring());
-        pairData.setZScoreScoringWeight(settings.getZScoreScoringWeight());
-        pairData.setUsePixelSpreadScoring(settings.isUsePixelSpreadScoring());
-        pairData.setPixelSpreadScoringWeight(settings.getPixelSpreadScoringWeight());
-        pairData.setUseCointegrationScoring(settings.isUseCointegrationScoring());
-        pairData.setCointegrationScoringWeight(settings.getCointegrationScoringWeight());
-        pairData.setUseModelQualityScoring(settings.isUseModelQualityScoring());
-        pairData.setModelQualityScoringWeight(settings.getModelQualityScoringWeight());
-        pairData.setUseStatisticsScoring(settings.isUseStatisticsScoring());
-        pairData.setStatisticsScoringWeight(settings.getStatisticsScoringWeight());
-        pairData.setUseBonusScoring(settings.isUseBonusScoring());
-        pairData.setBonusScoringWeight(settings.getBonusScoringWeight());
+        tradingPair.setSettingsTimeframe(settings.getTimeframe());
+        tradingPair.setSettingsCandleLimit(settings.getCandleLimit());
+        tradingPair.setSettingsMinZ(settings.getMinZ());
+        tradingPair.setSettingsMinWindowSize(settings.getMinWindowSize());
+        tradingPair.setSettingsMinPValue(settings.getMaxPValue());
+        tradingPair.setSettingsMaxAdfValue(settings.getMaxAdfValue());
+        tradingPair.setSettingsMinRSquared(settings.getMinRSquared());
+        tradingPair.setSettingsMinCorrelation(settings.getMinCorrelation());
+        tradingPair.setSettingsMinVolume(settings.getMinVolume());
+        tradingPair.setSettingsCheckInterval(settings.getCheckInterval());
+        tradingPair.setSettingsMaxLongMarginSize(settings.getMaxLongMarginSize());
+        tradingPair.setSettingsMaxShortMarginSize(settings.getMaxShortMarginSize());
+        tradingPair.setSettingsLeverage(settings.getLeverage());
+        tradingPair.setSettingsExitTake(settings.getExitTake());
+        tradingPair.setSettingsExitStop(settings.getExitStop());
+        tradingPair.setSettingsExitZMin(settings.getExitZMin());
+        tradingPair.setSettingsExitZMax(settings.getExitZMax());
+        tradingPair.setSettingsExitZMaxPercent(settings.getExitZMaxPercent());
+        tradingPair.setSettingsExitTimeMinutes(settings.getExitTimeMinutes());
+        tradingPair.setSettingsExitBreakEvenPercent(settings.getExitBreakEvenPercent());
+        tradingPair.setSettingsUsePairs(settings.getUsePairs());
+        tradingPair.setSettingsAutoTradingEnabled(settings.isAutoTradingEnabled());
+        tradingPair.setSettingsUseMinZFilter(settings.isUseMinZFilter());
+        tradingPair.setSettingsUseMinRSquaredFilter(settings.isUseMinRSquaredFilter());
+        tradingPair.setSettingsUseMinPValueFilter(settings.isUseMaxPValueFilter());
+        tradingPair.setSettingsUseMaxAdfValueFilter(settings.isUseMaxAdfValueFilter());
+        tradingPair.setSettingsUseMinCorrelationFilter(settings.isUseMinCorrelationFilter());
+        tradingPair.setSettingsUseMinVolumeFilter(settings.isUseMinVolumeFilter());
+        tradingPair.setSettingsUseExitTake(settings.isUseExitTake());
+        tradingPair.setSettingsUseExitStop(settings.isUseExitStop());
+        tradingPair.setSettingsUseExitZMin(settings.isUseExitZMin());
+        tradingPair.setSettingsUseExitZMax(settings.isUseExitZMax());
+        tradingPair.setSettingsUseExitZMaxPercent(settings.isUseExitZMaxPercent());
+        tradingPair.setSettingsUseExitTimeHours(settings.isUseExitTimeMinutes());
+        tradingPair.setSettingsUseExitBreakEvenPercent(settings.isUseExitBreakEvenPercent());
+        tradingPair.setSettingsExitNegativeZMinProfitPercent(settings.getExitNegativeZMinProfitPercent());
+        tradingPair.setSettingsUseExitNegativeZMinProfitPercent(settings.isUseExitNegativeZMinProfitPercent());
+        tradingPair.setSettingsMinimumLotBlacklist(settings.getMinimumLotBlacklist());
+        tradingPair.setUseZScoreScoring(settings.isUseZScoreScoring());
+        tradingPair.setZScoreScoringWeight(settings.getZScoreScoringWeight());
+        tradingPair.setUsePixelSpreadScoring(settings.isUsePixelSpreadScoring());
+        tradingPair.setPixelSpreadScoringWeight(settings.getPixelSpreadScoringWeight());
+        tradingPair.setUseCointegrationScoring(settings.isUseCointegrationScoring());
+        tradingPair.setCointegrationScoringWeight(settings.getCointegrationScoringWeight());
+        tradingPair.setUseModelQualityScoring(settings.isUseModelQualityScoring());
+        tradingPair.setModelQualityScoringWeight(settings.getModelQualityScoringWeight());
+        tradingPair.setUseStatisticsScoring(settings.isUseStatisticsScoring());
+        tradingPair.setStatisticsScoringWeight(settings.getStatisticsScoringWeight());
+        tradingPair.setUseBonusScoring(settings.isUseBonusScoring());
+        tradingPair.setBonusScoringWeight(settings.getBonusScoringWeight());
     }
 }

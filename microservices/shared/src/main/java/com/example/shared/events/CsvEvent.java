@@ -1,6 +1,6 @@
 package com.example.shared.events;
 
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class CsvEvent extends BaseEvent {
-    private PairData pairData;
+    private TradingPair tradingPair;
 
-    public CsvEvent(PairData pairData) {
+    public CsvEvent(TradingPair tradingPair) {
         super("EXPORT_PAIR_DATA_REPORT");
-        this.pairData = pairData;
+        this.tradingPair = tradingPair;
     }
 }

@@ -2,7 +2,7 @@ package com.example.core.services;
 
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitExtremum;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,28 +16,28 @@ public class ProfitExtremumService {
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
 
     // Экстремумы берём из pairData, т.к. changesData создаётся заново при каждом вызове
-    public ProfitExtremum getProfitExtremums(PairData pairData, ChangesData changesData) {
-        long currentTimeInMinutes = (System.currentTimeMillis() - pairData.getEntryTime()) / MILLISECONDS_IN_MINUTE;
+    public ProfitExtremum getProfitExtremums(TradingPair tradingPair, ChangesData changesData) {
+        long currentTimeInMinutes = (System.currentTimeMillis() - tradingPair.getEntryTime()) / MILLISECONDS_IN_MINUTE;
 
         BigDecimal currentProfitPercent = changesData.getProfitPercentChanges() != null
                 ? changesData.getProfitPercentChanges()
                 : BigDecimal.ZERO;
 
         // Инициализируем max/min значениями из pairData или currentProfitPercent при первом заходе
-        BigDecimal maxProfit = pairData.getMaxProfitPercentChanges() != null
-                ? pairData.getMaxProfitPercentChanges()
+        BigDecimal maxProfit = tradingPair.getMaxProfitPercentChanges() != null
+                ? tradingPair.getMaxProfitPercentChanges()
                 : currentProfitPercent;
 
-        BigDecimal minProfit = pairData.getMinProfitPercentChanges() != null
-                ? pairData.getMinProfitPercentChanges()
+        BigDecimal minProfit = tradingPair.getMinProfitPercentChanges() != null
+                ? tradingPair.getMinProfitPercentChanges()
                 : currentProfitPercent;
 
-        long timeToMax = pairData.getMinutesToMaxProfitPercent() > 0
-                ? pairData.getMinutesToMaxProfitPercent()
+        long timeToMax = tradingPair.getMinutesToMaxProfitPercent() > 0
+                ? tradingPair.getMinutesToMaxProfitPercent()
                 : currentTimeInMinutes;
 
-        long timeToMin = pairData.getMinutesToMinProfitPercent() > 0
-                ? pairData.getMinutesToMinProfitPercent()
+        long timeToMin = tradingPair.getMinutesToMinProfitPercent() > 0
+                ? tradingPair.getMinutesToMinProfitPercent()
                 : currentTimeInMinutes;
 
         // Обновление значений

@@ -13,29 +13,29 @@ public interface TradingIntegrationService {
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
      */
-    ArbitragePairTradeInfo openArbitragePair(PairData pairData, Settings settings);
+    ArbitragePairTradeInfo openArbitragePair(TradingPair tradingPair, Settings settings);
 
     /**
      * Закрытие пары позиций - СИНХРОННО
      */
-    ArbitragePairTradeInfo closeArbitragePair(PairData pairData);
+    ArbitragePairTradeInfo closeArbitragePair(TradingPair tradingPair);
 
     /**
      * Проверка что позиции действительно закрыты на бирже с получением PnL
      */
-    Positioninfo verifyPositionsClosed(PairData pairData);
+    Positioninfo verifyPositionsClosed(TradingPair tradingPair);
 
     /**
      * Получение актуальной информации по открытым позициям для обновления changes
      */
-    Positioninfo getOpenPositionsInfo(PairData pairData);
+    Positioninfo getOpenPositionsInfo(TradingPair tradingPair);
 
     /**
      * Получение актуальной информации по позициям для пары
      */
-    Positioninfo getPositionInfo(PairData pairData);
+    Positioninfo getPositionInfo(TradingPair tradingPair);
 
-    void deletePositions(PairData pairData);
+    void deletePositions(TradingPair tradingPair);
 
     /**
      * Получение информации о портфолио

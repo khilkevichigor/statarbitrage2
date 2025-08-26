@@ -8,9 +8,9 @@ import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import com.example.shared.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ public class FetchPairsProcessor {
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
 
-    public List<PairData> fetchPairs(FetchPairsRequest request) {
+    public List<TradingPair> fetchPairs(FetchPairsRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("❌ FetchPairsRequest не может быть null");
         }
@@ -48,6 +48,7 @@ public class FetchPairsProcessor {
         int count = Optional.ofNullable(request.getCountOfPairs())
                 .orElse((int) settings.getUsePairs());
 
+        //todo вынести в мс и брать из бд?
         List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap, count);
         if (zScoreDataList.isEmpty()) {
             return Collections.emptyList();
@@ -55,7 +56,7 @@ public class FetchPairsProcessor {
 
         logZScoreResults(zScoreDataList);
 
-        List<PairData> pairs = createPairs(zScoreDataList, candlesMap);
+        List<TradingPair> pairs = createPairs(zScoreDataList, candlesMap);
 
         log.debug("✅ Создано {} пар", pairs.size());
         pairs.forEach(p -> log.debug("📈 {}", p.getPairName()));
@@ -65,9 +66,9 @@ public class FetchPairsProcessor {
     }
 
     private List<String> getUsedTickers() {
-        List<PairData> activePairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<TradingPair> activePairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
-        for (PairData pair : activePairs) {
+        for (TradingPair pair : activePairs) {
             tickers.add(pair.getLongTicker());
             tickers.add(pair.getShortTicker());
         }
@@ -106,7 +107,7 @@ public class FetchPairsProcessor {
         }
     }
 
-    private List<PairData> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+    private List<TradingPair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
             return pairDataService.createPairDataList(zScoreDataList, candlesMap);
         } catch (Exception e) {

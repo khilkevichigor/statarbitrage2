@@ -1,7 +1,7 @@
 package com.example.core.services;
 
 import com.example.shared.events.NotificationEvent;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import com.example.shared.utils.EventPublisher;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +22,8 @@ public class TelegramNotificationService implements NotificationService {
     private final EventPublisher eventPublisher;
 
     @Override
-    public void notifyClose(PairData pairData) {
-        String message = formatCloseMessage(pairData);
+    public void notifyClose(TradingPair tradingPair) {
+        String message = formatCloseMessage(tradingPair);
         NotificationEvent event = new NotificationEvent(
                 message,
                 "test_user",
@@ -42,9 +42,9 @@ public class TelegramNotificationService implements NotificationService {
         }
     }
 
-    private String formatCloseMessage(PairData pairData) {
-        BigDecimal delta = pairData.getPortfolioAfterTradeUSDT()
-                .subtract(pairData.getPortfolioBeforeTradeUSDT());
+    private String formatCloseMessage(TradingPair tradingPair) {
+        BigDecimal delta = tradingPair.getPortfolioAfterTradeUSDT()
+                .subtract(tradingPair.getPortfolioBeforeTradeUSDT());
 
         String deltaString = delta.compareTo(BigDecimal.ZERO) >= 0
                 ? "+" + safeScale(delta, 2)
@@ -59,13 +59,13 @@ public class TelegramNotificationService implements NotificationService {
                         Продолжительность: %s
                         %s
                         %s""",
-                pairData.getPairName(),
-                pairData.getProfitUSDTChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED, pairData.getProfitUSDTChanges(), pairData.getProfitPercentChanges(),
-                pairData.getPortfolioBeforeTradeUSDT(), pairData.getPortfolioAfterTradeUSDT(),
+                tradingPair.getPairName(),
+                tradingPair.getProfitUSDTChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED, tradingPair.getProfitUSDTChanges(), tradingPair.getProfitPercentChanges(),
+                tradingPair.getPortfolioBeforeTradeUSDT(), tradingPair.getPortfolioAfterTradeUSDT(),
                 deltaString.startsWith("-") ? EMOJI_RED : EMOJI_GREEN, deltaString,
-                TimeFormatterUtil.formatDurationFromMillis(pairData.getUpdatedTime() - pairData.getEntryTime()),
-                pairData.getExitReason(),
-                pairData.getUuid()
+                TimeFormatterUtil.formatDurationFromMillis(tradingPair.getUpdatedTime() - tradingPair.getEntryTime()),
+                tradingPair.getExitReason(),
+                tradingPair.getUuid()
         );
     }
 }

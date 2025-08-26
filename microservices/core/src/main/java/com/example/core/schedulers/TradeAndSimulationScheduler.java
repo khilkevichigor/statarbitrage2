@@ -11,9 +11,9 @@ import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.events.UpdateUiEvent;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -49,7 +49,7 @@ public class TradeAndSimulationScheduler {
         long schedulerStart = System.currentTimeMillis();
 
         try {
-            List<PairData> tradingPairs = executeUpdateTrades();
+            List<TradingPair> tradingPairs = executeUpdateTrades();
             logUpdateTradesCompletion(schedulerStart, tradingPairs.size());
         } finally {
             updateTradesRunning.set(false);
@@ -88,10 +88,10 @@ public class TradeAndSimulationScheduler {
         return true;
     }
 
-    private List<PairData> executeUpdateTrades() {
+    private List<TradingPair> executeUpdateTrades() {
         log.debug("🔄 Шедуллер обновления трейдов запущен...");
 
-        List<PairData> updatablePairs = getUpdatablePairs();
+        List<TradingPair> updatablePairs = getUpdatablePairs();
         if (updatablePairs.isEmpty()) {
             return updatablePairs;
         }
@@ -103,7 +103,7 @@ public class TradeAndSimulationScheduler {
         return updatablePairs;
     }
 
-    private List<PairData> getUpdatablePairs() {
+    private List<TradingPair> getUpdatablePairs() {
         try {
             return pairDataService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
         } catch (Exception e) {
@@ -112,23 +112,23 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-    private void processTradeUpdates(List<PairData> updatablePairs) {
+    private void processTradeUpdates(List<TradingPair> updatablePairs) {
         updatablePairs.forEach(this::updateSingleTrade);
     }
 
-    private void updateSingleTrade(PairData pairData) {
+    private void updateSingleTrade(TradingPair tradingPair) {
         try {
-            if (pairData.getStatus() == TradeStatus.TRADING) {
+            if (tradingPair.getStatus() == TradeStatus.TRADING) {
                 updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
-                        .pairData(pairData)
+                        .tradingPair(tradingPair)
                         .closeManually(false)
                         .build());
-            } else if (pairData.getStatus() == TradeStatus.OBSERVED) {
+            } else if (tradingPair.getStatus() == TradeStatus.OBSERVED) {
                 // Here we will call a new method to only update cointegration data
-                updateTradeProcessor.updateObservedPair(pairData);
+                updateTradeProcessor.updateObservedPair(tradingPair);
             }
         } catch (Exception e) {
-            log.warn("⚠️ Ошибка при обновлении пары {}: {}", pairData.getPairName(), e.getMessage());
+            log.warn("⚠️ Ошибка при обновлении пары {}: {}", tradingPair.getPairName(), e.getMessage());
         }
     }
 
@@ -216,7 +216,7 @@ public class TradeAndSimulationScheduler {
 
     private int calculateMissingPairs(Settings settings) {
         try {
-            List<PairData> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<TradingPair> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             int maxActive = (int) settings.getUsePairs();
             int currentActive = tradingPairs.size();
             return maxActive - currentActive;
@@ -231,7 +231,7 @@ public class TradeAndSimulationScheduler {
 
         cleanupOldSelectedPairs();
 
-        List<PairData> newPairs = fetchNewPairs(missingPairs);
+        List<TradingPair> newPairs = fetchNewPairs(missingPairs);
         if (newPairs.isEmpty()) {
             log.warn("⚠️ Отобрано 0 пар!");
             return 0;
@@ -256,7 +256,7 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-    private List<PairData> fetchNewPairs(int count) {
+    private List<TradingPair> fetchNewPairs(int count) {
         try {
             return fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder()
                     .countOfPairs(count)
@@ -267,7 +267,7 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-    private int startNewTrades(List<PairData> newPairs) {
+    private int startNewTrades(List<TradingPair> newPairs) {
         AtomicInteger count = new AtomicInteger(0);
 
         newPairs.forEach(pairData -> {
@@ -279,15 +279,15 @@ public class TradeAndSimulationScheduler {
         return count.get();
     }
 
-    private boolean startSingleNewTrade(PairData pairData) {
+    private boolean startSingleNewTrade(TradingPair tradingPair) {
         try {
-            PairData result = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
-                    .pairData(pairData)
+            TradingPair result = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
+                    .tradingPair(tradingPair)
                     .checkAutoTrading(true)
                     .build());
             return result != null;
         } catch (Exception e) {
-            log.warn("⚠️ Не удалось запустить новый трейд для пары {}: {}", pairData.getPairName(), e.getMessage());
+            log.warn("⚠️ Не удалось запустить новый трейд для пары {}: {}", tradingPair.getPairName(), e.getMessage());
             return false;
         }
     }

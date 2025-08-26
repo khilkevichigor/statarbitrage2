@@ -76,6 +76,10 @@ spring:
           destination: python.events
           content-type: application/json
           group: core-group
+        # Исходящие события уведомлений
+        cointegration-events-out-0:
+          destination: cointegration.events
+          content-type: application/json
 
       rabbit:
         bindings:
@@ -91,6 +95,9 @@ spring:
           statistics-events-out-0:
             producer:
               routing-key-expression: "'statistics'"
+          cointegration-events-out-0:
+            producer:
+              routing-key-expression: "'cointegration'"
 
 # Vaadin configuration
 vaadin:

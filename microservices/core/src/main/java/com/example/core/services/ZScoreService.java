@@ -3,8 +3,8 @@ package com.example.core.services;
 import com.example.core.client_python.PythonRestClient;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import com.example.shared.models.ZScoreParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +44,7 @@ public class ZScoreService {
         }
     }
 
-    private void filterIncompleteZScoreParams(PairData pairData, List<ZScoreData> zScoreDataList, Settings settings) {
+    private void filterIncompleteZScoreParams(TradingPair tradingPair, List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
         double maxZScore = zScoreDataList.stream()
                 .map(data -> (data.getZScoreHistory() != null && !data.getZScoreHistory().isEmpty()) ? data.getZScoreHistory().get(data.getZScoreHistory().size() - 1) : null)
@@ -68,8 +68,8 @@ public class ZScoreService {
                 // Только для старого формата проверяем количество наблюдений
                 isIncompleteBySize = actualSize < expected;
                 if (isIncompleteBySize) {
-                    if (pairData != null) {
-                        pairDataService.delete(pairData);
+                    if (tradingPair != null) {
+                        pairDataService.delete(tradingPair);
                         log.warn("⚠️ Удалили пару {}/{} — наблюдений {} (ожидалось {})",
                                 data.getUnderValuedTicker(), data.getOverValuedTicker(), actualSize, expected);
                     }
@@ -83,8 +83,8 @@ public class ZScoreService {
             } else if (data.getLatestZScore() != null) {
                 lastZScore = data.getLatestZScore();
             } else {
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
+                if (tradingPair != null) {
+                    pairDataService.delete(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — отсутствует информация о Z-score",
                             data.getUnderValuedTicker(), data.getOverValuedTicker());
                 }
@@ -93,8 +93,8 @@ public class ZScoreService {
 
             boolean isIncompleteByZ = settings.isUseMinZFilter() && lastZScore < settings.getMinZ();
             if (isIncompleteByZ) {
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
+                if (tradingPair != null) {
+                    pairDataService.delete(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — Z-скор={} < Z-скор Min={}",
                             data.getUnderValuedTicker(), data.getOverValuedTicker(), lastZScore, settings.getMinZ());
                 }
@@ -104,8 +104,8 @@ public class ZScoreService {
             boolean isIncompleteByRSquared = false;
             if (settings.isUseMinRSquaredFilter() && data.getAvgRSquared() != null && data.getAvgRSquared() < settings.getMinRSquared()) {
                 isIncompleteByRSquared = true;
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
+                if (tradingPair != null) {
+                    pairDataService.delete(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — RSquared={} < MinRSquared={}",
                             data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
                 }
@@ -115,8 +115,8 @@ public class ZScoreService {
             boolean isIncompleteByCorrelation = false;
             if (settings.isUseMinCorrelationFilter() && data.getPearsonCorr() != null && data.getPearsonCorr() < settings.getMinCorrelation()) {
                 isIncompleteByCorrelation = true;
-                if (pairData != null) {
-                    pairDataService.delete(pairData);
+                if (tradingPair != null) {
+                    pairDataService.delete(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — Correlation={} < MinCorrelation={}",
                             data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getPearsonCorr(), settings.getMinCorrelation());
                 }
@@ -136,8 +136,8 @@ public class ZScoreService {
 
                 if (pValue != null && pValue > settings.getMaxPValue()) {
                     isIncompleteByPValue = true;
-                    if (pairData != null) {
-                        pairDataService.delete(pairData);
+                    if (tradingPair != null) {
+                        pairDataService.delete(tradingPair);
                         log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
                                 data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMaxPValue());
                     }
@@ -158,8 +158,8 @@ public class ZScoreService {
 
                 if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
                     isIncompleteByAdfValue = true;
-                    if (pairData != null) {
-                        pairDataService.delete(pairData);
+                    if (tradingPair != null) {
+                        pairDataService.delete(tradingPair);
                         log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
                                 data.getUnderValuedTicker(), data.getOverValuedTicker(), adfValue, settings.getMaxAdfValue());
                     }
@@ -203,7 +203,7 @@ public class ZScoreService {
         return rawZScoreDataList;
     }
 
-    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(PairData pairData, Settings settings, Map<String, List<Candle>> candlesMap) {
+    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(TradingPair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
@@ -215,12 +215,12 @@ public class ZScoreService {
 
         filterZScoreDataForExistingPairBeforeNewTradeService.filter(zScoreDataSingletonList, settings);
 
-        log.debug("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", pairData.getPairName());
+        log.debug("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", tradingPair.getPairName());
 
         // Для информации: рассчитываем скор но не фильтруем
         if (!zScoreDataSingletonList.isEmpty()) {
             // Не используем результат, только для логов
-            log.debug("📊 Информационно: пара {} обновлена с детальными данными", pairData.getPairName());
+            log.debug("📊 Информационно: пара {} обновлена с детальными данными", tradingPair.getPairName());
         }
 
         return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));

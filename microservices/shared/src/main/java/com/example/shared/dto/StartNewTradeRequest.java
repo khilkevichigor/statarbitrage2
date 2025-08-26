@@ -1,6 +1,6 @@
 package com.example.shared.dto;
 
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StartNewTradeRequest {
-    private PairData pairData;
+    private TradingPair tradingPair;
     private boolean checkAutoTrading;
 }

@@ -1,9 +1,9 @@
 package com.example.core.services;
 
 import com.example.core.repositories.TradeHistoryRepository;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeHistory;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,10 +23,10 @@ import java.util.Optional;
 public class TradeHistoryService {
     private final TradeHistoryRepository tradeHistoryRepository;
 
-    public void updateTradeLog(PairData pairData, Settings settings) {
-        String longTicker = pairData.getLongTicker();
-        String shortTicker = pairData.getShortTicker();
-        String pairDataUuid = pairData.getUuid();
+    public void updateTradeLog(TradingPair tradingPair, Settings settings) {
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
+        String pairDataUuid = tradingPair.getUuid();
 
         // ищем по uuid
         Optional<TradeHistory> optional = tradeHistoryRepository.findLatestByUuid(pairDataUuid);
@@ -38,30 +38,30 @@ public class TradeHistoryService {
         tradeHistory.setPairUuid(pairDataUuid);
 
         // мапим поля
-        tradeHistory.setMinProfitPercent(pairData.getMinProfitPercentChanges());
-        tradeHistory.setMinProfitMinutes(pairData.getMinutesToMinProfitPercent() + "min");
+        tradeHistory.setMinProfitPercent(tradingPair.getMinProfitPercentChanges());
+        tradeHistory.setMinProfitMinutes(tradingPair.getMinutesToMinProfitPercent() + "min");
 
-        tradeHistory.setMaxProfitPercent(pairData.getMaxProfitPercentChanges());
-        tradeHistory.setMaxProfitMinutes(pairData.getMinutesToMaxProfitPercent() + "min");
+        tradeHistory.setMaxProfitPercent(tradingPair.getMaxProfitPercentChanges());
+        tradeHistory.setMaxProfitMinutes(tradingPair.getMinutesToMaxProfitPercent() + "min");
 
-        tradeHistory.setCurrentProfitUSDT(pairData.getProfitUSDTChanges());
-        tradeHistory.setCurrentProfitPercent(pairData.getProfitPercentChanges());
+        tradeHistory.setCurrentProfitUSDT(tradingPair.getProfitUSDTChanges());
+        tradeHistory.setCurrentProfitPercent(tradingPair.getProfitPercentChanges());
 
-        tradeHistory.setMinLongPercent(pairData.getMinLong());
-        tradeHistory.setMaxLongPercent(pairData.getMaxLong());
-        tradeHistory.setCurrentLongPercent(pairData.getLongPercentChanges());
+        tradeHistory.setMinLongPercent(tradingPair.getMinLong());
+        tradeHistory.setMaxLongPercent(tradingPair.getMaxLong());
+        tradeHistory.setCurrentLongPercent(tradingPair.getLongPercentChanges());
 
-        tradeHistory.setMinShortPercent(pairData.getMinShort());
-        tradeHistory.setMaxShortPercent(pairData.getMaxShort());
-        tradeHistory.setCurrentShortPercent(pairData.getShortPercentChanges());
+        tradeHistory.setMinShortPercent(tradingPair.getMinShort());
+        tradeHistory.setMaxShortPercent(tradingPair.getMaxShort());
+        tradeHistory.setCurrentShortPercent(tradingPair.getShortPercentChanges());
 
-        tradeHistory.setMinZ(pairData.getMinZ());
-        tradeHistory.setMaxZ(pairData.getMaxZ());
-        tradeHistory.setCurrentZ(pairData.getZScoreCurrent());
+        tradeHistory.setMinZ(tradingPair.getMinZ());
+        tradeHistory.setMaxZ(tradingPair.getMaxZ());
+        tradeHistory.setCurrentZ(tradingPair.getZScoreCurrent());
 
-        tradeHistory.setMinCorr(pairData.getMinCorr());
-        tradeHistory.setMaxCorr(pairData.getMaxCorr());
-        tradeHistory.setCurrentCorr(pairData.getCorrelationCurrent());
+        tradeHistory.setMinCorr(tradingPair.getMinCorr());
+        tradeHistory.setMaxCorr(tradingPair.getMaxCorr());
+        tradeHistory.setCurrentCorr(tradingPair.getCorrelationCurrent());
 
         tradeHistory.setExitTake(settings.getExitTake());
         tradeHistory.setExitStop(settings.getExitStop());
@@ -69,9 +69,9 @@ public class TradeHistoryService {
         tradeHistory.setExitZMax(settings.getExitZMaxPercent());
         tradeHistory.setExitTimeMinutes(settings.getExitTimeMinutes());
 
-        tradeHistory.setExitReason(pairData.getExitReason());
+        tradeHistory.setExitReason(tradingPair.getExitReason());
 
-        long entryMillis = pairData.getEntryTime(); // long, например 1721511983000
+        long entryMillis = tradingPair.getEntryTime(); // long, например 1721511983000
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         // Преобразуем в LocalDateTime через Instant

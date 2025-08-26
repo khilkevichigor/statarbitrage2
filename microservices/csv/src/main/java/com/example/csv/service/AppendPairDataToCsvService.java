@@ -1,7 +1,7 @@
 package com.example.csv.service;
 
 import com.example.shared.models.CsvExportable;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -30,11 +30,11 @@ public class AppendPairDataToCsvService {
     private static final String CSV_FILE_PREFIX = "closed_trades_";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public void appendPairDataToCsv(PairData pairData) {
+    public void appendPairDataToCsv(TradingPair tradingPair) {
         try {
-            pairData.updateFormattedFieldsBeforeExportToCsv();
+            tradingPair.updateFormattedFieldsBeforeExportToCsv();
 
-            List<Field> exportableFields = getExportableFields(PairData.class);
+            List<Field> exportableFields = getExportableFields(TradingPair.class);
             String schemaSignature = getSchemaSignature(exportableFields);
 
             File existingFile = findExistingFile(schemaSignature);
@@ -54,8 +54,8 @@ public class AppendPairDataToCsvService {
                 if (isNewFile) {
                     writer.println(getCsvHeader(exportableFields));
                 }
-                writer.println(toCsvRow(pairData, exportableFields));
-                log.info("✅ Пара {} успешно добавлена в CSV журнал: {}\n", pairData.getPairName(), csvFileName);
+                writer.println(toCsvRow(tradingPair, exportableFields));
+                log.info("✅ Пара {} успешно добавлена в CSV журнал: {}\n", tradingPair.getPairName(), csvFileName);
 
             } catch (IOException | IllegalAccessException e) {
                 log.error("❌ Ошибка при записи в CSV файл: {}\n", e.getMessage(), e);
@@ -105,11 +105,11 @@ public class AppendPairDataToCsvService {
                 .collect(Collectors.joining(","));
     }
 
-    private String toCsvRow(PairData pairData, List<Field> fields) throws IllegalAccessException {
+    private String toCsvRow(TradingPair tradingPair, List<Field> fields) throws IllegalAccessException {
         List<String> values = new ArrayList<>();
         for (Field field : fields) {
             field.setAccessible(true);
-            Object value = field.get(pairData);
+            Object value = field.get(tradingPair);
             if (value instanceof Long && (field.getName().toLowerCase().contains("time"))) {
                 values.add(escapeCsv(formatTimestamp((Long) value)));
             } else {

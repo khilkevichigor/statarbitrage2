@@ -2,8 +2,8 @@ package com.example.candles.service;
 
 import com.example.candles.client.OkxFeignClient;
 import com.example.shared.models.Candle;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,8 +18,8 @@ public class CandlesService {
 
     private final OkxFeignClient okxFeignClient;
 
-    public Map<String, List<Candle>> getApplicableCandlesMap(PairData pairData, Settings settings) {
-        Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(pairData.getLongTicker(), pairData.getShortTicker()), false);
+    public Map<String, List<Candle>> getApplicableCandlesMap(TradingPair tradingPair, Settings settings) {
+        Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()), false);
         validateCandlesLimitAndThrow(candlesMap, settings);
         return candlesMap;
     }

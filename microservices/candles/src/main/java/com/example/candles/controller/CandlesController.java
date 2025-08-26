@@ -22,7 +22,7 @@ public class CandlesController {
     @PostMapping("/applicable-map")
     public Map<String, List<Candle>> getApplicableCandlesMap(@RequestBody CandlesRequest request) {
         if (request.isUsePairData()) {
-            return candlesService.getApplicableCandlesMap(request.getPairData(), request.getSettings());
+            return candlesService.getApplicableCandlesMap(request.getTradingPair(), request.getSettings());
         } else {
             return candlesService.getApplicableCandlesMap(request.getSettings(), request.getTradingTickers());
         }

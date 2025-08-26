@@ -8,8 +8,8 @@ import com.example.core.ui.layout.MainLayout;
 import com.example.core.ui.services.UIUpdateService;
 import com.example.core.ui.services.UIUpdateable;
 import com.example.shared.dto.FetchPairsRequest;
-import com.example.shared.models.PairData;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
@@ -106,7 +106,7 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
 
                 int deleteAllByStatus = pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
                 log.debug("Deleted all {} pairs from database", deleteAllByStatus);
-                List<PairData> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
+                List<TradingPair> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 
                 getUI().ifPresent(ui -> ui.access(() -> {
                     tradingPairsComponent.setSelectedPairs(pairs);

@@ -1,7 +1,7 @@
 package com.example.core.repositories;
 
-import com.example.shared.models.PairData;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,42 +12,42 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Repository
-public interface PairDataRepository extends JpaRepository<PairData, Long> {
+public interface TradingPairRepository extends JpaRepository<TradingPair, Long> {
     @Query("SELECT p " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status " +
             "AND p.entryTime >= :startOfDay " +
             "ORDER BY p.entryTime DESC")
-    List<PairData> findAllByStatusOrderByEntryTimeTodayDesc(
+    List<TradingPair> findAllByStatusOrderByEntryTimeTodayDesc(
             @Param("status") TradeStatus status,
             @Param("startOfDay") Long startOfDay);
 
     // 1. Сортировка по entryTime (от новых к старым)
     @Query("SELECT p " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status " +
             "ORDER BY p.entryTime DESC")
-    List<PairData> findAllByStatusOrderByEntryTimeDesc(@Param("status") TradeStatus status);
+    List<TradingPair> findAllByStatusOrderByEntryTimeDesc(@Param("status") TradeStatus status);
 
     @Query("SELECT p " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status " +
             "ORDER BY p.updatedTime DESC")
-    List<PairData> findAllByStatusOrderByUpdatedTimeDesc(@Param("status") TradeStatus status);
+    List<TradingPair> findAllByStatusOrderByUpdatedTimeDesc(@Param("status") TradeStatus status);
 
-    List<PairData> findAllByStatusIn(List<TradeStatus> statuses);
+    List<TradingPair> findAllByStatusIn(List<TradeStatus> statuses);
 
-    List<PairData> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
+    List<TradingPair> findByLongTickerAndShortTicker(String longTicker, String shortTicker);
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status")
     int deleteAllByStatus(@Param("status") TradeStatus status);
 
     @Query("SELECT COUNT(p) " +
-            "FROM PairData p " +
+            "FROM TradingPair p " +
             "WHERE p.status = :status")
     int countByStatus(@Param("status") TradeStatus status);
 }

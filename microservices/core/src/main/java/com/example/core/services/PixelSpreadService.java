@@ -1,8 +1,8 @@
 package com.example.core.services;
 
 import com.example.shared.models.Candle;
-import com.example.shared.models.PairData;
 import com.example.shared.models.PixelSpreadHistoryItem;
+import com.example.shared.models.TradingPair;
 import com.example.shared.models.ZScoreParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,29 +16,29 @@ public class PixelSpreadService {
     /**
      * Вычисляет пиксельный спред для пары, если он еще не вычислен
      */
-    public void calculatePixelSpreadIfNeeded(PairData pairData) {
-        if (pairData.getPixelSpreadHistory().isEmpty()) {
-            log.debug("🔢 Пиксельный спред не вычислен, вычисляем для пары {}", pairData.getPairName());
-            calculatePixelSpreadForPair(pairData);
+    public void calculatePixelSpreadIfNeeded(TradingPair tradingPair) {
+        if (tradingPair.getPixelSpreadHistory().isEmpty()) {
+            log.debug("🔢 Пиксельный спред не вычислен, вычисляем для пары {}", tradingPair.getPairName());
+            calculatePixelSpreadForPair(tradingPair);
         }
     }
 
     /**
      * Принудительно пересчитывает пиксельный спред для пары
      */
-    public void recalculatePixelSpread(PairData pairData) {
-        log.debug("🔢 Пересчитываем пиксельный спред для пары {}", pairData.getPairName());
-        pairData.clearPixelSpreadHistory(); // Очищаем существующую историю
-        calculatePixelSpreadForPair(pairData);
+    public void recalculatePixelSpread(TradingPair tradingPair) {
+        log.debug("🔢 Пересчитываем пиксельный спред для пары {}", tradingPair.getPairName());
+        tradingPair.clearPixelSpreadHistory(); // Очищаем существующую историю
+        calculatePixelSpreadForPair(tradingPair);
     }
 
     /**
      * Вычисляет пиксельный спред для пары
      */
-    private void calculatePixelSpreadForPair(PairData pairData) {
-        List<Candle> longCandles = pairData.getLongTickerCandles();
-        List<Candle> shortCandles = pairData.getShortTickerCandles();
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+    private void calculatePixelSpreadForPair(TradingPair tradingPair) {
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
             log.warn("⚠️ Не найдены данные для вычисления пиксельного спреда: longCandles={}, shortCandles={}, history={}",
@@ -112,15 +112,15 @@ public class PixelSpreadService {
                 scaledShortPrices.size(), minShortPrice, maxShortPrice);
 
         // Вычисляем пиксельное расстояние между графиками long и short
-        calculateAndSavePixelSpread(pairData, timeLong, scaledLongPrices, timeShort, scaledShortPrices);
+        calculateAndSavePixelSpread(tradingPair, timeLong, scaledLongPrices, timeShort, scaledShortPrices);
     }
 
     /**
      * Вычисляет пиксельное расстояние между графиками Long и Short цен и сохраняет в историю
      */
-    private void calculateAndSavePixelSpread(PairData pairData, List<Date> timeLong, List<Double> scaledLongPrices,
+    private void calculateAndSavePixelSpread(TradingPair tradingPair, List<Date> timeLong, List<Double> scaledLongPrices,
                                              List<Date> timeShort, List<Double> scaledShortPrices) {
-        log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", pairData.getPairName());
+        log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", tradingPair.getPairName());
 
         if (timeLong.isEmpty() || timeShort.isEmpty() || scaledLongPrices.isEmpty() || scaledShortPrices.isEmpty()) {
             log.warn("⚠️ Недостаточно данных для вычисления пиксельного спреда");
@@ -163,7 +163,7 @@ public class PixelSpreadService {
 
                 // Сохраняем в историю пиксельного спреда
                 PixelSpreadHistoryItem pixelSpreadItem = new PixelSpreadHistoryItem(timestamp, pixelDistance);
-                pairData.addPixelSpreadPoint(pixelSpreadItem);
+                tradingPair.addPixelSpreadPoint(pixelSpreadItem);
 
                 log.trace("🔢 Timestamp: {}, Long: {} px, Short: {} px, Distance: {} px",
                         new Date(timestamp), Math.round(longPixelY), Math.round(shortPixelY), Math.round(pixelDistance));
@@ -171,7 +171,7 @@ public class PixelSpreadService {
         }
 
         log.debug("✅ Пиксельный спред вычислен и сохранен. Всего точек: {}",
-                pairData.getPixelSpreadHistory().size());
+                tradingPair.getPixelSpreadHistory().size());
     }
 
     /**
@@ -210,8 +210,8 @@ public class PixelSpreadService {
     /**
      * Получает среднее значение пиксельного спреда для пары
      */
-    public double getAveragePixelSpread(PairData pairData) {
-        List<PixelSpreadHistoryItem> history = pairData.getPixelSpreadHistory();
+    public double getAveragePixelSpread(TradingPair tradingPair) {
+        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
         }
@@ -225,8 +225,8 @@ public class PixelSpreadService {
     /**
      * Получает максимальное значение пиксельного спреда для пары
      */
-    public double getMaxPixelSpread(PairData pairData) {
-        List<PixelSpreadHistoryItem> history = pairData.getPixelSpreadHistory();
+    public double getMaxPixelSpread(TradingPair tradingPair) {
+        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
         }
@@ -240,8 +240,8 @@ public class PixelSpreadService {
     /**
      * Получает минимальное значение пиксельного спреда для пары
      */
-    public double getMinPixelSpread(PairData pairData) {
-        List<PixelSpreadHistoryItem> history = pairData.getPixelSpreadHistory();
+    public double getMinPixelSpread(TradingPair tradingPair) {
+        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
         }
@@ -255,8 +255,8 @@ public class PixelSpreadService {
     /**
      * Получает текущее значение пиксельного спреда для пары (последнее по времени)
      */
-    public double getCurrentPixelSpread(PairData pairData) {
-        List<PixelSpreadHistoryItem> history = pairData.getPixelSpreadHistory();
+    public double getCurrentPixelSpread(TradingPair tradingPair) {
+        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
         }
@@ -271,13 +271,13 @@ public class PixelSpreadService {
     /**
      * Получает стандартное отклонение пиксельного спреда для пары
      */
-    public double getPixelSpreadStandardDeviation(PairData pairData) {
-        List<PixelSpreadHistoryItem> history = pairData.getPixelSpreadHistory();
+    public double getPixelSpreadStandardDeviation(TradingPair tradingPair) {
+        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
         if (history.size() < 2) {
             return 0.0;
         }
 
-        double average = getAveragePixelSpread(pairData);
+        double average = getAveragePixelSpread(tradingPair);
 
         double sumSquaredDifferences = history.stream()
                 .mapToDouble(item -> {
@@ -292,10 +292,10 @@ public class PixelSpreadService {
     /**
      * Добавляет новую точку пиксельного спреда для текущего времени
      */
-    public void addCurrentPixelSpreadPoint(PairData pairData) {
-        List<Candle> longCandles = pairData.getLongTickerCandles();
-        List<Candle> shortCandles = pairData.getShortTickerCandles();
-        List<ZScoreParam> history = pairData.getZScoreHistory();
+    public void addCurrentPixelSpreadPoint(TradingPair tradingPair) {
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
             log.warn("⚠️ Не найдены данные для добавления новой точки пиксельного спреда: longCandles={}, shortCandles={}, history={}",
@@ -352,18 +352,18 @@ public class PixelSpreadService {
         double pixelDistance = Math.abs(longPixelY - shortPixelY);
 
         // Проверяем, не добавляли ли мы уже точку для этого времени
-        boolean alreadyExists = pairData.getPixelSpreadHistory().stream()
+        boolean alreadyExists = tradingPair.getPixelSpreadHistory().stream()
                 .anyMatch(item -> Math.abs(item.getTimestamp() - currentTimestamp) < 1000); // 1 секунда толеранс
 
         if (!alreadyExists) {
             PixelSpreadHistoryItem newPoint = new PixelSpreadHistoryItem(currentTimestamp, pixelDistance);
-            pairData.addPixelSpreadPoint(newPoint);
+            tradingPair.addPixelSpreadPoint(newPoint);
 
             log.debug("✅ Добавлена новая точка пиксельного спреда для пары {} в {}: {} пикселей",
-                    pairData.getPairName(), new Date(currentTimestamp), Math.round(pixelDistance));
+                    tradingPair.getPairName(), new Date(currentTimestamp), Math.round(pixelDistance));
         } else {
             log.trace("⏭️ Точка пиксельного спреда уже существует для времени {} пары {}",
-                    new Date(currentTimestamp), pairData.getPairName());
+                    new Date(currentTimestamp), tradingPair.getPairName());
         }
     }
 

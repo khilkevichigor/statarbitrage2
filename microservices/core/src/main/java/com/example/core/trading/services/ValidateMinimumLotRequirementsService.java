@@ -2,8 +2,8 @@ package com.example.core.trading.services;
 
 import com.example.core.services.SettingsService;
 import com.example.core.trading.interfaces.TradingProvider;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,37 +24,37 @@ public class ValidateMinimumLotRequirementsService {
      * Проверка пары на соответствие требованиям минимального лота.
      * Возвращает false, если минимальный лот для любой позиции превышает желаемую сумму более чем в 3 раза.
      */
-    public boolean validate(TradingProvider provider, PairData pairData, BigDecimal longAmount, BigDecimal shortAmount) {
+    public boolean validate(TradingProvider provider, TradingPair tradingPair, BigDecimal longAmount, BigDecimal shortAmount) {
         // Проверка блэклиста ДО основной валидации
-        for (String ticker : List.of(pairData.getLongTicker(), pairData.getShortTicker())) {
+        for (String ticker : List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) {
             if (isInBlacklist(ticker)) {
                 log.warn("❌ БЛОКИРОВКА: Пара {} заблокирована из-за тикера {} в блэклисте минимальных лотов",
-                        pairData.getPairName(), ticker);
+                        tradingPair.getPairName(), ticker);
                 return false;
             }
         }
         try {
-            BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
-            BigDecimal shortPrice = provider.getCurrentPrice(pairData.getShortTicker());
+            BigDecimal longPrice = provider.getCurrentPrice(tradingPair.getLongTicker());
+            BigDecimal shortPrice = provider.getCurrentPrice(tradingPair.getShortTicker());
 
             if (isInvalidPrice(longPrice) || isInvalidPrice(shortPrice)) {
-                log.warn("⚠️ Не удалось получить корректные цены для проверки минимальных лотов для пары {}", pairData.getPairName());
+                log.warn("⚠️ Не удалось получить корректные цены для проверки минимальных лотов для пары {}", tradingPair.getPairName());
                 return true; // Разрешаем торговлю при отсутствии корректных данных о ценах
             }
 
-            if (!validatePositionForMinimumLot(pairData.getLongTicker(), longAmount, longPrice)) {
+            if (!validatePositionForMinimumLot(tradingPair.getLongTicker(), longAmount, longPrice)) {
                 return false;
             }
 
-            if (!validatePositionForMinimumLot(pairData.getShortTicker(), shortAmount, shortPrice)) {
+            if (!validatePositionForMinimumLot(tradingPair.getShortTicker(), shortAmount, shortPrice)) {
                 return false;
             }
 
-            log.debug("✅ Пара {} прошла проверку минимальных лотов", pairData.getPairName());
+            log.debug("✅ Пара {} прошла проверку минимальных лотов", tradingPair.getPairName());
             return true;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при проверке минимальных лотов для {}: {}", pairData.getPairName(), e.getMessage(), e);
+            log.error("❌ Ошибка при проверке минимальных лотов для {}: {}", tradingPair.getPairName(), e.getMessage(), e);
             return true; // Разрешаем торговлю при ошибке проверки
         }
     }

@@ -2,8 +2,8 @@ package com.example.core.services;
 
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
-import com.example.shared.models.PairData;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import com.example.shared.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,13 +24,13 @@ public class CreatePairDataService {
     /**
      * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
      */
-    public List<PairData> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
-        List<PairData> result = new ArrayList<>();
+    public List<TradingPair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+        List<TradingPair> result = new ArrayList<>();
 
         for (ZScoreData zScoreData : zScoreDataList) {
             try {
-                PairData pairData = buildPairData(zScoreData, candlesMap);
-                result.add(pairData);
+                TradingPair tradingPair = buildPairData(zScoreData, candlesMap);
+                result.add(tradingPair);
             } catch (IllegalArgumentException e) {
                 log.warn("⚠️ Пропущена пара {}/{}: {}",
                         zScoreData.getUnderValuedTicker(),
@@ -50,7 +50,7 @@ public class CreatePairDataService {
     /**
      * Строит одну пару на основе Z-данных и свечей
      */
-    private PairData buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    private TradingPair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         String undervalued = zScoreData.getUnderValuedTicker();
         String overvalued = zScoreData.getOverValuedTicker();
 
@@ -61,36 +61,36 @@ public class CreatePairDataService {
             throw new IllegalArgumentException("Недостаточно данных по свечам");
         }
 
-        PairData pairData = new PairData(undervalued, overvalued);
-        pairData.setStatus(TradeStatus.SELECTED);
-        pairData.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedCandles));
-        pairData.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
-        pairData.setLongTickerCandles(undervaluedCandles);
-        pairData.setShortTickerCandles(overvaluedCandles);
-        pairData.setTimestamp(System.currentTimeMillis()); //создание и обноаление
+        TradingPair tradingPair = new TradingPair(undervalued, overvalued);
+        tradingPair.setStatus(TradeStatus.SELECTED);
+        tradingPair.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedCandles));
+        tradingPair.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
+        tradingPair.setLongTickerCandles(undervaluedCandles);
+        tradingPair.setShortTickerCandles(overvaluedCandles);
+        tradingPair.setTimestamp(System.currentTimeMillis()); //создание и обноаление
 
-        updateZScoreDataCurrentService.updateCurrent(pairData, zScoreData);
+        updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
 
         // Рассчитываем пиксельный спред для новой пары
         try {
-            pixelSpreadService.calculatePixelSpreadIfNeeded(pairData);
+            pixelSpreadService.calculatePixelSpreadIfNeeded(tradingPair);
 
             // Логируем статистику пиксельного спреда
-            double avgSpread = pixelSpreadService.getAveragePixelSpread(pairData);
-            double maxSpread = pixelSpreadService.getMaxPixelSpread(pairData);
-            double currentSpread = pixelSpreadService.getCurrentPixelSpread(pairData);
+            double avgSpread = pixelSpreadService.getAveragePixelSpread(tradingPair);
+            double maxSpread = pixelSpreadService.getMaxPixelSpread(tradingPair);
+            double currentSpread = pixelSpreadService.getCurrentPixelSpread(tradingPair);
 
             log.debug("🔢 Пиксельный спред для {}/{}: avg={}px, max={}px, current={}px",
-                    pairData.getLongTicker(), pairData.getShortTicker(),
+                    tradingPair.getLongTicker(), tradingPair.getShortTicker(),
                     String.format("%.1f", avgSpread), String.format("%.1f", maxSpread),
                     String.format("%.1f", currentSpread));
 
         } catch (Exception e) {
             log.warn("⚠️ Ошибка расчета пиксельного спреда для {}/{}: {}",
-                    pairData.getLongTicker(), pairData.getShortTicker(), e.getMessage());
+                    tradingPair.getLongTicker(), tradingPair.getShortTicker(), e.getMessage());
         }
 
-        return pairData;
+        return tradingPair;
     }
 
     private boolean isEmpty(List<?> list) {

@@ -3,9 +3,9 @@ package com.example.core.services;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitExtremum;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Position;
 import com.example.shared.models.Positioninfo;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,32 +23,32 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ProfitExtremumService profitExtremumService;
 
-    public ChangesData getChanges(PairData pairData) {
-        log.debug("==> getChanges: НАЧАЛО для пары {}", pairData.getPairName());
+    public ChangesData getChanges(TradingPair tradingPair) {
+        log.debug("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
         try {
 
             log.debug("Запрашиваем информацию о позициях...");
-            Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(pairData);
+            Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(tradingPair);
             log.debug("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
-                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", pairData.getPairName(), positionsInfo);
+                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", tradingPair.getPairName(), positionsInfo);
                 return new ChangesData();
             }
 
-            ChangesData result = getFromPositions(pairData, positionsInfo);
-            log.debug("<== getChanges: КОНЕЦ для пары {}. Результат: {}", pairData.getPairName(), result);
+            ChangesData result = getFromPositions(tradingPair, positionsInfo);
+            log.debug("<== getChanges: КОНЕЦ для пары {}. Результат: {}", tradingPair.getPairName(), result);
             return result;
 
         } catch (Exception e) {
-            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", pairData.getPairName(), e.getMessage(), e);
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", tradingPair.getPairName(), e.getMessage(), e);
         }
-        log.debug("<== getChanges: КОНЕЦ (с ошибкой) для пары {}", pairData.getPairName());
+        log.debug("<== getChanges: КОНЕЦ (с ошибкой) для пары {}", tradingPair.getPairName());
         return new ChangesData();
     }
 
-    private ChangesData getFromPositions(PairData pairData, Positioninfo positionsInfo) {
-        log.debug("--> getFromPositions: НАЧАЛО для пары {}", pairData.getPairName());
+    private ChangesData getFromPositions(TradingPair tradingPair, Positioninfo positionsInfo) {
+        log.debug("--> getFromPositions: НАЧАЛО для пары {}", tradingPair.getPairName());
         Position longPosition = positionsInfo.getLongPosition();
         Position shortPosition = positionsInfo.getShortPosition();
         boolean isPositionsClosed = positionsInfo.isPositionsClosed();
@@ -60,12 +60,12 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         log.debug("Текущие цены: LONG {} = {}, SHORT {} = {}", longPosition.getSymbol(), longPosition.getCurrentPrice(), shortPosition.getSymbol(), shortPosition.getCurrentPrice());
 
         return isPositionsClosed ?
-                getFromClosedPositions(pairData, changesData, longPosition, shortPosition) :
-                getFromOpenPositions(pairData, changesData, longPosition, shortPosition);
+                getFromClosedPositions(tradingPair, changesData, longPosition, shortPosition) :
+                getFromOpenPositions(tradingPair, changesData, longPosition, shortPosition);
     }
 
-    private ChangesData getFromClosedPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
-        log.debug("--> getFromClosedPositions для пары {}", pairData.getPairName());
+    private ChangesData getFromClosedPositions(TradingPair tradingPair, ChangesData changesData, Position longPosition, Position shortPosition) {
+        log.debug("--> getFromClosedPositions для пары {}", tradingPair.getPairName());
 
         BigDecimal totalRealizedPnlUSDT = safeScale(safeGet(longPosition.getRealizedPnLUSDT()).add(safeGet(shortPosition.getRealizedPnLUSDT())), 8);
 //        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8); //todo 0.00 в закрытых парах
@@ -94,11 +94,11 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
 
         log.info("Реализованный PnL: {} USDT ({} %), комиссии (открытие+закрытие+фандинг): {}", totalRealizedPnlUSDT, totalRealizedPnlPercent, totalFees);
 
-        return getProfitAndStatistics(pairData, changesData, totalRealizedPnlUSDT, totalRealizedPnlPercent, true, longPosition, shortPosition);
+        return getProfitAndStatistics(tradingPair, changesData, totalRealizedPnlUSDT, totalRealizedPnlPercent, true, longPosition, shortPosition);
     }
 
-    private ChangesData getFromOpenPositions(PairData pairData, ChangesData changesData, Position longPosition, Position shortPosition) {
-        log.debug("--> getFromOpenPositions для пары {}", pairData.getPairName());
+    private ChangesData getFromOpenPositions(TradingPair tradingPair, ChangesData changesData, Position longPosition, Position shortPosition) {
+        log.debug("--> getFromOpenPositions для пары {}", tradingPair.getPairName());
 
         // Суммарный USDT-профит (уже с учетом комиссий)
         BigDecimal totalUnrealizedPnlUSDT = safeScale(
@@ -129,7 +129,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         );
 
         // Логирование деталей
-        log.debug("📊 Итог по паре {}:", pairData.getPairName());
+        log.debug("📊 Итог по паре {}:", tradingPair.getPairName());
         log.debug("➡️ Нереализованный PnL: {} USDT ({} %) с учетом комиссий", totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent);
         log.debug("➡️ Лонг: allocated = {}, unrealizedPnL = {} USDT ({} %), openingFee = {}, fundingFee = {}",
                 longAlloc,
@@ -141,12 +141,12 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
                 safeGet(shortPosition.getUnrealizedPnLUSDT()), safeGet(shortPosition.getUnrealizedPnLPercent()),
                 safeGet(shortPosition.getOpeningFees()), safeGet(shortPosition.getFundingFees())
         );
-        log.debug("➡️ Суммарные комиссии по паре {}: {}", pairData.getPairName(), totalFees);
+        log.debug("➡️ Суммарные комиссии по паре {}: {}", tradingPair.getPairName(), totalFees);
 
-        return getProfitAndStatistics(pairData, changesData, totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, false, longPosition, shortPosition);
+        return getProfitAndStatistics(tradingPair, changesData, totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, false, longPosition, shortPosition);
     }
 
-    private ChangesData getProfitAndStatistics(PairData pairData, ChangesData changesData, BigDecimal pnlUSDT, BigDecimal pnlPercent,
+    private ChangesData getProfitAndStatistics(TradingPair tradingPair, ChangesData changesData, BigDecimal pnlUSDT, BigDecimal pnlPercent,
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
@@ -161,46 +161,46 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
 
         log.debug("Профит: {} USDT ({} %) из {}", pnlUSDT, pnlPercent, isPositionsClosed ? "закрытых позиций" : "открытых позиций");
 
-        return getStatistics(pairData, changesData);
+        return getStatistics(tradingPair, changesData);
     }
 
-    private ChangesData getStatistics(PairData pairData, ChangesData changesData) {
-        BigDecimal zScoreEntry = BigDecimal.valueOf(pairData.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(pairData.getZScoreCurrent());
+    private ChangesData getStatistics(TradingPair tradingPair, ChangesData changesData) {
+        BigDecimal zScoreEntry = BigDecimal.valueOf(tradingPair.getZScoreEntry());
+        BigDecimal zScoreCurrent = BigDecimal.valueOf(tradingPair.getZScoreCurrent());
         changesData.setZScoreChanges(safeScale(zScoreCurrent.subtract(zScoreEntry), 2));
 
-        ProfitExtremum profitExtremum = profitExtremumService.getProfitExtremums(pairData, changesData);
+        ProfitExtremum profitExtremum = profitExtremumService.getProfitExtremums(tradingPair, changesData);
 
-        updateExtremumValues(pairData, changesData, changesData.getLongPercentChanges(), changesData.getShortPercentChanges(),
-                BigDecimal.valueOf(pairData.getZScoreCurrent()), BigDecimal.valueOf(pairData.getCorrelationCurrent()));
+        updateExtremumValues(tradingPair, changesData, changesData.getLongPercentChanges(), changesData.getShortPercentChanges(),
+                BigDecimal.valueOf(tradingPair.getZScoreCurrent()), BigDecimal.valueOf(tradingPair.getCorrelationCurrent()));
 
         changesData.setMinProfitChanges(profitExtremum.minProfit());
         changesData.setMaxProfitChanges(profitExtremum.maxProfit());
         changesData.setTimeInMinutesSinceEntryToMaxProfit(profitExtremum.timeToMax());
         changesData.setTimeInMinutesSinceEntryToMinProfit(profitExtremum.timeToMin());
 
-        logFinalResults(pairData, changesData);
+        logFinalResults(tradingPair, changesData);
 
         return changesData;
     }
 
-    private void logFinalResults(PairData pairData, ChangesData changesData) {
-        log.info("📊 ЛОНГ {}: вход: {}, тек.: {}, изм.: {} %", pairData.getLongTicker(), pairData.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongPercentChanges());
-        log.info("📉 ШОРТ {}: вход: {}, тек.: {}, изм.: {} %", pairData.getShortTicker(), pairData.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortPercentChanges());
+    private void logFinalResults(TradingPair tradingPair, ChangesData changesData) {
+        log.info("📊 ЛОНГ {}: вход: {}, тек.: {}, изм.: {} %", tradingPair.getLongTicker(), tradingPair.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongPercentChanges());
+        log.info("📉 ШОРТ {}: вход: {}, тек.: {}, изм.: {} %", tradingPair.getShortTicker(), tradingPair.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortPercentChanges());
         log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
         log.info("📈 Max профит: {} % ({} минут), Min профит: {} % ({} минут)", changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMaxProfit(), changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMinProfit());
     }
 
-    private void updateExtremumValues(PairData pairData, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
+    private void updateExtremumValues(TradingPair tradingPair, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
                                       BigDecimal zScore, BigDecimal corr) {
-        changesData.setMinZ(updateMin(pairData.getMinZ(), zScore));
-        changesData.setMaxZ(updateMax(pairData.getMaxZ(), zScore));
-        changesData.setMinLong(updateMin(pairData.getMinLong(), longPct));
-        changesData.setMaxLong(updateMax(pairData.getMaxLong(), longPct));
-        changesData.setMinShort(updateMin(pairData.getMinShort(), shortPct));
-        changesData.setMaxShort(updateMax(pairData.getMaxShort(), shortPct));
-        changesData.setMinCorr(updateMin(pairData.getMinCorr(), corr));
-        changesData.setMaxCorr(updateMax(pairData.getMaxCorr(), corr));
+        changesData.setMinZ(updateMin(tradingPair.getMinZ(), zScore));
+        changesData.setMaxZ(updateMax(tradingPair.getMaxZ(), zScore));
+        changesData.setMinLong(updateMin(tradingPair.getMinLong(), longPct));
+        changesData.setMaxLong(updateMax(tradingPair.getMaxLong(), longPct));
+        changesData.setMinShort(updateMin(tradingPair.getMinShort(), shortPct));
+        changesData.setMaxShort(updateMax(tradingPair.getMaxShort(), shortPct));
+        changesData.setMinCorr(updateMin(tradingPair.getMinCorr(), corr));
+        changesData.setMaxCorr(updateMax(tradingPair.getMaxCorr(), corr));
     }
 
     private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newVal) {

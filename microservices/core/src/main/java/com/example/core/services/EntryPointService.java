@@ -1,8 +1,8 @@
 package com.example.core.services;
 
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.models.PairData;
 import com.example.shared.models.TradeResult;
+import com.example.shared.models.TradingPair;
 import com.example.shared.models.ZScoreParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,31 +13,31 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EntryPointService {
 
-    public void addEntryPoints(PairData pairData, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
+    public void addEntryPoints(TradingPair tradingPair, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
         if (zScoreData.getZScoreHistory() == null || zScoreData.getZScoreHistory().isEmpty()) {
-            log.error("Z-score history is empty for pair {}", pairData.getPairName());
+            log.error("Z-score history is empty for pair {}", tradingPair.getPairName());
             // Or throw an exception, depending on desired behavior
             return;
         }
         ZScoreParam latestParam = zScoreData.getZScoreHistory().get(zScoreData.getZScoreHistory().size() - 1);
-        pairData.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
-        pairData.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
-        pairData.setZScoreEntry(latestParam.getZscore());
-        pairData.setCorrelationEntry(latestParam.getCorrelation());
-        pairData.setAdfPvalueEntry(latestParam.getAdfpvalue());
-        pairData.setPValueEntry(latestParam.getPvalue());
-        pairData.setMeanEntry(latestParam.getMean());
-        pairData.setStdEntry(latestParam.getStd());
-        pairData.setSpreadEntry(latestParam.getSpread());
-        pairData.setAlphaEntry(latestParam.getAlpha());
-        pairData.setBetaEntry(latestParam.getBeta());
+        tradingPair.setLongTickerEntryPrice(openLongTradeResult.getExecutionPrice().doubleValue());
+        tradingPair.setShortTickerEntryPrice(openShortTradeResult.getExecutionPrice().doubleValue());
+        tradingPair.setZScoreEntry(latestParam.getZscore());
+        tradingPair.setCorrelationEntry(latestParam.getCorrelation());
+        tradingPair.setAdfPvalueEntry(latestParam.getAdfpvalue());
+        tradingPair.setPValueEntry(latestParam.getPvalue());
+        tradingPair.setMeanEntry(latestParam.getMean());
+        tradingPair.setStdEntry(latestParam.getStd());
+        tradingPair.setSpreadEntry(latestParam.getSpread());
+        tradingPair.setAlphaEntry(latestParam.getAlpha());
+        tradingPair.setBetaEntry(latestParam.getBeta());
         // Время входа
-        pairData.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
+        tradingPair.setEntryTime(openLongTradeResult.getExecutionTime().atZone(java.time.ZoneId.systemDefault()).toEpochSecond() * 1000);
 
         log.debug("🔹Установлены точки входа: LONG {{}} = {}, SHORT {{}} = {}, Z-скор = {}",
-                pairData.getLongTicker(), pairData.getLongTickerEntryPrice(),
-                pairData.getShortTicker(), pairData.getShortTickerEntryPrice(),
-                pairData.getZScoreEntry());
+                tradingPair.getLongTicker(), tradingPair.getLongTickerEntryPrice(),
+                tradingPair.getShortTicker(), tradingPair.getShortTickerEntryPrice(),
+                tradingPair.getZScoreEntry());
     }
 
 

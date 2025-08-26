@@ -1,7 +1,7 @@
 package com.example.core.trading.services;
 
 import com.example.core.trading.interfaces.TradingProvider;
-import com.example.shared.models.PairData;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,10 +23,10 @@ public class AdaptiveAmountService {
     /**
      * Адаптивный расчет сумм для минимизации дисбаланса после lot size корректировки
      */
-    public BigDecimal[] calculate(TradingProvider provider, PairData pairData, BigDecimal totalAmount) {
+    public BigDecimal[] calculate(TradingProvider provider, TradingPair tradingPair, BigDecimal totalAmount) {
         try {
-            BigDecimal longPrice = provider.getCurrentPrice(pairData.getLongTicker());
-            BigDecimal shortPrice = provider.getCurrentPrice(pairData.getShortTicker());
+            BigDecimal longPrice = provider.getCurrentPrice(tradingPair.getLongTicker());
+            BigDecimal shortPrice = provider.getCurrentPrice(tradingPair.getShortTicker());
 
             if (isInvalidPrice(longPrice) || isInvalidPrice(shortPrice)) {
                 log.warn("⚠️ Не удалось получить корректные цены для адаптивного расчета, используем равное распределение 50/50");

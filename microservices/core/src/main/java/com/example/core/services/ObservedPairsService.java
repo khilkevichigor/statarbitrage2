@@ -1,8 +1,8 @@
 package com.example.core.services;
 
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class ObservedPairsService {
         }
 
         List<String> pairs = Arrays.asList(pairsString.split(","));
-        List<PairData> pairDataList = new ArrayList<>();
+        List<TradingPair> tradingPairList = new ArrayList<>();
 
         for (String pair : pairs) {
             String[] tickers = pair.split("/");
@@ -46,12 +46,12 @@ public class ObservedPairsService {
                     continue;
                 }
 
-                PairData pairData = new PairData(longTicker, shortTicker);
-                pairData.setStatus(TradeStatus.OBSERVED);
-                pairDataList.add(pairData);
+                TradingPair tradingPair = new TradingPair(longTicker, shortTicker);
+                tradingPair.setStatus(TradeStatus.OBSERVED);
+                tradingPairList.add(tradingPair);
             }
         }
 
-        pairDataService.saveAll(pairDataList);
+        pairDataService.saveAll(tradingPairList);
     }
 }

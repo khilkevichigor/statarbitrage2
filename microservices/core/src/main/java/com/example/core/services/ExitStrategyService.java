@@ -1,7 +1,7 @@
 package com.example.core.services;
 
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,11 +16,11 @@ public class ExitStrategyService {
      *
      * @return Название причины выхода или {@code null}, если оснований для выхода нет.
      */
-    public String getExitReason(PairData pairData, Settings settings) {
-        double profit = pairData.getProfitPercentChanges().doubleValue();
-        double zScoreCurrent = pairData.getZScoreCurrent();
-        double zScoreEntry = pairData.getZScoreEntry();
-        long entryTimeMillis = pairData.getEntryTime();
+    public String getExitReason(TradingPair tradingPair, Settings settings) {
+        double profit = tradingPair.getProfitPercentChanges().doubleValue();
+        double zScoreCurrent = tradingPair.getZScoreCurrent();
+        double zScoreEntry = tradingPair.getZScoreEntry();
+        long entryTimeMillis = tradingPair.getEntryTime();
         long nowMillis = System.currentTimeMillis();
 
         if (isStopTriggered(profit, settings)) {
@@ -50,7 +50,7 @@ public class ExitStrategyService {
             return ExitReasonType.EXIT_REASON_BY_TIME.name();
         }
 
-        if (isCloseAtBreakevenTriggered(pairData, settings)) {
+        if (isCloseAtBreakevenTriggered(tradingPair, settings)) {
             log.info("Выход по безубытку: profit = {}%", profit);
             return ExitReasonType.EXIT_REASON_BY_BREAKEVEN.name();
         }
@@ -92,11 +92,11 @@ public class ExitStrategyService {
         return minutesHeld >= settings.getExitTimeMinutes(); // сравнение с минутами
     }
 
-    private boolean isCloseAtBreakevenTriggered(PairData pairData, Settings settings) {
+    private boolean isCloseAtBreakevenTriggered(TradingPair tradingPair, Settings settings) {
         if (!settings.isUseExitBreakEvenPercent()) {
             return false;
         }
-        return pairData.isCloseAtBreakeven() && pairData.getProfitPercentChanges().doubleValue() >= settings.getExitBreakEvenPercent(); //1% чтобы гарантировать БУ
+        return tradingPair.isCloseAtBreakeven() && tradingPair.getProfitPercentChanges().doubleValue() >= settings.getExitBreakEvenPercent(); //1% чтобы гарантировать БУ
     }
 
     /**

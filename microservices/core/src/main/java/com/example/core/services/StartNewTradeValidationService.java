@@ -3,8 +3,8 @@ package com.example.core.services;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.models.PairData;
 import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,19 +19,19 @@ public class StartNewTradeValidationService {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
 
     public void validateRequest(StartNewTradeRequest request) {
-        if (request == null || request.getPairData() == null) {
+        if (request == null || request.getTradingPair() == null) {
             throw new IllegalArgumentException("Неверный запрос на начало нового трейда");
         }
     }
 
-    public boolean validateTickers(PairData pairData, ZScoreData zScoreData) {
-        return Objects.equals(pairData.getLongTicker(), zScoreData.getUnderValuedTicker()) &&
-                Objects.equals(pairData.getShortTicker(), zScoreData.getOverValuedTicker());
+    public boolean validateTickers(TradingPair tradingPair, ZScoreData zScoreData) {
+        return Objects.equals(tradingPair.getLongTicker(), zScoreData.getUnderValuedTicker()) &&
+                Objects.equals(tradingPair.getShortTicker(), zScoreData.getOverValuedTicker());
     }
 
-    public boolean validateAutoTrading(PairData pairData, boolean checkAutoTrading) {
+    public boolean validateAutoTrading(TradingPair tradingPair, boolean checkAutoTrading) {
         if (!checkAutoTrading) {
-            log.debug("🔧 Ручной запуск трейда - проверка автотрейдинга пропущена для пары {}", pairData.getPairName());
+            log.debug("🔧 Ручной запуск трейда - проверка автотрейдинга пропущена для пары {}", tradingPair.getPairName());
             return true;
         }
 
@@ -39,7 +39,7 @@ public class StartNewTradeValidationService {
         log.debug("📖 Процессор: Читаем настройки из БД: autoTrading={}", currentSettings.isAutoTradingEnabled());
 
         if (!currentSettings.isAutoTradingEnabled()) {
-            log.warn("⚠️ Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {}", pairData.getPairName());
+            log.warn("⚠️ Автотрейдинг отключен! Пропускаю открытие нового трейда для пары {}", tradingPair.getPairName());
             return false;
         }
 
@@ -47,17 +47,17 @@ public class StartNewTradeValidationService {
         return true;
     }
 
-    public boolean isLastZLessThenMinZ(PairData pairData, Settings settings) {
-        if (pairData == null) {
+    public boolean isLastZLessThenMinZ(TradingPair tradingPair, Settings settings) {
+        if (tradingPair == null) {
             throw new IllegalArgumentException("pairData is null");
         }
 
-        double zScore = pairData.getZScoreCurrent();
+        double zScore = tradingPair.getZScoreCurrent();
         if (zScore < settings.getMinZ()) {
             if (zScore < 0) {
-                log.warn("⚠️ Пропускаю пару {}. Z-скор {} < 0", pairData.getPairName(), zScore);
+                log.warn("⚠️ Пропускаю пару {}. Z-скор {} < 0", tradingPair.getPairName(), zScore);
             } else {
-                log.warn("⚠️ Пропускаю пару {}. Z-скор {} < Z-скор Min {}", pairData.getPairName(), zScore, settings.getMinZ());
+                log.warn("⚠️ Пропускаю пару {}. Z-скор {} < Z-скор Min {}", tradingPair.getPairName(), zScore, settings.getMinZ());
             }
             return true;
         }
@@ -65,9 +65,9 @@ public class StartNewTradeValidationService {
         return false;
     }
 
-    public boolean validateBalance(PairData pairData, Settings settings) {
+    public boolean validateBalance(TradingPair tradingPair, Settings settings) {
         if (!tradingIntegrationServiceImpl.canOpenNewPair(settings)) {
-            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}", pairData.getPairName());
+            log.warn("⚠️ Недостаточно средств в торговом депо для открытия пары {}", tradingPair.getPairName());
             return false;
         }
         return true;

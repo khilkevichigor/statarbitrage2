@@ -2,8 +2,8 @@ package com.example.core.services;
 
 import com.example.core.repositories.TradeHistoryRepository;
 import com.example.shared.dto.TradePairsStatisticsDto;
-import com.example.shared.models.PairData;
 import com.example.shared.models.TradeStatus;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,22 +23,22 @@ public class StatisticsService {
 
     public TradePairsStatisticsDto collectStatistics() {
         BigDecimal unrealizedProfitUSDTToday = pairDataService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
-                .map(PairData::getProfitUSDTChanges)
+                .map(TradingPair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedProfitUSDTTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
-                .map(PairData::getProfitUSDTChanges)
+                .map(TradingPair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedProfitPercentToday = pairDataService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
-                .map(PairData::getProfitPercentChanges)
+                .map(TradingPair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedProfitPercentTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
-                .map(PairData::getProfitPercentChanges)
+                .map(TradingPair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
