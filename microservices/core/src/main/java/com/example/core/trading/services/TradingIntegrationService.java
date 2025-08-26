@@ -35,7 +35,7 @@ public interface TradingIntegrationService {
      */
     Positioninfo getPositionInfo(PairData pairData);
 
-    void removePairFromLocalStorage(PairData pairData);
+    void deletePositions(PairData pairData);
 
     /**
      * Получение информации о портфолио

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -78,6 +77,12 @@ public class Position {
     @Column(name = "closing_fees", precision = 19, scale = 8)
     private BigDecimal closingFees;
 
+    @Column(name = "open_close_fees", precision = 19, scale = 8)
+    private BigDecimal openCloseFees;
+
+    @Column(name = "open_close_funding_fees", precision = 19, scale = 8)
+    private BigDecimal openCloseFundingFees;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private PositionStatus status;
@@ -94,73 +99,73 @@ public class Position {
     @Column(name = "external_order_id")
     private String externalOrderId;
 
-    @Deprecated
-    public void calculateUnrealizedPnL() {
-        if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
-            unrealizedPnLUSDT = BigDecimal.ZERO;
-            unrealizedPnLPercent = BigDecimal.ZERO;
-            return;
-        }
+//    @Deprecated
+//    public void calculateUnrealizedPnL() {
+//        if (entryPrice == null || currentPrice == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
+//            unrealizedPnLUSDT = BigDecimal.ZERO;
+//            unrealizedPnLPercent = BigDecimal.ZERO;
+//            return;
+//        }
+//
+//        BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
+//        BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
+//        BigDecimal totalFees = safeOpeningFees.subtract(safeFundingFees);
+//        this.unrealizedPnLUSDT = unrealizedPnLUSDT.subtract(totalFees);
+//
+//        log.debug("📊 Расчет PnL {}:", symbol);
+//        log.debug("➡️ OpeningFees: {}", safeOpeningFees);
+//        log.debug("➡️ FundingFees: {}", safeFundingFees);
+//        log.debug("➡️ TotalFees: {}", totalFees);
+//        log.debug("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.unrealizedPnLUSDT);
+//
+//        if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
+//            this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 8, RoundingMode.HALF_UP)
+//                    .multiply(BigDecimal.valueOf(100));
+//            log.debug("✅ UnrealizedPnL: {} % (на сумму вложений {})", this.unrealizedPnLPercent, allocatedAmount);
+//        } else {
+//            this.unrealizedPnLPercent = BigDecimal.ZERO;
+//            log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
+//        }
+//    }
 
-        BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
-        BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
-        BigDecimal totalFees = safeOpeningFees.subtract(safeFundingFees);
-        this.unrealizedPnLUSDT = unrealizedPnLUSDT.subtract(totalFees);
-
-        log.debug("📊 Расчет PnL {}:", symbol);
-        log.debug("➡️ OpeningFees: {}", safeOpeningFees);
-        log.debug("➡️ FundingFees: {}", safeFundingFees);
-        log.debug("➡️ TotalFees: {}", totalFees);
-        log.debug("✅ UnrealizedPnL (после вычета комиссий): {} USDT", this.unrealizedPnLUSDT);
-
-        if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            this.unrealizedPnLPercent = this.unrealizedPnLUSDT.divide(allocatedAmount, 8, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-            log.debug("✅ UnrealizedPnL: {} % (на сумму вложений {})", this.unrealizedPnLPercent, allocatedAmount);
-        } else {
-            this.unrealizedPnLPercent = BigDecimal.ZERO;
-            log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
-        }
-    }
-
-    @Deprecated
-    public void calculateAndSetRealizedPnL(BigDecimal closedPnlUSDT, BigDecimal closingFees) {
-        if (entryPrice == null || closedPnlUSDT == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
-            log.warn("❌ Недостаточно данных для расчета реализованного PnL: entryPrice={}, closedPnlUSDT={}, size={}", entryPrice, closedPnlUSDT, size);
-            this.realizedPnLUSDT = BigDecimal.ZERO;
-            this.realizedPnLPercent = BigDecimal.ZERO;
-            return;
-        }
-
-        BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
-        BigDecimal safeClosingFees = closingFees != null ? closingFees : BigDecimal.ZERO;
-        BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
-        BigDecimal totalFees = safeOpeningFees.add(safeClosingFees).subtract(safeFundingFees);
-        this.realizedPnLUSDT = closedPnlUSDT.subtract(totalFees);
-        this.closingFees = safeClosingFees;
-
-        log.debug("📊 Расчет PnL {}:", symbol);
-        log.debug("➡️ ClosedPnL (без комиссий): {}", closedPnlUSDT);
-        log.debug("➡️ OpeningFees: {}", safeOpeningFees);
-        log.debug("➡️ ClosingFees: {}", safeClosingFees);
-        log.debug("➡️ FundingFees: {}", safeFundingFees);
-        log.debug("➡️ TotalFees: {}", totalFees);
-        log.debug("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
-
-        if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            this.realizedPnLPercent = this.realizedPnLUSDT
-                    .divide(allocatedAmount, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-            log.debug("✅ RealizedPnL: {} % (на сумму вложений {})", this.realizedPnLPercent, allocatedAmount);
-        } else {
-            this.realizedPnLPercent = BigDecimal.ZERO;
-            log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
-        }
-
-        this.unrealizedPnLUSDT = BigDecimal.ZERO;
-        this.unrealizedPnLPercent = BigDecimal.ZERO;
-        log.debug("♻️ UnrealizedPnL сброшен до нуля, позиция закрыта.");
-    }
+//    @Deprecated
+//    public void calculateAndSetRealizedPnL(BigDecimal closedPnlUSDT, BigDecimal closingFees) {
+//        if (entryPrice == null || closedPnlUSDT == null || size == null || size.compareTo(BigDecimal.ZERO) == 0) {
+//            log.warn("❌ Недостаточно данных для расчета реализованного PnL: entryPrice={}, closedPnlUSDT={}, size={}", entryPrice, closedPnlUSDT, size);
+//            this.realizedPnLUSDT = BigDecimal.ZERO;
+//            this.realizedPnLPercent = BigDecimal.ZERO;
+//            return;
+//        }
+//
+//        BigDecimal safeOpeningFees = openingFees != null ? openingFees : BigDecimal.ZERO;
+//        BigDecimal safeClosingFees = closingFees != null ? closingFees : BigDecimal.ZERO;
+//        BigDecimal safeFundingFees = fundingFees != null ? fundingFees : BigDecimal.ZERO;
+//        BigDecimal totalFees = safeOpeningFees.add(safeClosingFees).subtract(safeFundingFees);
+//        this.realizedPnLUSDT = closedPnlUSDT.subtract(totalFees);
+//        this.closingFees = safeClosingFees;
+//
+//        log.debug("📊 Расчет PnL {}:", symbol);
+//        log.debug("➡️ ClosedPnL (без комиссий): {}", closedPnlUSDT);
+//        log.debug("➡️ OpeningFees: {}", safeOpeningFees);
+//        log.debug("➡️ ClosingFees: {}", safeClosingFees);
+//        log.debug("➡️ FundingFees: {}", safeFundingFees);
+//        log.debug("➡️ TotalFees: {}", totalFees);
+//        log.debug("✅ RealizedPnL (после вычета комиссий): {} USDT", this.realizedPnLUSDT);
+//
+//        if (allocatedAmount != null && allocatedAmount.compareTo(BigDecimal.ZERO) > 0) {
+//            this.realizedPnLPercent = this.realizedPnLUSDT
+//                    .divide(allocatedAmount, 4, RoundingMode.HALF_UP)
+//                    .multiply(BigDecimal.valueOf(100));
+//            log.debug("✅ RealizedPnL: {} % (на сумму вложений {})", this.realizedPnLPercent, allocatedAmount);
+//        } else {
+//            this.realizedPnLPercent = BigDecimal.ZERO;
+//            log.warn("⚠️ allocatedAmount = null или 0, процентный PnL не вычислен.");
+//        }
+//
+//        this.unrealizedPnLUSDT = BigDecimal.ZERO;
+//        this.unrealizedPnLPercent = BigDecimal.ZERO;
+//        log.debug("♻️ UnrealizedPnL сброшен до нуля, позиция закрыта.");
+//    }
 
     public boolean isOpen() {
         return status == PositionStatus.OPEN;

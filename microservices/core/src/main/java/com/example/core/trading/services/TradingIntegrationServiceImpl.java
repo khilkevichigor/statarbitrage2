@@ -106,7 +106,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public ArbitragePairTradeInfo closeArbitragePair(PairData pairData) {
-        log.debug("=== Начало закрытия арбитражной пары: {}", pairData.getPairName());
+        log.debug("===> Начало закрытия арбитражной пары: {}", pairData.getPairName());
 
         synchronized (openPositionLock) {
             try {
@@ -142,7 +142,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                 log.error("Критическая ошибка при закрытии арбитражной пары {}: {}", pairData.getPairName(), e.getMessage(), e);
                 return buildFailure();
             } finally {
-                log.debug("=== Конец закрытия арбитражной пары: {}", pairData.getPairName());
+                log.debug("<=== Конец закрытия арбитражной пары: {}", pairData.getPairName());
             }
         }
     }
@@ -170,7 +170,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         if (longClosed && shortClosed) {
             BigDecimal finalPnlUSDT = calculateTotalPnlUSDT(longPosition, shortPosition);
             BigDecimal finalPnlPercent = calculateTotalPnlPercent(longPosition, shortPosition);
-            removePairFromLocalStorage(pairData);
+            deletePositions(pairData);
             log.debug("Удалены закрытые позиции из репозитория для пары {}. Итоговый PnL: {} USDT ({} %)", pairData.getPairName(), finalPnlUSDT, finalPnlPercent);
 
             return buildClosedPositionInfo(finalPnlUSDT, finalPnlPercent);
@@ -266,14 +266,14 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
         log.debug("Позиции для пары {} еще открыты, обновляем цены...", pairData.getPairName());
 //        provider.updatePositionPrices(List.of(pairData.getLongTicker(), pairData.getShortTicker()));
-        log.debug("Цены для пары {} обновлены.", pairData.getPairName());
+//        log.debug("Цены для пары {} обновлены.", pairData.getPairName());
 
         return buildPositionInfo(false, longPosition, shortPosition);
     }
 
     @Override
-    public void removePairFromLocalStorage(PairData pairData) {
-        log.debug("Удаляем сохранённые ID позиций из репозитория для пары {}", pairData.getPairName());
+    public void deletePositions(PairData pairData) {
+        log.debug("Удаляем сохранённые позиции из бд для пары {}", pairData.getPairName());
         List<Position> longPositions = positionRepository.findAllByPairDataIdAndType(pairData.getId(), PositionType.LONG);
         List<Position> shortPositions = positionRepository.findAllByPairDataIdAndType(pairData.getId(), PositionType.SHORT);
 

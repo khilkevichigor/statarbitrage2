@@ -257,32 +257,35 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.warn("⚠️ Прерван ожидание появления позиции в истории OKX");
             }
 
-            OkxPositionHistoryData realPnLData = getRealizedPnLFromOkx(position.getSymbol(), position.getPositionId());
-            if (realPnLData != null) {
+            OkxPositionHistoryData okxPositionHistoryData = getRealizedPnLFromOkx(position.getSymbol(), position.getPositionId());
+            if (okxPositionHistoryData != null) {
                 log.info("📊 Используем реальный P&L от OKX: realizedPnl={}, fee={}, fundingFee={}",
-                        realPnLData.getRealizedPnl(), realPnLData.getFee(), realPnLData.getFundingFee());
+                        okxPositionHistoryData.getRealizedPnl(), okxPositionHistoryData.getFee(), okxPositionHistoryData.getFundingFee());
 
                 // Используем точные данные от OKX
-                position.setRealizedPnLUSDT(realPnLData.getRealizedPnl());
-                position.setClosingFees(realPnLData.getFee().abs()); // Комиссии всегда положительные
-                position.setFundingFees(realPnLData.getFundingFee());
-                position.setAllocatedAmount(realPnLData.getMargin());
-                position.setClosingPrice(realPnLData.getAverageClosePrice());
+                position.setRealizedPnLUSDT(okxPositionHistoryData.getRealizedPnl()); //чистоган в USDT
+                position.setRealizedPnLPercent(okxPositionHistoryData.getPnlRatio()); //процент (хз чистого или грязного pnl, может пофиг ваще)
+                position.setClosingFees(okxPositionHistoryData.getFee().abs().subtract(position.getOpeningFees().abs())); //сами считаем openClose-open=close
+                position.setOpenCloseFees(okxPositionHistoryData.getFee().abs()); // комиссия открытие+закрытие
+                position.setFundingFees(okxPositionHistoryData.getFundingFee().abs()); //по доке - аккумулированный фандинг
+                position.setClosingPrice(closeOrderResult.getExecutionPrice()); //из ордера
+                position.setOpenCloseFundingFees(position.getOpenCloseFees().abs().add(position.getFundingFees().abs()));
 
                 // Рассчитываем процентный P&L
-                if (position.getAllocatedAmount() != null && position.getAllocatedAmount().compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal pnlPercent = realPnLData.getRealizedPnl()
-                            .divide(position.getAllocatedAmount(), 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100));
-                    position.setRealizedPnLPercent(pnlPercent);
-                }
+//                if (position.getAllocatedAmount() != null && position.getAllocatedAmount().compareTo(BigDecimal.ZERO) > 0) { //todo уже не надо тк вся инфа есть с окх
+//                    BigDecimal pnlPercent = okxPositionHistoryData.getRealizedPnl()
+//                            .divide(position.getAllocatedAmount(), 4, RoundingMode.HALF_UP)
+//                            .multiply(BigDecimal.valueOf(100));
+//                    position.setRealizedPnLPercent(pnlPercent);
+//                }
 
                 // Сбрасываем нереализованный P&L
-                position.setUnrealizedPnLUSDT(BigDecimal.ZERO);
-                position.setUnrealizedPnLPercent(BigDecimal.ZERO);
+//                position.setUnrealizedPnLUSDT(BigDecimal.ZERO); //todo может оставлять и сделать софтделит для позиций???
+//                position.setUnrealizedPnLPercent(BigDecimal.ZERO);
 
                 log.info("✅ P&L обновлен реальными данными OKX: realizedPnL={} USDT ({}%)",
                         position.getRealizedPnLUSDT(), position.getRealizedPnLPercent());
+
             } else {
                 log.warn("⚠️ Не удалось получить реальные данные P&L от OKX");
             }
@@ -294,17 +297,10 @@ public class RealOkxTradingProvider implements TradingProvider {
             // 4. Освобождаем средства и уведомляем портфолио
             okxPortfolioManager.releaseReservedBalance(position.getAllocatedAmount());
 
-            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnLUSDT());
+            okxPortfolioManager.onPositionClosed(position, position.getRealizedPnLUSDT()); //todo нахуа это все
 
-            // Безопасное сложение комиссий с проверкой на null
-            BigDecimal openingFees = safe(position.getOpeningFees());
-            BigDecimal closingFees = safe(position.getClosingFees());
-            BigDecimal fundingFee = safe(position.getFundingFees());
-
-            log.info("Комиссии после закрытия: openingFees={}, closingFees={}, fundingFee={}",
-                    openingFees, closingFees, fundingFee);
-
-            BigDecimal totalFees = openingFees.add(closingFees).add(fundingFee);
+            log.info("Комиссии после закрытия: openingFees={}, closingFees={}, fundingFee={}, total={}",
+                    position.getOpeningFees(), position.getClosingFees(), position.getFundingFees(), position.getOpenCloseFundingFees());
 
             // 5. Формируем итоговый результат
             TradeResult finalResult = TradeResult.success(
@@ -315,13 +311,13 @@ public class RealOkxTradingProvider implements TradingProvider {
                     position.getRealizedPnLPercent(),
                     position.getAllocatedAmount(),
                     position.getClosingPrice(),
-                    totalFees,
+                    position.getOpenCloseFundingFees(),
                     closeOrderResult.getExternalOrderId(),
                     position
             );
 
             log.info("⚫ Закрыта позиция на OKX: {} {} | Цена: {} | PnL: {} USDT ({} %) | OrderID: {}",
-                    position.getSymbol(),
+                    finalResult.getSymbol(),
                     position.getDirectionString(),
                     finalResult.getExecutionPrice(),
                     finalResult.getPnlUSDT(),
@@ -635,7 +631,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 .currentPrice(tradeResult.getExecutionPrice()) // Изначально currentPrice = entryPrice
                 .leverage(leverage)
                 .allocatedAmount(amount)
-                .openingFees(tradeResult.getFees())
+                .openingFees(tradeResult.getFees().abs())
                 .status(PositionStatus.OPEN)
                 .openTime(LocalDateTime.now())
                 .lastUpdated(LocalDateTime.now())
@@ -773,38 +769,38 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                     // Детализированное логирование всех полей ответа с описанием (на основе реального ответа OKX)
                     log.info("📊 === ДЕТАЛИ ОРДЕРА {} ===", orderId);
-                    log.info("🔹 instId              : {} (ID торгового инструмента)", getJsonStringValue(orderInfo, "instId"));
-                    log.info("🔹 instType            : {} (Тип инструмента)", getJsonStringValue(orderInfo, "instType"));
-                    log.info("🔹 ordId               : {} (ID ордера)", getJsonStringValue(orderInfo, "ordId"));
+                    log.info("🔹 instId              : {} (ID торгового инструмента)", getJsonStringValue(orderInfo, "instId")); //ETHW-USDT-SWAP
+                    log.info("🔹 instType            : {} (Тип инструмента)", getJsonStringValue(orderInfo, "instType")); //SWAP
+                    log.info("🔹 ordId               : {} (ID ордера)", getJsonStringValue(orderInfo, "ordId")); //2807201839622594560
                     log.info("🔹 clOrdId             : {} (Пользовательский ID ордера)", getJsonStringValue(orderInfo, "clOrdId"));
                     log.info("🔹 tag                 : {} (Тег ордера)", getJsonStringValue(orderInfo, "tag"));
                     log.info("🔹 px                  : {} (Цена ордера)", getJsonStringValue(orderInfo, "px"));
                     log.info("🔹 pxUsd               : {} (Цена ордера в USD)", getJsonStringValue(orderInfo, "pxUsd"));
                     log.info("🔹 pxVol               : {} (Цена для волатильности)", getJsonStringValue(orderInfo, "pxVol"));
                     log.info("🔹 pxType              : {} (Тип цены)", getJsonStringValue(orderInfo, "pxType"));
-                    log.info("🔹 sz                  : {} (Размер ордера)", getJsonStringValue(orderInfo, "sz"));
-                    log.info("🔹 pnl                 : {} USDT (Прибыль/убыток по позиции)", getJsonStringValue(orderInfo, "pnl"));
-                    log.info("🔹 ordType             : {} (Тип ордера: market/limit)", getJsonStringValue(orderInfo, "ordType"));
-                    log.info("🔹 side                : {} (Сторона: buy/sell)", getJsonStringValue(orderInfo, "side"));
-                    log.info("🔹 posSide             : {} (Сторона позиции: long/short/net)", getJsonStringValue(orderInfo, "posSide"));
-                    log.info("🔹 tdMode              : {} (Торговый режим: isolated/cross)", getJsonStringValue(orderInfo, "tdMode"));
-                    log.info("🔹 accFillSz           : {} (Накопленный исполненный размер)", getJsonStringValue(orderInfo, "accFillSz"));
-                    log.info("🔹 avgPx               : {} (Средняя цена исполнения)", getJsonStringValue(orderInfo, "avgPx"));
-                    log.info("🔹 fillPx              : {} (Последняя цена исполнения)", getJsonStringValue(orderInfo, "fillPx"));
-                    log.info("🔹 fillSz              : {} (Последний размер исполнения)", getJsonStringValue(orderInfo, "fillSz"));
-                    log.info("🔹 fillTime            : {} (Время последнего исполнения)", getJsonStringValue(orderInfo, "fillTime"));
-                    log.info("🔹 tradeId             : {} (ID последней сделки)", getJsonStringValue(orderInfo, "tradeId"));
-                    log.info("🔹 state               : {} (Статус ордера)", getJsonStringValue(orderInfo, "state"));
-                    log.info("🔹 lever               : {} (Плечо)", getJsonStringValue(orderInfo, "lever"));
-                    log.info("🔹 fee                 : {} (Комиссия)", getJsonStringValue(orderInfo, "fee"));
-                    log.info("🔹 feeCcy              : {} (Валюта комиссии)", getJsonStringValue(orderInfo, "feeCcy"));
-                    log.info("🔹 rebate              : {} (Рибейт)", getJsonStringValue(orderInfo, "rebate"));
-                    log.info("🔹 rebateCcy           : {} (Валюта рибейта)", getJsonStringValue(orderInfo, "rebateCcy"));
+                    log.info("🔹 sz                  : {} (Размер ордера)", getJsonStringValue(orderInfo, "sz")); //194
+                    log.info("🔹 pnl                 : {} USDT (Прибыль/убыток по позиции)", getJsonStringValue(orderInfo, "pnl")); //-0.2328
+                    log.info("🔹 ordType             : {} (Тип ордера: market/limit)", getJsonStringValue(orderInfo, "ordType")); //market
+                    log.info("🔹 side                : {} (Сторона: buy/sell)", getJsonStringValue(orderInfo, "side")); //buy
+                    log.info("🔹 posSide             : {} (Сторона позиции: long/short/net)", getJsonStringValue(orderInfo, "posSide")); //net
+                    log.info("🔹 tdMode              : {} (Торговый режим: isolated/cross)", getJsonStringValue(orderInfo, "tdMode")); //isolated
+                    log.info("🔹 accFillSz           : {} (Накопленный исполненный размер)", getJsonStringValue(orderInfo, "accFillSz")); //194
+                    log.info("🔹 avgPx               : {} (Средняя цена исполнения)", getJsonStringValue(orderInfo, "avgPx")); //1.617
+                    log.info("🔹 fillPx              : {} (Последняя цена исполнения)", getJsonStringValue(orderInfo, "fillPx")); //1.617
+                    log.info("🔹 fillSz              : {} (Последний размер исполнения)", getJsonStringValue(orderInfo, "fillSz")); //194
+                    log.info("🔹 fillTime            : {} (Время последнего исполнения)", getJsonStringValue(orderInfo, "fillTime")); //1756163534232
+                    log.info("🔹 tradeId             : {} (ID последней сделки)", getJsonStringValue(orderInfo, "tradeId")); //109251869
+                    log.info("🔹 state               : {} (Статус ордера)", getJsonStringValue(orderInfo, "state")); //filled
+                    log.info("🔹 lever               : {} (Плечо)", getJsonStringValue(orderInfo, "lever")); //2
+                    log.info("🔹 fee                 : {} (Комиссия)", getJsonStringValue(orderInfo, "fee")); //-0.0156849
+                    log.info("🔹 feeCcy              : {} (Валюта комиссии)", getJsonStringValue(orderInfo, "feeCcy")); //USDT
+                    log.info("🔹 rebate              : {} (Рибейт)", getJsonStringValue(orderInfo, "rebate")); //0
+                    log.info("🔹 rebateCcy           : {} (Валюта рибейта)", getJsonStringValue(orderInfo, "rebateCcy")); //USDT
                     log.info("🔹 ccy                 : {} (Валюта маржи)", getJsonStringValue(orderInfo, "ccy"));
-                    log.info("🔹 category            : {} (Категория ордера)", getJsonStringValue(orderInfo, "category"));
-                    log.info("🔹 cTime               : {} (Время создания)", getJsonStringValue(orderInfo, "cTime"));
-                    log.info("🔹 uTime               : {} (Время обновления)", getJsonStringValue(orderInfo, "uTime"));
-                    log.info("🔹 reduceOnly          : {} (Только закрытие)", getJsonStringValue(orderInfo, "reduceOnly"));
+                    log.info("🔹 category            : {} (Категория ордера)", getJsonStringValue(orderInfo, "category")); //normal
+                    log.info("🔹 cTime               : {} (Время создания)", getJsonStringValue(orderInfo, "cTime")); //1756163534232
+                    log.info("🔹 uTime               : {} (Время обновления)", getJsonStringValue(orderInfo, "uTime")); //1756163534233
+                    log.info("🔹 reduceOnly          : {} (Только закрытие)", getJsonStringValue(orderInfo, "reduceOnly")); //false
                     log.info("🔹 quickMgnType        : {} (Тип быстрой маржи)", getJsonStringValue(orderInfo, "quickMgnType"));
                     log.info("🔹 algoId              : {} (ID алгоритма)", getJsonStringValue(orderInfo, "algoId"));
                     log.info("🔹 algoClOrdId         : {} (Алгоритмический пользовательский ID)", getJsonStringValue(orderInfo, "algoClOrdId"));
@@ -818,9 +814,9 @@ public class RealOkxTradingProvider implements TradingProvider {
                     log.info("🔹 source              : {} (Источник)", getJsonStringValue(orderInfo, "source"));
                     log.info("🔹 cancelSource        : {} (Источник отмены)", getJsonStringValue(orderInfo, "cancelSource"));
                     log.info("🔹 cancelSourceReason  : {} (Причина отмены)", getJsonStringValue(orderInfo, "cancelSourceReason"));
-                    log.info("🔹 isTpLimit           : {} (Является ли тейк-профит лимитным)", getJsonStringValue(orderInfo, "isTpLimit"));
+                    log.info("🔹 isTpLimit           : {} (Является ли тейк-профит лимитным)", getJsonStringValue(orderInfo, "isTpLimit")); //false
                     log.info("🔹 stpId               : {} (ID самоторговли)", getJsonStringValue(orderInfo, "stpId"));
-                    log.info("🔹 stpMode             : {} (Режим самоторговли)", getJsonStringValue(orderInfo, "stpMode"));
+                    log.info("🔹 stpMode             : {} (Режим самоторговли)", getJsonStringValue(orderInfo, "stpMode")); //cancel_maker
                     log.info("🔹 tgtCcy              : {} (Целевая валюта)", getJsonStringValue(orderInfo, "tgtCcy"));
                     log.info("🔹 tradeQuoteCcy       : {} (Валюта котировки торговли)", getJsonStringValue(orderInfo, "tradeQuoteCcy"));
                     log.info("📊 === КОНЕЦ ДЕТАЛЕЙ ОРДЕРА ===");
@@ -1084,10 +1080,10 @@ public class RealOkxTradingProvider implements TradingProvider {
                     internalPosition.setSize(new BigDecimal(pos).abs());
                 }
                 if (scaledFee != null) {
-                    internalPosition.setOpeningFees(scaledFee);
+                    internalPosition.setOpeningFees(scaledFee.abs());
                 }
                 if (scaledFundingFee != null) {
-                    internalPosition.setFundingFees(scaledFundingFee);
+                    internalPosition.setFundingFees(scaledFundingFee.abs());
                 }
                 if (scaledMargin != null) {
                     internalPosition.setAllocatedAmount(scaledMargin);
@@ -1805,24 +1801,24 @@ public class RealOkxTradingProvider implements TradingProvider {
 
                 // ЛОГИРОВАНИЕ ВСЕХ ПОЛЕЙ НАЙДЕННОЙ ПОЗИЦИИ
                 log.info("✅ === НАЙДЕНА ПОСЛЕДНЯЯ ЗАКРЫТАЯ ПОЗИЦИЯ {} НА ПОПЫТКЕ {} ===", symbol, attempt);
-                log.info("🔹 instrumentType     : {} (тип инструмента)", positionData.getInstrumentType());
-                log.info("🔹 instrumentId       : {} (ID инструмента)", positionData.getInstrumentId());
-                log.info("🔹 positionId         : {} (ID позиции)", positionData.getPositionId());
-                log.info("🔹 positionType       : {} (тип позиции)", positionData.getPositionType());
-                log.info("🔹 openSize           : {} (размер при открытии)", positionData.getOpenSize());
-                log.info("🔹 closeSize          : {} (размер при закрытии)", positionData.getCloseSize());
-                log.info("🔹 averageOpenPrice   : {} (средняя цена открытия)", positionData.getAverageOpenPrice());
-                log.info("🔹 averageClosePrice  : {} (средняя цена закрытия)", positionData.getAverageClosePrice());
-                log.info("🔹 realizedPnl        : {} (реализованный PnL)", positionData.getRealizedPnl());
-                log.info("🔹 pnl                : {} (общий PnL)", positionData.getPnl());
-                log.info("🔹 pnlRatio           : {} (PnL в процентах)", positionData.getPnlRatio());
-                log.info("🔹 openTime           : {} (время открытия)", positionData.getOpenTime());
-                log.info("🔹 closeTime          : {} (время закрытия)", positionData.getCloseTime());
-                log.info("🔹 currency           : {} (валюта)", positionData.getCurrency());
-                log.info("🔹 leverage           : {} (плечо)", positionData.getLeverage());
-                log.info("🔹 margin             : {} (маржа)", positionData.getMargin());
-                log.info("🔹 fee                : {} (комиссия)", positionData.getFee());
-                log.info("🔹 fundingFee         : {} (фандинг комиссия)", positionData.getFundingFee());
+                log.info("🔹 instrumentType     : {} (тип инструмента)", positionData.getInstrumentType()); //SWAP
+                log.info("🔹 instrumentId       : {} (ID инструмента)", positionData.getInstrumentId()); //AI16Z-USDT-SWAP
+                log.info("🔹 positionId         : {} (ID позиции)", positionData.getPositionId()); //2774901548676227072
+                log.info("🔹 positionType       : {} (тип позиции)", positionData.getPositionType()); //N/A
+                log.info("🔹 openSize           : {} (размер при открытии)", positionData.getOpenSize()); //0
+                log.info("🔹 closeSize          : {} (размер при закрытии)", positionData.getCloseSize()); //0
+                log.info("🔹 averageOpenPrice   : {} (средняя цена открытия)", positionData.getAverageOpenPrice()); //0
+                log.info("🔹 averageClosePrice  : {} (средняя цена закрытия)", positionData.getAverageClosePrice()); //0
+                log.info("🔹 realizedPnl        : {} (реализованный PnL)", positionData.getRealizedPnl()); //1.05478535
+                log.info("🔹 pnl                : {} (общий PnL)", positionData.getPnl()); //1.0841
+                log.info("🔹 pnlRatio           : {} (PnL в процентах)", positionData.getPnlRatio()); //0.0733187372708758
+                log.info("🔹 openTime           : {} (время открытия)", positionData.getOpenTime()); //1756156538051
+                log.info("🔹 closeTime          : {} (время закрытия)", positionData.getCloseTime()); //1756163527776
+                log.info("🔹 currency           : {} (валюта)", positionData.getCurrency()); //USDT
+                log.info("🔹 leverage           : {} (плечо)", positionData.getLeverage()); //2.0
+                log.info("🔹 margin             : {} (маржа)", positionData.getMargin()); //0
+                log.info("🔹 fee                : {} (комиссия)", positionData.getFee()); //-0.02931465
+                log.info("🔹 fundingFee         : {} (фандинг комиссия)", positionData.getFundingFee()); //0
                 log.info("✅ === КОНЕЦ ИНФОРМАЦИИ О НАЙДЕННОЙ ПОЗИЦИИ ===");
 
                 return positionData;

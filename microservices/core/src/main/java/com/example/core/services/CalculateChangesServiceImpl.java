@@ -68,13 +68,31 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         log.debug("--> getFromClosedPositions для пары {}", pairData.getPairName());
 
         BigDecimal totalRealizedPnlUSDT = safeScale(safeGet(longPosition.getRealizedPnLUSDT()).add(safeGet(shortPosition.getRealizedPnLUSDT())), 8);
-        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8); //todo 0.00 в закрытых парах
-        BigDecimal totalFees = safeScale(
-                safeGet(longPosition.getOpeningFees()).add(safeGet(longPosition.getClosingFees())).add(safeGet(longPosition.getFundingFees()))
-                        .add(safeGet(shortPosition.getOpeningFees())).add(safeGet(shortPosition.getClosingFees())).add(safeGet(shortPosition.getFundingFees())),
-                8);
+//        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8); //todo 0.00 в закрытых парах
+//        BigDecimal totalFees = safeScale(
+//                safeGet(longPosition.getOpeningFees()).add(safeGet(longPosition.getClosingFees())).add(safeGet(longPosition.getFundingFees()))
+//                        .add(safeGet(shortPosition.getOpeningFees())).add(safeGet(shortPosition.getClosingFees())).add(safeGet(shortPosition.getFundingFees())),
+//                8);
 
-        log.debug("Реализованный PnL: {} USDT ({} %), комиссии: {}", totalRealizedPnlUSDT, totalRealizedPnlPercent, totalFees);
+        // Взвешенный процентный профит: (P1 * A1 + P2 * A2) / (A1 + A2)
+        BigDecimal longAlloc = safeGet(longPosition.getAllocatedAmount());
+        BigDecimal shortAlloc = safeGet(shortPosition.getAllocatedAmount());
+        BigDecimal totalAlloc = longAlloc.add(shortAlloc);
+
+        BigDecimal totalRealizedPnlPercent;
+        if (totalAlloc.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal weightedSum = safeGet(longPosition.getUnrealizedPnLPercent()).multiply(longAlloc)
+                    .add(safeGet(shortPosition.getUnrealizedPnLPercent()).multiply(shortAlloc));
+            totalRealizedPnlPercent = safeScale(weightedSum.divide(totalAlloc, 8, RoundingMode.HALF_UP), 8);
+        } else {
+            totalRealizedPnlPercent = BigDecimal.ZERO;
+            log.warn("⚠️ allocatedAmount у обеих позиций ноль. Устанавливаем PnL % = 0");
+        }
+
+        // Расчет общих комиссий
+        BigDecimal totalFees = safeScale(safeGet(longPosition.getOpenCloseFundingFees()).add(safeGet(shortPosition.getOpenCloseFundingFees())), 8);
+
+        log.info("Реализованный PnL: {} USDT ({} %), комиссии (открытие+закрытие+фандинг): {}", totalRealizedPnlUSDT, totalRealizedPnlPercent, totalFees);
 
         return getProfitAndStatistics(pairData, changesData, totalRealizedPnlUSDT, totalRealizedPnlPercent, true, longPosition, shortPosition);
     }
