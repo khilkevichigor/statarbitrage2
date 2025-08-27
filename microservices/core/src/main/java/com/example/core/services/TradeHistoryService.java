@@ -9,11 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,17 +68,19 @@ public class TradeHistoryService {
 
         tradeHistory.setExitReason(tradingPair.getExitReason());
 
-        long entryMillis = tradingPair.getEntryTime(); // long, например 1721511983000
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        // Преобразуем в LocalDateTime через Instant
-        String formattedEntryTime = Instant.ofEpochMilli(entryMillis)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime()
-                .format(formatter);
-
-        tradeHistory.setEntryTime(formattedEntryTime);
-        tradeHistory.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+//        long entryMillis = tradingPair.getEntryTime(); // long, например 1721511983000
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//
+//        // Преобразуем в LocalDateTime через Instant
+//        String formattedEntryTime = Instant.ofEpochMilli(entryMillis)
+//                .atZone(ZoneId.systemDefault())
+//                .toLocalDateTime()
+//                .format(formatter);
+//
+//        tradeHistory.setEntryTime(formattedEntryTime);
+        tradeHistory.setEntryTime(tradingPair.getEntryTime());
+//        tradeHistory.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        tradeHistory.setTimestamp(System.currentTimeMillis());
 
         tradeHistoryRepository.save(tradeHistory);
     }

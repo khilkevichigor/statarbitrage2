@@ -12,36 +12,38 @@ spring:
     active: default
 
   datasource:
-    driver-class-name: org.sqlite.JDBC
-    url: ${DB_URL:jdbc:sqlite:./data/sa-db.sqlite}
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
-    generate-unique-name: false
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/statarbitrage}
+    username: ${DB_USERNAME:statuser}
+    password: ${DB_PASSWORD:statpass123}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         validator.apply_to_ddl: false
         hbm2ddl.auto: none
-
-  #  autoconfigure:
-  #    exclude:
-  #      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-  #      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+        format_sql: true
+    show-sql: false
 
   jackson:
     time-zone: UTC
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: statarbitrage
-    password: statarbitrage123
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
 
   cloud:
     compatibility-verifier:

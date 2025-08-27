@@ -103,9 +103,9 @@ public class TradeHistory {
     private String exitReason;
 
     @Column(name = "entry_time")
-    private String entryTime;
+    private long entryTime;
 
     @Column(name = "timestamp")
-    private String timestamp;
+    private long timestamp;
 
 }

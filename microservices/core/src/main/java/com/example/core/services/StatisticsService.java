@@ -56,7 +56,7 @@ public class StatisticsService {
 
         return TradePairsStatisticsDto.builder()
 
-                .tradePairsWithErrorToday(tradeHistoryRepository.getByStatusForToday(TradeStatus.ERROR))
+                .tradePairsWithErrorToday(tradeHistoryRepository.getByStatusForToday(TradeStatus.ERROR.name()))
                 .tradePairsWithErrorTotal(tradeHistoryRepository.getByStatusTotal(TradeStatus.ERROR))
 
                 .tradePairsToday(tradeHistoryRepository.getTradesToday())
