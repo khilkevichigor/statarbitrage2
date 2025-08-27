@@ -1,8 +1,8 @@
 package com.example.core.services;
 
+import com.example.core.messaging.SendEventService;
 import com.example.shared.events.NotificationEvent;
 import com.example.shared.models.TradingPair;
-import com.example.shared.utils.EventPublisher;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,27 +19,17 @@ public class TelegramNotificationService implements NotificationService {
     private static final String EMOJI_GREEN = "🟢";
     private static final String EMOJI_RED = "🔴";
 
-    private final EventPublisher eventPublisher;
+    private final SendEventService sendEventService;
 
     @Override
-    public void notifyClose(TradingPair tradingPair) {
+    public void sendTelegramClosedPair(TradingPair tradingPair) {
         String message = formatCloseMessage(tradingPair);
-        NotificationEvent event = new NotificationEvent(
-                message,
-                "test_user",
-                NotificationEvent.NotificationType.TELEGRAM,
-                NotificationEvent.Priority.HIGH
-        );
-        sendEvent(event);
+        sendEventService.sendNotificationEvent(new NotificationEvent(message, "test_user", NotificationEvent.Priority.HIGH, NotificationEvent.Type.TELEGRAM));
     }
 
-    private void sendEvent(NotificationEvent event) {
-        log.debug("Отправка сообщения в телеграм {}", event.toString());
-        try {
-            eventPublisher.publish("notification-events-out-0", event);
-        } catch (Exception e) {
-            log.error("Ошибка отправки сообщения в телеграм {}", e.getMessage(), e);
-        }
+    @Override
+    public void sendTelegramMessage(String message) {
+        sendEventService.sendNotificationEvent(new NotificationEvent(message, "test_user", NotificationEvent.Priority.HIGH, NotificationEvent.Type.TELEGRAM));
     }
 
     private String formatCloseMessage(TradingPair tradingPair) {

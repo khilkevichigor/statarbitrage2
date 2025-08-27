@@ -1,9 +1,9 @@
 package com.example.core.controllers;
 
+import com.example.core.messaging.SendEventService;
 import com.example.shared.events.CsvEvent;
 import com.example.shared.events.NotificationEvent;
 import com.example.shared.models.TradingPair;
-import com.example.shared.utils.EventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,17 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
 
     @Autowired
-    private EventPublisher eventPublisher;
+    private SendEventService sendEventService;
 
     @GetMapping("/test1")
     public String testNotification() {
-        NotificationEvent event = new NotificationEvent(
+        sendEventService.sendNotificationEvent(new NotificationEvent(
                 "🎉 Система работает!",
                 "test_user",
-                NotificationEvent.NotificationType.TELEGRAM,
-                NotificationEvent.Priority.HIGH
-        );
-        eventPublisher.publish("notification-events-out-0", event);
+                NotificationEvent.Priority.HIGH,
+                NotificationEvent.Type.TELEGRAM
+        ));
         return "Событие отправлено!";
     }
 
@@ -30,10 +29,7 @@ public class TestController {
     public String testCsv() {
         TradingPair tradingPair = new TradingPair();
         tradingPair.setPairName("testPair");
-        CsvEvent event = new CsvEvent(
-                tradingPair
-        );
-        eventPublisher.publish("csv-events-out-0", event);
+        sendEventService.sendCsvEvent(new CsvEvent(tradingPair, CsvEvent.Type.EXPORT_CLOSED_PAIR));
         return "Событие отправлено!";
     }
 }

@@ -76,7 +76,7 @@ public class FindCointPairsScheduler {
 
     private List<CointPair> fetchNewCointPairs(int count) {
         try {
-            return fetchCointPairsProcessor.fetchCointPairs(FetchPairsRequest.builder()
+            return fetchCointPairsProcessor.fetchAndSendCointPairs(FetchPairsRequest.builder()
                     .countOfPairs(count)
                     .build());
         } catch (Exception e) {

@@ -1,4 +1,4 @@
-package com.example.cointegration.service;
+package com.example.cointegration.messaging;
 
 import com.example.cointegration.repositories.CointPairRepository;
 import com.example.shared.events.CointegrationEvent;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.function.Consumer;
 
 /**
- * Основной сервис для экспорта данных в CSV формат
+ * Основной сервис для получений событий
  */
 @Slf4j
 @Service
@@ -19,7 +19,7 @@ public class ReceiveEventService {
     private final CointPairRepository cointPairRepository;
 
     /**
-     * Обработка событий для экспорта в CSV
+     * Обработка событий
      */
     @Bean
     public Consumer<CointegrationEvent> cointegrationEventsConsumer() {
@@ -30,7 +30,7 @@ public class ReceiveEventService {
         log.info("📄 Получено событие: {}", event.getEventType());
 
         try {
-            // Обработка различных типов событий для экспорта
+            // Обработка различных типов событий
             switch (event.getEventType()) {
                 case "CLEAR_TABLE":
                     clearCointPairs(event);
@@ -43,9 +43,6 @@ public class ReceiveEventService {
         }
     }
 
-    /**
-     * Экспорт торговых данных в CSV
-     */
     private void clearCointPairs(CointegrationEvent event) {
         log.info("📊 Очистка таблицы от устаревших данных");
         try {

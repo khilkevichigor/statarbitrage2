@@ -1,6 +1,7 @@
 package com.example.cointegration.processors;
 
 import com.example.cointegration.client.CandlesFeignClient;
+import com.example.cointegration.messaging.SendEventService;
 import com.example.cointegration.repositories.TradingPairRepository;
 import com.example.cointegration.service.CointPairService;
 import com.example.cointegration.service.SettingsService;
@@ -8,6 +9,7 @@ import com.example.cointegration.service.ZScoreService;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.events.CoreEvent;
 import com.example.shared.models.*;
 import com.example.shared.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +27,9 @@ public class FetchCointPairsProcessor {
     private final ZScoreService zScoreService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
+    private final SendEventService sendEventService;
 
-    public List<CointPair> fetchCointPairs(FetchPairsRequest request) {
+    public List<CointPair> fetchAndSendCointPairs(FetchPairsRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("❌ FetchPairsRequest не может быть null");
         }
@@ -59,6 +62,11 @@ public class FetchCointPairsProcessor {
 
         log.debug("✅ Создано {} пар", pairs.size());
         pairs.forEach(p -> log.debug("📈 {}", p.getPairName()));
+
+        log.info("Отправка найденных пар в сore мс...");
+        sendEventService.sendCoreEvent(new CoreEvent(pairs, CoreEvent.Type.NEW_COINT_PAIRS));
+        log.info("Пары отправлены успешно.");
+
         log.debug("🕒 Время выполнения: {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
 
         return pairs;

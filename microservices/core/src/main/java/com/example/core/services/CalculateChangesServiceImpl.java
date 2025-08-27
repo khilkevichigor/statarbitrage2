@@ -1,7 +1,6 @@
 package com.example.core.services;
 
 import com.example.core.trading.services.TradingIntegrationService;
-import com.example.core.ui.views.SettingsView;
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitExtremum;
 import com.example.shared.models.Position;
@@ -25,6 +24,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ProfitExtremumService profitExtremumService;
     private final SettingsService settingsService;
+    private final TelegramNotificationService telegramNotificationService;
 
     public ChangesData getChanges(TradingPair tradingPair) {
         log.info("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
@@ -49,6 +49,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
             settings.setAutoTradingEnabled(false);
             settingsService.save(settings);
             log.warn("Автотрейдинг отключен!");
+            telegramNotificationService.sendTelegramMessage("Ошибка при обновлении changes. Автотрейдинг был отключен.");
             throw new RuntimeException("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары " + tradingPair.getPairName(), e);
         }
     }

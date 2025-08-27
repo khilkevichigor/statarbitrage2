@@ -65,28 +65,13 @@ spring:
         csv-events-out-0:
           destination: csv.events
           content-type: application/json
-        # Исходящие торговые события
-        trading-events-out-0:
-          destination: trading.events
-          content-type: application/json
-        # Исходящие статистические события
-        statistics-events-out-0:
-          destination: statistics.events
-          content-type: application/json
-        # Входящие события от OKX
-        okx-events-in-0:
-          destination: okx.events
-          content-type: application/json
-          group: core-group
+
         # Входящие события от Python
-        python-events-in-0:
-          destination: python.events
-          content-type: application/json
-          group: core-group
-        # Исходящие события уведомлений
-        cointegration-events-out-0:
+        cointegration-events-in-0:
           destination: cointegration.events
           content-type: application/json
+          group: cointegration-group
+
 
       rabbit:
         bindings:
@@ -96,12 +81,6 @@ spring:
           csv-events-out-0:
             producer:
               routing-key-expression: "'csv'"
-          trading-events-out-0:
-            producer:
-              routing-key-expression: "'trading'"
-          statistics-events-out-0:
-            producer:
-              routing-key-expression: "'statistics'"
           cointegration-events-out-0:
             producer:
               routing-key-expression: "'cointegration'"

@@ -5,5 +5,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface NotificationService {
-    void notifyClose(TradingPair tradingPair);
+    void sendTelegramClosedPair(TradingPair tradingPair);
+
+    void sendTelegramMessage(String message);
 }

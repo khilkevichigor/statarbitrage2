@@ -8,8 +8,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class CointegrationEvent extends BaseEvent {
+    private static final String BINDING_NAME = "cointegration-events-out-0";
+    private Type type;
 
-    public CointegrationEvent(String eventType) {
-        super(eventType);
+    public enum Type {
+        CLEAR_PAIRS
+    }
+
+    public CointegrationEvent(Type type) {
+        super("COINTEGRATION_EVENT");
+        super.setBindingName(BINDING_NAME);
+        this.type = type;
     }
 }

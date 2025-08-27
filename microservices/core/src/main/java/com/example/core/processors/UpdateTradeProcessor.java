@@ -1,6 +1,7 @@
 package com.example.core.processors;
 
 import com.example.core.client.CandlesFeignClient;
+import com.example.core.messaging.SendEventService;
 import com.example.core.services.*;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.services.TradingIntegrationService;
@@ -8,6 +9,7 @@ import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.events.CsvEvent;
 import com.example.shared.models.*;
 import com.example.shared.utils.FormatUtil;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,7 @@ public class UpdateTradeProcessor {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ExitStrategyService exitStrategyService;
     private final NotificationService notificationService;
-    private final CsvExportService csvExportService;
+    private final SendEventService sendEventService;
     private final ChartService chartService;
     private final AveragingService averagingService;
     private final TradingProviderFactory tradingProviderFactory;
@@ -242,8 +244,8 @@ public class UpdateTradeProcessor {
         tradingPair.setStatus(TradeStatus.CLOSED);
         tradingPair.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
         finalizeClosedTrade(tradingPair, settings);
-        notificationService.notifyClose(tradingPair);
-        csvExportService.appendPairDataToCsv(tradingPair);
+        notificationService.sendTelegramClosedPair(tradingPair);
+        sendEventService.sendCsvEvent(new CsvEvent(tradingPair, CsvEvent.Type.EXPORT_CLOSED_PAIR));
         return tradingPair;
     }
 
@@ -289,8 +291,8 @@ public class UpdateTradeProcessor {
         tradingPair.setStatus(TradeStatus.CLOSED);
         tradingPair.setExitReason(exitReason);
         finalizeClosedTrade(tradingPair, settings);
-        notificationService.notifyClose(tradingPair);
-        csvExportService.appendPairDataToCsv(tradingPair);
+        notificationService.sendTelegramClosedPair(tradingPair);
+        sendEventService.sendCsvEvent(new CsvEvent(tradingPair, CsvEvent.Type.EXPORT_CLOSED_PAIR));
         return tradingPair;
     }
 

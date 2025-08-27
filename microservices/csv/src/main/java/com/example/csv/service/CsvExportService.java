@@ -25,12 +25,12 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class AppendPairDataToCsvService {
+public class CsvExportService {
 
     private static final String CSV_FILE_PREFIX = "closed_trades_";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public void appendPairDataToCsv(TradingPair tradingPair) {
+    public void addClosedPairToCsv(TradingPair tradingPair) {
         try {
             tradingPair.updateFormattedFieldsBeforeExportToCsv();
 
