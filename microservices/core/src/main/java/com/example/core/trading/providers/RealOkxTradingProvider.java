@@ -196,7 +196,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonObject realPosition = getRealPositionFromOkx(symbol);
                 if (realPosition != null && realPosition.has("posId")) {
                     realPositionId = realPosition.get("posId").getAsString();
-                    log.info("✅ Получен реальный positionId от OKX: {}", realPositionId);
+                    log.info("✅ Для {} получен реальный positionId от OKX: {}", symbol, realPositionId);
                 } else {
                     log.warn("⚠️ Не удалось получить реальный positionId от OKX для {}, будет использован временный", symbol);
                 }

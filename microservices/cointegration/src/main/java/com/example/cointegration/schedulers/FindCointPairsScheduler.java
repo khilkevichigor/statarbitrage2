@@ -9,6 +9,7 @@ import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class FindCointPairsScheduler {
     private final CointPairService cointPairService;
     private final FetchCointPairsProcessor fetchCointPairsProcessor;
 
-    //    @Scheduled(cron = "0 */5 * * * *") // Каждые 5 минут в 0 секунд
+    @Scheduled(cron = "0 */1 * * * *")
     public void maintainCointPairs() {
         long schedulerStart = System.currentTimeMillis();
         int newCointPairsCount = executeMaintainCointPairs();
@@ -29,9 +30,9 @@ public class FindCointPairsScheduler {
     }
 
     private int executeMaintainCointPairs() {
-        log.debug("🔄 Шедуллер поддержания кол-ва трейдов запущен...");
+        log.info("🔄 Шедуллер поиска коинтегрированных пар запущен...");
         Settings settings = settingsService.getSettings();
-        if (settings == null || !settings.isAutoTradingEnabled()) {
+        if (settings == null) {
             return 0;
         }
         int missingCointPairs = calculateMissingCointPairs(settings);
@@ -54,8 +55,8 @@ public class FindCointPairsScheduler {
     }
 
     private int createNewCointPairs(int missingCointPairs) {
-        log.debug("🆕 Не хватает {} пар — начинаем подбор", missingCointPairs);
-        cleanupOldCointPairs();
+        log.info("🆕 Не хватает {} пар — начинаем подбор", missingCointPairs);
+//        cleanupOldCointPairs(); //переместил ближе к созданию ноывых что бы небыло пусто 30сек
         List<CointPair> newCointPairs = fetchNewCointPairs(missingCointPairs);
         if (newCointPairs.isEmpty()) {
             log.warn("⚠️ Отобрано 0 пар!");
@@ -86,6 +87,6 @@ public class FindCointPairsScheduler {
 
     private void logMaintainCointPairsCompletion(long startTime, int newPairsCount) {
         long duration = System.currentTimeMillis() - startTime;
-        log.debug("⏱️ Шедуллер поиска коинтегрированных пар закончил работу за {} сек. Найдено {} новых пар", duration / 1000.0, newPairsCount);
+        log.info("⏱️ Шедуллер поиска коинтегрированных пар закончил работу за {} сек. Найдено {} новых пар", duration / 1000.0, newPairsCount);
     }
 }

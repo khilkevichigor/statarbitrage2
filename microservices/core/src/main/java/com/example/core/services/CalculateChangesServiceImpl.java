@@ -1,10 +1,12 @@
 package com.example.core.services;
 
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.core.ui.views.SettingsView;
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitExtremum;
 import com.example.shared.models.Position;
 import com.example.shared.models.Positioninfo;
+import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,14 +24,15 @@ import static com.example.shared.utils.BigDecimalUtil.safeScale;
 public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ProfitExtremumService profitExtremumService;
+    private final SettingsService settingsService;
 
     public ChangesData getChanges(TradingPair tradingPair) {
-        log.debug("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
+        log.info("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
         try {
 
-            log.debug("Запрашиваем информацию о позициях...");
+            log.info("Запрашиваем информацию о позициях...");
             Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(tradingPair);
-            log.debug("Получена информация о позициях: {}", positionsInfo);
+            log.info("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
                 log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", tradingPair.getPairName(), positionsInfo);
@@ -37,14 +40,17 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
             }
 
             ChangesData result = getFromPositions(tradingPair, positionsInfo);
-            log.debug("<== getChanges: КОНЕЦ для пары {}. Результат: {}", tradingPair.getPairName(), result);
+            log.info("<== getChanges: КОНЕЦ для пары {}. Результат: {}", tradingPair.getPairName(), result);
             return result;
 
         } catch (Exception e) {
             log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", tradingPair.getPairName(), e.getMessage(), e);
+            Settings settings = settingsService.getSettings();
+            settings.setAutoTradingEnabled(false);
+            settingsService.save(settings);
+            log.warn("Автотрейдинг отключен!");
+            throw new RuntimeException("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары " + tradingPair.getPairName(), e);
         }
-        log.debug("<== getChanges: КОНЕЦ (с ошибкой) для пары {}", tradingPair.getPairName());
-        return new ChangesData();
     }
 
     private ChangesData getFromPositions(TradingPair tradingPair, Positioninfo positionsInfo) {

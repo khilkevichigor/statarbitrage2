@@ -108,6 +108,7 @@ public class FetchCointPairsProcessor {
 
     private List<CointPair> createCointPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
+            cointPairService.deleteAllByStatus(TradeStatus.SELECTED);
             return cointPairService.createCointPairList(zScoreDataList, candlesMap);
         } catch (Exception e) {
             log.error("❌ Ошибка при создании PairData: {}", e.getMessage());
