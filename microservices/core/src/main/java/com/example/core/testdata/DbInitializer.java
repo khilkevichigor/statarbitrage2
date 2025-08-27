@@ -1,6 +1,7 @@
 package com.example.core.testdata;
 
 import com.example.core.repositories.SettingsRepository;
+import com.example.core.services.TradingPairService;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import java.util.List;
 @Order(1)
 public class DbInitializer {
     private final SettingsRepository settingsRepository;
+    private final TradingPairService tradingPairService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void initialize() {
@@ -32,16 +34,16 @@ public class DbInitializer {
                     .minZ(3.5)
 
                     .useMaxPValueFilter(true)
-                    .maxPValue(0.01)
+                    .maxPValue(0.1)
 
                     .useMaxAdfValueFilter(true)
-                    .maxAdfValue(0.8)
+                    .maxAdfValue(0.1)
 
                     .useMinCorrelationFilter(true)
                     .minCorrelation(0.8)
 
                     .useMinVolumeFilter(true)
-                    .minVolume(1.0)
+                    .minVolume(15.0)
 
                     .useMinRSquaredFilter(true)
                     .minRSquared(0.8)
@@ -51,15 +53,15 @@ public class DbInitializer {
                     .checkInterval(1)
 
                     // Маржа и плечо
-                    .maxLongMarginSize(5.0)
-                    .maxShortMarginSize(5.0)
-                    .leverage(5.0)
+                    .maxLongMarginSize(15.0)
+                    .maxShortMarginSize(15.0)
+                    .leverage(2.0)
 
                     // Стратегии выхода
                     .useExitTake(true)
-                    .exitTake(5.0)
+                    .exitTake(2.0)
 
-                    .useExitStop(true)
+                    .useExitStop(false)
                     .exitStop(-5.0)
 
                     .useExitZMin(false)
@@ -77,7 +79,7 @@ public class DbInitializer {
                     .useExitBreakEvenPercent(true)
                     .exitBreakEvenPercent(1)
 
-                    .useExitNegativeZMinProfitPercent(true)
+                    .useExitNegativeZMinProfitPercent(false)
                     .exitNegativeZMinProfitPercent(0.5)
 
                     .usePairs(1.0)
@@ -86,7 +88,7 @@ public class DbInitializer {
                     .autoTradingEnabled(false)
 
                     // Черные списки и наблюдаемые пары  
-                    .minimumLotBlacklist("ETH-USDT-SWAP,BTC-USDT-SWAP")
+                    .minimumLotBlacklist("")
                     .observedPairs("")
 
                     // Флаги скоринга
@@ -98,16 +100,25 @@ public class DbInitializer {
                     .useBonusScoring(true)
 
                     // Веса скоринга
-                    .zScoreScoringWeight(40.0)
-                    .pixelSpreadScoringWeight(25.0)
-                    .cointegrationScoringWeight(25.0)
-                    .modelQualityScoringWeight(20.0)
-                    .statisticsScoringWeight(10.0)
+                    .zScoreScoringWeight(5.0)
+                    .pixelSpreadScoringWeight(5.0)
+                    .cointegrationScoringWeight(5.0)
+                    .modelQualityScoringWeight(5.0)
+                    .statisticsScoringWeight(5.0)
                     .bonusScoringWeight(5.0)
+
+                    .autoAveragingEnabled(false)
+                    .averagingDrawdownThreshold(10.0)
+                    .averagingVolumeMultiplier(1.5)
 
                     .build()
             );
             log.info("🔧 Создана запись настроек по умолчанию");
         }
+
+//        tradingPairService.save(TradingPair.builder()
+//                .uuid(UUID.randomUUID())
+//                .pairName("test")
+//                .build());
     }
 }

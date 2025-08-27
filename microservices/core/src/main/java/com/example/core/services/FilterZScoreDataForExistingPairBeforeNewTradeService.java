@@ -18,7 +18,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class FilterZScoreDataForExistingPairBeforeNewTradeService {
 
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final PixelSpreadService pixelSpreadService;
 
     /**
@@ -501,7 +501,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
             String shortTicker = data.getOverValuedTicker(); // overvalued = short
 
             // Получаем PairData из базы (если существует)
-            var existingPairs = pairDataService.findByTickers(longTicker, shortTicker);
+            var existingPairs = tradingPairService.findByTickers(longTicker, shortTicker);
 
             if (!existingPairs.isEmpty()) {
                 var pairData = existingPairs.get(0);

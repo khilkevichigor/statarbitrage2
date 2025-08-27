@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ObservedPairsService {
 
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final SettingsService settingsService;
 
     @Transactional
@@ -26,7 +26,7 @@ public class ObservedPairsService {
         settings.setObservedPairs(pairsString);
         settingsService.save(settings);
 
-        pairDataService.deleteAllByStatus(TradeStatus.OBSERVED);
+        tradingPairService.deleteAllByStatus(TradeStatus.OBSERVED);
 
         if (pairsString == null || pairsString.isBlank()) {
             return;
@@ -52,6 +52,6 @@ public class ObservedPairsService {
             }
         }
 
-        pairDataService.saveAll(tradingPairList);
+        tradingPairService.saveAll(tradingPairList);
     }
 }

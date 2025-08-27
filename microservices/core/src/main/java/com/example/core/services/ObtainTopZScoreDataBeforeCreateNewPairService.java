@@ -17,7 +17,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ObtainTopZScoreDataBeforeCreateNewPairService {
 
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final PixelSpreadService pixelSpreadService;
 
     /**
@@ -416,7 +416,7 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
             String shortTicker = data.getOverValuedTicker(); // overvalued = short
 
             // Сначала пробуем найти существующую PairData (старая логика)
-            var existingPairs = pairDataService.findByTickers(longTicker, shortTicker);
+            var existingPairs = tradingPairService.findByTickers(longTicker, shortTicker);
 
             if (!existingPairs.isEmpty()) {
                 var pairData = existingPairs.get(0);

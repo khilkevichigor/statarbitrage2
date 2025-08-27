@@ -3,8 +3,8 @@ package com.example.core.ui.components;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.processors.UpdateTradeProcessor;
 import com.example.core.services.AveragingService;
-import com.example.core.services.PairDataService;
 import com.example.core.services.SettingsService;
+import com.example.core.services.TradingPairService;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.models.TradeStatus;
@@ -35,7 +35,7 @@ import static com.example.shared.utils.BigDecimalUtil.safeScale;
 @UIScope
 public class TradingPairsComponent extends VerticalLayout {
 
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final ZScoreChartDialog zScoreChartDialog;
@@ -52,14 +52,14 @@ public class TradingPairsComponent extends VerticalLayout {
     private Consumer<Void> uiUpdateCallback;
 
     public TradingPairsComponent(
-            PairDataService pairDataService,
+            TradingPairService tradingPairService,
             StartNewTradeProcessor startNewTradeProcessor,
             UpdateTradeProcessor updateTradeProcessor,
             ZScoreChartDialog zScoreChartDialog,
             AveragingService averagingService,
             SettingsService settingsService
     ) {
-        this.pairDataService = pairDataService;
+        this.tradingPairService = tradingPairService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.zScoreChartDialog = zScoreChartDialog;
@@ -333,7 +333,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateSelectedPairs() {
         try {
-            List<TradingPair> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.SELECTED);
+            List<TradingPair> pairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.SELECTED);
             selectedPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating selected pairs", e);
@@ -342,7 +342,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateTradingPairs() {
         try {
-            List<TradingPair> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<TradingPair> pairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             tradingPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating trading pairs", e);
@@ -351,7 +351,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateClosedPairs() {
         try {
-            List<TradingPair> pairs = pairDataService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
+            List<TradingPair> pairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
             closedPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating closed pairs", e);
@@ -362,8 +362,8 @@ public class TradingPairsComponent extends VerticalLayout {
         try {
             unrealizedProfitLayout.removeAll();
 
-            BigDecimal usdtProfit = safeScale(pairDataService.getUnrealizedProfitUSDTTotal(), 2);
-            BigDecimal percentProfit = safeScale(pairDataService.getUnrealizedProfitPercentTotal(), 2);
+            BigDecimal usdtProfit = safeScale(tradingPairService.getUnrealizedProfitUSDTTotal(), 2);
+            BigDecimal percentProfit = safeScale(tradingPairService.getUnrealizedProfitPercentTotal(), 2);
 
             String label = String.format("💰 Нереализованный профит: %s$/%s%%", usdtProfit, percentProfit);
             unrealizedProfitLayout.add(new H2(label));
@@ -374,7 +374,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateErrorPairs() {
         try {
-            List<TradingPair> pairs = pairDataService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.ERROR);
+            List<TradingPair> pairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.ERROR);
             errorPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating error pairs", e);
@@ -383,7 +383,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateObservedPairs() {
         try {
-            List<TradingPair> pairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.OBSERVED);
+            List<TradingPair> pairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.OBSERVED);
             observedPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating observed pairs", e);
@@ -485,7 +485,7 @@ public class TradingPairsComponent extends VerticalLayout {
         Checkbox checkbox = new Checkbox(tradingPair.isCloseAtBreakeven());
         checkbox.addValueChangeListener(event -> {
             tradingPair.setCloseAtBreakeven(event.getValue());
-            pairDataService.save(tradingPair);
+            tradingPairService.save(tradingPair);
             Notification.show(String.format("Для пары %s закрытие в БУ %s",
                     tradingPair.getPairName(),
                     event.getValue() ? "включено" : "отключено"));
@@ -572,7 +572,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void closeAllTrades() {
         try {
-            List<TradingPair> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<TradingPair> tradingPairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             for (TradingPair tradingPair : tradingPairs) {
                 updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
                         .tradingPair(tradingPair)

@@ -33,8 +33,8 @@ public class CointPair {
     private Long id;
 
     @CsvExportable(order = 2)
-    @Column(columnDefinition = "uuid", nullable = false, updatable = false)
-    private String uuid = UUID.randomUUID().toString();
+    @Column(name = "uuid", columnDefinition = "uuid", nullable = false, updatable = false)
+    private UUID uuid = UUID.randomUUID();
 
     @Version
     @CsvExportable(order = 3)

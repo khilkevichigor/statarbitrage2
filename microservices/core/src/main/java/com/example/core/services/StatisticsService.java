@@ -18,26 +18,26 @@ import java.util.Optional;
 public class StatisticsService {
 
     private final TradeHistoryRepository tradeHistoryRepository;
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final TradeHistoryService tradeHistoryService;
 
     public TradePairsStatisticsDto collectStatistics() {
-        BigDecimal unrealizedProfitUSDTToday = pairDataService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDTToday = tradingPairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
                 .map(TradingPair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitUSDTTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDTTotal = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(TradingPair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitPercentToday = pairDataService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitPercentToday = tradingPairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
                 .map(TradingPair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitPercentTotal = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitPercentTotal = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(TradingPair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

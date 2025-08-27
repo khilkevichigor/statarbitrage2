@@ -20,7 +20,7 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class StartNewTradeProcessor {
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationServiceImpl;
@@ -47,7 +47,7 @@ public class StartNewTradeProcessor {
         if (maybeZScoreData.isEmpty()) return handleTradeError(tradingPair, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
 
         final ZScoreData zScoreData = maybeZScoreData.get();
-        pairDataService.updateZScoreDataCurrent(tradingPair, zScoreData);
+        tradingPairService.updateZScoreDataCurrent(tradingPair, zScoreData);
 
         // 3. Валидация тикеров и автотрейдинга
         if (!startNewTradeValidationService.validateTickers(tradingPair, zScoreData)) {
@@ -105,9 +105,9 @@ public class StartNewTradeProcessor {
         TradeResult longTrade = openResult.getLongTradeResult();
         TradeResult shortTrade = openResult.getShortTradeResult();
 
-        pairDataService.addEntryPoints(tradingPair, zScoreData, longTrade, shortTrade);
-        pairDataService.addChanges(tradingPair);
-        pairDataService.save(tradingPair);
+        tradingPairService.addEntryPoints(tradingPair, zScoreData, longTrade, shortTrade);
+        tradingPairService.addChanges(tradingPair);
+        tradingPairService.save(tradingPair);
 
         tradeHistoryService.updateTradeLog(tradingPair, settings);
 
@@ -118,7 +118,7 @@ public class StartNewTradeProcessor {
         log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());
-        pairDataService.save(tradingPair);
+        tradingPairService.save(tradingPair);
         return tradingPair;
     }
 }

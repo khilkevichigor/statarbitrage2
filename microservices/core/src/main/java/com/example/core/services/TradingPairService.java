@@ -18,7 +18,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PairDataService {
+public class TradingPairService {
     private final TradingPairRepository tradingPairRepository;
     private final CalculateChangesService calculateChangesServiceImpl;
     private final EntryPointService entryPointService;

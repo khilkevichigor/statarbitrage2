@@ -1,8 +1,8 @@
 package com.example.core.processors;
 
 import com.example.core.client.CandlesFeignClient;
-import com.example.core.services.PairDataService;
 import com.example.core.services.SettingsService;
+import com.example.core.services.TradingPairService;
 import com.example.core.services.ZScoreService;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;
@@ -22,7 +22,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class FetchPairsProcessor {
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final ZScoreService zScoreService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
@@ -66,7 +66,7 @@ public class FetchPairsProcessor {
     }
 
     private List<String> getUsedTickers() {
-        List<TradingPair> activePairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<TradingPair> activePairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
         for (TradingPair pair : activePairs) {
             tickers.add(pair.getLongTicker());
@@ -109,7 +109,7 @@ public class FetchPairsProcessor {
 
     private List<TradingPair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
-            return pairDataService.createPairDataList(zScoreDataList, candlesMap);
+            return tradingPairService.createPairDataList(zScoreDataList, candlesMap);
         } catch (Exception e) {
             log.error("❌ Ошибка при создании PairData: {}", e.getMessage());
             return Collections.emptyList();

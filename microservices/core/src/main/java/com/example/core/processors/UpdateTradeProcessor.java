@@ -23,7 +23,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class UpdateTradeProcessor {
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final SettingsService settingsService;
     private final TradeHistoryService tradeHistoryService;
     private final ZScoreService zScoreService;
@@ -79,7 +79,7 @@ public class UpdateTradeProcessor {
         final Settings settings = settingsService.getSettings();
 
         //todo здесь сетить настройки в пару для дальнейшей аналитики чатЖПТ
-        pairDataService.updateSettingsParam(tradingPair, settings);
+        tradingPairService.updateSettingsParam(tradingPair, settings);
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         provider.updatePositionPrices(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()));
@@ -97,14 +97,14 @@ public class UpdateTradeProcessor {
 
         logPairInfo(zScoreData, settings);
 
-        pairDataService.updateZScoreDataCurrent(tradingPair, zScoreData);
+        tradingPairService.updateZScoreDataCurrent(tradingPair, zScoreData);
 
         // Обновляем пиксельный спред синхронно с Z-Score и ценами
         log.debug("🔢 Обновляем пиксельный спред для пары {}", tradingPair.getPairName());
         chartService.calculatePixelSpreadIfNeeded(tradingPair); // Инициализация при первом запуске
         chartService.addCurrentPixelSpreadPoint(tradingPair); // Добавляем новую точку
 
-        pairDataService.addChanges(tradingPair); // обновляем профит до проверки стратегии выхода
+        tradingPairService.addChanges(tradingPair); // обновляем профит до проверки стратегии выхода
 
         // Проверяем автоусреднение после обновления профита
         if (averagingService.shouldPerformAutoAveraging(tradingPair, settings)) {
@@ -125,7 +125,7 @@ public class UpdateTradeProcessor {
             return handleAutoClose(tradingPair, settings, exitReason);
         }
 
-        pairDataService.save(tradingPair);
+        tradingPairService.save(tradingPair);
         tradeHistoryService.updateTradeLog(tradingPair, settings);
         return tradingPair;
     }
@@ -145,14 +145,14 @@ public class UpdateTradeProcessor {
         if (zScoreData != null) {
             freshTradingPair.setLongTickerCandles(candlesMap.get(freshTradingPair.getLongTicker()));
             freshTradingPair.setShortTickerCandles(candlesMap.get(freshTradingPair.getShortTicker()));
-            pairDataService.updateZScoreDataCurrent(freshTradingPair, zScoreData);
+            tradingPairService.updateZScoreDataCurrent(freshTradingPair, zScoreData);
 
             // Обновляем пиксельный спред для наблюдаемой пары
             log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshTradingPair.getPairName());
             chartService.calculatePixelSpreadIfNeeded(freshTradingPair); // Инициализация при первом запуске
             chartService.addCurrentPixelSpreadPoint(freshTradingPair); // Добавляем новую точку
 
-            pairDataService.save(freshTradingPair);
+            tradingPairService.save(freshTradingPair);
         }
     }
 
@@ -163,7 +163,7 @@ public class UpdateTradeProcessor {
     }
 
     private TradingPair loadFreshPairData(TradingPair tradingPair) {
-        final TradingPair freshTradingPair = pairDataService.findById(tradingPair.getId());
+        final TradingPair freshTradingPair = tradingPairService.findById(tradingPair.getId());
         if (freshTradingPair == null || freshTradingPair.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}", tradingPair.getPairName());
             return null;
@@ -248,10 +248,10 @@ public class UpdateTradeProcessor {
     }
 
     private void finalizeClosedTrade(TradingPair tradingPair, Settings settings) {
-        pairDataService.addChanges(tradingPair);
-        pairDataService.updatePortfolioBalanceAfterTradeUSDT(tradingPair); //баланс после
+        tradingPairService.addChanges(tradingPair);
+        tradingPairService.updatePortfolioBalanceAfterTradeUSDT(tradingPair); //баланс после
         tradingIntegrationServiceImpl.deletePositions(tradingPair);
-        pairDataService.save(tradingPair);
+        tradingPairService.save(tradingPair);
         tradeHistoryService.updateTradeLog(tradingPair, settings);
     }
 
@@ -299,7 +299,7 @@ public class UpdateTradeProcessor {
 
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());
-        pairDataService.save(tradingPair);
+        tradingPairService.save(tradingPair);
         // не обновляем другие данные тк нужны реальные данные по сделкам!
         return tradingPair;
     }

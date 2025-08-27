@@ -23,7 +23,7 @@ public class TradeHistoryService {
     public void updateTradeLog(TradingPair tradingPair, Settings settings) {
         String longTicker = tradingPair.getLongTicker();
         String shortTicker = tradingPair.getShortTicker();
-        String pairDataUuid = tradingPair.getUuid();
+        String pairDataUuid = tradingPair.getUuid().toString();
 
         // ищем по uuid
         Optional<TradeHistory> optional = tradeHistoryRepository.findLatestByUuid(pairDataUuid);

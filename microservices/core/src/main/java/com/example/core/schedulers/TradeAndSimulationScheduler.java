@@ -4,8 +4,8 @@ import com.example.core.processors.FetchPairsProcessor;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.processors.UpdateTradeProcessor;
 import com.example.core.services.EventSendService;
-import com.example.core.services.PairDataService;
 import com.example.core.services.SettingsService;
+import com.example.core.services.TradingPairService;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.StartNewTradeRequest;
@@ -33,7 +33,7 @@ public class TradeAndSimulationScheduler {
     private final AtomicBoolean maintainPairsRunning = new AtomicBoolean(false);
 
     private final SettingsService settingsService;
-    private final PairDataService pairDataService;
+    private final TradingPairService tradingPairService;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final FetchPairsProcessor fetchPairsProcessor;
@@ -105,7 +105,7 @@ public class TradeAndSimulationScheduler {
 
     private List<TradingPair> getUpdatablePairs() {
         try {
-            return pairDataService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
+            return tradingPairService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
         } catch (Exception e) {
             log.error("❌ Ошибка при получении торговых пар: {}", e.getMessage());
             return List.of();
@@ -216,7 +216,7 @@ public class TradeAndSimulationScheduler {
 
     private int calculateMissingPairs(Settings settings) {
         try {
-            List<TradingPair> tradingPairs = pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<TradingPair> tradingPairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             int maxActive = (int) settings.getUsePairs();
             int currentActive = tradingPairs.size();
             return maxActive - currentActive;
@@ -250,7 +250,7 @@ public class TradeAndSimulationScheduler {
 
     private void cleanupOldSelectedPairs() {
         try {
-            pairDataService.deleteAllByStatus(TradeStatus.SELECTED);
+            tradingPairService.deleteAllByStatus(TradeStatus.SELECTED);
         } catch (Exception e) {
             log.error("❌ Ошибка при очистке старых пар SELECTED: {}", e.getMessage());
         }
