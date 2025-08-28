@@ -335,7 +335,7 @@ public class OkxPortfolioManager {
     /**
      * Получение количества активных позиций
      */
-    private int getActivePositionsCount() {
+    public int getActivePositionsCount() {
         try {
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
             String endpoint = TRADE_POSITIONS_ENDPOINT;

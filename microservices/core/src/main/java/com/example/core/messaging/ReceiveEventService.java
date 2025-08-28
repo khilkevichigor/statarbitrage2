@@ -5,6 +5,7 @@ import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.services.EventSendService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.TradingPairService;
+import com.example.core.trading.services.OkxPortfolioManager;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.events.CointegrationEvent;
 import com.example.shared.events.UpdateUiEvent;
@@ -35,6 +36,7 @@ public class ReceiveEventService {
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
     private final TradingPairService tradingPairRepository;
+    private final OkxPortfolioManager okxPortfolioManager;
 
     /**
      * Вычитываем топик Коинтеграции
@@ -95,8 +97,20 @@ public class ReceiveEventService {
         }
     }
 
+    /**
+     * Получает количество актуальных открытых позиций с OKX API
+     *
+     * @return количество открытых позиций на бирже
+     */
     private int getOpenPositionsCount() {
-
+        try {
+            int count = okxPortfolioManager.getActivePositionsCount();
+            log.debug("🔍 Получено {} открытых позиций с OKX API", count);
+            return count;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении количества открытых позиций с OKX: {}", e.getMessage());
+            return 0;
+        }
     }
 
     private List<CointPair> getMissedPairs(List<CointPair> filteredByTradingPairs) {
