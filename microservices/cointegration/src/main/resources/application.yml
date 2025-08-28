@@ -73,7 +73,6 @@ logging:
   level:
     com.example.cointegration: INFO
 
-# Настройки коинтеграции
 # Cointegration Analysis API
 cointegration:
   api:

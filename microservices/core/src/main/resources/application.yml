@@ -57,26 +57,19 @@ spring:
       enabled: false
     stream:
       bindings:
-        notification-events-out-0:
-          destination: notification.events
+        core-events-out-0:
+          destination: core.events
           content-type: application/json
-          group: notification-group
-        csv-events-out-0:
-          destination: csv.events
-          content-type: application/json
-          group: csv-group
+          group: core-group
         cointegrationEventsConsumer-in-0:
           destination: cointegration.events
           content-type: application/json
           group: cointegration-group
       rabbit:
         bindings:
-          notification-events-out-0:
+          core-events-out-0:
             producer:
-              routing-key-expression: "'notification'"
-          csv-events-out-0:
-            producer:
-              routing-key-expression: "'csv'"
+              routing-key-expression: "'core'"
           cointegrationEventsConsumer-in-0:
             consumer:
               routing-key-expression: "'cointegration'"

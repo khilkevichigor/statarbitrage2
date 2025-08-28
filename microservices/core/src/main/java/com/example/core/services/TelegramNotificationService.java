@@ -1,7 +1,7 @@
 package com.example.core.services;
 
 import com.example.core.messaging.SendEventService;
-import com.example.shared.events.NotificationEvent;
+import com.example.shared.events.CoreEvent;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,12 +24,12 @@ public class TelegramNotificationService implements NotificationService {
     @Override
     public void sendTelegramClosedPair(TradingPair tradingPair) {
         String message = formatCloseMessage(tradingPair);
-        sendEventService.sendNotificationEvent(new NotificationEvent(message, "test_user", NotificationEvent.Priority.HIGH, NotificationEvent.Type.TELEGRAM));
+        sendEventService.sendCoreEvent(new CoreEvent(message, "test_user", CoreEvent.Priority.HIGH, CoreEvent.Type.MESSAGE_TO_TELEGRAM));
     }
 
     @Override
     public void sendTelegramMessage(String message) {
-        sendEventService.sendNotificationEvent(new NotificationEvent(message, "test_user", NotificationEvent.Priority.HIGH, NotificationEvent.Type.TELEGRAM));
+        sendEventService.sendCoreEvent(new CoreEvent(message, "test_user", CoreEvent.Priority.HIGH, CoreEvent.Type.MESSAGE_TO_TELEGRAM));
     }
 
     private String formatCloseMessage(TradingPair tradingPair) {

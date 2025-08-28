@@ -9,7 +9,7 @@ import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.events.CsvEvent;
+import com.example.shared.events.CoreEvent;
 import com.example.shared.models.*;
 import com.example.shared.utils.FormatUtil;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -245,7 +246,7 @@ public class UpdateTradeProcessor {
         tradingPair.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
         finalizeClosedTrade(tradingPair, settings);
         notificationService.sendTelegramClosedPair(tradingPair);
-        sendEventService.sendCsvEvent(new CsvEvent(tradingPair, CsvEvent.Type.EXPORT_CLOSED_PAIR));
+        sendEventService.sendCoreEvent(new CoreEvent(Collections.singletonList(tradingPair), CoreEvent.Type.ADD_CLOSED_TO_CSV));
         return tradingPair;
     }
 
@@ -292,7 +293,7 @@ public class UpdateTradeProcessor {
         tradingPair.setExitReason(exitReason);
         finalizeClosedTrade(tradingPair, settings);
         notificationService.sendTelegramClosedPair(tradingPair);
-        sendEventService.sendCsvEvent(new CsvEvent(tradingPair, CsvEvent.Type.EXPORT_CLOSED_PAIR));
+        sendEventService.sendCoreEvent(new CoreEvent(Collections.singletonList(tradingPair), CoreEvent.Type.ADD_CLOSED_TO_CSV));
         return tradingPair;
     }
 

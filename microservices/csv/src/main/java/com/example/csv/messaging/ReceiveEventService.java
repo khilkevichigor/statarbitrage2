@@ -1,7 +1,7 @@
 package com.example.csv.messaging;
 
 import com.example.csv.service.CsvExportService;
-import com.example.shared.events.CsvEvent;
+import com.example.shared.events.CoreEvent;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,17 +23,17 @@ public class ReceiveEventService {
      * Обработка событий
      */
     @Bean
-    public Consumer<CsvEvent> csvEventsConsumer() {
+    public Consumer<CoreEvent> coreEventsConsumer() {
         return this::handleEvent;
     }
 
-    private void handleEvent(CsvEvent event) {
+    private void handleEvent(CoreEvent event) {
         log.info("📄 Получено событие: {}", event.getEventType());
 
         try {
             // Обработка различных типов событий для экспорта
-            switch (event.getEventType()) {
-                case "EXPORT_CLOSED_PAIR":
+            switch (event.getType()) {
+                case ADD_CLOSED_TO_CSV:
                     addToCsv(event);
                     break;
                 default:
@@ -44,11 +44,11 @@ public class ReceiveEventService {
         }
     }
 
-    private void addToCsv(CsvEvent event) {
+    private void addToCsv(CoreEvent event) {
         log.info("📋 Добавление закрытой пары в CSV");
 
         try {
-            TradingPair tradingPair = event.getTradingPair();
+            TradingPair tradingPair = event.getTradingPairs().get(0);
             csvExportService.addClosedPairToCsv(tradingPair);
             log.info("Пара {} успешно добавлена в csv файл.", tradingPair.getPairName());
         } catch (Exception e) {

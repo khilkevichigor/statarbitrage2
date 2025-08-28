@@ -28,15 +28,22 @@ spring:
   cloud:
     stream:
       bindings:
-        notificationEventsConsumer-in-0:
+        notification-events-out-0:
           destination: notification.events
           content-type: application/json
           group: notification-group
+        coreEventsConsumer-in-0:
+          destination: core.events
+          content-type: application/json
+          group: core-group
       rabbit:
         bindings:
-          notificationEventsConsumer-in-0:
-            consumer:
+          notification-events-out-0:
+            producer:
               routing-key-expression: "'notification'"
+          coreEventsConsumer-in-0:
+            consumer:
+              routing-key-expression: "'core'"
 
 telegram:
   bot:

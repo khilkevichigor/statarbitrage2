@@ -6,7 +6,7 @@ import com.example.cointegration.repositories.TradingPairRepository;
 import com.example.cointegration.service.CointPairService;
 import com.example.cointegration.service.SettingsService;
 import com.example.shared.dto.FetchPairsRequest;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.CointegrationEvent;
 import com.example.shared.models.CointPair;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeStatus;
@@ -40,7 +40,7 @@ public class FindCointPairsScheduler {
 
         if (!cointPairs.isEmpty()) {
             log.info("Отправка найденных пар в сore мс...");
-            sendEventService.sendCoreEvent(new CoreEvent(cointPairs, CoreEvent.Type.NEW_COINT_PAIRS));
+            sendEventService.sendCointegrationEvent(new CointegrationEvent(cointPairs, CointegrationEvent.Type.NEW_COINT_PAIRS));
             log.info("Пары отправлены успешно.");
         }
     }

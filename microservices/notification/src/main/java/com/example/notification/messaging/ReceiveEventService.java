@@ -3,7 +3,7 @@ package com.example.notification.messaging;
 import com.example.notification.bot.BotConfig;
 import com.example.notification.events.SendAsTextEvent;
 import com.example.notification.service.EventSendService;
-import com.example.shared.events.NotificationEvent;
+import com.example.shared.events.CoreEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -19,19 +19,19 @@ public class ReceiveEventService {
     private final EventSendService eventSendService;
 
     @Bean
-    public Consumer<NotificationEvent> notificationEventsConsumer() {
+    public Consumer<CoreEvent> coreEventsConsumer() {
         return this::handleEvent;
     }
 
-    private void handleEvent(NotificationEvent event) {
+    private void handleEvent(CoreEvent event) {
         log.info("📨 Получено событие: {}", event.getMessage());
         switch (event.getType()) {
-            case TELEGRAM -> sendTelegram(event);
+            case MESSAGE_TO_TELEGRAM -> sendTelegram(event);
             default -> log.warn("⚠️ Неизвестный тип уведомления: {}", event.getType());
         }
     }
 
-    private void sendTelegram(NotificationEvent event) {
+    private void sendTelegram(CoreEvent event) {
         log.info("📤 Отправка Telegram: {} для {}", event.getMessage(), event.getRecipient());
         sendNotification(event.getMessage());
     }
