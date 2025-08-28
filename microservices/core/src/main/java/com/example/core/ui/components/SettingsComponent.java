@@ -136,17 +136,17 @@ public class SettingsComponent extends VerticalLayout {
                 log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
                 Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
 
-                if (event.getValue()) {
-                    log.debug("🚀 UI: Запускаем maintainPairs() асинхронно");
-                    // Запускаем maintainPairs() асинхронно, чтобы не блокировать UI
-                    CompletableFuture.runAsync(() -> {
-                        try {
-                            tradeAndSimulationScheduler.maintainPairs();
-                        } catch (Exception e) {
-                            log.error("❌ Ошибка при асинхронном запуске maintainPairs()", e);
-                        }
-                    });
-                }
+//                if (event.getValue()) { //todo будем ждать
+//                    log.debug("🚀 UI: Запускаем maintainPairs() асинхронно");
+//                    // Запускаем maintainPairs() асинхронно, чтобы не блокировать UI
+//                    CompletableFuture.runAsync(() -> {
+//                        try {
+//                            tradeAndSimulationScheduler.maintainPairs();
+//                        } catch (Exception e) {
+//                            log.error("❌ Ошибка при асинхронном запуске maintainPairs()", e);
+//                        }
+//                    });
+//                }
 
                 // Уведомляем об изменении состояния автотрейдинга
                 if (autoTradingChangeCallback != null) {
