@@ -18,7 +18,7 @@ public class SendEventService {
     }
 
     private void send(BaseEvent event) {
-        log.debug("Отправка события {}", event.toString());
+        log.info("Отправка события {}", event.toString());
         try {
             eventPublisher.publish(event.getBindingName(), event);
         } catch (Exception e) {

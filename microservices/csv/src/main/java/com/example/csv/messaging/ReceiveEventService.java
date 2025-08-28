@@ -28,7 +28,7 @@ public class ReceiveEventService {
     }
 
     private void handleEvent(CoreEvent event) {
-        log.info("📄 Получено событие: {}", event.getEventType());
+        log.info("📄 Получено событие: {}", event.toString());
 
         try {
             // Обработка различных типов событий для экспорта

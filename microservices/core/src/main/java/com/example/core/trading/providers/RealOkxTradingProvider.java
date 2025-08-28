@@ -208,9 +208,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             Position position = createPositionFromTradeResult(orderResult, positionType, amount, leverage, realPositionId);
             position = positionRepository.save(position);
             okxPortfolioManager.onPositionOpened(position);
-            log.debug("Позиция создана и сохранена. ID: {}", position.getPositionId());
+            log.info("Позиция создана и сохранена. ID: {}", position.getPositionId());
 
-            log.debug("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
+            log.info("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
                     positionType.name(), symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
 
             // 🧾 Логгирование данных позиции
@@ -1505,9 +1505,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             fields.put("Коэффициент PnL", getJsonStringValue(data, "uplRatio") + " %");
             fields.put("Плечо", getJsonStringValue(data, "lever") + "x");
 
-            log.debug("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
+            log.info("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
             fields.forEach((label, value) -> log.debug("🔍 {}: {}", label, value));
-            log.debug("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
+            log.info("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
 
         } catch (Exception e) {
             log.error("❌ Ошибка при логировании реальных данных позиции для {}: {}", symbol, e.getMessage(), e);

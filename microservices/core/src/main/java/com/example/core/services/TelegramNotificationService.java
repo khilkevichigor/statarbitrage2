@@ -29,7 +29,19 @@ public class TelegramNotificationService implements NotificationService {
 
     @Override
     public void sendTelegramMessage(String message) {
-        sendEventService.sendCoreEvent(new CoreEvent(message, "test_user", CoreEvent.Priority.HIGH, CoreEvent.Type.MESSAGE_TO_TELEGRAM));
+        sendEventService.sendCoreEvent(new CoreEvent(
+                message,
+                "test_user",
+                CoreEvent.Priority.HIGH,
+                CoreEvent.Type.MESSAGE_TO_TELEGRAM
+        ));
+
+//        sendEventService.sendCoreEvent(new CoreEvent(
+//                "🎉 Система работает!",
+//                "test_user",
+//                CoreEvent.Priority.HIGH,
+//                CoreEvent.Type.MESSAGE_TO_TELEGRAM
+//        ));
     }
 
     private String formatCloseMessage(TradingPair tradingPair) {

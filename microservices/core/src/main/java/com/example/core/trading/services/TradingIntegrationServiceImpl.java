@@ -390,7 +390,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         if (existingLongOpt.isPresent()) {
             // Усреднение - обновляем существующую позицию актуальными данными от OKX
             Position existingLong = existingLongOpt.get();
-            log.debug("🔄 Обновление существующей ЛОНГ позиции при усреднении для пары {}: ID = {}", tradingPair.getPairName(), existingLong.getPositionId());
+            log.info("🔄 Обновление существующей ЛОНГ позиции при усреднении для пары {}: ID = {}", tradingPair.getPairName(), existingLong.getPositionId());
 
             // ВАЖНО: сохраняем тот же positionId при усреднении
             String existingPositionId = existingLong.getPositionId();
@@ -405,12 +405,12 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             finalLongPosition = positionRepository.save(existingLong);
 
 
-            log.debug("✅ Обновлена ЛОНГ позиция: ID = {}, новая средняя цена={}, размер={}",
+            log.info("✅ Обновлена ЛОНГ позиция: ID = {}, новая средняя цена={}, размер={}",
                     existingPositionId, existingLong.getEntryPrice(), existingLong.getSize());
         } else {
             // Первое открытие позиции
             finalLongPosition = positionRepository.save(newLongPosition);
-            log.debug("💾 Создана новая ЛОНГ позиция для пары {}: ID = {}", tradingPair.getPairName(), newLongPosition.getPositionId());
+            log.info("💾 Создана новая ЛОНГ позиция для пары {}: ID = {}", tradingPair.getPairName(), newLongPosition.getPositionId());
         }
 
         // Обрабатываем шорт позицию
@@ -423,7 +423,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
         if (existingShortOpt.isPresent()) {
             // Усреднение - обновляем существующую позицию актуальными данными от OKX
             Position existingShort = existingShortOpt.get();
-            log.debug("🔄 Обновление существующей ШОРТ позиции при усреднении для пары {}: ID = {}", tradingPair.getPairName(), existingShort.getPositionId());
+            log.info("🔄 Обновление существующей ШОРТ позиции при усреднении для пары {}: ID = {}", tradingPair.getPairName(), existingShort.getPositionId());
 
             // ВАЖНО: сохраняем тот же positionId при усреднении
             String existingPositionId = existingShort.getPositionId();
@@ -438,25 +438,25 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             finalShortPosition = positionRepository.save(existingShort);
 
 
-            log.debug("✅ Обновлена ШОРТ позиция: ID = {}, новая средняя цена={}, размер={}",
+            log.info("✅ Обновлена ШОРТ позиция: ID = {}, новая средняя цена={}, размер={}",
                     existingPositionId, existingShort.getEntryPrice(), existingShort.getSize());
         } else {
             // Первое открытие позиции
             finalShortPosition = positionRepository.save(newShortPosition);
-            log.debug("💾 Создана новая ШОРТ позиция для пары {}: ID = {}", tradingPair.getPairName(), newShortPosition.getPositionId());
+            log.info("💾 Создана новая ШОРТ позиция для пары {}: ID = {}", tradingPair.getPairName(), newShortPosition.getPositionId());
         }
 
         // Синхронизируем с OKX для получения актуальных данных после усреднения
         if (existingLongOpt.isPresent() || existingShortOpt.isPresent()) {
-            log.debug("🔄 Синхронизация с OKX после усреднения для получения актуальных данных");
+            log.info("🔄 Синхронизация с OKX после усреднения для получения актуальных данных");
             TradingProvider provider = tradingProviderFactory.getCurrentProvider();
             if (provider != null) {
                 provider.updatePositionPrices(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()));
-                log.debug("✅ Синхронизация с OKX завершена");
+                log.info("✅ Синхронизация с OKX завершена");
             }
         }
 
-        log.debug("💾 Обработаны позиции для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
+        log.info("💾 Обработаны позиции для пары {}: ЛОНГ ID = {}, ШОРТ ID = {}",
                 tradingPair.getPairName(),
                 finalLongPosition.getPositionId(),
                 finalShortPosition.getPositionId());

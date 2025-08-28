@@ -24,7 +24,7 @@ public class ReceiveEventService {
     }
 
     private void handleEvent(CoreEvent event) {
-        log.info("📨 Получено событие: {}", event.getMessage());
+        log.info("📨 Получено событие: {}", event.toString());
         switch (event.getType()) {
             case MESSAGE_TO_TELEGRAM -> sendTelegram(event);
             default -> log.warn("⚠️ Неизвестный тип уведомления: {}", event.getType());
