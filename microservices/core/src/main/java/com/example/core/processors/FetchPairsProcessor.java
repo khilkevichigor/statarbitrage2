@@ -28,6 +28,9 @@ public class FetchPairsProcessor {
     private final SettingsService settingsService;
 
     public List<TradingPair> fetchPairs(FetchPairsRequest request) {
+        //todo здесь делать вызов в cointegration ms или брать из бд coint_pair либо
+        // получать пары от cointegration через receiveEventService и класть их в coint_pair таблицу а уже здесь брать их из этой таблицы проверяя на свежесть
+
         if (request == null) {
             throw new IllegalArgumentException("❌ FetchPairsRequest не может быть null");
         }
