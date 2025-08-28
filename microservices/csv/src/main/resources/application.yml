@@ -35,7 +35,7 @@ spring:
         coreEventsConsumer-in-0:
           destination: core.events
           content-type: application/json
-          group: core-group
+          group: csv-group #что бы тоже получать от кор
       rabbit:
         bindings:
           csv-events-out-0:
