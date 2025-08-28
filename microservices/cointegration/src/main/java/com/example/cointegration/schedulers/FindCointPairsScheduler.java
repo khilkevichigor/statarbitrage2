@@ -39,6 +39,7 @@ public class FindCointPairsScheduler {
         log.info("⏱️ Шедуллер поиска коинтегрированных пар закончил работу за {} сек. Найдено {} новых пар", duration / 1000.0, cointPairs.size());
 
         if (!cointPairs.isEmpty()) {
+            log.info("");
             log.info("Отправка найденных пар в сore мс...");
             sendEventService.sendCointegrationEvent(new CointegrationEvent(cointPairs, CointegrationEvent.Type.NEW_COINT_PAIRS));
             log.info("Пары отправлены успешно.");

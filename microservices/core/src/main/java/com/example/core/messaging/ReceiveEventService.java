@@ -41,6 +41,7 @@ public class ReceiveEventService {
     }
 
     private void handleEvent(CointegrationEvent event) {
+        log.info("");
         log.info("📄 Получено событие: {}", event.getEventType());
         long schedulerStart = System.currentTimeMillis();
         try {
@@ -71,8 +72,8 @@ public class ReceiveEventService {
 
     private List<TradingPair> convertToTradingPair(List<CointPair> validCointPairs) {
         List<TradingPair> convertedPairs = new ArrayList<>();
-//        validCointPairs.forEach(pair -> convertedPairs.add(cointPairToTradingPairConverter.convert(pair)));
-        validCointPairs.forEach(pair -> convertedPairs.add(cointPairMapper.toTradingPair(pair)));
+        validCointPairs.forEach(pair -> convertedPairs.add(cointPairToTradingPairConverter.convert(pair)));
+//        validCointPairs.forEach(pair -> convertedPairs.add(cointPairMapper.toTradingPair(pair)));
         return convertedPairs;
     }
 
