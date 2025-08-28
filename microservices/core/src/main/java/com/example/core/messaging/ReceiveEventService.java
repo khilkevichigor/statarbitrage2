@@ -1,6 +1,5 @@
 package com.example.core.messaging;
 
-import com.example.core.converters.CointPairMapper;
 import com.example.core.converters.CointPairToTradingPairConverter;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.services.EventSendService;
@@ -32,7 +31,6 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class ReceiveEventService {
     private final CointPairToTradingPairConverter cointPairToTradingPairConverter;
-    private final CointPairMapper cointPairMapper;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
@@ -56,8 +54,20 @@ public class ReceiveEventService {
                 case "NEW_COINT_PAIRS":
                     List<CointPair> cointPairs = event.getCointPairs();
 
+                    log.info("Получены cointPairs:");
+                    cointPairs.forEach(cointPair -> log.info(cointPair.getPairName()));
+
                     List<CointPair> validCointPairs = getValidCointPairs(cointPairs);
                     log.info("{} пар из {} прошли валидацию", validCointPairs.size(), cointPairs.size());
+
+                    int openedPositionsCount = getOpenPositionsCount();
+                    log.info("На бирже {} открытых позиций", openedPositionsCount);
+                    int usePairs = (int) settingsService.getSettings().getUsePairs();
+                    int usePositions = usePairs * 2;
+                    if (usePositions - openedPositionsCount < 2) {
+                        log.info("Всего можно держать {} пар ({} позиций). Новые позиции открывать нельзя.", usePairs, usePositions);
+                        return;
+                    }
 
                     List<CointPair> filteredByMinLotCointPairs = filterByMinLotFromBlackList(validCointPairs);
                     log.info("Осталось {} пар из {} после фильтрации по минимальному лоту из черного списка", filteredByMinLotCointPairs.size(), validCointPairs.size());
@@ -83,6 +93,10 @@ public class ReceiveEventService {
         } catch (Exception e) {
             log.error("❌ Ошибка при обработке события: {}", e.getMessage(), e);
         }
+    }
+
+    private int getOpenPositionsCount() {
+
     }
 
     private List<CointPair> getMissedPairs(List<CointPair> filteredByTradingPairs) {
@@ -123,6 +137,7 @@ public class ReceiveEventService {
     private List<CointPair> filterByMinLotFromBlackList(List<CointPair> cointPairs) {
         Settings settings = settingsService.getSettings();
         String minimumLotBlacklist = settings.getMinimumLotBlacklist();
+        log.info("Черный список минимальных лотов: {}", minimumLotBlacklist);
         List<CointPair> filteredCointPairs = new ArrayList<>();
         cointPairs.forEach(cointPair -> {
             if (!minimumLotBlacklist.contains(cointPair.getLongTicker()) && !minimumLotBlacklist.contains(cointPair.getShortTicker())) {
@@ -135,7 +150,6 @@ public class ReceiveEventService {
     private List<TradingPair> convertToTradingPair(List<CointPair> validCointPairs) {
         List<TradingPair> convertedPairs = new ArrayList<>();
         validCointPairs.forEach(pair -> convertedPairs.add(cointPairToTradingPairConverter.convert(pair)));
-//        validCointPairs.forEach(pair -> convertedPairs.add(cointPairMapper.toTradingPair(pair)));
         return convertedPairs;
     }
 

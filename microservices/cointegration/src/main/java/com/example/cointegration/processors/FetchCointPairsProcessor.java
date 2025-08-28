@@ -7,7 +7,6 @@ import com.example.cointegration.service.CointPairService;
 import com.example.cointegration.service.SettingsService;
 import com.example.cointegration.service.ZScoreService;
 import com.example.shared.dto.CandlesRequest;
-import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.*;
 import com.example.shared.utils.NumberFormatter;
@@ -31,18 +30,14 @@ public class FetchCointPairsProcessor {
     private final SettingsService settingsService;
     private final SendEventService sendEventService;
 
-    public List<CointPair> fetchCointPairs(FetchPairsRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("❌ FetchPairsRequest не может быть null");
-        }
-
+    public List<CointPair> fetchCointPairs() {
         long start = System.currentTimeMillis();
         log.info("");
         log.info("🔎 Начало поиска пар...");
 
         Settings settings = settingsService.getSettings();
-        List<String> usedTickers = getUsedTickers();
-        Map<String, List<Candle>> candlesMap = getCandles(settings, Collections.emptyList());
+        List<String> usedTickers = getUsedTickers(); //в candles ms отфильтрем из общего числа тикеров
+        Map<String, List<Candle>> candlesMap = getCandles(settings, usedTickers);
 
         if (candlesMap.isEmpty()) {
             log.warn("⚠️ Данные свечей не получены — пропуск поиска.");
@@ -50,7 +45,7 @@ public class FetchCointPairsProcessor {
         }
 
         //todo вынести в мс и брать из бд?
-        List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap, 1000);
+        List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap);
         if (zScoreDataList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -85,9 +80,9 @@ public class FetchCointPairsProcessor {
         return map;
     }
 
-    private List<ZScoreData> computeZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, int count) {
+    private List<ZScoreData> computeZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
         try {
-            return zScoreService.getTopNZScoreData(settings, candlesMap, count);
+            return zScoreService.getZScoreData(settings, candlesMap);
         } catch (Exception e) {
             log.error("❌ Ошибка при расчете Z-Score: {}", e.getMessage());
             return Collections.emptyList();
@@ -103,9 +98,9 @@ public class FetchCointPairsProcessor {
             String latestZscore = NumberFormatter.format(data.getLatestZScore(), 2);
             String correlation = NumberFormatter.format(data.getPearsonCorr(), 2);
 
-            log.debug(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | p=%s | adf=%s | z=%s | corr=%s",
+            log.info(String.format("%d. Пара: underValuedTicker=%s overValuedTicker=%s | z=%s | adf=%s | p=%s | corr=%s",
                     index++, data.getUnderValuedTicker(), data.getOverValuedTicker(),
-                    cointegrationPValue, avgAdfPValue, latestZscore, correlation));
+                    latestZscore, avgAdfPValue, cointegrationPValue, correlation));
         }
     }
 

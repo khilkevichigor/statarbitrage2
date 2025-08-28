@@ -228,24 +228,19 @@ public class ZScoreService {
     /**
      * Возвращает топ-N лучших пар.
      */
-    public List<ZScoreData> getTopNZScoreData(Settings settings,
-                                              Map<String, List<Candle>> candlesMap,
-                                              int count) {
+    public List<ZScoreData> getZScoreData(Settings settings,
+                                          Map<String, List<Candle>> candlesMap) {
 
-        List<ZScoreData> all = calculateZScoreData(settings, candlesMap, false);
-        return obtainTopNZScoreData(candlesMap, settings, all, count);
+        List<ZScoreData> all = calculateZScoreData(settings, candlesMap, true);
+        return obtainUniqueZScoreData(candlesMap, settings, all);
     }
 
-    private List<ZScoreData> obtainTopNZScoreData(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList, int topN) {
-        if (topN <= 0) {
-            log.warn("⚠️ Некорректное количество пар: topN={}", topN);
-            return Collections.emptyList();
-        }
+    private List<ZScoreData> obtainUniqueZScoreData(Map<String, List<Candle>> candlesMap, Settings settings, List<ZScoreData> zScoreDataList) {
         if (zScoreDataList == null || zScoreDataList.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Выводим статистику по ZScore данным перед отбором
+        // Статистика перед отбором
         double maxZScore = zScoreDataList.stream()
                 .mapToDouble(data -> {
                     List<ZScoreParam> params = data.getZScoreHistory();
@@ -287,7 +282,7 @@ public class ZScoreService {
                 .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
                 .max().orElse(0.0);
 
-        log.info("📊 Статистика перед отбором топ-{} пар:", topN);
+        log.info("📊 Статистика перед отбором пар:");
         log.info("   🔥 Лучший Z-Score: {}", maxZScore);
         log.info("   📉 Лучший P-Value: {}", minPValue);
         log.info("   📈 Лучший R-Squared: {}", maxRSquared);
@@ -295,37 +290,36 @@ public class ZScoreService {
         log.info("   🔗 Лучшая корреляция: {}", maxCorrelation);
 
         List<ZScoreData> bestPairs = new ArrayList<>();
-        List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
+        List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList);
 
-        for (int i = 0; i < topN; i++) {
+        Set<String> usedTickers = new HashSet<>();
+
+        while (!remainingPairs.isEmpty()) {
             Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs, candlesMap);
-            if (maybeBest.isPresent()) {
-                ZScoreData best = maybeBest.get();
-
-                //смотрим что мы отобрали по тикерам
-                List<String> actualBestTickers = new ArrayList<>();
-                bestPairs.forEach(b -> {
-                    actualBestTickers.add(b.getUnderValuedTicker());
-                    actualBestTickers.add(b.getOverValuedTicker());
-                });
-                //берем только те новые тикеры которых еще нет в торговле
-                if (actualBestTickers.contains(best.getUnderValuedTicker()) || actualBestTickers.contains(best.getOverValuedTicker())) {
-                    log.debug("⚠️ Пропускаем пару {}/{} т.к. такие тикеры уже есть в торговле! Поддерживаем только уникальные тикеры для простоты ведения сделок!",
-                            best.getUnderValuedTicker(), best.getOverValuedTicker());
-                    continue;
-                }
-
-                logLastZ(best);
-
-                //детальная инфа
-                ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings);
-
-                bestPairs.add(detailedZScoreData);
-                remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
+            if (maybeBest.isEmpty()) {
+                break;
             }
-        }
 
-        log.info("obtainTopNZScoreData: {} пар", bestPairs.size());
+            ZScoreData best = maybeBest.get();
+
+            // Проверяем уникальность тикеров
+            if (usedTickers.contains(best.getUnderValuedTicker()) || usedTickers.contains(best.getOverValuedTicker())) {
+                log.debug("⚠️ Пропускаем пару {}/{} т.к. такие тикеры уже есть в торговле!",
+                        best.getUnderValuedTicker(), best.getOverValuedTicker());
+                remainingPairs.remove(best);
+                continue;
+            }
+
+            logLastZ(best);
+
+            // Детальная инфа
+            ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings);
+
+            bestPairs.add(detailedZScoreData);
+            usedTickers.add(best.getUnderValuedTicker());
+            usedTickers.add(best.getOverValuedTicker());
+            remainingPairs.remove(best);
+        }
 
         return bestPairs;
     }
