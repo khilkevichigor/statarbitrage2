@@ -51,8 +51,8 @@ public class CoreApplication {
     }
 
     public static void main(String[] args) {
-        log.info("🚀 Запуск микросервиса Core...");
         SpringApplication.run(CoreApplication.class, args);
+        log.info("");
         log.info("✅ Микросервис Core успешно запущен!");
     }
 
@@ -64,9 +64,10 @@ public class CoreApplication {
         // Проверка Cointegration API
         checkCointegrationApiHealth();
 
-        log.info("🚀 Статарбитраж приложение готово к работе!");
-
         updateTradingPairsAfterRestart();
+
+        log.info("");
+        log.info("🚀 Core готов к работе!");
     }
 
     private void updateTradingPairsAfterRestart() {
