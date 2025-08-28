@@ -56,7 +56,7 @@ public class FindCointPairsScheduler {
         if (missingCointPairs <= 0) {
             return Collections.emptyList();
         }
-        return createNewCointPairs(missingCointPairs);
+        return createNewCointPairs(1000);
     }
 
     private int calculateMissingCointPairs(Settings settings) {

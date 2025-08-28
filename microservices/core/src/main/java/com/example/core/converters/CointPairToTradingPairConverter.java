@@ -15,9 +15,9 @@ public class CointPairToTradingPairConverter implements Converter<CointPair, Tra
         }
 
         return TradingPair.builder()
-                .id(source.getId())
+//                .id(source.getId())
                 .uuid(source.getUuid())
-                .version(source.getVersion())
+//                .version(source.getVersion())
                 .status(source.getStatus())
                 .errorDescription(source.getErrorDescription())
                 .longTickerCandlesJson(source.getLongTickerCandlesJson())

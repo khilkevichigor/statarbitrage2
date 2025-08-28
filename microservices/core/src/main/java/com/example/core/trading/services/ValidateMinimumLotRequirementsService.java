@@ -143,7 +143,7 @@ public class ValidateMinimumLotRequirementsService {
             }
 
             settings.setMinimumLotBlacklist(newBlacklist);
-            settingsService.save(settings);
+            settingsService.save(settings); //todo не сохраняет!
 
             log.warn("🚫 АВТОБЛОКИРОВКА: Тикер {} автоматически добавлен в блэклист минимальных лотов", ticker);
 

@@ -19,10 +19,10 @@ public class ReceiveEventService {
     private final CointPairRepository cointPairRepository;
 
     /**
-     * Обработка событий
+     * Вычитываем нужный топик
      */
     @Bean
-    public Consumer<CointegrationEvent> cointegrationEventsConsumer() {
+    public Consumer<CointegrationEvent> cointegrationEventsConsumer() { //todo должны быть другие топики
         return this::handleEvent;
     }
 

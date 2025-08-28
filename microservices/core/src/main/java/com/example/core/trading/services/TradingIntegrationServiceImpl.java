@@ -33,13 +33,13 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @EventListener(ApplicationReadyEvent.class)
     public void loadOpenPositions() {
-        log.info("Загрузка открытых позиций из базы данных...");
+        log.debug("Загрузка открытых позиций из базы данных...");
         List<Position> openPositions = positionRepository.findAllByStatus(PositionStatus.OPEN);
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         if (provider != null) {
             provider.loadPositions(openPositions);
-            log.info("Загружено {} открытых позиций.", openPositions.size());
+            log.debug("Загружено {} открытых позиций.", openPositions.size());
         } else {
             log.warn("⚠️ TradingProvider не инициализирован, пропускаем загрузку позиций");
         }

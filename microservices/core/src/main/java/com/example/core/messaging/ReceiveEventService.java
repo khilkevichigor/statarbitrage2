@@ -4,10 +4,14 @@ import com.example.core.converters.CointPairMapper;
 import com.example.core.converters.CointPairToTradingPairConverter;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.services.EventSendService;
+import com.example.core.services.SettingsService;
+import com.example.core.services.TradingPairService;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.events.CointegrationEvent;
 import com.example.shared.events.UpdateUiEvent;
 import com.example.shared.models.CointPair;
+import com.example.shared.models.Settings;
+import com.example.shared.models.TradeStatus;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +35,8 @@ public class ReceiveEventService {
     private final CointPairMapper cointPairMapper;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final EventSendService eventSendService;
+    private final SettingsService settingsService;
+    private final TradingPairService tradingPairRepository;
 
     /**
      * Вычитываем топик Коинтеграции
@@ -53,8 +59,17 @@ public class ReceiveEventService {
                     List<CointPair> validCointPairs = getValidCointPairs(cointPairs);
                     log.info("{} пар из {} прошли валидацию", validCointPairs.size(), cointPairs.size());
 
-                    List<TradingPair> tradingPairs = convertToTradingPair(validCointPairs);
-                    log.info("{} CointPairs сконверчены в {} TradingPairs", validCointPairs.size(), cointPairs.size());
+                    List<CointPair> filteredByMinLotCointPairs = filterByMinLotFromBlackList(validCointPairs);
+                    log.info("Осталось {} пар из {} после фильтрации по минимальному лоту из черного списка", filteredByMinLotCointPairs.size(), validCointPairs.size());
+
+                    List<CointPair> filteredByTradingPairs = filterByExistingTradingPairs(filteredByMinLotCointPairs);
+                    log.info("Осталось {} пар из {} после фильтрации по trading парам", filteredByTradingPairs.size(), filteredByMinLotCointPairs.size());
+
+                    List<CointPair> missedCountCointPairs = getMissedPairs(filteredByTradingPairs);
+                    log.info("Взяли необходимые {} пар для нового трейда", missedCountCointPairs.size());
+
+                    List<TradingPair> tradingPairs = convertToTradingPair(missedCountCointPairs);
+                    log.info("{} CointPairs сконверчены в {} TradingPairs", missedCountCointPairs.size(), tradingPairs.size());
 
                     int startedNewTrades = startNewTrades(tradingPairs);
                     if (startedNewTrades > 0) {
@@ -68,6 +83,53 @@ public class ReceiveEventService {
         } catch (Exception e) {
             log.error("❌ Ошибка при обработке события: {}", e.getMessage(), e);
         }
+    }
+
+    private List<CointPair> getMissedPairs(List<CointPair> filteredByTradingPairs) {
+        List<TradingPair> activePairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        Settings settings = settingsService.getSettings();
+        int usePairs = (int) settings.getUsePairs();
+
+        int necesseryNewPairs = usePairs - activePairs.size();
+
+        return filteredByTradingPairs.stream()
+                .limit(Math.max(necesseryNewPairs, 0)) // берем только нужное количество, не меньше 0
+                .toList(); // в Java 16+ можно использовать toList(), иначе collect(Collectors.toList())
+
+    }
+
+    private List<CointPair> filterByExistingTradingPairs(List<CointPair> cointPairs) {
+        List<String> usedTickers = getUsedTickers();
+        String tickersStr = String.join(", ", usedTickers);
+        List<CointPair> filteredByTradingPairs = new ArrayList<>();
+        cointPairs.forEach(cointPair -> {
+            if (!tickersStr.contains(cointPair.getLongTicker()) && !usedTickers.contains(cointPair.getShortTicker())) {
+                filteredByTradingPairs.add(cointPair);
+            }
+        });
+        return filteredByTradingPairs;
+    }
+
+    private List<String> getUsedTickers() {
+        List<TradingPair> activePairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<String> tickers = new ArrayList<>();
+        for (TradingPair pair : activePairs) {
+            tickers.add(pair.getLongTicker());
+            tickers.add(pair.getShortTicker());
+        }
+        return tickers;
+    }
+
+    private List<CointPair> filterByMinLotFromBlackList(List<CointPair> cointPairs) {
+        Settings settings = settingsService.getSettings();
+        String minimumLotBlacklist = settings.getMinimumLotBlacklist();
+        List<CointPair> filteredCointPairs = new ArrayList<>();
+        cointPairs.forEach(cointPair -> {
+            if (!minimumLotBlacklist.contains(cointPair.getLongTicker()) && !minimumLotBlacklist.contains(cointPair.getShortTicker())) {
+                filteredCointPairs.add(cointPair);
+            }
+        });
+        return filteredCointPairs;
     }
 
     private List<TradingPair> convertToTradingPair(List<CointPair> validCointPairs) {

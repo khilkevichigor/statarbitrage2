@@ -56,7 +56,7 @@ public class TradingPairService {
 
     public void save(TradingPair tradingPair) {
         tradingPair.setUpdatedTime(System.currentTimeMillis()); //перед сохранением обновляем время
-        tradingPairRepository.save(tradingPair);
+        tradingPairRepository.save(tradingPair); //todo падаем
     }
 
     public void saveAll(List<TradingPair> tradingPairList) {

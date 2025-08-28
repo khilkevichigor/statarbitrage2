@@ -4,7 +4,6 @@ import com.example.cointegration.client_python.PythonRestClient;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import com.example.shared.models.ZScoreParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -203,28 +202,28 @@ public class ZScoreService {
         return rawZScoreDataList;
     }
 
-    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(TradingPair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
-        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
-        if (zScoreData == null) {
-            log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
-            throw new IllegalStateException("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
-        }
-
-        List<ZScoreData> zScoreDataSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
-        checkZScoreParamsSize(zScoreDataSingletonList);
-
-        filterZScoreDataForExistingPairBeforeNewTradeService.filter(zScoreDataSingletonList, settings);
-
-        log.debug("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", tradingPair.getPairName());
-
-        // Для информации: рассчитываем скор но не фильтруем
-        if (!zScoreDataSingletonList.isEmpty()) {
-            // Не используем результат, только для логов
-            log.debug("📊 Информационно: пара {} обновлена с детальными данными", tradingPair.getPairName());
-        }
-
-        return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
-    }
+//    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(TradingPair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
+//        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
+//        if (zScoreData == null) {
+//            log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
+//            throw new IllegalStateException("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
+//        }
+//
+//        List<ZScoreData> zScoreDataSingletonList = new ArrayList<>(Collections.singletonList(zScoreData));
+//        checkZScoreParamsSize(zScoreDataSingletonList);
+//
+//        filterZScoreDataForExistingPairBeforeNewTradeService.filter(zScoreDataSingletonList, settings);
+//
+//        log.debug("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", tradingPair.getPairName());
+//
+//        // Для информации: рассчитываем скор но не фильтруем
+//        if (!zScoreDataSingletonList.isEmpty()) {
+//            // Не используем результат, только для логов
+//            log.debug("📊 Информационно: пара {} обновлена с детальными данными", tradingPair.getPairName());
+//        }
+//
+//        return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));
+//    }
 
     /**
      * Возвращает топ-N лучших пар.
@@ -233,7 +232,7 @@ public class ZScoreService {
                                               Map<String, List<Candle>> candlesMap,
                                               int count) {
 
-        List<ZScoreData> all = calculateZScoreData(settings, candlesMap, true);
+        List<ZScoreData> all = calculateZScoreData(settings, candlesMap, false);
         return obtainTopNZScoreData(candlesMap, settings, all, count);
     }
 
@@ -288,7 +287,7 @@ public class ZScoreService {
                 .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
                 .max().orElse(0.0);
 
-        log.debug("📊 Статистика перед отбором топ-{} пар:", topN);
+        log.info("📊 Статистика перед отбором топ-{} пар:", topN);
         log.info("   🔥 Лучший Z-Score: {}", maxZScore);
         log.info("   📉 Лучший P-Value: {}", minPValue);
         log.info("   📈 Лучший R-Squared: {}", maxRSquared);
@@ -325,6 +324,8 @@ public class ZScoreService {
                 remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
             }
         }
+
+        log.info("obtainTopNZScoreData: {} пар", bestPairs.size());
 
         return bestPairs;
     }

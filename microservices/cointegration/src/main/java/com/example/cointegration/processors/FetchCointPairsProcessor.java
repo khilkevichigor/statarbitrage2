@@ -15,7 +15,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -39,18 +42,15 @@ public class FetchCointPairsProcessor {
 
         Settings settings = settingsService.getSettings();
         List<String> usedTickers = getUsedTickers();
-        Map<String, List<Candle>> candlesMap = getCandles(settings, usedTickers);
+        Map<String, List<Candle>> candlesMap = getCandles(settings, Collections.emptyList());
 
         if (candlesMap.isEmpty()) {
             log.warn("⚠️ Данные свечей не получены — пропуск поиска.");
             return Collections.emptyList();
         }
 
-        int count = Optional.ofNullable(request.getCountOfPairs())
-                .orElse((int) settings.getUsePairs());
-
         //todo вынести в мс и брать из бд?
-        List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap, count);
+        List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap, 1000);
         if (zScoreDataList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -59,10 +59,10 @@ public class FetchCointPairsProcessor {
 
         List<CointPair> pairs = createCointPairs(zScoreDataList, candlesMap);
 
-        log.debug("✅ Создано {} пар", pairs.size());
+        log.info("✅ Создано {} пар", pairs.size());
         pairs.forEach(p -> log.debug("📈 {}", p.getPairName()));
 
-        log.debug("🕒 Время выполнения: {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
+        log.info("🕒 Время выполнения: {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
 
         return pairs;
     }

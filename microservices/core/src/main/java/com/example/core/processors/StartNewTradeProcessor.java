@@ -93,7 +93,7 @@ public class StartNewTradeProcessor {
 
         if (openResult == null || !openResult.isSuccess()) {
             log.debug("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", tradingPair.getPairName());
-            return handleTradeError(tradingPair, StartTradeErrorType.TRADE_OPEN_FAILED);
+            return handleTradeError(tradingPair, StartTradeErrorType.TRADE_OPEN_FAILED); //todo падаем тут
         }
 
         log.debug("✅ Успешно открыта арбитражная пара: {}", tradingPair.getPairName());
@@ -118,7 +118,7 @@ public class StartNewTradeProcessor {
         log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());
-        tradingPairService.save(tradingPair);
+        tradingPairService.save(tradingPair); //todo падаем
         return tradingPair;
     }
 }

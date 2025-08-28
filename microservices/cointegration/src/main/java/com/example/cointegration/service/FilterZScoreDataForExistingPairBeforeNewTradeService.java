@@ -8,9 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -30,49 +28,49 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
      * - ObtainBestPairServiceV2 выбирает лучшую на основе скора
      * - НЕТ приоритета Johansen - комплексная оценка!
      */
-    public void filter(List<ZScoreData> zScoreDataList, Settings settings) {
-        double expected = settings.getExpectedZParamsCount();
-
-        // Анализируем входящие данные
-        analyzeInputData(zScoreDataList);
-
-        log.debug("🔍 Ожидаемое количество наблюдений: {}, всего пар для анализа: {}", expected, zScoreDataList.size());
-
-        // Сохраняем копию оригинального списка для статистики
-        List<ZScoreData> originalList = List.copyOf(zScoreDataList);
-        int before = zScoreDataList.size();
-        Map<String, Integer> filterStats = new HashMap<>();
-
-        zScoreDataList.removeIf(data -> {
-            String reason = shouldFilterPair(data, settings, expected);
-            if (reason != null) {
-                filterStats.merge(reason, 1, Integer::sum);
-                log.debug("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
-                        data.getUnderValuedTicker(), data.getOverValuedTicker(), reason,
-                        NumberFormatter.format(getLatestZScore(data, data.getZScoreHistory()), 2),
-                        getAdfPValue(data, data.getZScoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZScoreHistory()), 4) : "N/A",
-                        getRSquared(data) != null ? NumberFormatter.format(getRSquared(data), 3) : "N/A"
-                );
-                return true;
-            }
-            // НОВАЯ СИСТЕМА: Рассчитываем качественный скор для каждой пары
-            double qualityScore = calculatePairQualityScoreInternal(data, settings);
-            log.info("📊 Пара {}/{} прошла базовую фильтрацию. Качественный скор: {}",
-                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
-                    NumberFormatter.format(qualityScore, 2));
-            return false;
-        });
-
-        int after = zScoreDataList.size();
-        log.info("✅ Фильтрация завершена: {} → {} пар", before, after);
-
-        // Статистика по причинам фильтрации
-        filterStats.forEach((reason, count) ->
-                log.debug("📊 Статистика по фильтрации - {}: {} пар", reason, count));
-
-        // Детальная статистика фильтрации
-        logFilteringStatistics(originalList, zScoreDataList, settings);
-    }
+//    public void filter(List<ZScoreData> zScoreDataList, Settings settings) {
+//        double expected = settings.getExpectedZParamsCount();
+//
+//        // Анализируем входящие данные
+//        analyzeInputData(zScoreDataList);
+//
+//        log.debug("🔍 Ожидаемое количество наблюдений: {}, всего пар для анализа: {}", expected, zScoreDataList.size());
+//
+//        // Сохраняем копию оригинального списка для статистики
+//        List<ZScoreData> originalList = List.copyOf(zScoreDataList);
+//        int before = zScoreDataList.size();
+//        Map<String, Integer> filterStats = new HashMap<>();
+//
+//        zScoreDataList.removeIf(data -> {
+//            String reason = shouldFilterPair(data, settings, expected);
+//            if (reason != null) {
+//                filterStats.merge(reason, 1, Integer::sum);
+//                log.debug("⚠️ Отфильтровано {}/{} — {}. Детали: Z-Score={}, ADF p-value={}, R²={}",
+//                        data.getUnderValuedTicker(), data.getOverValuedTicker(), reason,
+//                        NumberFormatter.format(getLatestZScore(data, data.getZScoreHistory()), 2),
+//                        getAdfPValue(data, data.getZScoreHistory()) != null ? NumberFormatter.format(getAdfPValue(data, data.getZScoreHistory()), 4) : "N/A",
+//                        getRSquared(data) != null ? NumberFormatter.format(getRSquared(data), 3) : "N/A"
+//                );
+//                return true;
+//            }
+//            // НОВАЯ СИСТЕМА: Рассчитываем качественный скор для каждой пары
+//            double qualityScore = calculatePairQualityScoreInternal(data, settings);
+//            log.info("📊 Пара {}/{} прошла базовую фильтрацию. Качественный скор: {}",
+//                    data.getUnderValuedTicker(), data.getOverValuedTicker(),
+//                    NumberFormatter.format(qualityScore, 2));
+//            return false;
+//        });
+//
+//        int after = zScoreDataList.size();
+//        log.info("✅ Фильтрация завершена: {} → {} пар", before, after);
+//
+//        // Статистика по причинам фильтрации
+//        filterStats.forEach((reason, count) ->
+//                log.debug("📊 Статистика по фильтрации - {}: {} пар", reason, count));
+//
+//        // Детальная статистика фильтрации
+//        logFilteringStatistics(originalList, zScoreDataList, settings);
+//    }
 
     /**
      * Анализирует входящие данные и определяет формат API

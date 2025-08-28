@@ -437,7 +437,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     @Override
     public void loadPositions(List<Position> positionsToLoad) {
         // Позиции уже в БД, ничего делать не нужно
-        log.info("Позиции уже хранятся в БД, loadPositions пропущен");
+        log.debug("Позиции уже хранятся в БД, loadPositions пропущен");
     }
 
 
