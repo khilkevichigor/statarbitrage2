@@ -35,13 +35,6 @@ public class TelegramNotificationService implements NotificationService {
                 CoreEvent.Priority.HIGH,
                 CoreEvent.Type.MESSAGE_TO_TELEGRAM
         ));
-
-//        sendEventService.sendCoreEvent(new CoreEvent(
-//                "🎉 Система работает!",
-//                "test_user",
-//                CoreEvent.Priority.HIGH,
-//                CoreEvent.Type.MESSAGE_TO_TELEGRAM
-//        ));
     }
 
     private String formatCloseMessage(TradingPair tradingPair) {
