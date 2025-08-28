@@ -27,12 +27,12 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final TelegramNotificationService telegramNotificationService;
 
     public ChangesData getChanges(TradingPair tradingPair) {
-        log.info("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
+        log.debug("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
         try {
 
-            log.info("Запрашиваем информацию о позициях...");
+            log.debug("Запрашиваем информацию о позициях...");
             Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(tradingPair);
-            log.info("Получена информация о позициях: {}", positionsInfo);
+            log.debug("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
                 log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", tradingPair.getPairName(), positionsInfo);
@@ -40,16 +40,20 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
             }
 
             ChangesData result = getFromPositions(tradingPair, positionsInfo);
-            log.info("<== getChanges: КОНЕЦ для пары {}. Результат: {}", tradingPair.getPairName(), result);
+            log.debug("<== getChanges: КОНЕЦ для пары {}. Результат: {}", tradingPair.getPairName(), result);
             return result;
 
         } catch (Exception e) {
             log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", tradingPair.getPairName(), e.getMessage(), e);
             Settings settings = settingsService.getSettings();
             settings.setAutoTradingEnabled(false);
+
             settingsService.save(settings);
-            log.warn("Автотрейдинг отключен!");
+            log.warn("Автотрейдинг отключен.");
+
             telegramNotificationService.sendTelegramMessage("Ошибка при обновлении changes. Автотрейдинг был отключен.");
+            log.warn("Уведомление в телеграм отправлено.");
+
             throw new RuntimeException("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары " + tradingPair.getPairName(), e);
         }
     }

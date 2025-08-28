@@ -1,9 +1,6 @@
 package com.example.core.messaging;
 
-import com.example.shared.events.BaseEvent;
-import com.example.shared.events.CointegrationEvent;
-import com.example.shared.events.CsvEvent;
-import com.example.shared.events.NotificationEvent;
+import com.example.shared.events.*;
 import com.example.shared.utils.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +11,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SendEventService {
     private final EventPublisher eventPublisher;
+
+    public void sendCoreEvent(CoreEvent event) {
+        send(event);
+    }
 
     public void sendCsvEvent(CsvEvent event) {
         send(event);

@@ -50,16 +50,15 @@ spring:
       enabled: false
     stream:
       bindings:
-        # Исходящие события уведомлений
-        core-events-out-0:
-          destination: core.events
+        cointegration-events-out-0:
+          destination: cointegration.events #пишем в свой топик cointegration
           content-type: application/json
-
+          group: cointegration-group
       rabbit:
         bindings:
-          core-events-out-0:
+          cointegration-events-out-0:
             producer:
-              routing-key-expression: "'core'"
+              routing-key-expression: "'cointegration'"
 
 management:
   endpoints:

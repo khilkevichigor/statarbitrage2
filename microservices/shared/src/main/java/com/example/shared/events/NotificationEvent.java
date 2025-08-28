@@ -27,7 +27,7 @@ public class NotificationEvent extends BaseEvent {
         super.setBindingName(BINDING_NAME);
         this.message = message;
         this.recipient = recipient;
-        this.type = type;
         this.priority = priority;
+        this.type = type;
     }
 }

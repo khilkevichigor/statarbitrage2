@@ -57,22 +57,18 @@ spring:
       enabled: false
     stream:
       bindings:
-        # Исходящие события уведомлений
         notification-events-out-0:
           destination: notification.events
           content-type: application/json
-        # Исходящие события csv
+          group: notification-group
         csv-events-out-0:
           destination: csv.events
           content-type: application/json
-
-        # Входящие события от Python
-        cointegration-events-in-0:
+          group: csv-group
+        cointegrationEventsConsumer-in-0:
           destination: cointegration.events
           content-type: application/json
           group: cointegration-group
-
-
       rabbit:
         bindings:
           notification-events-out-0:
@@ -81,8 +77,8 @@ spring:
           csv-events-out-0:
             producer:
               routing-key-expression: "'csv'"
-          cointegration-events-out-0:
-            producer:
+          cointegrationEventsConsumer-in-0:
+            consumer:
               routing-key-expression: "'cointegration'"
 
 # Vaadin configuration

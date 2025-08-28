@@ -19,7 +19,7 @@ public class ReceiveEventService {
     private final EventSendService eventSendService;
 
     @Bean
-    public Consumer<NotificationEvent> csvEventsConsumer() {
+    public Consumer<NotificationEvent> notificationEventsConsumer() {
         return this::handleEvent;
     }
 

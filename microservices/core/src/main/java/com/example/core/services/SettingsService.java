@@ -2,7 +2,7 @@ package com.example.core.services;
 
 import com.example.core.messaging.SendEventService;
 import com.example.core.repositories.SettingsRepository;
-import com.example.shared.events.CointegrationEvent;
+import com.example.shared.events.CoreEvent;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +32,6 @@ public class SettingsService {
 
     public void save(Settings settings) {
         settingsRepository.save(settings);
-        sendEventService.sendCointegrationEvent(new CointegrationEvent(CointegrationEvent.Type.CLEAR_PAIRS)); //todo слать эвент на cointegration на очистку найденных пар тк настройки изменились! НЕ АКТУАЛЬНО после отправки эвента о найденных парах
+        sendEventService.sendCoreEvent(new CoreEvent(null, CoreEvent.Type.CLEAR_COINT_PAIRS)); //todo слать эвент на cointegration на очистку найденных пар тк настройки изменились! НЕ АКТУАЛЬНО после отправки эвента о найденных парах
     }
 }
