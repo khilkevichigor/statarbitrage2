@@ -60,11 +60,10 @@ spring:
         core-events-out-0:
           destination: core.events
           content-type: application/json
-        #          group: core-group
         cointegrationEventsConsumer-in-0:
           destination: cointegration.events
           content-type: application/json
-          group: core-group #cointegration-group
+          group: core-group # создаст очередь cointegration.events.core-group и тоже будет получать свои копии сообщений
       rabbit:
         bindings:
           core-events-out-0:

@@ -16,6 +16,7 @@ public class TestController {
 
     private final SendEventService sendEventService;
 
+    //port:8086
     @GetMapping("/test-core")
     public String testCore() {
         CointPair cointPair = new CointPair();

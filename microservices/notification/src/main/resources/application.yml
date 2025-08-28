@@ -31,11 +31,10 @@ spring:
         notification-events-out-0:
           destination: notification.events
           content-type: application/json
-          group: notification-group
         coreEventsConsumer-in-0:
           destination: core.events
           content-type: application/json
-          group: notification-group #что бы тоже получать от кор
+          group: notification-group #создаст очередь core.events.notification-group и тоже будет получать свои копии сообщений
       rabbit:
         bindings:
           notification-events-out-0:
