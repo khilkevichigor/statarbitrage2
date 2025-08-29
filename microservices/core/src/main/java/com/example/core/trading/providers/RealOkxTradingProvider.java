@@ -144,7 +144,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             String orderSide,
             String positionSide
     ) {
-        log.debug("==> {}: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", operationType.name(), symbol, amount, leverage);
+        log.info("==> {}: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", operationType.name(), symbol, amount, leverage);
 
         try {
             // 🔍 Предторговая проверка
@@ -158,7 +158,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return logAndFail("Размер позиции после корректировки равен нулю или меньше.",
                         operationType, symbol, "Размер позиции слишком мал");
             }
-            log.debug("Рассчитан и скорректирован размер позиции: {}", positionSize);
+            log.info("Рассчитан и скорректирован размер позиции: {}", positionSize);
 
             // 💰 Получение цены
             BigDecimal currentPrice = getCurrentPrice(symbol);
@@ -168,7 +168,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 💹 Скорректированная сумма = размер * цена
             BigDecimal adjustedAmount = positionSize.multiply(currentPrice);
-            log.debug("📊 {} {}: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
+            log.info("📊 {} {}: Исходная сумма: ${}, Скорректированная: ${}, Размер: {} единиц, Текущая цена: {}",
                     symbol, positionSide.toUpperCase(), amount, adjustedAmount, positionSize, currentPrice);
 
             // ✅ Валидация размера ордера
@@ -209,10 +209,16 @@ public class RealOkxTradingProvider implements TradingProvider {
             Position position = createPositionFromTradeResult(tradingPairId, orderResult, positionType, amount, leverage, realPositionId);
             position = positionRepository.save(position);
             okxPortfolioManager.onPositionOpened(position);
-            log.info("Позиция создана и сохранена. ID: {}", position.getPositionId());
+            log.info("Позиция создана и сохранена {}", position);
 
-            log.info("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {}",
-                    positionType.name(), symbol, position.getSize(), position.getEntryPrice(), position.getExternalOrderId());
+            log.info("✅ Открыта {} позиция на OKX: {} | Размер: {} | Цена: {} | OrderID: {} | TradingPairId: {} | PositionId: {}",
+                    position.getType(),
+                    position.getSymbol(),
+                    position.getSize(),
+                    position.getEntryPrice(),
+                    position.getExternalOrderId(),
+                    position.getTradingPairId(),
+                    position.getPositionId());
 
             // 🧾 Логгирование данных позиции
             logRealPositionData(symbol, operationType.name());
@@ -221,7 +227,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderResult.setPositionId(position.getPositionId());
             orderResult.setPosition(position);
 
-            log.debug("<== {}: КОНЕЦ (Успех) для {}", operationType.name(), symbol);
+            log.info("<== {}: КОНЕЦ (Успех) для {}", operationType.name(), symbol);
             return orderResult;
 
         } catch (Exception e) {
@@ -445,16 +451,16 @@ public class RealOkxTradingProvider implements TradingProvider {
     // Приватные методы для работы с OKX API
 
     private TradeResult placeOrder(String symbol, String side, String posSide, BigDecimal size, BigDecimal leverage) { //todo возвращать OrderResult
-        log.debug("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);
+        log.info("==> placeOrder: НАЧАЛО для {} | side: {} | posSide: {} | size: {} | leverage: {}", symbol, side, posSide, size, leverage);
         TradeOperationType tradeOperationType = posSide.equalsIgnoreCase("long") ? TradeOperationType.OPEN_LONG : TradeOperationType.OPEN_SHORT;
 
         try {
             // Проверка геолокации
             if (!geolocationService.isGeolocationAllowed()) {
-                log.debug("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
+                log.info("❌ БЛОКИРОВКА: Размещение ордера заблокировано из-за геолокации!");
                 return TradeResult.failure(tradeOperationType, symbol, "Геолокация не разрешена");
             }
-            log.debug("Проверка геолокации пройдена.");
+            log.info("Проверка геолокации пройдена.");
 
             // Базовый URL и endpoint
             String baseUrl = isSandbox ? SANDBOX_BASE_URL : PROD_BASE_URL;
@@ -462,7 +468,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Корректируем posSide
             String correctPosSide = determinePosSide(posSide);
-            log.debug("Определен correctPosSide: {}", correctPosSide);
+            log.info("Определен correctPosSide: {}", correctPosSide);
 
             // Получаем информацию об инструменте
             InstrumentInfo instrumentInfo = getInstrumentInfo(symbol);
@@ -470,12 +476,12 @@ public class RealOkxTradingProvider implements TradingProvider {
                 log.error("❌ Не удалось получить информацию об инструменте {}", symbol);
                 return TradeResult.failure(tradeOperationType, symbol, "Не удалось получить информацию об инструменте");
             }
-            log.debug("📋 Информация об инструменте {}: {}", symbol, instrumentInfo);
+            log.info("📋 Информация об инструменте {}: {}", symbol, instrumentInfo);
 
             // Параметры lot size и min size
             BigDecimal lotSize = instrumentInfo.getLotSize();
             BigDecimal minSize = instrumentInfo.getMinSize();
-            log.debug("📋 Lot Size: {}, Min Size: {}", lotSize, minSize);
+            log.info("📋 Lot Size: {}, Min Size: {}", lotSize, minSize);
 
             // Получаем текущую цену
             BigDecimal currentPrice = getCurrentPrice(symbol);
@@ -486,14 +492,14 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // Конвертируем размер из USDT в базовые единицы
             BigDecimal sizeInBaseUnits = size.divide(currentPrice, 8, RoundingMode.DOWN);
-            log.debug("💰 Конвертация размера: {}$ / {} = {} базовых единиц", size, currentPrice, sizeInBaseUnits);
+            log.info("💰 Конвертация размера: {}$ / {} = {} базовых единиц", size, currentPrice, sizeInBaseUnits);
 
             // Округляем до lot size
             BigDecimal adjustedSize = sizeInBaseUnits.divide(lotSize, 0, RoundingMode.DOWN).multiply(lotSize);
             if (adjustedSize.compareTo(minSize) < 0) {
                 adjustedSize = minSize;
             }
-            log.debug("📏 Скорректированный размер: {} -> {} базовых единиц", sizeInBaseUnits, adjustedSize);
+            log.info("📏 Скорректированный размер: {} -> {} базовых единиц", sizeInBaseUnits, adjustedSize);
 
             // Рассчитываем условную стоимость и требуемую маржу
             BigDecimal notionalValue = adjustedSize.multiply(currentPrice);
@@ -510,7 +516,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             orderData.addProperty("sz", adjustedSize.toPlainString());
             orderData.addProperty("lever", leverage.toPlainString());
 
-            log.debug("📋 Тело запроса для создания ордера OKX: {}", orderData.toString());
+            log.info("📋 Тело запроса для создания ордера OKX: {}", orderData.toString());
 
             // Формируем HTTP запрос
             RequestBody body = RequestBody.create(orderData.toString(), MediaType.get("application/json"));
@@ -527,7 +533,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     .addHeader("Content-Type", "application/json")
                     .build();
 
-            log.debug("Отправка запроса на создание ордера...");
+            log.info("Отправка запроса на создание ордера...");
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
                 log.debug("Получен ответ от OKX API: HTTP {} | {}", response.code(), responseBody);
@@ -541,7 +547,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 JsonArray data = jsonResponse.getAsJsonArray("data");
                 if (data.size() > 0) {
                     String orderId = data.get(0).getAsJsonObject().get("ordId").getAsString();
-                    log.debug("Ордер успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
+                    log.info("Ордер успешно размещен. OrderID: {}. Получаем детали ордера...", orderId);
                     return getOrderDetails(orderId, symbol, tradeOperationType); //todo создать OrderResult
                 }
                 log.error("Не удалось получить ID ордера из ответа API.");
@@ -1482,7 +1488,7 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Логирование реальных данных о позиции с OKX
      */
     private void logRealPositionData(String symbol, String operationType) {
-        log.debug("==> logRealPositionData: Логирование реальной позиции {} после {}", symbol, operationType);
+        log.info("==> logRealPositionData: Логирование реальной позиции {} после {}", symbol, operationType);
         try {
             Thread.sleep(1000); // Пауза для появления позиции в OKX
 
@@ -1507,9 +1513,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             fields.put("Коэффициент PnL", getJsonStringValue(data, "uplRatio") + " %");
             fields.put("Плечо", getJsonStringValue(data, "lever") + "x");
 
-            log.debug("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
+            log.info("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
             fields.forEach((label, value) -> log.debug("🔍 {}: {}", label, value));
-            log.debug("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
+            log.info("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
 
         } catch (Exception e) {
             log.error("❌ Ошибка при логировании реальных данных позиции для {}: {}", symbol, e.getMessage(), e);
