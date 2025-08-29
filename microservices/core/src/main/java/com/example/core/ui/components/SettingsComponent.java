@@ -136,7 +136,7 @@ public class SettingsComponent extends VerticalLayout {
                 log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
                 Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
 
-//                if (event.getValue()) { //todo будем ждать
+//                if (event.getValue()) { //todo будем ждать шедуллера
 //                    log.debug("🚀 UI: Запускаем maintainPairs() асинхронно");
 //                    // Запускаем maintainPairs() асинхронно, чтобы не блокировать UI
 //                    CompletableFuture.runAsync(() -> {
