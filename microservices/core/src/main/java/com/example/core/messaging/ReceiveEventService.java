@@ -29,6 +29,7 @@ public class ReceiveEventService {
     private void handleEvent(CointegrationEvent event) {
         log.info("");
         log.info("📄 Получено событие: {}", event.getEventType());
+        event.getCointPairs().forEach(v -> log.info(v.getPairName() + " z=" + v.getZScoreCurrent()));
         try {
             // Обработка различных типов событий
             switch (event.getType()) {

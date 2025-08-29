@@ -55,7 +55,7 @@ public class NewCointPairsEventHandler {
             int usePairs = (int) settingsService.getSettings().getUsePairs();
             int usePositions = usePairs * 2;
             if (usePositions - openedPositionsCount < 2) {
-                log.info("Всего можно держать {} пар ({} позиций). Новые позиции открывать нельзя.", usePairs, usePositions);
+                log.info("Всего можно держать {} пар(ы) ({} позиций). Новые позиции открывать нельзя.", usePairs, usePositions);
                 return;
             }
 
