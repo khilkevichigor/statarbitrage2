@@ -1507,9 +1507,9 @@ public class RealOkxTradingProvider implements TradingProvider {
             fields.put("Коэффициент PnL", getJsonStringValue(data, "uplRatio") + " %");
             fields.put("Плечо", getJsonStringValue(data, "lever") + "x");
 
-            log.info("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
+            log.debug("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
             fields.forEach((label, value) -> log.debug("🔍 {}: {}", label, value));
-            log.info("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
+            log.debug("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
 
         } catch (Exception e) {
             log.error("❌ Ошибка при логировании реальных данных позиции для {}: {}", symbol, e.getMessage(), e);
@@ -1537,7 +1537,6 @@ public class RealOkxTradingProvider implements TradingProvider {
             return "";
         }
     }
-
 
     /**
      * Извлекает базовую валюту из символа торгового инструмента (например, "BTC" из "BTC-USDT-SWAP").

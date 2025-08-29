@@ -2,6 +2,7 @@ package com.example.core.handlers;
 
 import com.example.core.converters.CointPairToTradingPairConverter;
 import com.example.core.processors.StartNewTradeProcessor;
+import com.example.core.repositories.CointPairRepository;
 import com.example.core.services.EventSendService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.TradingPairService;
@@ -17,9 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -35,6 +34,7 @@ public class NewCointPairsEventHandler {
     private final SettingsService settingsService;
     private final TradingPairService tradingPairRepository;
     private final OkxPortfolioManager okxPortfolioManager;
+    private final CointPairRepository cointPairRepository;
 
     public void handle(CointegrationEvent event) {
         try {
@@ -65,11 +65,19 @@ public class NewCointPairsEventHandler {
             List<CointPair> filteredByTradingPairs = filterByExistingTradingPairs(filteredByMinLotCointPairs);
             log.info("Осталось {} пар из {} после фильтрации по trading парам", filteredByTradingPairs.size(), filteredByMinLotCointPairs.size());
 
-            List<CointPair> missedCountCointPairs = getMissedPairs(filteredByTradingPairs);
-            log.info("Взяли необходимые {} пар для нового трейда", missedCountCointPairs.size());
+            Map<String, List<CointPair>> missedAndRemainingPairs = splitAndGetMissedAndRemainingPairs(filteredByTradingPairs);
+            List<CointPair> missedCointPairs = missedAndRemainingPairs.get("missed");
+            List<CointPair> remainingCointPairs = missedAndRemainingPairs.get("remaining");
+            log.info("Разделили: {} пар(ы) для начала нового трейда и {} пар(ы) для сохранения в бд", missedCointPairs.size(), remainingCointPairs.size());
 
-            List<TradingPair> tradingPairs = convertToTradingPair(missedCountCointPairs);
-            log.info("{} CointPairs сконверчены в {} TradingPairs", missedCountCointPairs.size(), tradingPairs.size());
+            if (!remainingCointPairs.isEmpty()) {
+                cointPairRepository.deleteAll();
+                cointPairRepository.saveAll(remainingCointPairs);
+                log.info("💾 Сохранили {} оставшихся пар для работы через UI", remainingCointPairs.size());
+            }
+
+            List<TradingPair> tradingPairs = convertToTradingPair(missedCointPairs);
+            log.info("{} CointPairs сконверчены в {} TradingPairs", missedCointPairs.size(), tradingPairs.size());
 
             int startedNewTrades = startNewTrades(tradingPairs);
             if (startedNewTrades > 0) {
@@ -97,18 +105,32 @@ public class NewCointPairsEventHandler {
         }
     }
 
-    private List<CointPair> getMissedPairs(List<CointPair> filteredByTradingPairs) {
+    private Map<String, List<CointPair>> splitAndGetMissedAndRemainingPairs(List<CointPair> cointPairs) {
+        Map<String, List<CointPair>> result = new HashMap<>();
+
         List<TradingPair> activePairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         Settings settings = settingsService.getSettings();
         int usePairs = (int) settings.getUsePairs();
 
         int necesseryNewPairs = usePairs - activePairs.size();
+        necesseryNewPairs = Math.max(necesseryNewPairs, 0); // защита от отрицательных значений
 
-        return filteredByTradingPairs.stream()
-                .limit(Math.max(necesseryNewPairs, 0)) // берем только нужное количество, не меньше 0
-                .toList(); // в Java 16+ можно использовать toList(), иначе collect(Collectors.toList())
+        // Берем только то количество, которое нужно для новых трейдов
+        List<CointPair> missedPairs = cointPairs.stream()
+                .limit(necesseryNewPairs)
+                .toList();
 
+        // Остальные пары — для наблюдения
+        List<CointPair> remainingPairs = cointPairs.stream()
+                .skip(necesseryNewPairs)
+                .toList();
+
+        result.put("missed", missedPairs);
+        result.put("remaining", remainingPairs);
+
+        return result;
     }
+
 
     private List<CointPair> filterByExistingTradingPairs(List<CointPair> cointPairs) {
         List<String> usedTickers = getUsedTickers();
@@ -145,9 +167,9 @@ public class NewCointPairsEventHandler {
         return filteredCointPairs;
     }
 
-    private List<TradingPair> convertToTradingPair(List<CointPair> validCointPairs) {
+    private List<TradingPair> convertToTradingPair(List<CointPair> cointPairs) {
         List<TradingPair> convertedPairs = new ArrayList<>();
-        validCointPairs.forEach(pair -> convertedPairs.add(cointPairToTradingPairConverter.convert(pair)));
+        cointPairs.forEach(pair -> convertedPairs.add(cointPairToTradingPairConverter.convert(pair)));
         return convertedPairs;
     }
 
