@@ -247,6 +247,7 @@ public class UpdateTradeProcessor {
         finalizeClosedTrade(tradingPair, settings);
         notificationService.sendTelegramClosedPair(tradingPair);
         sendEventService.sendCoreEvent(new CoreEvent(Collections.singletonList(tradingPair), CoreEvent.Type.ADD_CLOSED_TO_CSV));
+        settings.setMinimumLotBlacklist("");
         return tradingPair;
     }
 
@@ -294,6 +295,7 @@ public class UpdateTradeProcessor {
         finalizeClosedTrade(tradingPair, settings);
         notificationService.sendTelegramClosedPair(tradingPair);
         sendEventService.sendCoreEvent(new CoreEvent(Collections.singletonList(tradingPair), CoreEvent.Type.ADD_CLOSED_TO_CSV));
+        settings.setMinimumLotBlacklist("");
         return tradingPair;
     }
 

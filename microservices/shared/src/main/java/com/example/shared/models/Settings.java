@@ -154,7 +154,7 @@ public class Settings {
     // ===== Списки =====
     @Column(name = "minimum_lot_blacklist", length = 1000)
     @Builder.Default
-    private String minimumLotBlacklist = "ETH-USDT-SWAP,BTC-USDT-SWAP";
+    private String minimumLotBlacklist = "";
 
     @Column(name = "observed_pairs", length = 1000)
     @Builder.Default
