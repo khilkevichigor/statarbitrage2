@@ -27,12 +27,12 @@ public interface TradingProvider {
     /**
      * Открытие длинной позиции - СИНХРОННО
      */
-    TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage);
+    TradeResult openLongPosition(Long tredingPairId, String symbol, BigDecimal amount, BigDecimal leverage);
 
     /**
      * Открытие короткой позиции - СИНХРОННО
      */
-    TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage);
+    TradeResult openShortPosition(Long tradingPairId, String symbol, BigDecimal amount, BigDecimal leverage);
 
     /**
      * Закрытие позиции - СИНХРОННО

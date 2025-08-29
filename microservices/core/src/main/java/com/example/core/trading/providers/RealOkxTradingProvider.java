@@ -107,8 +107,8 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     @Override
-    public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-        return openPosition(symbol, amount, leverage,
+    public TradeResult openLongPosition(Long tradingPairId, String symbol, BigDecimal amount, BigDecimal leverage) {
+        return openPosition(tradingPairId, symbol, amount, leverage,
                 TradeOperationType.OPEN_LONG,
                 PositionType.LONG,
                 "buy",
@@ -126,8 +126,8 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     @Override
-    public TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
-        return openPosition(symbol, amount, leverage,
+    public TradeResult openShortPosition(Long tradingPairId, String symbol, BigDecimal amount, BigDecimal leverage) {
+        return openPosition(tradingPairId, symbol, amount, leverage,
                 TradeOperationType.OPEN_SHORT,
                 PositionType.SHORT,
                 "sell",
@@ -135,6 +135,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
     private TradeResult openPosition(
+            Long tradingPairId,
             String symbol,
             BigDecimal amount,
             BigDecimal leverage,
@@ -205,7 +206,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             // 🧩 Создание позиции с реальным positionId
-            Position position = createPositionFromTradeResult(orderResult, positionType, amount, leverage, realPositionId);
+            Position position = createPositionFromTradeResult(tradingPairId, orderResult, positionType, amount, leverage, realPositionId);
             position = positionRepository.save(position);
             okxPortfolioManager.onPositionOpened(position);
             log.info("Позиция создана и сохранена. ID: {}", position.getPositionId());
@@ -604,7 +605,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     }
 
 
-    private Position createPositionFromTradeResult(TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage, String realPositionId) {
+    private Position createPositionFromTradeResult(Long tradingPairId, TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage, String realPositionId) {
         //todo здесь создавать position не по OrderResult а брать инфу из открытых позиций okx/api/positions!
 
         // positionId - используем реальный ID от OKX если получен, иначе fallback логика
@@ -636,6 +637,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 .openTime(LocalDateTime.now())
                 .lastUpdated(LocalDateTime.now())
                 .externalOrderId(tradeResult.getExternalOrderId())
+                .tradingPairId(tradingPairId)
                 .build();
     }
 

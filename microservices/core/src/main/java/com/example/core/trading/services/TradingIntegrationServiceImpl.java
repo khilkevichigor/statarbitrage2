@@ -319,7 +319,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     private TradeResult openLong(TradingProvider provider, TradingPair tradingPair, BigDecimal amount, BigDecimal leverage) {
         log.debug("🟢 Открытие ЛОНГ позиции по тикеру {}. Сумма: {}, плечо: {}", tradingPair.getLongTicker(), amount, leverage);
-        TradeResult result = provider.openLongPosition(tradingPair.getLongTicker(), amount, leverage);
+        TradeResult result = provider.openLongPosition(tradingPair.getId(), tradingPair.getLongTicker(), amount, leverage);
 
         if (result.isSuccess()) {
             log.debug("✅ ЛОНГ позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",
@@ -337,7 +337,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     private TradeResult openShort(TradingProvider provider, TradingPair tradingPair, BigDecimal amount, BigDecimal leverage) {
         log.debug("🔴 Открытие ШОРТ позиции по тикеру {}. Сумма: {}, плечо: {}", tradingPair.getShortTicker(), amount, leverage);
-        TradeResult result = provider.openShortPosition(tradingPair.getShortTicker(), amount, leverage);
+        TradeResult result = provider.openShortPosition(tradingPair.getId(), tradingPair.getShortTicker(), amount, leverage);
 
         if (result.isSuccess()) {
             log.debug("✅ ШОРТ позиция по тикеру {} успешно открыта. ID позиции: {}, PnL: {} USDT ({} %), комиссии: {}",

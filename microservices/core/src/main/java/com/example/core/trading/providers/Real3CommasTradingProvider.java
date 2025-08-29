@@ -33,14 +33,14 @@ public class Real3CommasTradingProvider implements TradingProvider {
     }
 
     @Override
-    public TradeResult openLongPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
+    public TradeResult openLongPosition(Long tradingPairId, String symbol, BigDecimal amount, BigDecimal leverage) {
         // СИНХРОННЫЙ метод - убрана асинхронность!
         return TradeResult.failure(TradeOperationType.OPEN_LONG, symbol,
                 "Реальная торговля через 3Commas пока не реализована");
     }
 
     @Override
-    public TradeResult openShortPosition(String symbol, BigDecimal amount, BigDecimal leverage) {
+    public TradeResult openShortPosition(Long tradingPairId, String symbol, BigDecimal amount, BigDecimal leverage) {
         // СИНХРОННЫЙ метод - убрана асинхронность!
         return TradeResult.failure(TradeOperationType.OPEN_SHORT, symbol,
                 "Реальная торговля через 3Commas пока не реализована");
