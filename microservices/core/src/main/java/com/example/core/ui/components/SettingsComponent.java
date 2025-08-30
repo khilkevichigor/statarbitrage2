@@ -31,8 +31,6 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.CompletableFuture;
-
 @Slf4j
 @SpringComponent
 @UIScope
@@ -727,6 +725,7 @@ public class SettingsComponent extends VerticalLayout {
 
     private void saveSettings() {
         try {
+            //todo баг - когда ставишь/снимаешь Автотрейдинг и жмешь Сохранить настройки - чекбокс сбрасывается! Возможно при сохранении мы берем настройки до изменения чекбокса!
             settingsBinder.writeBean(currentSettings);
             settingsService.save(currentSettings);
             Notification.show("Настройки сохранены успешно");

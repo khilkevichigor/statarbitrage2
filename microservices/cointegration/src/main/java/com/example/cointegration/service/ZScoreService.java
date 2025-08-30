@@ -241,53 +241,136 @@ public class ZScoreService {
         }
 
         // Статистика перед отбором
-        double maxZScore = zScoreDataList.stream()
-                .mapToDouble(data -> {
+        Map<String, Double> maxZScoreData = zScoreDataList.stream()
+                .map(data -> {
                     List<ZScoreParam> params = data.getZScoreHistory();
-                    return params != null && !params.isEmpty()
+                    double zScore;
+                    double pValue;
+                    double adf;
+                    double r;
+                    double corr;
+
+                    if (params != null && !params.isEmpty()) {
+                        ZScoreParam last = params.get(params.size() - 1);
+                        zScore = last.getZscore();
+                        pValue = last.getPvalue();
+                        adf = last.getAdfpvalue();
+                        r = data.getAvgRSquared();
+                        corr = data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0;
+                    } else {
+                        zScore = data.getLatestZScore() != null ? data.getLatestZScore() : 0.0;
+                        pValue = data.getPearsonCorrPValue() != null ? data.getPearsonCorrPValue() : Double.NaN;
+                        adf = data.getJohansenCointPValue() != null ? data.getJohansenCointPValue() : Double.NaN;
+                        r = data.getAvgRSquared() != null ? data.getAvgRSquared() : 0.0;
+                        corr = data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0;
+                    }
+
+                    return Map.entry(data, Map.of(
+                            "maxZScore", zScore,
+                            "pValue", pValue,
+                            "Adf", adf,
+                            "R", r,
+                            "Corr", corr
+                    ));
+                })
+                .max(Comparator.comparingDouble(entry -> entry.getValue().get("maxZScore")))
+                .map(Map.Entry::getValue)
+                .orElse(Map.of(
+                        "maxZScore", 0.0,
+                        "pValue", Double.NaN,
+                        "Adf", Double.NaN,
+                        "R", 0.0,
+                        "Corr", 0.0
+                ));
+
+        Map<String, Double> minPValueData = zScoreDataList.stream()
+                .map(data -> {
+                    List<ZScoreParam> params = data.getZScoreHistory();
+                    double pValue = (params != null && !params.isEmpty())
+                            ? params.get(params.size() - 1).getPvalue()
+                            : (data.getPearsonCorrPValue() != null ? data.getPearsonCorrPValue() : Double.MAX_VALUE);
+                    double zScore = (params != null && !params.isEmpty())
                             ? params.get(params.size() - 1).getZscore()
-                            : (data.getLatestZScore() != null ? data.getLatestZScore() : 0.0);
+                            : (data.getLatestZScore() != null ? data.getLatestZScore() : Double.NaN);
+                    return Map.entry(data, Map.of(
+                            "pValue", pValue,
+                            "zScore", zScore
+                    ));
                 })
-                .max().orElse(0.0);
+                .min(Comparator.comparingDouble(entry -> entry.getValue().get("pValue")))
+                .map(Map.Entry::getValue)
+                .orElse(Map.of("pValue", Double.MAX_VALUE, "zScore", Double.NaN));
 
-        double minPValue = zScoreDataList.stream()
-                .mapToDouble(data -> {
+
+        Map<String, Double> maxRData = zScoreDataList.stream()
+                .map(data -> {
                     List<ZScoreParam> params = data.getZScoreHistory();
-                    if (params != null && !params.isEmpty()) {
-                        return params.get(params.size() - 1).getPvalue();
-                    } else if (data.getPearsonCorrPValue() != null) {
-                        return data.getPearsonCorrPValue();
-                    }
-                    return Double.MAX_VALUE;
+                    double rSquared = data.getAvgRSquared() != null ? data.getAvgRSquared() : 0.0;
+                    double zScore = (params != null && !params.isEmpty())
+                            ? params.get(params.size() - 1).getZscore()
+                            : (data.getLatestZScore() != null ? data.getLatestZScore() : Double.NaN);
+                    return Map.entry(data, Map.of(
+                            "maxR", rSquared,
+                            "zScore", zScore
+                    ));
                 })
-                .min().orElse(Double.MAX_VALUE);
+                .max(Comparator.comparingDouble(entry -> entry.getValue().get("maxR")))
+                .map(Map.Entry::getValue)
+                .orElse(Map.of(
+                        "maxR", 0.0,
+                        "zScore", Double.NaN
+                ));
 
-        double maxRSquared = zScoreDataList.stream()
-                .mapToDouble(data -> data.getAvgRSquared() != null ? data.getAvgRSquared() : 0.0)
-                .max().orElse(0.0);
-
-        double minADF = zScoreDataList.stream()
-                .mapToDouble(data -> {
+        Map<String, Double> minAdfData = zScoreDataList.stream()
+                .map(data -> {
                     List<ZScoreParam> params = data.getZScoreHistory();
-                    if (params != null && !params.isEmpty()) {
-                        return params.get(params.size() - 1).getAdfpvalue();
-                    } else if (data.getJohansenCointPValue() != null) {
-                        return data.getJohansenCointPValue();
-                    }
-                    return 0.0;
+                    double adfValue = (params != null && !params.isEmpty())
+                            ? params.get(params.size() - 1).getAdfpvalue()
+                            : (data.getJohansenCointPValue() != null ? data.getJohansenCointPValue() : Double.MAX_VALUE);
+
+                    double zScore = (params != null && !params.isEmpty())
+                            ? params.get(params.size() - 1).getZscore()
+                            : (data.getLatestZScore() != null ? data.getLatestZScore() : Double.NaN);
+
+                    return Map.entry(data, Map.of(
+                            "minAdf", adfValue,
+                            "zScore", zScore
+                    ));
                 })
-                .min().orElse(0.0);
+                .min(Comparator.comparingDouble(entry -> entry.getValue().get("minAdf")))
+                .map(Map.Entry::getValue)
+                .orElse(Map.of(
+                        "minAdf", Double.MAX_VALUE,
+                        "zScore", Double.NaN
+                ));
 
-        double maxCorrelation = zScoreDataList.stream()
-                .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
-                .max().orElse(0.0);
+        Map<String, Double> maxCorrData = zScoreDataList.stream()
+                .map(data -> {
+                    List<ZScoreParam> params = data.getZScoreHistory();
+                    double corrValue = data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0;
+                    double zScore = (params != null && !params.isEmpty())
+                            ? params.get(params.size() - 1).getZscore()
+                            : (data.getLatestZScore() != null ? data.getLatestZScore() : Double.NaN);
 
+                    return Map.entry(data, Map.of(
+                            "maxCorr", corrValue,
+                            "zScore", zScore
+                    ));
+                })
+                .max(Comparator.comparingDouble(entry -> entry.getValue().get("maxCorr")))
+                .map(Map.Entry::getValue)
+                .orElse(Map.of(
+                        "maxCorr", 0.0,
+                        "zScore", Double.NaN
+                ));
+
+        log.info("Всего коинтегрированных пар {}", zScoreDataList.size());
         log.info("📊 Статистика перед отбором пар:");
-        log.info("   🔥 Лучший Z-Score: {}", maxZScore);
-        log.info("   📉 Лучший P-Value: {}", minPValue);
-        log.info("   📈 Лучший R-Squared: {}", maxRSquared);
-        log.info("   🔍 Лучший ADF: {}", minADF);
-        log.info("   🔗 Лучшая корреляция: {}", maxCorrelation);
+        log.info("   🔥 Лучший Z-Score: {}, (p={}, r={}, adf={}, corr={})", maxZScoreData.get("maxZScore"), maxZScoreData.get("pValue"), maxZScoreData.get("R"), maxZScoreData.get("Adf"), maxZScoreData.get("Corr"));
+        log.info("   📉 Лучший P-Value: {}, (z={})", minPValueData.get("pValue"), minPValueData.get("zScore"));
+        log.info("   📈 Лучший R-Squared: {}, (z={})", maxRData.get("maxR"), maxRData.get("zScore"));
+        log.info("   🔍 Лучший ADF: {}, (z={})", minAdfData.get("minAdf"), minAdfData.get("zScore"));
+        log.info("   🔗 Лучшая корреляция: {}, (z={})", maxCorrData.get("maxCorr"), maxRData.get("zScore"));
 
         List<ZScoreData> bestPairs = new ArrayList<>();
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList);

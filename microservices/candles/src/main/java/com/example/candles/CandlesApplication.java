@@ -11,6 +11,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 public class CandlesApplication {
     public static void main(String[] args) {
         SpringApplication.run(CandlesApplication.class, args);
-        log.info("🕯️ Candles Service запущен успешно!");
+        log.info("");
+        log.info("🚀 Candles готов к работе!");
     }
 }

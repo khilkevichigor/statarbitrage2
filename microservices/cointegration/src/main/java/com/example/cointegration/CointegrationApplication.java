@@ -24,6 +24,7 @@ public class CointegrationApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(CointegrationApplication.class, args);
-        log.info("✅ Микросервис Cointegration успешно запущен!");
+        log.info("");
+        log.info("🚀 Cointegration готов к работе!");
     }
 }
