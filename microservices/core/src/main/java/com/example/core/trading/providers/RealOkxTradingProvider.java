@@ -212,7 +212,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 🧩 Создание позиции с реальным positionId
             Position position = createPositionFromTradeResult(tradingPairId, orderResult, positionType, amount, leverage, realPositionId);
-            log.info("Сохраняем Position (openPosition() - position) {}", position);
+            log.debug("Сохраняем Position (openPosition() - position) {}", position);
             position = positionRepository.save(position);
             okxPortfolioManager.onPositionOpened(position);
             log.info("Позиция создана и сохранена {}", position);
@@ -339,7 +339,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             );
 
             // Сохраняем обновленную позицию в БД
-            log.info("Сохраняем Position (closePosition() - position) {}", position);
+            log.debug("Сохраняем Position (closePosition() - position) {}", position);
             positionRepository.save(position);
             log.info("💾 Позиция {} сохранена в БД после закрытия", positionId);
 
@@ -1107,7 +1107,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 internalPosition.setLastUpdated(LocalDateTime.now());
 
                 // Сохраняем обновленную позицию в БД
-                log.info("Сохраняем Position (updatePositionFromOkxData() - internalPosition) {}", internalPosition);
+                log.debug("Сохраняем Position (updatePositionFromOkxData() - internalPosition) {}", internalPosition);
                 positionRepository.save(internalPosition);
 
                 log.debug("✅ Обновлена позиция {}: posId={}, нереализованный PnL={} USDT ({} %), реализованный PnL={} USDT, цена={}, размер={}, маржа={}, комиссия={}, комиссия за фандинг={}",
