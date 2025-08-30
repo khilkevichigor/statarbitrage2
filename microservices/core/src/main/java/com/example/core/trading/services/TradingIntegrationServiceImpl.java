@@ -402,6 +402,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             existingLong.setOpeningFees(newLongPosition.getOpeningFees());
             existingLong.setLastUpdated(LocalDateTime.now());
 
+            log.info("Сохраняем Position (savePositions() - existingLong) {}", existingLong);
             finalLongPosition = positionRepository.save(existingLong);
 
 
@@ -409,6 +410,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                     existingPositionId, existingLong.getEntryPrice(), existingLong.getSize());
         } else {
             // Первое открытие позиции
+            log.info("Сохраняем Position (savePositions() - newLongPosition) {}", newLongPosition);
             finalLongPosition = positionRepository.save(newLongPosition);
             log.info("💾 Создана новая ЛОНГ позиция для пары {}: ID = {}", tradingPair.getPairName(), newLongPosition.getPositionId());
         }
@@ -435,6 +437,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             existingShort.setOpeningFees(newShortPosition.getOpeningFees());
             existingShort.setLastUpdated(LocalDateTime.now());
 
+            log.info("Сохраняем Position (savePositions() - existingShort) {}", existingShort);
             finalShortPosition = positionRepository.save(existingShort);
 
 
@@ -442,6 +445,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
                     existingPositionId, existingShort.getEntryPrice(), existingShort.getSize());
         } else {
             // Первое открытие позиции
+            log.info("Сохраняем Position (savePositions() - newShortPosition) {}", newShortPosition);
             finalShortPosition = positionRepository.save(newShortPosition);
             log.info("💾 Создана новая ШОРТ позиция для пары {}: ID = {}", tradingPair.getPairName(), newShortPosition.getPositionId());
         }
@@ -505,6 +509,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
             }
             position.setLastUpdated(LocalDateTime.now());
 
+            log.info("Сохраняем Position (closePosition() - position) {}", position);
             positionRepository.save(position);
             log.debug("✅ Позиция {} успешно закрыта и обновлена в БД. ID: {}, PnL: {} USDT ({} %), Комиссия: {}",
                     positionLabel, position.getPositionId(), safeGet(result.getPnlUSDT()), safeGet(result.getPnlPercent()), safeGet(result.getFees()));
