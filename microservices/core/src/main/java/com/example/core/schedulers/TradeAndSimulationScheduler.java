@@ -32,7 +32,8 @@ public class TradeAndSimulationScheduler {
     private final EventSendService eventSendService;
 //    private final TradingIntegrationService tradingIntegrationServiceImpl;
 
-    @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
+    //    @Scheduled(cron = "0 * * * * *") // Каждую минуту в 0 секунд
+    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
     public void updateTrades() {
         if (!canStartUpdateTrades()) {
             return;

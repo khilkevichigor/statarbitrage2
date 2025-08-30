@@ -168,12 +168,11 @@ public class GeolocationService {
                 log.error("🚫 ВСЕ ВЫЗОВЫ OKX API БУДУТ ЗАБЛОКИРОВАНЫ!");
                 log.error("🚫 ВКЛЮЧИТЕ VPN ПЕРЕД ТОРГОВЛЕЙ НА OKX!");
                 log.error("🚫 ═══════════════════════════════════════════════════════════");
-            } else {
-                log.info("✅ Геолокация при запуске: {} - безопасно для OKX", country);
+                throw new RuntimeException("VPN не включен. Страна US.");
             }
-
         } catch (Exception e) {
             log.error("❌ Ошибка при проверке геолокации: {}", e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 

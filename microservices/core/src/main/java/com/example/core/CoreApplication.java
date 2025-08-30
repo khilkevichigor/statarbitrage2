@@ -53,21 +53,21 @@ public class CoreApplication {
     public static void main(String[] args) {
         SpringApplication.run(CoreApplication.class, args);
         log.info("");
-        log.info("✅ Микросервис Core успешно запущен!");
+        log.info("🚀 Core готов к работе!");
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         // Проверка геолокации при запуске
         geolocationService.checkGeolocationOnStartup();
+        log.info("✅ Геолокация при запуске: безопасно для OKX");
 
         // Проверка Cointegration API
         checkCointegrationApiHealth();
+        log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
 
         updateTradingPairsAfterRestart();
-
-        log.info("");
-        log.info("🚀 Core готов к работе!");
+        log.info("✅ Пары обновлены");
     }
 
     private void updateTradingPairsAfterRestart() {
@@ -99,10 +99,9 @@ public class CoreApplication {
                         .build();
 
                 pythonRestClient.discoverPairs(testData, settings);
-                log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
-
             } catch (Exception e) {
                 log.error("❌ Ошибка при выполнении интеграционного теста API коинтеграции: {}", e.getMessage(), e);
+                throw new RuntimeException(e);
             }
         }
     }
