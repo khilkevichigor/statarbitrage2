@@ -169,7 +169,13 @@ public class NewCointPairsEventHandler {
 
     private List<TradingPair> convertToTradingPair(List<CointPair> cointPairs) {
         List<TradingPair> convertedPairs = new ArrayList<>();
-        cointPairs.forEach(pair -> convertedPairs.add(cointPairToTradingPairConverter.convert(pair)));
+        cointPairs.forEach(pair -> {
+            TradingPair converted = cointPairToTradingPairConverter.convert(pair);
+            if (converted != null) {
+                tradingPairRepository.save(converted);
+                convertedPairs.add(converted);
+            }
+        });
         return convertedPairs;
     }
 

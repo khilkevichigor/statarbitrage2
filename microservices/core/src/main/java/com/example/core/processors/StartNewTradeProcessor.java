@@ -36,7 +36,7 @@ public class StartNewTradeProcessor {
         final Settings settings = settingsService.getSettings();
 
         log.info("");
-        log.info("🚀 Начинаем новый трейд для {}...", tradingPair.getPairName());
+        log.info("🚀 Начинаем новый трейд для пары {} tradingPairId={}...", tradingPair.getPairName(), tradingPair.getId());
 
         // 1. Предварительная валидация
         Optional<TradingPair> preValidationError = preValidate(tradingPair, settings);

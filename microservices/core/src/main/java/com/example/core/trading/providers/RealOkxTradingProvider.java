@@ -149,7 +149,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             String orderSide,
             String positionSide
     ) {
-        log.info("==> {}: НАЧАЛО для {} | Сумма: ${} | Плечо: {}", operationType.name(), symbol, amount, leverage);
+        log.info("==> {}: НАЧАЛО для {} | Сумма: ${} | Плечо: {} | tradingPairId: {}", operationType.name(), symbol, amount, leverage, tradingPairId);
 
         try {
             // 🔍 Предторговая проверка
