@@ -2,7 +2,7 @@ package com.example.cointegration.service;
 
 import com.example.cointegration.repositories.TradingPairRepository;
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.models.TradeStatus;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

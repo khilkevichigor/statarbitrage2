@@ -1,7 +1,7 @@
 package com.example.okx.service;
 
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.okx.OkxTickerDto;
-import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

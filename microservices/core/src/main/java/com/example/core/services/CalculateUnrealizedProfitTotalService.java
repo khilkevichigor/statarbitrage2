@@ -2,9 +2,9 @@ package com.example.core.services;
 
 import com.example.core.repositories.TradingPairRepository;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.dto.Positioninfo;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Position;
-import com.example.shared.models.Positioninfo;
-import com.example.shared.models.TradeStatus;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

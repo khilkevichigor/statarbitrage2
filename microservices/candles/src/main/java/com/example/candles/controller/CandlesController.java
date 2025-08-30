@@ -1,8 +1,8 @@
 package com.example.candles.controller;
 
 import com.example.candles.service.CandlesService;
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
-import com.example.shared.models.Candle;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

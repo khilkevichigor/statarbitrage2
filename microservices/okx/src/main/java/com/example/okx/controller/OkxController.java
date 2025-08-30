@@ -1,8 +1,8 @@
 package com.example.okx.controller;
 
 import com.example.okx.service.OkxClient;
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.okx.OkxTickerDto;
-import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

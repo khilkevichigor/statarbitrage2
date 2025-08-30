@@ -1,7 +1,7 @@
 package com.example.cointegration.repositories;
 
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.CointPair;
-import com.example.shared.models.TradeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

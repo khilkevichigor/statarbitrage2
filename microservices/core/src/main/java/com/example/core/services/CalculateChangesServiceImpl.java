@@ -2,9 +2,9 @@ package com.example.core.services;
 
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.ChangesData;
+import com.example.shared.dto.Positioninfo;
 import com.example.shared.dto.ProfitExtremum;
 import com.example.shared.models.Position;
-import com.example.shared.models.Positioninfo;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;

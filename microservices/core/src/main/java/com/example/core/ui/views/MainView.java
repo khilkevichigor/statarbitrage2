@@ -9,7 +9,7 @@ import com.example.core.ui.components.TradingPairsComponent;
 import com.example.core.ui.services.UIUpdateService;
 import com.example.core.ui.services.UIUpdateable;
 import com.example.shared.dto.FetchPairsRequest;
-import com.example.shared.models.TradeStatus;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.TradingPair;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;

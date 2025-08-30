@@ -1,9 +1,9 @@
 package com.example.core.services;
 
-import com.example.shared.models.Candle;
-import com.example.shared.models.PixelSpreadHistoryItem;
+import com.example.shared.dto.Candle;
+import com.example.shared.dto.PixelSpreadHistoryItem;
+import com.example.shared.dto.ZScoreParam;
 import com.example.shared.models.TradingPair;
-import com.example.shared.models.ZScoreParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

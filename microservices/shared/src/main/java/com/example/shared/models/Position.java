@@ -1,5 +1,7 @@
 package com.example.shared.models;
 
+import com.example.shared.enums.PositionStatus;
+import com.example.shared.enums.PositionType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

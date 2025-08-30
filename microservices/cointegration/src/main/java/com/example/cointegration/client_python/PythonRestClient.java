@@ -1,10 +1,10 @@
 package com.example.cointegration.client_python;
 
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.dto.ZScoreParam;
 import com.example.shared.dto.cointegration.*;
-import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
-import com.example.shared.models.ZScoreParam;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

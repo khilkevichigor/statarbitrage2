@@ -1,5 +1,6 @@
-package com.example.shared.models;
+package com.example.shared.dto;
 
+import com.example.shared.models.Position;
 import lombok.Builder;
 import lombok.Data;
 

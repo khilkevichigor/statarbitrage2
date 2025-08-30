@@ -1,8 +1,8 @@
 package com.example.core.services;
 
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.models.Candle;
-import com.example.shared.models.TradeStatus;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.example.shared.utils;
 
-import com.example.shared.models.Candle;
+import com.example.shared.dto.Candle;
 
 import java.util.List;
 

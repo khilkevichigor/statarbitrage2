@@ -1,4 +1,4 @@
-package com.example.shared.models;
+package com.example.shared.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,4 +1,4 @@
-package com.example.shared.models;
+package com.example.shared.dto;
 
 import com.google.gson.JsonArray;
 import jakarta.persistence.Embeddable;

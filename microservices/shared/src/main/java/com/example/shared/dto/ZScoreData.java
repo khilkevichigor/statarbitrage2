@@ -1,6 +1,5 @@
 package com.example.shared.dto;
 
-import com.example.shared.models.ZScoreParam;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

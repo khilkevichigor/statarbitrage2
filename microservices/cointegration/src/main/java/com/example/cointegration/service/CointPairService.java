@@ -1,10 +1,10 @@
 package com.example.cointegration.service;
 
 import com.example.cointegration.repositories.CointPairRepository;
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.models.Candle;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.CointPair;
-import com.example.shared.models.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

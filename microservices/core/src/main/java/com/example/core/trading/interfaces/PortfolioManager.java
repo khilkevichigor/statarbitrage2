@@ -1,6 +1,6 @@
 package com.example.core.trading.interfaces;
 
-import com.example.shared.models.Portfolio;
+import com.example.shared.dto.Portfolio;
 import com.example.shared.models.Position;
 
 import java.math.BigDecimal;

@@ -1,5 +1,10 @@
 package com.example.shared.models;
 
+import com.example.shared.dto.Candle;
+import com.example.shared.dto.PixelSpreadHistoryItem;
+import com.example.shared.dto.ProfitHistoryItem;
+import com.example.shared.dto.ZScoreParam;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.utils.BigDecimalUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

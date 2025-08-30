@@ -1,4 +1,4 @@
-package com.example.shared.models;
+package com.example.shared.enums;
 
 /**
  * Статус торговой операции

@@ -4,7 +4,7 @@ import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.core.trading.providers.Real3CommasTradingProvider;
 import com.example.core.trading.providers.RealOkxTradingProvider;
-import com.example.shared.models.TradingProviderSwitchResult;
+import com.example.shared.dto.TradingProviderSwitchResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

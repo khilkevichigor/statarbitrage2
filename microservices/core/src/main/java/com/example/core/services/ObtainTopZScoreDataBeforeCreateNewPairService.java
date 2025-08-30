@@ -1,9 +1,9 @@
 package com.example.core.services;
 
+import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
-import com.example.shared.models.Candle;
+import com.example.shared.dto.ZScoreParam;
 import com.example.shared.models.Settings;
-import com.example.shared.models.ZScoreParam;
 import com.example.shared.utils.NumberFormatter;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;

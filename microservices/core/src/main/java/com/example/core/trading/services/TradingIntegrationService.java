@@ -1,7 +1,12 @@
 package com.example.core.trading.services;
 
 import com.example.core.trading.interfaces.TradingProviderType;
-import com.example.shared.models.*;
+import com.example.shared.dto.ArbitragePairTradeInfo;
+import com.example.shared.dto.Portfolio;
+import com.example.shared.dto.Positioninfo;
+import com.example.shared.dto.TradingProviderSwitchResult;
+import com.example.shared.models.Settings;
+import com.example.shared.models.TradingPair;
 import org.springframework.stereotype.Service;
 
 /**

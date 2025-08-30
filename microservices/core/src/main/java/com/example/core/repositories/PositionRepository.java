@@ -1,8 +1,8 @@
 package com.example.core.repositories;
 
+import com.example.shared.enums.PositionStatus;
+import com.example.shared.enums.PositionType;
 import com.example.shared.models.Position;
-import com.example.shared.models.PositionStatus;
-import com.example.shared.models.PositionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

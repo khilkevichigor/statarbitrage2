@@ -1,6 +1,6 @@
 package com.example.candles.client;
 
-import com.example.shared.models.Candle;
+import com.example.shared.dto.Candle;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

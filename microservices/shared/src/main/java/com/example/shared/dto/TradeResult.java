@@ -1,5 +1,7 @@
-package com.example.shared.models;
+package com.example.shared.dto;
 
+import com.example.shared.enums.TradeOperationType;
+import com.example.shared.models.Position;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

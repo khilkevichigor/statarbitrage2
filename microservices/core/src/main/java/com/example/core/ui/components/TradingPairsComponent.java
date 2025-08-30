@@ -7,7 +7,7 @@ import com.example.core.services.SettingsService;
 import com.example.core.services.TradingPairService;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.UpdateTradeRequest;
-import com.example.shared.models.TradeStatus;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.NumberFormatter;
 import com.example.shared.utils.TimeFormatterUtil;

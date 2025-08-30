@@ -2,10 +2,10 @@ package com.example.core.trading.providers;
 
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
-import com.example.shared.models.Portfolio;
+import com.example.shared.dto.Portfolio;
+import com.example.shared.dto.TradeResult;
+import com.example.shared.enums.TradeOperationType;
 import com.example.shared.models.Position;
-import com.example.shared.models.TradeOperationType;
-import com.example.shared.models.TradeResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

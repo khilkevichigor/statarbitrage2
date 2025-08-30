@@ -1,6 +1,5 @@
 package com.example.shared.dto;
 
-import com.example.shared.models.Candle;
 import com.example.shared.models.Settings;
 import lombok.AllArgsConstructor;
 import lombok.Data;

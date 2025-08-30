@@ -1,7 +1,7 @@
 package com.example.candles.service;
 
 import com.example.candles.client.OkxFeignClient;
-import com.example.shared.models.Candle;
+import com.example.shared.dto.Candle;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package com.example.core.trading.services;
 
 import com.example.core.trading.interfaces.TradingProvider;
-import com.example.shared.models.Portfolio;
+import com.example.shared.dto.Portfolio;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
