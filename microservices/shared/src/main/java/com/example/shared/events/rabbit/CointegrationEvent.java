@@ -1,4 +1,4 @@
-package com.example.shared.events;
+package com.example.shared.events.rabbit;
 
 import com.example.shared.models.CointPair;
 import lombok.Data;

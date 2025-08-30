@@ -8,7 +8,7 @@ import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.FormatUtil;

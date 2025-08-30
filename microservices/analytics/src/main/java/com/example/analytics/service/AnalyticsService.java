@@ -1,6 +1,6 @@
 package com.example.analytics.service;
 
-import com.example.shared.events.TradingEvent;
+import com.example.shared.events.rabbit.TradingEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ public class AnalyticsService {
 
     private void handleAnalyticsEvent(TradingEvent event) {
         log.info("📊 Получено торговое событие для аналитики: {}", event);
-        
+
         try {
             // Обработка различных типов событий
             switch (event.getEventType()) {

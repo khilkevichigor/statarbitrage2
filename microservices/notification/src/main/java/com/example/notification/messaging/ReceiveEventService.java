@@ -3,7 +3,7 @@ package com.example.notification.messaging;
 import com.example.notification.bot.BotConfig;
 import com.example.notification.events.SendAsTextEvent;
 import com.example.notification.service.EventSendService;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

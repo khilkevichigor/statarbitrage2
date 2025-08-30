@@ -1,9 +1,9 @@
-package com.example.shared.events;
+package com.example.shared.events.rabbit;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data
@@ -15,7 +15,7 @@ public class TradingEvent extends BaseEvent {
     private BigDecimal amount;
     private BigDecimal price;
     private String status;
-    
+
     public TradingEvent(String symbol, String action, BigDecimal amount, BigDecimal price, String status) {
         super("TRADING_EVENT");
         this.symbol = symbol;

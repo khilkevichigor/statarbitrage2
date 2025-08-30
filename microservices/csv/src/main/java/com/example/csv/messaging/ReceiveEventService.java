@@ -1,7 +1,7 @@
 package com.example.csv.messaging;
 
 import com.example.csv.service.CsvExportService;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

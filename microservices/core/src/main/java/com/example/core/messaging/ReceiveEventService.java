@@ -1,7 +1,7 @@
 package com.example.core.messaging;
 
 import com.example.core.handlers.NewCointPairsEventHandler;
-import com.example.shared.events.CointegrationEvent;
+import com.example.shared.events.rabbit.CointegrationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

@@ -1,7 +1,7 @@
 package com.example.core.controllers;
 
 import com.example.core.messaging.SendEventService;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

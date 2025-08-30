@@ -1,7 +1,7 @@
 package com.example.core.messaging;
 
-import com.example.shared.events.BaseEvent;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.rabbit.BaseEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.utils.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,6 @@
 package com.example.ui.service;
 
-import com.example.shared.events.TradingEvent;
+import com.example.shared.events.rabbit.TradingEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ public class UiService {
 
     private void handleUiUpdateEvent(TradingEvent event) {
         log.info("🌐 Получено событие для обновления UI: {}", event);
-        
+
         try {
             // Обработка различных типов событий для UI
             switch (event.getEventType()) {
@@ -56,11 +56,11 @@ public class UiService {
      */
     private void updateTradeInUI(TradingEvent event) {
         log.info("🔄 Обновление сделки в UI: {}", event.getSymbol());
-        
+
         try {
             // Логика обновления сделки в интерфейсе
             sendWebSocketUpdate("trade-update", event);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении сделки в UI: {}", e.getMessage(), e);
         }
@@ -71,11 +71,11 @@ public class UiService {
      */
     private void updatePortfolioInUI(TradingEvent event) {
         log.info("💼 Обновление портфеля в UI");
-        
+
         try {
             // Логика обновления портфеля в интерфейсе
             sendWebSocketUpdate("portfolio-update", event);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении портфеля в UI: {}", e.getMessage(), e);
         }
@@ -86,11 +86,11 @@ public class UiService {
      */
     private void updateChartInUI(TradingEvent event) {
         log.info("📈 Обновление графиков в UI: {}", event.getSymbol());
-        
+
         try {
             // Логика обновления графиков в интерфейсе
             sendWebSocketUpdate("chart-update", event);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении графиков в UI: {}", e.getMessage(), e);
         }
@@ -101,11 +101,11 @@ public class UiService {
      */
     private void updatePriceInUI(TradingEvent event) {
         log.debug("💹 Обновление цен в UI: {}", event.getSymbol());
-        
+
         try {
             // Логика обновления цен в интерфейсе
             sendWebSocketUpdate("price-update", event);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении цен в UI: {}", e.getMessage(), e);
         }
@@ -116,11 +116,11 @@ public class UiService {
      */
     private void showNotificationInUI(TradingEvent event) {
         log.info("📢 Отображение уведомления в UI");
-        
+
         try {
             // Логика отображения уведомления в интерфейсе
             sendWebSocketUpdate("notification", event);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при отображении уведомления в UI: {}", e.getMessage(), e);
         }

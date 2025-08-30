@@ -3,7 +3,7 @@ package com.example.cointegration.schedulers;
 import com.example.cointegration.messaging.SendEventService;
 import com.example.cointegration.processors.FetchCointPairsProcessor;
 import com.example.cointegration.service.SettingsService;
-import com.example.shared.events.CointegrationEvent;
+import com.example.shared.events.rabbit.CointegrationEvent;
 import com.example.shared.models.CointPair;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;

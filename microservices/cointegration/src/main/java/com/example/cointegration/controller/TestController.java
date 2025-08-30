@@ -1,7 +1,7 @@
 package com.example.cointegration.controller;
 
 import com.example.cointegration.messaging.SendEventService;
-import com.example.shared.events.CointegrationEvent;
+import com.example.shared.events.rabbit.CointegrationEvent;
 import com.example.shared.models.CointPair;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

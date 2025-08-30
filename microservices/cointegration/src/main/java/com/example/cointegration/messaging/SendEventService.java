@@ -1,7 +1,7 @@
 package com.example.cointegration.messaging;
 
-import com.example.shared.events.BaseEvent;
-import com.example.shared.events.CointegrationEvent;
+import com.example.shared.events.rabbit.BaseEvent;
+import com.example.shared.events.rabbit.CointegrationEvent;
 import com.example.shared.utils.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

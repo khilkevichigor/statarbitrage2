@@ -1,4 +1,4 @@
-package com.example.shared.events;
+package com.example.shared.events.rabbit;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

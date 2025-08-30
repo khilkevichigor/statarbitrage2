@@ -1,6 +1,6 @@
 package com.example.shared.utils;
 
-import com.example.shared.events.BaseEvent;
+import com.example.shared.events.rabbit.BaseEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.function.StreamBridge;

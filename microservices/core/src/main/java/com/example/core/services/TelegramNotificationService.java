@@ -1,7 +1,7 @@
 package com.example.core.services;
 
 import com.example.core.messaging.SendEventService;
-import com.example.shared.events.CoreEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
