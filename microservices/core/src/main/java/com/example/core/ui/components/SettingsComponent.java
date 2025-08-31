@@ -469,39 +469,54 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox autoAveragingCheckbox = new Checkbox("Автоусреднение");
         NumberField averagingDrawdownThresholdField = new NumberField("Просадка для срабатывания (%)");
         NumberField averagingVolumeMultiplierField = new NumberField("Множитель объема");
+        NumberField averagingDrawdownMultiplierField = new NumberField("Множитель просадки для срабатывания");
+        NumberField maxAveragingCountField = new NumberField("Max кол-во усреднений");
 
         // Настраиваем свойства полей
         setNumberFieldProperties(averagingDrawdownThresholdField, 0.1, 0.1);
         setNumberFieldProperties(averagingVolumeMultiplierField, 0.1, 1.0);
+        setNumberFieldProperties(averagingDrawdownMultiplierField, 0.1, 1.0);
+        setNumberFieldProperties(maxAveragingCountField, 1, 1);
 
         // Настраиваем placeholder и helper text
-        averagingDrawdownThresholdField.setPlaceholder("1.23");
-        averagingDrawdownThresholdField.setHelperText("Порог просадки в процентах для автоматического усреднения");
+        averagingDrawdownThresholdField.setPlaceholder("10.0");
+        averagingDrawdownThresholdField.setHelperText("Порог просадки в процентах для первого автоматического усреднения");
 
-        averagingVolumeMultiplierField.setPlaceholder("1.23");
-        averagingVolumeMultiplierField.setHelperText("Множитель объема для позиции усреднения");
+        averagingVolumeMultiplierField.setPlaceholder("1.5");
+        averagingVolumeMultiplierField.setHelperText("Множитель объема для каждой позиции усреднения");
 
-        // Создаем компоновку для поля просадки (включается только при автоусреднении)
-        HorizontalLayout drawdownLayout = new HorizontalLayout();
-        drawdownLayout.setAlignItems(HorizontalLayout.Alignment.CENTER);
-        drawdownLayout.setSpacing(true);
-        drawdownLayout.add(averagingDrawdownThresholdField);
-        drawdownLayout.setFlexGrow(1, averagingDrawdownThresholdField);
+        averagingDrawdownMultiplierField.setPlaceholder("1.5");
+        averagingDrawdownMultiplierField.setHelperText("Множитель для расчета следующего порога просадки");
 
-        // Логика активации/деактивации поля просадки
-        averagingDrawdownThresholdField.setEnabled(currentSettings.isAutoAveragingEnabled());
+        maxAveragingCountField.setPlaceholder("3");
+        maxAveragingCountField.setHelperText("Максимальное количество усреднений для одной пары");
+
+        // Логика активации/деактивации полей
+        boolean isAutoAveragingEnabled = currentSettings.isAutoAveragingEnabled();
+        averagingDrawdownThresholdField.setEnabled(isAutoAveragingEnabled);
+        averagingVolumeMultiplierField.setEnabled(isAutoAveragingEnabled);
+        averagingDrawdownMultiplierField.setEnabled(isAutoAveragingEnabled);
+        maxAveragingCountField.setEnabled(isAutoAveragingEnabled);
+
         autoAveragingCheckbox.addValueChangeListener(event -> {
-            averagingDrawdownThresholdField.setEnabled(event.getValue());
+            boolean enabled = event.getValue();
+            averagingDrawdownThresholdField.setEnabled(enabled);
+            averagingVolumeMultiplierField.setEnabled(enabled);
+            averagingDrawdownMultiplierField.setEnabled(enabled);
+            maxAveragingCountField.setEnabled(enabled);
         });
 
         averagingForm.add(
                 autoAveragingCheckbox,
                 averagingDrawdownThresholdField,
-                averagingVolumeMultiplierField
+                averagingVolumeMultiplierField,
+                averagingDrawdownMultiplierField,
+                maxAveragingCountField
         );
 
         // Привязываем поля к настройкам
-        bindAveragingFields(autoAveragingCheckbox, averagingDrawdownThresholdField, averagingVolumeMultiplierField);
+        bindAveragingFields(autoAveragingCheckbox, averagingDrawdownThresholdField,
+                averagingVolumeMultiplierField, averagingDrawdownMultiplierField, maxAveragingCountField);
 
         return createDetailsCard("🎯 Усреднение",
                 "Настройки автоматического и ручного усреднения позиций", averagingForm);
@@ -702,7 +717,9 @@ public class SettingsComponent extends VerticalLayout {
      */
     private void bindAveragingFields(Checkbox autoAveragingCheckbox,
                                      NumberField averagingDrawdownThresholdField,
-                                     NumberField averagingVolumeMultiplierField) {
+                                     NumberField averagingVolumeMultiplierField,
+                                     NumberField averagingDrawdownMultiplierField,
+                                     NumberField maxAveragingCountField) {
 
         // Bind averaging checkbox
         settingsBinder.forField(autoAveragingCheckbox)
@@ -717,6 +734,17 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(averagingVolumeMultiplierField)
                 .withValidator(new DoubleRangeValidator("Множитель объема должен быть больше 1.0", 1.0, 10.0))
                 .bind(Settings::getAveragingVolumeMultiplier, Settings::setAveragingVolumeMultiplier);
+
+        // Bind averaging drawdown multiplier field
+        settingsBinder.forField(averagingDrawdownMultiplierField)
+                .withValidator(new DoubleRangeValidator("Множитель просадки должен быть больше 1.0", 1.0, 10.0))
+                .bind(Settings::getAveragingDrawdownMultiplier, Settings::setAveragingDrawdownMultiplier);
+
+        // Bind max averaging count field
+        settingsBinder.forField(maxAveragingCountField)
+                .withValidator(new DoubleRangeValidator("Максимальное количество усреднений должно быть больше 1", 1.0, 20.0))
+                .bind(settings -> (double) settings.getMaxAveragingCount(),
+                        (settings, value) -> settings.setMaxAveragingCount(value.intValue()));
     }
 
     private void setupValidation() {

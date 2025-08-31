@@ -223,6 +223,14 @@ public class Settings {
     @Column(name = "averaging_volume_multiplier")
     private double averagingVolumeMultiplier = 1.5;
 
+    @Builder.Default
+    @Column(name = "averaging_drawdown_multiplier")
+    private double averagingDrawdownMultiplier = 1.5;
+
+    @Builder.Default
+    @Column(name = "max_averaging_count")
+    private int maxAveragingCount = 3;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

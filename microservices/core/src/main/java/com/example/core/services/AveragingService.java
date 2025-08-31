@@ -73,21 +73,29 @@ public class AveragingService {
             return false;
         }
 
+        // Проверяем, не превышен ли максимальный лимит усреднений
+        if (tradingPair.getAveragingCount() >= settings.getMaxAveragingCount()) {
+            log.info("🚫 Достигнут максимальный лимит усреднений для пары {}: {} >= {}",
+                    tradingPair.getPairName(), tradingPair.getAveragingCount(), settings.getMaxAveragingCount());
+            return false;
+        }
+
         // Получаем текущий профит в процентах
         BigDecimal currentProfitPercent = tradingPair.getProfitPercentChanges();
         if (currentProfitPercent == null) {
             return false;
         }
 
-        // Проверяем, что просадка превышает пороговое значение
+        // Рассчитываем прогрессивный порог просадки
+        double threshold = calculateAveragingThreshold(tradingPair.getAveragingCount(), settings);
         double currentProfitDouble = currentProfitPercent.doubleValue();
-        double threshold = -Math.abs(settings.getAveragingDrawdownThreshold()); // Делаем отрицательным
 
         boolean shouldAverage = currentProfitDouble <= threshold;
 
         if (shouldAverage) {
-            log.info("📉 Обнаружена просадка для пары {}: {}% <= {}%. Требуется усреднение.",
-                    tradingPair.getPairName(), currentProfitDouble, threshold);
+            log.info("📉 Обнаружена просадка для пары {}: {}% <= {}%. Требуется усреднение #{}/{}.",
+                    tradingPair.getPairName(), currentProfitDouble, threshold,
+                    tradingPair.getAveragingCount() + 1, settings.getMaxAveragingCount());
         }
 
         return shouldAverage;
@@ -98,8 +106,11 @@ public class AveragingService {
      */
     private AveragingResult executeAveraging(TradingPair tradingPair, Settings settings, String trigger) {
         try {
-            // Создаем временные настройки с увеличенным объемом
-            Settings averagingSettings = createAveragingSettings(settings);
+            // Создаем временные настройки с прогрессивно увеличенным объемом
+            Settings averagingSettings = createAveragingSettings(settings, tradingPair.getAveragingCount());
+
+            // Сохраняем текущий профит перед усреднением для отслеживания
+            tradingPair.setLastAveragingProfitPercent(tradingPair.getProfitPercentChanges());
 
             // Открываем дополнительную позицию
             ArbitragePairTradeInfo tradeResult = tradingIntegrationService.openArbitragePair(tradingPair, averagingSettings);
@@ -110,18 +121,25 @@ public class AveragingService {
             }
 
             // Обновляем счетчик усреднений
-            tradingPair.setAveragingCount(tradingPair.getAveragingCount() + 1);
+            int newAveragingCount = tradingPair.getAveragingCount() + 1;
+            tradingPair.setAveragingCount(newAveragingCount);
             tradingPair.setLastAveragingTimestamp(System.currentTimeMillis());
+
+            // Копируем настройки усреднения в торговую пару для отслеживания
+            tradingPair.setSettingsAveragingDrawdownMultiplier(settings.getAveragingDrawdownMultiplier());
+            tradingPair.setSettingsMaxAveragingCount(settings.getMaxAveragingCount());
 
             // Сохраняем изменения
             tradingPairRepository.save(tradingPair);
 
-            log.info("✅ Успешно выполнено усреднение #{} для пары: {} (триггер: {})",
-                    tradingPair.getAveragingCount(), tradingPair.getPairName(), trigger);
+            double volumeMultiplier = calculateVolumeMultiplier(newAveragingCount - 1, settings);
+            log.info("✅ Успешно выполнено усреднение #{}/{} для пары: {} (триггер: {}, множитель объема: x{})",
+                    newAveragingCount, settings.getMaxAveragingCount(),
+                    tradingPair.getPairName(), trigger, String.format("%.2f", volumeMultiplier));
 
             return AveragingResult.success(
-                    String.format("Выполнено усреднение #%d для пары %s",
-                            tradingPair.getAveragingCount(), tradingPair.getPairName())
+                    String.format("Выполнено усреднение #%d/%d для пары %s",
+                            newAveragingCount, settings.getMaxAveragingCount(), tradingPair.getPairName())
             );
 
         } catch (Exception e) {
@@ -132,12 +150,56 @@ public class AveragingService {
     }
 
     /**
-     * Создает настройки для усреднения с увеличенным объемом
+     * Рассчитывает пороговое значение просадки для усреднения с учетом множителя
+     *
+     * @param currentAveragingCount текущее количество усреднений
+     * @param settings              настройки торговли
+     * @return пороговое значение просадки (отрицательное)
      */
-    private Settings createAveragingSettings(Settings originalSettings) {
+    private double calculateAveragingThreshold(int currentAveragingCount, Settings settings) {
+        double baseThreshold = settings.getAveragingDrawdownThreshold();
+        double multiplier = settings.getAveragingDrawdownMultiplier();
+
+        // Рассчитываем прогрессивный порог
+        // Первое усреднение: -10%, второе: -15%, третье: -22.5% при множителе 1.5
+        double threshold = baseThreshold;
+        for (int i = 0; i < currentAveragingCount; i++) {
+            threshold *= multiplier;
+        }
+
+        // Возвращаем отрицательное значение (просадка)
+        return -Math.abs(threshold);
+    }
+
+    /**
+     * Рассчитывает множитель объема для текущего усреднения
+     *
+     * @param currentAveragingCount текущее количество усреднений
+     * @param settings              настройки торговли
+     * @return множитель объема
+     */
+    private double calculateVolumeMultiplier(int currentAveragingCount, Settings settings) {
+        double baseMultiplier = settings.getAveragingVolumeMultiplier();
+
+        // Прогрессивное увеличение объема
+        // Первое усреднение: x1.5, второе: x2.25, третье: x3.375 при множителе 1.5
+        double volumeMultiplier = 1.0;
+        for (int i = 0; i <= currentAveragingCount; i++) {
+            volumeMultiplier *= baseMultiplier;
+        }
+
+        return volumeMultiplier;
+    }
+
+    /**
+     * Создает настройки для усреднения с прогрессивно увеличенным объемом
+     */
+    private Settings createAveragingSettings(Settings originalSettings, int currentAveragingCount) {
+        double volumeMultiplier = calculateVolumeMultiplier(currentAveragingCount, originalSettings);
+
         return Settings.builder()
-                .maxLongMarginSize(originalSettings.getMaxLongMarginSize() * originalSettings.getAveragingVolumeMultiplier())
-                .maxShortMarginSize(originalSettings.getMaxShortMarginSize() * originalSettings.getAveragingVolumeMultiplier())
+                .maxLongMarginSize(originalSettings.getMaxLongMarginSize() * volumeMultiplier)
+                .maxShortMarginSize(originalSettings.getMaxShortMarginSize() * volumeMultiplier)
                 .leverage(originalSettings.getLeverage())
                 .autoTradingEnabled(originalSettings.isAutoTradingEnabled())
                 // Копируем все остальные настройки

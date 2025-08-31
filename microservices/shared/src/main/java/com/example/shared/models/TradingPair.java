@@ -523,12 +523,24 @@ public class TradingPair {
     private double settingsAveragingVolumeMultiplier;
 
     @CsvExportable(order = 115)
+    @Column(name = "settings_averaging_drawdown_multiplier")
+    private double settingsAveragingDrawdownMultiplier;
+
+    @CsvExportable(order = 116)
+    @Column(name = "settings_max_averaging_count")
+    private int settingsMaxAveragingCount;
+
+    @CsvExportable(order = 117)
     @Column(name = "averaging_count")
     private int averagingCount = 0;
 
-    @CsvExportable(order = 116)
+    @CsvExportable(order = 118)
     @Column(name = "last_averaging_timestamp")
     private long lastAveragingTimestamp;
+
+    @CsvExportable(order = 119)
+    @Column(name = "last_averaging_profit_percent")
+    private BigDecimal lastAveragingProfitPercent;
 
     public TradingPair(String longTicker, String shortTicker) {
         this.longTicker = longTicker;
