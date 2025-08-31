@@ -1,0 +1,591 @@
+2025-08-31T02:20:42.682-04:00 ERROR %PARSER_ERROR[PID] --- [           main] o.s.boot.SpringApplication               : Application run failed
+java.lang.IllegalStateException: java.lang.IllegalStateException: Logback configuration error detected: 
+ERROR in ch.qos.logback.core.pattern.parser.Compiler@78f9ed3e - There is no conversion supplier registered for conversion word [PID]
+ERROR in ch.qos.logback.core.pattern.parser.Compiler@78f9ed3e - [PID] is not a valid conversion word
+	at org.springframework.boot.context.logging.LoggingApplicationListener.initializeSystem(LoggingApplicationListener.java:347)
+	at org.springframework.boot.context.logging.LoggingApplicationListener.initialize(LoggingApplicationListener.java:298)
+	at org.springframework.boot.context.logging.LoggingApplicationListener.onApplicationEnvironmentPreparedEvent(LoggingApplicationListener.java:246)
+	at org.springframework.boot.context.logging.LoggingApplicationListener.onApplicationEvent(LoggingApplicationListener.java:223)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:185)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:178)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:156)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:138)
+	at org.springframework.boot.context.event.EventPublishingRunListener.multicastInitialEvent(EventPublishingRunListener.java:136)
+	at org.springframework.boot.context.event.EventPublishingRunListener.environmentPrepared(EventPublishingRunListener.java:81)
+	at org.springframework.boot.SpringApplicationRunListeners.lambda$environmentPrepared$2(SpringApplicationRunListeners.java:64)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:118)
+	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:112)
+	at org.springframework.boot.SpringApplicationRunListeners.environmentPrepared(SpringApplicationRunListeners.java:63)
+	at org.springframework.boot.SpringApplication.prepareEnvironment(SpringApplication.java:353)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:313)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1362)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1351)
+	at com.example.core.CoreApplication.main(CoreApplication.java:54)
+Caused by: java.lang.IllegalStateException: Logback configuration error detected: 
+ERROR in ch.qos.logback.core.pattern.parser.Compiler@78f9ed3e - There is no conversion supplier registered for conversion word [PID]
+ERROR in ch.qos.logback.core.pattern.parser.Compiler@78f9ed3e - [PID] is not a valid conversion word
+	at org.springframework.boot.logging.logback.LogbackLoggingSystem.reportConfigurationErrorsIfNecessary(LogbackLoggingSystem.java:289)
+	at org.springframework.boot.logging.logback.LogbackLoggingSystem.loadConfiguration(LogbackLoggingSystem.java:267)
+	at org.springframework.boot.logging.AbstractLoggingSystem.initializeWithConventions(AbstractLoggingSystem.java:81)
+	at org.springframework.boot.logging.AbstractLoggingSystem.initialize(AbstractLoggingSystem.java:61)
+	at org.springframework.boot.logging.logback.LogbackLoggingSystem.initialize(LogbackLoggingSystem.java:195)
+	at org.springframework.boot.context.logging.LoggingApplicationListener.initializeSystem(LoggingApplicationListener.java:332)
+	... 19 common frames omitted
+2025-08-31T02:26:20.613-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : Starting CoreApplication using Java 21.0.6 with PID 28382 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices)
+2025-08-31T02:26:20.615-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : The following 1 profile is active: "default"
+2025-08-31T02:26:21.355-04:00  INFO %PARSER_ERROR[PID] --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-08-31T02:26:21.925-04:00  INFO %PARSER_ERROR[PID] --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 561 ms. Found 6 JPA repository interfaces.
+2025-08-31T02:26:23.065-04:00  INFO %PARSER_ERROR[PID] --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2025-08-31T02:26:23.070-04:00  INFO %PARSER_ERROR[PID] --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2025-08-31T02:26:23.192-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=bd110862-938e-39fd-a054-52bcf5d1f033
+2025-08-31T02:26:23.502-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8181 (http)
+2025-08-31T02:26:23.509-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-08-31T02:26:23.509-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-08-31T02:26:23.547-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-08-31T02:26:23.547-04:00  INFO %PARSER_ERROR[PID] --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2870 ms
+2025-08-31T02:26:23.885-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.v.f.s.VaadinServletContextInitializer  : Search for subclasses and classes with annotations took 125 ms
+2025-08-31T02:26:24.189-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.v.b.d.startup.DevModeStartupListener   : Starting dev-mode updaters in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core folder.
+2025-08-31T02:26:24.213-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.v.f.s.f.s.FullDependenciesScanner      : Visited 108 classes. Took 12 ms.
+2025-08-31T02:26:24.214-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.v.f.s.frontend.BundleValidationUtil    : Checking if a development mode bundle build is needed
+2025-08-31T02:26:24.326-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.v.f.s.frontend.BundleValidationUtil    : A development mode bundle build is not needed
+2025-08-31T02:26:24.341-04:00  INFO %PARSER_ERROR[PID] --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Copying frontend resources from jar files ...
+2025-08-31T02:26:24.365-04:00  INFO %PARSER_ERROR[PID] --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Visited 18 resources. Took 24 ms.
+2025-08-31T02:26:24.477-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-08-31T02:26:24.582-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4202bfe8
+2025-08-31T02:26:24.582-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-08-31T02:26:24.600-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/statarbitrage (PostgreSQL 15.14)
+2025-08-31T02:26:24.633-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.016s)
+2025-08-31T02:26:24.666-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 1
+2025-08-31T02:26:24.667-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-08-31T02:26:24.757-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-08-31T02:26:24.787-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-08-31T02:26:24.802-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-08-31T02:26:24.918-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-08-31T02:26:24.950-04:00  WARN %PARSER_ERROR[PID] --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-08-31T02:26:24.958-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.14
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-08-31T02:26:25.565-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-08-31T02:26:25.567-04:00  INFO %PARSER_ERROR[PID] --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-08-31T02:26:25.774-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-08-31T02:26:26.268-04:00  WARN %PARSER_ERROR[PID] --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-08-31T02:26:28.120-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.t.services.TradingProviderFactory  : ✅ Переключились на провайдер: OKX API
+2025-08-31T02:26:28.327-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.core.ui.services.UIUpdateService     : Started periodic UI updates every 15 seconds
+2025-08-31T02:26:28.328-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.example.shared.config.MessagingConfig  : 📨 Messaging Configuration загружена
+2025-08-31T02:26:28.725-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.c.s.m.DirectWithAttributesChannel    : Channel 'core-service.cointegrationEventsConsumer-in-0' has 1 subscriber(s).
+2025-08-31T02:26:28.843-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2025-08-31T02:26:28.928-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler mapped to context-path: /*
+2025-08-31T02:26:28.928-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed the following AtmosphereInterceptor mapped to AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler
+2025-08-31T02:26:28.952-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.util.VoidAnnotationProcessor for processing annotation
+2025-08-31T02:26:28.959-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.util.ForkJoinPool         : Using ForkJoinPool  java.util.concurrent.ForkJoinPool. Set the org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads to -1 to fully use its power.
+2025-08-31T02:26:28.964-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed WebSocketProtocol org.atmosphere.websocket.protocol.SimpleHttpProtocol 
+2025-08-31T02:26:28.967-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.a.container.JSR356AsyncSupport         : JSR 356 Mapping path /VAADIN/push
+2025-08-31T02:26:28.972-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installing Default AtmosphereInterceptors
+2025-08-31T02:26:28.973-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CorsInterceptor : CORS Interceptor Support
+2025-08-31T02:26:28.973-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CacheHeadersInterceptor : Default Response's Headers Interceptor
+2025-08-31T02:26:28.973-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.PaddingAtmosphereInterceptor : Browser Padding Interceptor Support
+2025-08-31T02:26:28.973-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.AndroidAtmosphereInterceptor : Android Interceptor Support
+2025-08-31T02:26:28.974-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.HeartbeatInterceptor : Heartbeat Interceptor Support
+2025-08-31T02:26:28.974-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.SSEAtmosphereInterceptor : SSE Interceptor Support
+2025-08-31T02:26:28.974-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JSONPAtmosphereInterceptor : JSONP Interceptor Support
+2025-08-31T02:26:28.974-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JavaScriptProtocol : Atmosphere JavaScript Protocol
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor : org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.OnDisconnectInterceptor : Browser disconnection detection
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.IdleResourceInterceptor : org.atmosphere.interceptor.IdleResourceInterceptor
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Set org.atmosphere.cpr.AtmosphereInterceptor.disableDefaults to disable them.
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor CORS Interceptor Support with priority FIRST_BEFORE_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Default Response's Headers Interceptor with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser Padding Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Android Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.a.interceptor.HeartbeatInterceptor     : HeartbeatInterceptor configured with padding value 'X', client frequency 0 seconds and server frequency 60 seconds
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Heartbeat Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor SSE Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor JSONP Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Atmosphere JavaScript Protocol with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.975-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser disconnection detection with priority AFTER_DEFAULT 
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.IdleResourceInterceptor with priority BEFORE_DEFAULT 
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using EndpointMapper class org.atmosphere.util.DefaultEndpointMapper
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterCache: org.atmosphere.cache.UUIDBroadcasterCache
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Default Broadcaster Class: org.atmosphere.cpr.DefaultBroadcaster
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Shared List Resources: false
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Polling Wait Time 100
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Shared ExecutorService supported: true
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Messaging ExecutorService Pool Size unavailable - Not instance of ThreadPoolExecutor
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Async I/O Thread Pool Size: 200
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterFactory: org.atmosphere.cpr.DefaultBroadcasterFactory
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using AtmosphereResurceFactory: org.atmosphere.cpr.DefaultAtmosphereResourceFactory
+2025-08-31T02:26:28.976-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using WebSocketProcessor: org.atmosphere.websocket.DefaultWebSocketProcessor
+2025-08-31T02:26:28.977-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Invoke AtmosphereInterceptor on WebSocket message true
+2025-08-31T02:26:28.977-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : HttpSession supported: true
+2025-08-31T02:26:28.977-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.inject.InjectableObjectFactory for dependency injection and object creation
+2025-08-31T02:26:28.977-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using async support: org.atmosphere.container.JSR356AsyncSupport running under container: Apache Tomcat/10.1.41 using jakarta.servlet/3.0 and jsr356/WebSocket API
+2025-08-31T02:26:28.977-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere Framework 3.0.4.slf4jvaadin1 started.
+2025-08-31T02:26:28.979-04:00  INFO %PARSER_ERROR[PID] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor  Track Message Size Interceptor using | with priority BEFORE_DEFAULT 
+2025-08-31T02:26:29.013-04:00  INFO %PARSER_ERROR[PID] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel errorChannel
+2025-08-31T02:26:29.016-04:00  INFO %PARSER_ERROR[PID] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel cointegrationEventsConsumer-in-0
+2025-08-31T02:26:29.019-04:00  INFO %PARSER_ERROR[PID] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel nullChannel
+2025-08-31T02:26:29.023-04:00  INFO %PARSER_ERROR[PID] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageHandler _org.springframework.integration.errorLogger
+2025-08-31T02:26:29.027-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-08-31T02:26:29.027-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 1 subscriber(s).
+2025-08-31T02:26:29.027-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.i.endpoint.EventDrivenConsumer       : started bean '_org.springframework.integration.errorLogger'
+2025-08-31T02:26:29.057-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.v.f.s.DefaultDeploymentConfiguration   : 
+Vaadin is running in DEVELOPMENT mode - do not use for production deployments.
+2025-08-31T02:26:29.080-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8181 (http) with context path '/'
+2025-08-31T02:26:29.084-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Creating binder: rabbit
+2025-08-31T02:26:29.085-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Constructing binder child context for rabbit
+2025-08-31T02:26:29.193-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Caching the binder: rabbit
+2025-08-31T02:26:29.206-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.s.b.r.p.RabbitExchangeQueueProvisioner : declaring queue for inbound: cointegration.events.core-group, bound to: cointegration.events
+2025-08-31T02:26:29.211-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2025-08-31T02:26:29.267-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#417430c8:0/SimpleConnection@109d51e8 [delegate=amqp://admin@127.0.0.1:5672/, localPort=52761]
+2025-08-31T02:26:29.299-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-393004587.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-08-31T02:26:29.300-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-393004587.cointegrationEventsConsumer-in-0.errors' has 2 subscriber(s).
+2025-08-31T02:26:29.313-04:00  INFO %PARSER_ERROR[PID] --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : started bean 'inbound.cointegration.events.core-group'
+2025-08-31T02:26:29.345-04:00  INFO %PARSER_ERROR[PID] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel rabbit-393004587.cointegrationEventsConsumer-in-0.errors
+2025-08-31T02:26:29.355-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : Started CoreApplication in 9.39 seconds (process running for 10.644)
+2025-08-31T02:26:29.610-04:00  INFO %PARSER_ERROR[PID] --- [nio-8181-exec-3] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-08-31T02:26:29.610-04:00  INFO %PARSER_ERROR[PID] --- [nio-8181-exec-3] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-08-31T02:26:29.611-04:00  INFO %PARSER_ERROR[PID] --- [nio-8181-exec-3] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2025-08-31T02:26:29.621-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : ✅ Геолокация при запуске: безопасно для OKX
+2025-08-31T02:26:29.834-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.c.CointegrationApiHealthCheck      : ✅ API коинтеграции в норме
+2025-08-31T02:26:29.912-04:00  INFO %PARSER_ERROR[PID] --- [nio-8181-exec-6] c.vaadin.flow.spring.SpringInstantiator  : The number of beans implementing 'I18NProvider' is 0. Cannot use Spring beans for I18N, falling back to the default behavior
+2025-08-31T02:26:30.134-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : ✅ Интеграционный тест API коинтеграции прошел успешно
+2025-08-31T02:26:30.421-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:26:30.421-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:26:34.748-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AXS-USDT-SWAP, short=AR-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29346 | z=-0.77 | corr=0.42 | avgAdf=0.29 | avgR=0.81 | stablePeriods=81 | traceStat=3.38 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29346 ⚠️, R²=0.80636 ⚠️, stablePeriods=81
+2025-08-31T02:26:34.775-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.55100000, изм.: 2.81733700 %
+2025-08-31T02:26:34.776-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.62700000, изм.: -2.70061700 %
+2025-08-31T02:26:34.776-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.07280000 USDT (0.32524962 %)
+2025-08-31T02:26:34.776-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:26:34.865-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:26:34.865-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:26:37.251-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39320 | z=0.78 | corr=0.48 | avgAdf=0.39 | avgR=0.41 | stablePeriods=14 | traceStat=7.16 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39320 ⚠️, R²=0.41258 ✅, stablePeriods=14
+2025-08-31T02:26:37.273-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16206000, изм.: 1.00465100 %
+2025-08-31T02:26:37.273-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.68000000, изм.: -4.03383200 %
+2025-08-31T02:26:37.273-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.47663000 USDT (-1.59651942 %)
+2025-08-31T02:26:37.273-04:00  INFO %PARSER_ERROR[PID] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:26:37.310-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : ✅ Пары обновлены
+2025-08-31T02:26:37.623-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : 
+2025-08-31T02:26:37.625-04:00  INFO %PARSER_ERROR[PID] --- [           main] com.example.core.CoreApplication         : 🚀 Core готов к работе!
+2025-08-31T02:26:44.416-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:26:44.416-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:26:46.928-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39320 | z=0.78 | corr=0.48 | avgAdf=0.39 | avgR=0.41 | stablePeriods=14 | traceStat=7.16 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39320 ⚠️, R²=0.41258 ✅, stablePeriods=14
+2025-08-31T02:26:46.958-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16211000, изм.: 1.06666700 %
+2025-08-31T02:26:46.958-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.68000000, изм.: -4.03383200 %
+2025-08-31T02:26:46.959-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.46778000 USDT (-1.56651984 %)
+2025-08-31T02:26:46.959-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:26:57.475-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:26:57.475-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:26:59.871-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AXS-USDT-SWAP, short=AR-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29346 | z=-0.77 | corr=0.42 | avgAdf=0.29 | avgR=0.81 | stablePeriods=81 | traceStat=3.38 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29346 ⚠️, R²=0.80636 ⚠️, stablePeriods=81
+2025-08-31T02:26:59.890-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.55100000, изм.: 2.81733700 %
+2025-08-31T02:26:59.890-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.62600000, изм.: -2.62345700 %
+2025-08-31T02:26:59.890-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.08060000 USDT (0.36009758 %)
+2025-08-31T02:26:59.891-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:27:44.421-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:27:44.422-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:27:47.295-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39320 | z=0.78 | corr=0.48 | avgAdf=0.39 | avgR=0.41 | stablePeriods=14 | traceStat=6.99 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39320 ⚠️, R²=0.41258 ✅, stablePeriods=14
+2025-08-31T02:27:47.323-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16151000, изм.: 0.32248100 %
+2025-08-31T02:27:47.323-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.69000000, изм.: -4.16395600 %
+2025-08-31T02:27:47.323-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.59398000 USDT (-1.99368980 %)
+2025-08-31T02:27:47.323-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:27:57.602-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:27:57.602-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:27:59.878-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AXS-USDT-SWAP, short=AR-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29346 | z=-0.77 | corr=0.42 | avgAdf=0.29 | avgR=0.81 | stablePeriods=81 | traceStat=3.34 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29346 ⚠️, R²=0.80636 ⚠️, stablePeriods=81
+2025-08-31T02:27:59.891-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.54900000, изм.: 2.75541800 %
+2025-08-31T02:27:59.892-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.62400000, изм.: -2.46913600 %
+2025-08-31T02:27:59.892-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.08860000 USDT (0.39583960 %)
+2025-08-31T02:27:59.892-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:28:44.410-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:28:44.411-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:28:47.227-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39320 | z=0.78 | corr=0.48 | avgAdf=0.39 | avgR=0.41 | stablePeriods=14 | traceStat=7.03 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39320 ⚠️, R²=0.41258 ✅, stablePeriods=14
+2025-08-31T02:28:47.254-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16176000, изм.: 0.63255800 %
+2025-08-31T02:28:47.255-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.68000000, изм.: -4.03383200 %
+2025-08-31T02:28:47.255-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.52973000 USDT (-1.77651545 %)
+2025-08-31T02:28:47.255-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:28:58.696-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:28:58.698-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:29:00.973-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AXS-USDT-SWAP, short=AR-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29346 | z=-0.77 | corr=0.42 | avgAdf=0.29 | avgR=0.81 | stablePeriods=81 | traceStat=3.38 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29346 ⚠️, R²=0.80636 ⚠️, stablePeriods=81
+2025-08-31T02:29:00.987-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.54900000, изм.: 2.75541800 %
+2025-08-31T02:29:00.988-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.62900000, изм.: -2.85493800 %
+2025-08-31T02:29:00.988-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.04960000 USDT (0.22159887 %)
+2025-08-31T02:29:00.988-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:29:44.395-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:29:44.397-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:29:46.764-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39320 | z=0.78 | corr=0.48 | avgAdf=0.39 | avgR=0.41 | stablePeriods=14 | traceStat=7.04 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39320 ⚠️, R²=0.41258 ✅, stablePeriods=14
+2025-08-31T02:29:46.781-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16176000, изм.: 0.63255800 %
+2025-08-31T02:29:46.781-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.69000000, изм.: -4.16395600 %
+2025-08-31T02:29:46.782-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.54973000 USDT (-1.84369335 %)
+2025-08-31T02:29:46.782-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:29:57.986-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:29:57.986-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:30:00.796-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AXS-USDT-SWAP, short=AR-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29346 | z=-0.77 | corr=0.42 | avgAdf=0.29 | avgR=0.81 | stablePeriods=81 | traceStat=3.38 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29346 ⚠️, R²=0.80636 ⚠️, stablePeriods=81
+2025-08-31T02:30:00.835-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.54800000, изм.: 2.72445800 %
+2025-08-31T02:30:00.836-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.63000000, изм.: -2.93209900 %
+2025-08-31T02:30:00.836-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.03800000 USDT (0.16977300 %)
+2025-08-31T02:30:00.836-04:00  INFO %PARSER_ERROR[PID] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:30:09.822-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.a.r.l.SimpleMessageListenerContainer : Waiting for workers to finish.
+2025-08-31T02:30:10.149-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.a.r.l.SimpleMessageListenerContainer : Successfully waited for workers to finish.
+2025-08-31T02:30:10.152-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.i.a.i.AmqpInboundChannelAdapter      : stopped bean 'inbound.cointegration.events.core-group'
+2025-08-31T02:30:10.186-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.c.stream.binder.BinderErrorChannel   : Channel 'core-service.rabbit-393004587.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-08-31T02:30:10.187-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.c.stream.binder.BinderErrorChannel   : Channel 'core-service.rabbit-393004587.cointegrationEventsConsumer-in-0.errors' has 0 subscriber(s).
+2025-08-31T02:30:10.192-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-08-31T02:30:10.196-04:00  INFO %PARSER_ERROR[PID] --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-08-31T02:30:10.262-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.i.endpoint.EventDrivenConsumer       : Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-08-31T02:30:10.262-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 0 subscriber(s).
+2025-08-31T02:30:10.262-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] o.s.i.endpoint.EventDrivenConsumer       : stopped bean '_org.springframework.integration.errorLogger'
+2025-08-31T02:30:10.276-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-08-31T02:30:10.279-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-08-31T02:30:10.281-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2025-08-31T02:30:10.296-04:00  INFO %PARSER_ERROR[PID] --- [ionShutdownHook] org.atmosphere.util.ForkJoinPool         : Using ForkJoinPool  java.util.concurrent.ForkJoinPool. Set the org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads to -1 to fully use its power.
+2025-08-31T02:30:10.298-04:00  WARN %PARSER_ERROR[PID] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 2880505a-8804-4532-af29-df0f600d44da is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:30:10.310-04:00  WARN %PARSER_ERROR[PID] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 19d53718-9e24-48ad-9615-99769b2c8308 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:30:10.310-04:00  WARN %PARSER_ERROR[PID] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource a3c22969-887f-4cfc-874e-13a689c8ea87 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:30:10.310-04:00  WARN %PARSER_ERROR[PID] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 55cb2a86-e971-4463-a0cd-52be5fdfa550 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:30:10.311-04:00  WARN %PARSER_ERROR[PID] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 742433d6-0081-42dd-a451-670ff26e4961 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:31:07.187-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : Starting CoreApplication using Java 21.0.6 with PID 28514 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices)
+2025-08-31T02:31:07.191-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : The following 1 profile is active: "default"
+2025-08-31T02:31:07.916-04:00  INFO %PARSER_ERROR[pid] --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-08-31T02:31:08.069-04:00  INFO %PARSER_ERROR[pid] --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 147 ms. Found 6 JPA repository interfaces.
+2025-08-31T02:31:08.412-04:00  INFO %PARSER_ERROR[pid] --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2025-08-31T02:31:08.416-04:00  INFO %PARSER_ERROR[pid] --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2025-08-31T02:31:08.472-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=bd110862-938e-39fd-a054-52bcf5d1f033
+2025-08-31T02:31:08.731-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8181 (http)
+2025-08-31T02:31:08.744-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-08-31T02:31:08.744-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-08-31T02:31:08.803-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-08-31T02:31:08.804-04:00  INFO %PARSER_ERROR[pid] --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1544 ms
+2025-08-31T02:31:09.192-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.v.f.s.VaadinServletContextInitializer  : Search for subclasses and classes with annotations took 135 ms
+2025-08-31T02:31:09.596-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.v.b.d.startup.DevModeStartupListener   : Starting dev-mode updaters in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core folder.
+2025-08-31T02:31:09.620-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.v.f.s.f.s.FullDependenciesScanner      : Visited 108 classes. Took 14 ms.
+2025-08-31T02:31:09.621-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.v.f.s.frontend.BundleValidationUtil    : Checking if a development mode bundle build is needed
+2025-08-31T02:31:09.731-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.v.f.s.frontend.BundleValidationUtil    : A development mode bundle build is not needed
+2025-08-31T02:31:09.744-04:00  INFO %PARSER_ERROR[pid] --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Copying frontend resources from jar files ...
+2025-08-31T02:31:09.767-04:00  INFO %PARSER_ERROR[pid] --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Visited 18 resources. Took 22 ms.
+2025-08-31T02:31:09.883-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-08-31T02:31:09.982-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@5fa3df
+2025-08-31T02:31:09.982-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-08-31T02:31:09.998-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/statarbitrage (PostgreSQL 15.14)
+2025-08-31T02:31:10.037-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.017s)
+2025-08-31T02:31:10.075-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 1
+2025-08-31T02:31:10.077-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-08-31T02:31:10.154-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-08-31T02:31:10.179-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-08-31T02:31:10.194-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-08-31T02:31:10.323-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-08-31T02:31:10.352-04:00  WARN %PARSER_ERROR[pid] --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-08-31T02:31:10.361-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.14
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-08-31T02:31:10.983-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-08-31T02:31:10.984-04:00  INFO %PARSER_ERROR[pid] --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-08-31T02:31:11.232-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-08-31T02:31:11.719-04:00  WARN %PARSER_ERROR[pid] --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-08-31T02:31:13.067-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.t.services.TradingProviderFactory  : ✅ Переключились на провайдер: OKX API
+2025-08-31T02:31:13.277-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.core.ui.services.UIUpdateService     : Started periodic UI updates every 15 seconds
+2025-08-31T02:31:13.278-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.example.shared.config.MessagingConfig  : 📨 Messaging Configuration загружена
+2025-08-31T02:31:13.665-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.c.s.m.DirectWithAttributesChannel    : Channel 'core-service.cointegrationEventsConsumer-in-0' has 1 subscriber(s).
+2025-08-31T02:31:13.780-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2025-08-31T02:31:13.865-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler mapped to context-path: /*
+2025-08-31T02:31:13.865-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed the following AtmosphereInterceptor mapped to AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler
+2025-08-31T02:31:13.889-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.util.VoidAnnotationProcessor for processing annotation
+2025-08-31T02:31:13.896-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.util.ForkJoinPool         : Using ForkJoinPool  java.util.concurrent.ForkJoinPool. Set the org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads to -1 to fully use its power.
+2025-08-31T02:31:13.901-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed WebSocketProtocol org.atmosphere.websocket.protocol.SimpleHttpProtocol 
+2025-08-31T02:31:13.904-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.a.container.JSR356AsyncSupport         : JSR 356 Mapping path /VAADIN/push
+2025-08-31T02:31:13.910-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installing Default AtmosphereInterceptors
+2025-08-31T02:31:13.911-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CorsInterceptor : CORS Interceptor Support
+2025-08-31T02:31:13.911-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CacheHeadersInterceptor : Default Response's Headers Interceptor
+2025-08-31T02:31:13.911-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.PaddingAtmosphereInterceptor : Browser Padding Interceptor Support
+2025-08-31T02:31:13.911-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.AndroidAtmosphereInterceptor : Android Interceptor Support
+2025-08-31T02:31:13.911-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.HeartbeatInterceptor : Heartbeat Interceptor Support
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.SSEAtmosphereInterceptor : SSE Interceptor Support
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JSONPAtmosphereInterceptor : JSONP Interceptor Support
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JavaScriptProtocol : Atmosphere JavaScript Protocol
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor : org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.OnDisconnectInterceptor : Browser disconnection detection
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.IdleResourceInterceptor : org.atmosphere.interceptor.IdleResourceInterceptor
+2025-08-31T02:31:13.912-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Set org.atmosphere.cpr.AtmosphereInterceptor.disableDefaults to disable them.
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor CORS Interceptor Support with priority FIRST_BEFORE_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Default Response's Headers Interceptor with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser Padding Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Android Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.a.interceptor.HeartbeatInterceptor     : HeartbeatInterceptor configured with padding value 'X', client frequency 0 seconds and server frequency 60 seconds
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Heartbeat Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor SSE Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor JSONP Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Atmosphere JavaScript Protocol with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser disconnection detection with priority AFTER_DEFAULT 
+2025-08-31T02:31:13.913-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.IdleResourceInterceptor with priority BEFORE_DEFAULT 
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using EndpointMapper class org.atmosphere.util.DefaultEndpointMapper
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterCache: org.atmosphere.cache.UUIDBroadcasterCache
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Default Broadcaster Class: org.atmosphere.cpr.DefaultBroadcaster
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Shared List Resources: false
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Polling Wait Time 100
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Shared ExecutorService supported: true
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Messaging ExecutorService Pool Size unavailable - Not instance of ThreadPoolExecutor
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Async I/O Thread Pool Size: 200
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterFactory: org.atmosphere.cpr.DefaultBroadcasterFactory
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using AtmosphereResurceFactory: org.atmosphere.cpr.DefaultAtmosphereResourceFactory
+2025-08-31T02:31:13.914-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using WebSocketProcessor: org.atmosphere.websocket.DefaultWebSocketProcessor
+2025-08-31T02:31:13.915-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Invoke AtmosphereInterceptor on WebSocket message true
+2025-08-31T02:31:13.915-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : HttpSession supported: true
+2025-08-31T02:31:13.915-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.inject.InjectableObjectFactory for dependency injection and object creation
+2025-08-31T02:31:13.915-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using async support: org.atmosphere.container.JSR356AsyncSupport running under container: Apache Tomcat/10.1.41 using jakarta.servlet/3.0 and jsr356/WebSocket API
+2025-08-31T02:31:13.915-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere Framework 3.0.4.slf4jvaadin1 started.
+2025-08-31T02:31:13.917-04:00  INFO %PARSER_ERROR[pid] --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor  Track Message Size Interceptor using | with priority BEFORE_DEFAULT 
+2025-08-31T02:31:13.952-04:00  INFO %PARSER_ERROR[pid] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel errorChannel
+2025-08-31T02:31:13.955-04:00  INFO %PARSER_ERROR[pid] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel cointegrationEventsConsumer-in-0
+2025-08-31T02:31:13.958-04:00  INFO %PARSER_ERROR[pid] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel nullChannel
+2025-08-31T02:31:13.962-04:00  INFO %PARSER_ERROR[pid] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageHandler _org.springframework.integration.errorLogger
+2025-08-31T02:31:13.966-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-08-31T02:31:13.966-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 1 subscriber(s).
+2025-08-31T02:31:13.966-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.i.endpoint.EventDrivenConsumer       : started bean '_org.springframework.integration.errorLogger'
+2025-08-31T02:31:13.995-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.v.f.s.DefaultDeploymentConfiguration   : 
+Vaadin is running in DEVELOPMENT mode - do not use for production deployments.
+2025-08-31T02:31:14.017-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8181 (http) with context path '/'
+2025-08-31T02:31:14.021-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Creating binder: rabbit
+2025-08-31T02:31:14.022-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Constructing binder child context for rabbit
+2025-08-31T02:31:14.140-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Caching the binder: rabbit
+2025-08-31T02:31:14.167-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.s.b.r.p.RabbitExchangeQueueProvisioner : declaring queue for inbound: cointegration.events.core-group, bound to: cointegration.events
+2025-08-31T02:31:14.172-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2025-08-31T02:31:14.211-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#7c540787:0/SimpleConnection@4eb7603f [delegate=amqp://admin@127.0.0.1:5672/, localPort=53157]
+2025-08-31T02:31:14.247-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-481275262.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-08-31T02:31:14.247-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-481275262.cointegrationEventsConsumer-in-0.errors' has 2 subscriber(s).
+2025-08-31T02:31:14.258-04:00  INFO %PARSER_ERROR[pid] --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : started bean 'inbound.cointegration.events.core-group'
+2025-08-31T02:31:14.290-04:00  INFO %PARSER_ERROR[pid] --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel rabbit-481275262.cointegrationEventsConsumer-in-0.errors
+2025-08-31T02:31:14.298-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : Started CoreApplication in 7.781 seconds (process running for 8.47)
+2025-08-31T02:31:14.507-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : ✅ Геолокация при запуске: безопасно для OKX
+2025-08-31T02:31:14.577-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.c.CointegrationApiHealthCheck      : ✅ API коинтеграции в норме
+2025-08-31T02:31:14.687-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : ✅ Интеграционный тест API коинтеграции прошел успешно
+2025-08-31T02:31:14.715-04:00  INFO %PARSER_ERROR[pid] --- [-192.168.60.112] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-08-31T02:31:14.715-04:00  INFO %PARSER_ERROR[pid] --- [-192.168.60.112] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-08-31T02:31:14.718-04:00  INFO %PARSER_ERROR[pid] --- [-192.168.60.112] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-08-31T02:31:14.862-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:31:14.862-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:31:15.855-04:00  INFO %PARSER_ERROR[pid] --- [nio-8181-exec-6] c.vaadin.flow.spring.SpringInstantiator  : The number of beans implementing 'I18NProvider' is 0. Cannot use Spring beans for I18N, falling back to the default behavior
+2025-08-31T02:31:18.434-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AR-USDT-SWAP, short=AXS-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29394 | z=0.39 | corr=0.41 | avgAdf=0.29 | avgR=0.81 | stablePeriods=80 | traceStat=3.45 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29394 ⚠️, R²=0.80611 ⚠️, stablePeriods=80
+2025-08-31T02:31:18.476-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.55100000, изм.: 2.81733700 %
+2025-08-31T02:31:18.476-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.62900000, изм.: -2.85493800 %
+2025-08-31T02:31:18.476-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.05720000 USDT (0.25555324 %)
+2025-08-31T02:31:18.476-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:31:18.593-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:31:18.593-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:31:21.286-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39591 | z=0.62 | corr=0.47 | avgAdf=0.40 | avgR=0.41 | stablePeriods=13 | traceStat=6.85 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39591 ⚠️, R²=0.41143 ✅, stablePeriods=13
+2025-08-31T02:31:21.301-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16147000, изм.: 0.27286800 %
+2025-08-31T02:31:21.302-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.71000000, изм.: -4.42420300 %
+2025-08-31T02:31:21.302-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.64106000 USDT (-2.15204484 %)
+2025-08-31T02:31:21.302-04:00  INFO %PARSER_ERROR[pid] --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:31:21.328-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : ✅ Пары обновлены
+2025-08-31T02:31:21.636-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : 
+2025-08-31T02:31:21.640-04:00  INFO %PARSER_ERROR[pid] --- [           main] com.example.core.CoreApplication         : 🚀 Core готов к работе!
+2025-08-31T02:31:29.435-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:31:29.437-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:31:31.956-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39591 | z=0.62 | corr=0.47 | avgAdf=0.40 | avgR=0.41 | stablePeriods=13 | traceStat=6.80 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39591 ⚠️, R²=0.41143 ✅, stablePeriods=13
+2025-08-31T02:31:31.989-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16124000, изм.: -0.01240300 %
+2025-08-31T02:31:31.989-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.71000000, изм.: -4.42420300 %
+2025-08-31T02:31:31.989-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.68177000 USDT (-2.29004166 %)
+2025-08-31T02:31:31.989-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:31:42.706-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:31:42.707-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:31:45.070-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AR-USDT-SWAP, short=AXS-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29394 | z=0.39 | corr=0.41 | avgAdf=0.29 | avgR=0.81 | stablePeriods=80 | traceStat=3.46 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29394 ⚠️, R²=0.80611 ⚠️, stablePeriods=80
+2025-08-31T02:31:45.103-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.55000000, изм.: 2.78637800 %
+2025-08-31T02:31:45.103-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.63000000, изм.: -2.93209900 %
+2025-08-31T02:31:45.103-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.04560000 USDT (0.20372792 %)
+2025-08-31T02:31:45.103-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:32:29.364-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:32:29.366-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:32:31.724-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39591 | z=0.62 | corr=0.47 | avgAdf=0.40 | avgR=0.41 | stablePeriods=13 | traceStat=6.83 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39591 ⚠️, R²=0.41143 ✅, stablePeriods=13
+2025-08-31T02:32:31.875-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16135000, изм.: 0.12403100 %
+2025-08-31T02:32:31.877-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.71000000, изм.: -4.42420300 %
+2025-08-31T02:32:31.878-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.66230000 USDT (-2.22404316 %)
+2025-08-31T02:32:31.878-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:32:39.920-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.a.r.l.SimpleMessageListenerContainer : Waiting for workers to finish.
+2025-08-31T02:32:40.608-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.a.r.l.SimpleMessageListenerContainer : Successfully waited for workers to finish.
+2025-08-31T02:32:40.610-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.i.a.i.AmqpInboundChannelAdapter      : stopped bean 'inbound.cointegration.events.core-group'
+2025-08-31T02:32:40.622-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.c.stream.binder.BinderErrorChannel   : Channel 'core-service.rabbit-481275262.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-08-31T02:32:40.623-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.c.stream.binder.BinderErrorChannel   : Channel 'core-service.rabbit-481275262.cointegrationEventsConsumer-in-0.errors' has 0 subscriber(s).
+2025-08-31T02:32:40.626-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-08-31T02:32:40.629-04:00  INFO %PARSER_ERROR[pid] --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-08-31T02:32:40.860-04:00  WARN %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.TradeAndSimulationScheduler      : ⚠️ Ошибка при обновлении пары ADA-USDT-SWAP/DOT-USDT-SWAP: Connection refused executing POST http://localhost:8091/api/candles/applicable-map
+2025-08-31T02:32:40.864-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:32:40.864-04:00  INFO %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:32:41.910-04:00  WARN %PARSER_ERROR[pid] --- [   scheduling-1] c.e.c.s.TradeAndSimulationScheduler      : ⚠️ Ошибка при обновлении пары AR-USDT-SWAP/AXS-USDT-SWAP: Connection refused executing POST http://localhost:8091/api/candles/applicable-map
+2025-08-31T02:32:41.942-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.i.endpoint.EventDrivenConsumer       : Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-08-31T02:32:41.942-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 0 subscriber(s).
+2025-08-31T02:32:41.943-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] o.s.i.endpoint.EventDrivenConsumer       : stopped bean '_org.springframework.integration.errorLogger'
+2025-08-31T02:32:41.955-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-08-31T02:32:41.957-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-08-31T02:32:41.959-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2025-08-31T02:32:41.963-04:00  INFO %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.util.ForkJoinPool         : Using ForkJoinPool  java.util.concurrent.ForkJoinPool. Set the org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads to -1 to fully use its power.
+2025-08-31T02:32:41.964-04:00  WARN %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 1f52c6c1-414a-4236-adf5-2aeef9718b74 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:32:41.965-04:00  WARN %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 9a149fec-3edf-4abf-863f-1f8eecae01f6 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:32:41.969-04:00  WARN %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource ccd9f97a-790e-4898-b736-e259e8bddc49 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:32:41.969-04:00  WARN %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource 1d7b932e-8f4a-47fd-8c38-c2050dacf746 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:32:41.969-04:00  WARN %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource a7e19cf4-35a4-48a8-9aef-1de93e679ec2 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:32:41.969-04:00  WARN %PARSER_ERROR[pid] --- [ionShutdownHook] org.atmosphere.cpr.DefaultBroadcaster    : AtmosphereResource afa2a485-e003-4912-88e3-919a1f97a749 is not suspended. If cached messages exists, this may cause unexpected situation. Suspend first
+2025-08-31T02:33:06.396-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : Starting CoreApplication using Java 21.0.6 with PID 28587 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices)
+2025-08-31T02:33:06.397-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : The following 1 profile is active: "default"
+2025-08-31T02:33:07.011-04:00  INFO 28587 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-08-31T02:33:07.188-04:00  INFO 28587 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 171 ms. Found 6 JPA repository interfaces.
+2025-08-31T02:33:07.513-04:00  INFO 28587 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2025-08-31T02:33:07.516-04:00  INFO 28587 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2025-08-31T02:33:07.578-04:00  INFO 28587 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=bd110862-938e-39fd-a054-52bcf5d1f033
+2025-08-31T02:33:07.830-04:00  INFO 28587 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8181 (http)
+2025-08-31T02:33:07.837-04:00  INFO 28587 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-08-31T02:33:07.838-04:00  INFO 28587 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-08-31T02:33:07.879-04:00  INFO 28587 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-08-31T02:33:07.880-04:00  INFO 28587 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1441 ms
+2025-08-31T02:33:08.308-04:00  INFO 28587 --- [           main] c.v.f.s.VaadinServletContextInitializer  : Search for subclasses and classes with annotations took 166 ms
+2025-08-31T02:33:08.645-04:00  INFO 28587 --- [           main] c.v.b.d.startup.DevModeStartupListener   : Starting dev-mode updaters in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core folder.
+2025-08-31T02:33:08.671-04:00  INFO 28587 --- [           main] c.v.f.s.f.s.FullDependenciesScanner      : Visited 108 classes. Took 14 ms.
+2025-08-31T02:33:08.672-04:00  INFO 28587 --- [           main] c.v.f.s.frontend.BundleValidationUtil    : Checking if a development mode bundle build is needed
+2025-08-31T02:33:08.809-04:00  INFO 28587 --- [           main] c.v.f.s.frontend.BundleValidationUtil    : A development mode bundle build is not needed
+2025-08-31T02:33:08.829-04:00  INFO 28587 --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Copying frontend resources from jar files ...
+2025-08-31T02:33:08.857-04:00  INFO 28587 --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Visited 18 resources. Took 28 ms.
+2025-08-31T02:33:08.983-04:00  INFO 28587 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-08-31T02:33:09.094-04:00  INFO 28587 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4b1ad751
+2025-08-31T02:33:09.095-04:00  INFO 28587 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-08-31T02:33:09.111-04:00  INFO 28587 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/statarbitrage (PostgreSQL 15.14)
+2025-08-31T02:33:09.159-04:00  INFO 28587 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.020s)
+2025-08-31T02:33:09.193-04:00  INFO 28587 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 1
+2025-08-31T02:33:09.194-04:00  INFO 28587 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-08-31T02:33:09.242-04:00  INFO 28587 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-08-31T02:33:09.267-04:00  INFO 28587 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-08-31T02:33:09.282-04:00  INFO 28587 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-08-31T02:33:09.456-04:00  INFO 28587 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-08-31T02:33:09.489-04:00  WARN 28587 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-08-31T02:33:09.499-04:00  INFO 28587 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.14
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-08-31T02:33:10.124-04:00  INFO 28587 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-08-31T02:33:10.126-04:00  INFO 28587 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-08-31T02:33:10.365-04:00  INFO 28587 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-08-31T02:33:10.736-04:00  WARN 28587 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-08-31T02:33:12.510-04:00  INFO 28587 --- [           main] c.e.c.t.services.TradingProviderFactory  : ✅ Переключились на провайдер: OKX API
+2025-08-31T02:33:12.716-04:00  INFO 28587 --- [           main] c.e.core.ui.services.UIUpdateService     : Started periodic UI updates every 15 seconds
+2025-08-31T02:33:12.716-04:00  INFO 28587 --- [           main] c.example.shared.config.MessagingConfig  : 📨 Messaging Configuration загружена
+2025-08-31T02:33:13.085-04:00  INFO 28587 --- [           main] o.s.c.s.m.DirectWithAttributesChannel    : Channel 'core-service.cointegrationEventsConsumer-in-0' has 1 subscriber(s).
+2025-08-31T02:33:13.203-04:00  INFO 28587 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2025-08-31T02:33:13.298-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler mapped to context-path: /*
+2025-08-31T02:33:13.299-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed the following AtmosphereInterceptor mapped to AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler
+2025-08-31T02:33:13.322-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.util.VoidAnnotationProcessor for processing annotation
+2025-08-31T02:33:13.327-04:00  INFO 28587 --- [           main] org.atmosphere.util.ForkJoinPool         : Using ForkJoinPool  java.util.concurrent.ForkJoinPool. Set the org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads to -1 to fully use its power.
+2025-08-31T02:33:13.330-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed WebSocketProtocol org.atmosphere.websocket.protocol.SimpleHttpProtocol 
+2025-08-31T02:33:13.332-04:00  INFO 28587 --- [           main] o.a.container.JSR356AsyncSupport         : JSR 356 Mapping path /VAADIN/push
+2025-08-31T02:33:13.337-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installing Default AtmosphereInterceptors
+2025-08-31T02:33:13.337-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CorsInterceptor : CORS Interceptor Support
+2025-08-31T02:33:13.337-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CacheHeadersInterceptor : Default Response's Headers Interceptor
+2025-08-31T02:33:13.338-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.PaddingAtmosphereInterceptor : Browser Padding Interceptor Support
+2025-08-31T02:33:13.338-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.AndroidAtmosphereInterceptor : Android Interceptor Support
+2025-08-31T02:33:13.338-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.HeartbeatInterceptor : Heartbeat Interceptor Support
+2025-08-31T02:33:13.338-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.SSEAtmosphereInterceptor : SSE Interceptor Support
+2025-08-31T02:33:13.338-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JSONPAtmosphereInterceptor : JSONP Interceptor Support
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JavaScriptProtocol : Atmosphere JavaScript Protocol
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor : org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.OnDisconnectInterceptor : Browser disconnection detection
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.IdleResourceInterceptor : org.atmosphere.interceptor.IdleResourceInterceptor
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Set org.atmosphere.cpr.AtmosphereInterceptor.disableDefaults to disable them.
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor CORS Interceptor Support with priority FIRST_BEFORE_DEFAULT 
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Default Response's Headers Interceptor with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.339-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser Padding Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Android Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] o.a.interceptor.HeartbeatInterceptor     : HeartbeatInterceptor configured with padding value 'X', client frequency 0 seconds and server frequency 60 seconds
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Heartbeat Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor SSE Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor JSONP Interceptor Support with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Atmosphere JavaScript Protocol with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser disconnection detection with priority AFTER_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.IdleResourceInterceptor with priority BEFORE_DEFAULT 
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using EndpointMapper class org.atmosphere.util.DefaultEndpointMapper
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterCache: org.atmosphere.cache.UUIDBroadcasterCache
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Default Broadcaster Class: org.atmosphere.cpr.DefaultBroadcaster
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Shared List Resources: false
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Polling Wait Time 100
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Shared ExecutorService supported: true
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Messaging ExecutorService Pool Size unavailable - Not instance of ThreadPoolExecutor
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Async I/O Thread Pool Size: 200
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterFactory: org.atmosphere.cpr.DefaultBroadcasterFactory
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using AtmosphereResurceFactory: org.atmosphere.cpr.DefaultAtmosphereResourceFactory
+2025-08-31T02:33:13.340-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using WebSocketProcessor: org.atmosphere.websocket.DefaultWebSocketProcessor
+2025-08-31T02:33:13.342-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Invoke AtmosphereInterceptor on WebSocket message true
+2025-08-31T02:33:13.342-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : HttpSession supported: true
+2025-08-31T02:33:13.342-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.inject.InjectableObjectFactory for dependency injection and object creation
+2025-08-31T02:33:13.342-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using async support: org.atmosphere.container.JSR356AsyncSupport running under container: Apache Tomcat/10.1.41 using jakarta.servlet/3.0 and jsr356/WebSocket API
+2025-08-31T02:33:13.342-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere Framework 3.0.4.slf4jvaadin1 started.
+2025-08-31T02:33:13.344-04:00  INFO 28587 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor  Track Message Size Interceptor using | with priority BEFORE_DEFAULT 
+2025-08-31T02:33:13.378-04:00  INFO 28587 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel errorChannel
+2025-08-31T02:33:13.381-04:00  INFO 28587 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel cointegrationEventsConsumer-in-0
+2025-08-31T02:33:13.383-04:00  INFO 28587 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel nullChannel
+2025-08-31T02:33:13.387-04:00  INFO 28587 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageHandler _org.springframework.integration.errorLogger
+2025-08-31T02:33:13.391-04:00  INFO 28587 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-08-31T02:33:13.391-04:00  INFO 28587 --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 1 subscriber(s).
+2025-08-31T02:33:13.391-04:00  INFO 28587 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : started bean '_org.springframework.integration.errorLogger'
+2025-08-31T02:33:13.421-04:00  INFO 28587 --- [           main] c.v.f.s.DefaultDeploymentConfiguration   : 
+Vaadin is running in DEVELOPMENT mode - do not use for production deployments.
+2025-08-31T02:33:13.447-04:00  INFO 28587 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8181 (http) with context path '/'
+2025-08-31T02:33:13.452-04:00  INFO 28587 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Creating binder: rabbit
+2025-08-31T02:33:13.452-04:00  INFO 28587 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Constructing binder child context for rabbit
+2025-08-31T02:33:13.589-04:00  INFO 28587 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Caching the binder: rabbit
+2025-08-31T02:33:13.604-04:00  INFO 28587 --- [           main] c.s.b.r.p.RabbitExchangeQueueProvisioner : declaring queue for inbound: cointegration.events.core-group, bound to: cointegration.events
+2025-08-31T02:33:13.608-04:00  INFO 28587 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2025-08-31T02:33:13.650-04:00  INFO 28587 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#49489489:0/SimpleConnection@259e235e [delegate=amqp://admin@127.0.0.1:5672/, localPort=53472]
+2025-08-31T02:33:13.682-04:00  INFO 28587 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-1656521490.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-08-31T02:33:13.683-04:00  INFO 28587 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-1656521490.cointegrationEventsConsumer-in-0.errors' has 2 subscriber(s).
+2025-08-31T02:33:13.695-04:00  INFO 28587 --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : started bean 'inbound.cointegration.events.core-group'
+2025-08-31T02:33:13.729-04:00  INFO 28587 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel rabbit-1656521490.cointegrationEventsConsumer-in-0.errors
+2025-08-31T02:33:13.738-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : Started CoreApplication in 8.106 seconds (process running for 8.844)
+2025-08-31T02:33:13.944-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : ✅ Геолокация при запуске: безопасно для OKX
+2025-08-31T02:33:14.038-04:00  INFO 28587 --- [           main] c.e.c.c.CointegrationApiHealthCheck      : ✅ API коинтеграции в норме
+2025-08-31T02:33:14.082-04:00  INFO 28587 --- [-192.168.60.112] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-08-31T02:33:14.082-04:00  INFO 28587 --- [-192.168.60.112] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-08-31T02:33:14.085-04:00  INFO 28587 --- [-192.168.60.112] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2025-08-31T02:33:14.181-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : ✅ Интеграционный тест API коинтеграции прошел успешно
+2025-08-31T02:33:14.348-04:00  INFO 28587 --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:33:14.348-04:00  INFO 28587 --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:33:15.791-04:00  INFO 28587 --- [nio-8181-exec-4] c.vaadin.flow.spring.SpringInstantiator  : The number of beans implementing 'I18NProvider' is 0. Cannot use Spring beans for I18N, falling back to the default behavior
+2025-08-31T02:33:18.697-04:00  INFO 28587 --- [           main] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AR-USDT-SWAP, short=AXS-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29394 | z=0.39 | corr=0.41 | avgAdf=0.29 | avgR=0.81 | stablePeriods=80 | traceStat=3.39 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29394 ⚠️, R²=0.80611 ⚠️, stablePeriods=80
+2025-08-31T02:33:18.722-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.54800000, изм.: 2.72445800 %
+2025-08-31T02:33:18.722-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.61400000, изм.: -1.69753100 %
+2025-08-31T02:33:18.722-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.16280000 USDT (0.72734404 %)
+2025-08-31T02:33:18.722-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
+2025-08-31T02:33:18.800-04:00  INFO 28587 --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:33:18.801-04:00  INFO 28587 --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:33:21.381-04:00  INFO 28587 --- [           main] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39591 | z=0.62 | corr=0.47 | avgAdf=0.40 | avgR=0.41 | stablePeriods=13 | traceStat=6.82 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39591 ⚠️, R²=0.41143 ✅, stablePeriods=13
+2025-08-31T02:33:21.395-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16151000, изм.: 0.32248100 %
+2025-08-31T02:33:21.395-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.73000000, изм.: -4.68445000 %
+2025-08-31T02:33:21.396-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.67398000 USDT (-2.26240036 %)
+2025-08-31T02:33:21.396-04:00  INFO 28587 --- [           main] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:33:21.437-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : ✅ Пары обновлены
+2025-08-31T02:33:21.744-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : 
+2025-08-31T02:33:21.746-04:00  INFO 28587 --- [           main] com.example.core.CoreApplication         : 🚀 Core готов к работе!
+2025-08-31T02:33:28.827-04:00  INFO 28587 --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:33:28.828-04:00  INFO 28587 --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары BIO-USDT-SWAP/KSM-USDT-SWAP...
+2025-08-31T02:33:31.285-04:00  INFO 28587 --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=BIO-USDT-SWAP, short=KSM-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.39591 | z=0.62 | corr=0.47 | avgAdf=0.40 | avgR=0.41 | stablePeriods=13 | traceStat=6.85 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.39591 ⚠️, R²=0.41143 ✅, stablePeriods=13
+2025-08-31T02:33:31.310-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ BIO-USDT-SWAP: вход: 0.16125, тек.: 0.16144000, изм.: 0.23565900 %
+2025-08-31T02:33:31.311-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ KSM-USDT-SWAP: вход: 15.37, тек.: 15.72000000, изм.: -4.55432700 %
+2025-08-31T02:33:31.311-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: -0.66637000 USDT (-2.23722220 %)
+2025-08-31T02:33:31.311-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.05526565 % (524 минут), Min профит: -14.57154472 % (253 минут)
+2025-08-31T02:33:42.994-04:00  INFO 28587 --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 
+2025-08-31T02:33:42.995-04:00  INFO 28587 --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AR-USDT-SWAP/AXS-USDT-SWAP...
+2025-08-31T02:33:45.445-04:00  INFO 28587 --- [   scheduling-1] c.e.c.processors.UpdateTradeProcessor    : Наша пара: long=AR-USDT-SWAP, short=AXS-USDT-SWAP | cointegrated=false | p=0.10000 | adf=0.29394 | z=0.39 | corr=0.41 | avgAdf=0.29 | avgR=0.81 | stablePeriods=80 | traceStat=3.39 | criticalValue95=15.49 | eigenSize=2 | vectorSize=0 | errors=N/A. Чек: pValue=0.10000 ✅, ADF=0.29394 ⚠️, R²=0.80611 ⚠️, stablePeriods=80
+2025-08-31T02:33:45.484-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📊 ЛОНГ AR-USDT-SWAP: вход: 6.46, тек.: 6.53900000, изм.: 2.44582000 %
+2025-08-31T02:33:45.485-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📉 ШОРТ AXS-USDT-SWAP: вход: 2.592, тек.: 2.61600000, изм.: -1.85185200 %
+2025-08-31T02:33:45.485-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 💰 Текущий профит: 0.11300000 USDT (0.50485164 %)
+2025-08-31T02:33:45.485-04:00  INFO 28587 --- [   scheduling-1] c.e.c.s.CalculateChangesServiceImpl      : 📈 Max профит: 1.64143894 % (312 минут), Min профит: -5.06281584 % (52 минут)
