@@ -196,13 +196,9 @@ public class AveragingService {
      */
     private Settings createAveragingSettings(Settings originalSettings, int currentAveragingCount) {
         double volumeMultiplier = calculateVolumeMultiplier(currentAveragingCount, originalSettings);
-
+        
         return Settings.builder()
-                .maxLongMarginSize(originalSettings.getMaxLongMarginSize() * volumeMultiplier)
-                .maxShortMarginSize(originalSettings.getMaxShortMarginSize() * volumeMultiplier)
-                .leverage(originalSettings.getLeverage())
-                .autoTradingEnabled(originalSettings.isAutoTradingEnabled())
-                // Копируем все остальные настройки
+                // Основные настройки торговли
                 .timeframe(originalSettings.getTimeframe())
                 .candleLimit(originalSettings.getCandleLimit())
                 .minZ(originalSettings.getMinZ())
@@ -213,6 +209,71 @@ public class AveragingService {
                 .minCorrelation(originalSettings.getMinCorrelation())
                 .minVolume(originalSettings.getMinVolume())
                 .checkInterval(originalSettings.getCheckInterval())
+                
+                // Размеры позиций с множителем объема
+                .maxLongMarginSize(originalSettings.getMaxLongMarginSize() * volumeMultiplier) //новый объем
+                .maxShortMarginSize(originalSettings.getMaxShortMarginSize() * volumeMultiplier) //новый объем
+                .leverage(originalSettings.getLeverage())
+                
+                // Стратегии выхода
+                .exitTake(originalSettings.getExitTake())
+                .exitStop(originalSettings.getExitStop())
+                .exitZMin(originalSettings.getExitZMin())
+                .exitZMax(originalSettings.getExitZMax())
+                .exitZMaxPercent(originalSettings.getExitZMaxPercent())
+                .exitTimeMinutes(originalSettings.getExitTimeMinutes())
+                .exitBreakEvenPercent(originalSettings.getExitBreakEvenPercent())
+                .exitNegativeZMinProfitPercent(originalSettings.getExitNegativeZMinProfitPercent())
+                
+                .usePairs(originalSettings.getUsePairs())
+                .autoTradingEnabled(originalSettings.isAutoTradingEnabled())
+                
+                // Флаги фильтров
+                .useMinZFilter(originalSettings.isUseMinZFilter())
+                .useMinRSquaredFilter(originalSettings.isUseMinRSquaredFilter())
+                .useMaxPValueFilter(originalSettings.isUseMaxPValueFilter())
+                .useMaxAdfValueFilter(originalSettings.isUseMaxAdfValueFilter())
+                .useMinCorrelationFilter(originalSettings.isUseMinCorrelationFilter())
+                .useMinVolumeFilter(originalSettings.isUseMinVolumeFilter())
+                
+                // Флаги стратегий выхода
+                .useExitTake(originalSettings.isUseExitTake())
+                .useExitStop(originalSettings.isUseExitStop())
+                .useExitZMin(originalSettings.isUseExitZMin())
+                .useExitZMax(originalSettings.isUseExitZMax())
+                .useExitZMaxPercent(originalSettings.isUseExitZMaxPercent())
+                .useExitTimeMinutes(originalSettings.isUseExitTimeMinutes())
+                .useExitBreakEvenPercent(originalSettings.isUseExitBreakEvenPercent())
+                .useExitNegativeZMinProfitPercent(originalSettings.isUseExitNegativeZMinProfitPercent())
+                .useCointegrationStabilityFilter(originalSettings.isUseCointegrationStabilityFilter())
+                
+                // Списки
+                .minimumLotBlacklist(originalSettings.getMinimumLotBlacklist())
+                .observedPairs(originalSettings.getObservedPairs())
+                
+                // Флаги скоринга
+                .useZScoreScoring(originalSettings.isUseZScoreScoring())
+                .usePixelSpreadScoring(originalSettings.isUsePixelSpreadScoring())
+                .useCointegrationScoring(originalSettings.isUseCointegrationScoring())
+                .useModelQualityScoring(originalSettings.isUseModelQualityScoring())
+                .useStatisticsScoring(originalSettings.isUseStatisticsScoring())
+                .useBonusScoring(originalSettings.isUseBonusScoring())
+                
+                // Веса скоринга
+                .zScoreScoringWeight(originalSettings.getZScoreScoringWeight())
+                .pixelSpreadScoringWeight(originalSettings.getPixelSpreadScoringWeight())
+                .cointegrationScoringWeight(originalSettings.getCointegrationScoringWeight())
+                .modelQualityScoringWeight(originalSettings.getModelQualityScoringWeight())
+                .statisticsScoringWeight(originalSettings.getStatisticsScoringWeight())
+                .bonusScoringWeight(originalSettings.getBonusScoringWeight())
+                
+                // Настройки усреднения
+                .autoAveragingEnabled(originalSettings.isAutoAveragingEnabled())
+                .averagingDrawdownThreshold(originalSettings.getAveragingDrawdownThreshold())
+                .averagingVolumeMultiplier(originalSettings.getAveragingVolumeMultiplier())
+                .averagingDrawdownMultiplier(originalSettings.getAveragingDrawdownMultiplier())
+                .maxAveragingCount(originalSettings.getMaxAveragingCount())
+                
                 .build();
     }
 
