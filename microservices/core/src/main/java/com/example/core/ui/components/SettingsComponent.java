@@ -2,6 +2,8 @@ package com.example.core.ui.components;
 
 import com.example.core.schedulers.TradeAndSimulationScheduler;
 import com.example.core.services.SettingsService;
+import com.example.core.services.CapitalCalculationService;
+import com.example.core.services.PortfolioService;
 import com.example.shared.models.Settings;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -12,6 +14,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -38,16 +41,25 @@ public class SettingsComponent extends VerticalLayout {
 
     private final SettingsService settingsService;
     private final TradeAndSimulationScheduler tradeAndSimulationScheduler;
+    private final CapitalCalculationService capitalCalculationService;
+    private final PortfolioService portfolioService;
     private final Binder<Settings> settingsBinder;
 
     private Settings currentSettings;
     private Checkbox autoTradingCheckbox;
     private Runnable autoTradingChangeCallback;
+    
+    // Поля для расчета депозита
+    private Span capitalInfoSpan;
 
     public SettingsComponent(SettingsService settingsService,
-                             TradeAndSimulationScheduler tradeAndSimulationScheduler) {
+                             TradeAndSimulationScheduler tradeAndSimulationScheduler,
+                             CapitalCalculationService capitalCalculationService,
+                             PortfolioService portfolioService) {
         this.settingsService = settingsService;
         this.tradeAndSimulationScheduler = tradeAndSimulationScheduler;
+        this.capitalCalculationService = capitalCalculationService;
+        this.portfolioService = portfolioService;
         this.settingsBinder = new Binder<>(Settings.class);
 
         initializeComponent();
@@ -238,15 +250,28 @@ public class SettingsComponent extends VerticalLayout {
         // Create sections
         add(createAnalysisSection(timeframeField, candleLimitField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, maxAdfValueField, minCorrelationField, minVolumeField,
-                checkIntervalField, usePairsField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
+                checkIntervalField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
                 useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
                 useMinVolumeFilterCheckbox));
 
-        add(createCapitalSection(
-                maxShortMarginSize,
-                maxLongMarginSize,
-                leverageField
-        ));
+        // Создаем поля для усреднения (депозит берется из OKX через PortfolioService)
+        
+        // Создаем поля для усреднения
+        Checkbox autoAveragingCheckbox = new Checkbox("Автоусреднение");
+        NumberField averagingDrawdownThresholdField = new NumberField("Просадка для срабатывания (%)");
+        NumberField averagingVolumeMultiplierField = new NumberField("Множитель объема");
+        NumberField averagingDrawdownMultiplierField = new NumberField("Множитель просадки для срабатывания");
+        NumberField maxAveragingCountField = new NumberField("Max кол-во усреднений");
+        
+        // Настраиваем свойства полей усреднения
+        setNumberFieldProperties(averagingDrawdownThresholdField, 0.1, 0.1);
+        setNumberFieldProperties(averagingVolumeMultiplierField, 0.1, 1.0);
+        setNumberFieldProperties(averagingDrawdownMultiplierField, 0.1, 1.0);
+        setNumberFieldProperties(maxAveragingCountField, 1, 1);
+
+        add(createCapitalManagementSection(usePairsField, maxShortMarginSize, maxLongMarginSize, 
+                leverageField, autoAveragingCheckbox, averagingDrawdownThresholdField,
+                averagingVolumeMultiplierField, averagingDrawdownMultiplierField, maxAveragingCountField));
 
         add(createExitStrategySection(
                 exitTakeField,
@@ -268,8 +293,6 @@ public class SettingsComponent extends VerticalLayout {
         ));
 
         add(createScoringWeightsSection());
-
-        add(createAveragingSection());
 
         // Bind fields to settings object
         bindFields(
@@ -310,6 +333,10 @@ public class SettingsComponent extends VerticalLayout {
                 useExitTimeMinutesCheckbox,
                 useExitBreakEvenPercentCheckbox,
                 useExitNegativeZMinProfitPercentCheckbox);
+        
+        // Привязываем поля усреднения отдельно
+        bindAveragingFields(autoAveragingCheckbox, averagingDrawdownThresholdField,
+                averagingVolumeMultiplierField, averagingDrawdownMultiplierField, maxAveragingCountField);
 
         settingsBinder.readBean(currentSettings);
     }
@@ -319,7 +346,7 @@ public class SettingsComponent extends VerticalLayout {
                                           NumberField minWindowSizeField, NumberField minPValueField,
                                           NumberField maxAdfValueField, NumberField minCorrelationField,
                                           NumberField minVolumeField, NumberField checkIntervalField,
-                                          NumberField usePairsField, TextArea minimumLotBlacklistField,
+                                          TextArea minimumLotBlacklistField,
                                           Checkbox useMinZFilterCheckbox,
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
@@ -338,7 +365,7 @@ public class SettingsComponent extends VerticalLayout {
         analysisForm.add(
                 timeframeField, candleLimitField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
-                maxAdfValueLayout, minCorrelationLayout, minVolumeLayout, usePairsField,
+                maxAdfValueLayout, minCorrelationLayout, minVolumeLayout,
                 minimumLotBlacklistField
         );
 
@@ -634,6 +661,7 @@ public class SettingsComponent extends VerticalLayout {
                 .withValidator(new DoubleRangeValidator("Плечо должно быть больше 0", 0.1, Double.MAX_VALUE))
                 .bind(Settings::getLeverage, Settings::setLeverage);
 
+
         settingsBinder.forField(exitTakeField).bind(Settings::getExitTake, Settings::setExitTake);
         settingsBinder.forField(exitStopField).bind(Settings::getExitStop, Settings::setExitStop);
         settingsBinder.forField(exitZMinField).bind(Settings::getExitZMin, Settings::setExitZMin);
@@ -809,5 +837,160 @@ public class SettingsComponent extends VerticalLayout {
         layout.setFlexGrow(1, field);
 
         return layout;
+    }
+
+    private Details createCapitalManagementSection(NumberField usePairsField,
+                                                   NumberField maxShortMarginSize, 
+                                                   NumberField maxLongMarginSize, 
+                                                   NumberField leverageField,
+                                                   Checkbox autoAveragingCheckbox,
+                                                   NumberField averagingDrawdownThresholdField,
+                                                   NumberField averagingVolumeMultiplierField,
+                                                   NumberField averagingDrawdownMultiplierField,
+                                                   NumberField maxAveragingCountField) {
+        
+        FormLayout capitalForm = createFormLayout();
+        
+        // Настраиваем placeholder и helper text для полей усреднения
+        averagingDrawdownThresholdField.setPlaceholder("10.0");
+        averagingDrawdownThresholdField.setHelperText("Порог просадки в процентах для первого автоматического усреднения");
+        
+        averagingVolumeMultiplierField.setPlaceholder("1.5");
+        averagingVolumeMultiplierField.setHelperText("Множитель объема для каждой позиции усреднения");
+        
+        averagingDrawdownMultiplierField.setPlaceholder("1.5");
+        averagingDrawdownMultiplierField.setHelperText("Множитель для расчета следующего порога просадки");
+        
+        maxAveragingCountField.setPlaceholder("3");
+        maxAveragingCountField.setHelperText("Максимальное количество усреднений для одной пары");
+        
+        // Логика активации/деактивации полей усреднения
+        boolean isAutoAveragingEnabled = currentSettings.isAutoAveragingEnabled();
+        averagingDrawdownThresholdField.setEnabled(isAutoAveragingEnabled);
+        averagingVolumeMultiplierField.setEnabled(isAutoAveragingEnabled);
+        averagingDrawdownMultiplierField.setEnabled(isAutoAveragingEnabled);
+        maxAveragingCountField.setEnabled(isAutoAveragingEnabled);
+        
+        autoAveragingCheckbox.addValueChangeListener(event -> {
+            boolean enabled = event.getValue();
+            averagingDrawdownThresholdField.setEnabled(enabled);
+            averagingVolumeMultiplierField.setEnabled(enabled);
+            averagingDrawdownMultiplierField.setEnabled(enabled);
+            maxAveragingCountField.setEnabled(enabled);
+            
+            // Обновляем информацию о капитале при изменении настроек усреднения
+            updateCapitalInfo();
+        });
+        
+        // Слушатели для обновления информации о капитале
+        usePairsField.addValueChangeListener(e -> updateCapitalInfo());
+        maxShortMarginSize.addValueChangeListener(e -> updateCapitalInfo());
+        maxLongMarginSize.addValueChangeListener(e -> updateCapitalInfo());
+        averagingVolumeMultiplierField.addValueChangeListener(e -> updateCapitalInfo());
+        maxAveragingCountField.addValueChangeListener(e -> updateCapitalInfo());
+        
+        // Создаем спан для отображения информации о капитале
+        capitalInfoSpan = new Span();
+        capitalInfoSpan.getStyle().set("font-weight", "bold").set("margin-top", "1rem").set("display", "block");
+        
+        capitalForm.add(
+                usePairsField,
+                maxShortMarginSize,
+                maxLongMarginSize,
+                leverageField,
+                autoAveragingCheckbox,
+                averagingDrawdownThresholdField,
+                averagingVolumeMultiplierField,
+                averagingDrawdownMultiplierField,
+                maxAveragingCountField,
+                capitalInfoSpan
+        );
+        
+        Details section = createDetailsCard("💰 Управление капиталом", 
+                "Настройки депозита, управления рисками и автоматического усреднения", capitalForm);
+        section.setOpened(true);
+        
+        return section;
+    }
+    
+    private void updateCapitalInfo() {
+        try {
+            // Получаем текущие значения из полей
+            Settings tempSettings = Settings.builder()
+                    .usePairs(getCurrentDoubleValue("usePairs", currentSettings.getUsePairs()))
+                    .maxShortMarginSize(getCurrentDoubleValue("maxShortMarginSize", currentSettings.getMaxShortMarginSize()))
+                    .maxLongMarginSize(getCurrentDoubleValue("maxLongMarginSize", currentSettings.getMaxLongMarginSize()))
+                    .autoAveragingEnabled(getCurrentBooleanValue("autoAveragingEnabled", currentSettings.isAutoAveragingEnabled()))
+                    .averagingVolumeMultiplier(getCurrentDoubleValue("averagingVolumeMultiplier", currentSettings.getAveragingVolumeMultiplier()))
+                    .maxAveragingCount(getCurrentIntValue("maxAveragingCount", currentSettings.getMaxAveragingCount()))
+                    .build();
+            
+            // Рассчитываем требуемый капитал
+            CapitalCalculationService.CapitalRequirement requirement = 
+                    capitalCalculationService.calculateRequiredCapital(tempSettings);
+            
+            // Получаем реальный баланс с OKX
+            double availableBalance = portfolioService.getBalanceUSDT().doubleValue();
+            
+            // Проверяем превышение депозита с реальным балансом
+            CapitalCalculationService.DepositCheckResult result = 
+                    capitalCalculationService.checkDeposit(requirement, availableBalance);
+            
+            // Форматируем сообщение
+            String message = String.format("При данных настройках требуется: %.2f$ (базовый: %.2f$, усреднение: %.2f$)", 
+                    requirement.getTotalRequiredCapital(),
+                    requirement.getTotalBaseCapital(),
+                    requirement.getTotalAveragingCapital());
+            
+            // Устанавливаем цвет в зависимости от превышения
+            if (result.isExceeded()) {
+                capitalInfoSpan.getStyle().set("color", "red");
+                message = "❌ " + message + String.format(" - превышение на %.2f$ (доступно: %.2f$)", result.getDifference(), availableBalance);
+            } else {
+                capitalInfoSpan.getStyle().set("color", "green");
+                message = "✅ " + message + String.format(" (доступно: %.2f$)", availableBalance);
+            }
+            
+            capitalInfoSpan.setText(message);
+            
+        } catch (Exception e) {
+            capitalInfoSpan.setText("⚠️ Ошибка расчета капитала: " + e.getMessage());
+            capitalInfoSpan.getStyle().set("color", "orange");
+        }
+    }
+    
+    private double getCurrentDoubleValue(String fieldName, double defaultValue) {
+        try {
+            return settingsBinder.getBean() != null ? 
+                    (Double) settingsBinder.getBean().getClass().getMethod("get" + capitalizeFirst(fieldName)).invoke(settingsBinder.getBean()) : 
+                    defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+    
+    private boolean getCurrentBooleanValue(String fieldName, boolean defaultValue) {
+        try {
+            return settingsBinder.getBean() != null ? 
+                    (Boolean) settingsBinder.getBean().getClass().getMethod("is" + capitalizeFirst(fieldName)).invoke(settingsBinder.getBean()) : 
+                    defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+    
+    private int getCurrentIntValue(String fieldName, int defaultValue) {
+        try {
+            return settingsBinder.getBean() != null ? 
+                    (Integer) settingsBinder.getBean().getClass().getMethod("get" + capitalizeFirst(fieldName)).invoke(settingsBinder.getBean()) : 
+                    defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+    
+    private String capitalizeFirst(String str) {
+        if (str == null || str.isEmpty()) return str;
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 }
