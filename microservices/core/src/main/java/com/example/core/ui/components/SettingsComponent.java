@@ -867,14 +867,14 @@ public class SettingsComponent extends VerticalLayout {
         // Логика активации/деактивации полей усреднения
         boolean isAutoAveragingEnabled = currentSettings.isAutoAveragingEnabled();
         averagingDrawdownThresholdField.setEnabled(isAutoAveragingEnabled);
-        averagingVolumeMultiplierField.setEnabled(isAutoAveragingEnabled);
+        // averagingVolumeMultiplierField всегда активно для ручного усреднения
         averagingDrawdownMultiplierField.setEnabled(isAutoAveragingEnabled);
         maxAveragingCountField.setEnabled(isAutoAveragingEnabled);
         
         autoAveragingCheckbox.addValueChangeListener(event -> {
             boolean enabled = event.getValue();
             averagingDrawdownThresholdField.setEnabled(enabled);
-            averagingVolumeMultiplierField.setEnabled(enabled);
+            // averagingVolumeMultiplierField остается всегда активным для ручного усреднения
             averagingDrawdownMultiplierField.setEnabled(enabled);
             maxAveragingCountField.setEnabled(enabled);
             
