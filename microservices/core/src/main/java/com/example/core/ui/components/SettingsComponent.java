@@ -927,7 +927,7 @@ public class SettingsComponent extends VerticalLayout {
             
             // Рассчитываем требуемый капитал
             CapitalCalculationService.CapitalRequirement requirement = 
-                    capitalCalculationService.calculateRequiredCapital(tempSettings);
+                    capitalCalculationService.calculateRequiredCapitalAlternative(tempSettings);
             
             // Получаем реальный баланс с OKX
             double availableBalance = portfolioService.getBalanceUSDT().doubleValue();
