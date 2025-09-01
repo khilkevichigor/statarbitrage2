@@ -879,15 +879,21 @@ public class SettingsComponent extends VerticalLayout {
             maxAveragingCountField.setEnabled(enabled);
             
             // Обновляем информацию о капитале при изменении настроек усреднения
-            updateCapitalInfo();
+            updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                             autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField);
         });
         
         // Слушатели для обновления информации о капитале
-        usePairsField.addValueChangeListener(e -> updateCapitalInfo());
-        maxShortMarginSize.addValueChangeListener(e -> updateCapitalInfo());
-        maxLongMarginSize.addValueChangeListener(e -> updateCapitalInfo());
-        averagingVolumeMultiplierField.addValueChangeListener(e -> updateCapitalInfo());
-        maxAveragingCountField.addValueChangeListener(e -> updateCapitalInfo());
+        usePairsField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                                                                   autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+        maxShortMarginSize.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                                                                         autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+        maxLongMarginSize.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                                                                        autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+        averagingVolumeMultiplierField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                                                                                     autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+        maxAveragingCountField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                                                                             autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
         
         // Создаем спан для отображения информации о капитале
         capitalInfoSpan = new Span();
@@ -913,16 +919,17 @@ public class SettingsComponent extends VerticalLayout {
         return section;
     }
     
-    private void updateCapitalInfo() {
+    private void updateCapitalInfo(NumberField usePairsField, NumberField maxShortMarginSize, NumberField maxLongMarginSize,
+                                  Checkbox autoAveragingCheckbox, NumberField averagingVolumeMultiplierField, NumberField maxAveragingCountField) {
         try {
-            // Получаем текущие значения из полей
+            // Берем текущие настройки и обновляем их значениями из UI полей
             Settings tempSettings = Settings.builder()
-                    .usePairs(getCurrentDoubleValue("usePairs", currentSettings.getUsePairs()))
-                    .maxShortMarginSize(getCurrentDoubleValue("maxShortMarginSize", currentSettings.getMaxShortMarginSize()))
-                    .maxLongMarginSize(getCurrentDoubleValue("maxLongMarginSize", currentSettings.getMaxLongMarginSize()))
-                    .autoAveragingEnabled(getCurrentBooleanValue("autoAveragingEnabled", currentSettings.isAutoAveragingEnabled()))
-                    .averagingVolumeMultiplier(getCurrentDoubleValue("averagingVolumeMultiplier", currentSettings.getAveragingVolumeMultiplier()))
-                    .maxAveragingCount(getCurrentIntValue("maxAveragingCount", currentSettings.getMaxAveragingCount()))
+                    .usePairs(usePairsField.getValue() != null ? usePairsField.getValue() : currentSettings.getUsePairs())
+                    .maxShortMarginSize(maxShortMarginSize.getValue() != null ? maxShortMarginSize.getValue() : currentSettings.getMaxShortMarginSize())
+                    .maxLongMarginSize(maxLongMarginSize.getValue() != null ? maxLongMarginSize.getValue() : currentSettings.getMaxLongMarginSize())
+                    .autoAveragingEnabled(autoAveragingCheckbox.getValue())
+                    .averagingVolumeMultiplier(averagingVolumeMultiplierField.getValue() != null ? averagingVolumeMultiplierField.getValue() : currentSettings.getAveragingVolumeMultiplier())
+                    .maxAveragingCount(maxAveragingCountField.getValue() != null ? maxAveragingCountField.getValue().intValue() : currentSettings.getMaxAveragingCount())
                     .build();
             
             // Рассчитываем требуемый капитал
@@ -959,38 +966,4 @@ public class SettingsComponent extends VerticalLayout {
         }
     }
     
-    private double getCurrentDoubleValue(String fieldName, double defaultValue) {
-        try {
-            return settingsBinder.getBean() != null ? 
-                    (Double) settingsBinder.getBean().getClass().getMethod("get" + capitalizeFirst(fieldName)).invoke(settingsBinder.getBean()) : 
-                    defaultValue;
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
-    
-    private boolean getCurrentBooleanValue(String fieldName, boolean defaultValue) {
-        try {
-            return settingsBinder.getBean() != null ? 
-                    (Boolean) settingsBinder.getBean().getClass().getMethod("is" + capitalizeFirst(fieldName)).invoke(settingsBinder.getBean()) : 
-                    defaultValue;
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
-    
-    private int getCurrentIntValue(String fieldName, int defaultValue) {
-        try {
-            return settingsBinder.getBean() != null ? 
-                    (Integer) settingsBinder.getBean().getClass().getMethod("get" + capitalizeFirst(fieldName)).invoke(settingsBinder.getBean()) : 
-                    defaultValue;
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
-    
-    private String capitalizeFirst(String str) {
-        if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
-    }
 }
