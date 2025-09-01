@@ -617,9 +617,9 @@ public class RealOkxTradingProvider implements TradingProvider {
         return adjustPositionSizeToLotSizeWithBudgetLimit(symbol, maxContracts, amount, leverage);
     }
 
-
     private Position createPositionFromTradeResult(Long tradingPairId, TradeResult tradeResult, PositionType type, BigDecimal amount, BigDecimal leverage, String realPositionId) {
         //todo здесь создавать position не по OrderResult а брать инфу из открытых позиций okx/api/positions!
+
 
         // positionId - используем реальный ID от OKX если получен, иначе fallback логика
         String okxPositionId = realPositionId;
@@ -636,22 +636,66 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
         }
 
-        return Position.builder()
-                .positionId(okxPositionId)  // Реальный ID от OKX или временный
-                .symbol(tradeResult.getSymbol())
-                .type(type)
-                .size(tradeResult.getExecutedSize())      // Используем реально исполненный размер
-                .entryPrice(tradeResult.getExecutionPrice())
-                .currentPrice(tradeResult.getExecutionPrice()) // Изначально currentPrice = entryPrice
-                .leverage(leverage)
-                .allocatedAmount(amount)
-                .openingFees(tradeResult.getFees().abs())
-                .status(PositionStatus.OPEN)
-                .openTime(LocalDateTime.now())
-                .lastUpdated(LocalDateTime.now())
-                .externalOrderId(tradeResult.getExternalOrderId())
-                .tradingPairId(tradingPairId)
-                .build();
+        //todo здесь потенциальная проблема создания дублей position после усреднения - когда делаем усреднение здесь надо проверять есть ли уже позиция с этим positionId - если есть - обновлять, если нет - создавать новую запись!
+        Position position;
+        Optional<Position> existingPosition = positionRepository.findByPositionId(realPositionId);
+        if (existingPosition.isPresent()) {
+            // Обновляем существующую
+            position = existingPosition.get();
+            // обновляем поля...
+            log.info("Обновляем существующую позицию symbol: {}, type: {}, positionId: {}", position.getSymbol(), position.getType(), realPositionId);
+            position.setPositionId(okxPositionId);
+            position.setSymbol(tradeResult.getSymbol());
+            position.setType(type);
+            position.setSize(tradeResult.getExecutedSize());
+            position.setEntryPrice(tradeResult.getExecutionPrice());
+            position.setCurrentPrice(tradeResult.getExecutionPrice()); // Изначально currentPrice = entryPrice
+            position.setLeverage(leverage);
+            position.setAllocatedAmount(amount);
+            position.setOpeningFees(tradeResult.getFees().abs());
+            position.setStatus(PositionStatus.OPEN);
+            position.setOpenTime(LocalDateTime.now());
+            position.setLastUpdated(LocalDateTime.now());
+            position.setExternalOrderId(tradeResult.getExternalOrderId());
+            position.setTradingPairId(tradingPairId);
+        } else {
+            // Создаем новую
+            position = new Position();
+            log.info("Создаем новую позицию symbol: {}, type: {}, positionId: {}", position.getSymbol(), position.getType(), realPositionId);
+            position.setPositionId(okxPositionId);
+            position.setSymbol(tradeResult.getSymbol());
+            position.setType(type);
+            position.setSize(tradeResult.getExecutedSize());
+            position.setEntryPrice(tradeResult.getExecutionPrice());
+            position.setCurrentPrice(tradeResult.getExecutionPrice()); // Изначально currentPrice = entryPrice
+            position.setLeverage(leverage);
+            position.setAllocatedAmount(amount);
+            position.setOpeningFees(tradeResult.getFees().abs());
+            position.setStatus(PositionStatus.OPEN);
+            position.setOpenTime(LocalDateTime.now());
+            position.setLastUpdated(LocalDateTime.now());
+            position.setExternalOrderId(tradeResult.getExternalOrderId());
+            position.setTradingPairId(tradingPairId);
+        }
+
+        return position;
+
+//        return Position.builder()
+//                .positionId(okxPositionId)  // Реальный ID от OKX или временный
+//                .symbol(tradeResult.getSymbol())
+//                .type(type)
+//                .size(tradeResult.getExecutedSize())      // Используем реально исполненный размер
+//                .entryPrice(tradeResult.getExecutionPrice())
+//                .currentPrice(tradeResult.getExecutionPrice()) // Изначально currentPrice = entryPrice
+//                .leverage(leverage)
+//                .allocatedAmount(amount)
+//                .openingFees(tradeResult.getFees().abs())
+//                .status(PositionStatus.OPEN)
+//                .openTime(LocalDateTime.now())
+//                .lastUpdated(LocalDateTime.now())
+//                .externalOrderId(tradeResult.getExternalOrderId())
+//                .tradingPairId(tradingPairId)
+//                .build();
     }
 
 
