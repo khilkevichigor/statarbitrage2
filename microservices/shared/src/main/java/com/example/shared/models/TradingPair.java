@@ -542,6 +542,10 @@ public class TradingPair {
     @Column(name = "last_averaging_profit_percent")
     private BigDecimal lastAveragingProfitPercent;
 
+    @CsvExportable(order = 120)
+    @Column(name = "formatted_averaging_count")
+    private String formattedAveragingCount;
+
     public TradingPair(String longTicker, String shortTicker) {
         this.longTicker = longTicker;
         this.shortTicker = shortTicker;
@@ -980,6 +984,11 @@ public class TradingPair {
                 profitUSDT != null ? profitUSDT.toPlainString() : "N/A",
                 profitPercent != null ? profitPercent.toPlainString() : "N/A");
         return this.formattedProfitCommon;
+    }
+
+    public String getFormattedAveragingCount() {
+        this.formattedAveragingCount = String.format("%s/%s", averagingCount, settingsMaxAveragingCount);
+        return this.formattedAveragingCount;
     }
 
     public String getFormattedProfitLong() {
