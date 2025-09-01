@@ -52,7 +52,7 @@ public class TradingPair {
     private TradeStatus status = TradeStatus.SELECTED;
 
     @CsvExportable(order = 5)
-    @Column(name = "error_description")
+    @Column(name = "error_description", columnDefinition = "TEXT")
     private String errorDescription;
 
     @Column(name = "long_ticker_candles_json", columnDefinition = "TEXT")
