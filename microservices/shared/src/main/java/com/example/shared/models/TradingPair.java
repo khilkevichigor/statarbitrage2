@@ -86,15 +86,15 @@ public class TradingPair {
     private List<PixelSpreadHistoryItem> pixelSpreadHistory;
 
     @CsvExportable(order = 6)
-    @Column(name = "long_ticker")
+    @Column(name = "long_ticker", columnDefinition = "TEXT")
     private String longTicker;
 
     @CsvExportable(order = 7)
-    @Column(name = "short_ticker")
+    @Column(name = "short_ticker", columnDefinition = "TEXT")
     private String shortTicker;
 
     @CsvExportable(order = 8)
-    @Column(name = "pair_name")
+    @Column(name = "pair_name", columnDefinition = "TEXT")
     private String pairName;
 
     @CsvExportable(order = 9)
@@ -238,23 +238,23 @@ public class TradingPair {
     private BigDecimal maxProfitPercentChanges;
 
     @CsvExportable(order = 44)
-    @Column(name = "formatted_time_to_min_profit")
+    @Column(name = "formatted_time_to_min_profit", columnDefinition = "TEXT")
     private String formattedTimeToMinProfit;
 
     @CsvExportable(order = 45)
-    @Column(name = "formatted_time_to_max_profit")
+    @Column(name = "formatted_time_to_max_profit", columnDefinition = "TEXT")
     private String formattedTimeToMaxProfit;
 
     @CsvExportable(order = 46)
-    @Column(name = "formatted_profit_long")
+    @Column(name = "formatted_profit_long", columnDefinition = "TEXT")
     private String formattedProfitLong;
 
     @CsvExportable(order = 47)
-    @Column(name = "formatted_profit_short")
+    @Column(name = "formatted_profit_short", columnDefinition = "TEXT")
     private String formattedProfitShort;
 
     @CsvExportable(order = 48)
-    @Column(name = "formatted_profit_common")
+    @Column(name = "formatted_profit_common", columnDefinition = "TEXT")
     private String formattedProfitCommon;
 
     @CsvExportable(order = 49)
@@ -302,7 +302,7 @@ public class TradingPair {
     private BigDecimal minCorr;
 
     @CsvExportable(order = 60)
-    @Column(name = "exit_reason")
+    @Column(name = "exit_reason", columnDefinition = "TEXT")
     private String exitReason;
 
     @CsvExportable(order = 61)
@@ -310,7 +310,7 @@ public class TradingPair {
     private boolean closeAtBreakeven;
 
     @CsvExportable(order = 62)
-    @Column(name = "settings_timeframe")
+    @Column(name = "settings_timeframe", columnDefinition = "TEXT")
     private String settingsTimeframe;
 
     @CsvExportable(order = 63)
@@ -450,7 +450,7 @@ public class TradingPair {
     private boolean settingsUseExitBreakEvenPercent;
 
     @CsvExportable(order = 97)
-    @Column(name = "settings_minimum_lot_blacklist")
+    @Column(name = "settings_minimum_lot_blacklist", columnDefinition = "TEXT")
     private String settingsMinimumLotBlacklist;
 
     @CsvExportable(order = 98)
@@ -543,7 +543,7 @@ public class TradingPair {
     private BigDecimal lastAveragingProfitPercent;
 
     @CsvExportable(order = 120)
-    @Column(name = "formatted_averaging_count")
+    @Column(name = "formatted_averaging_count", columnDefinition = "TEXT")
     private String formattedAveragingCount;
 
     public TradingPair(String longTicker, String shortTicker) {
