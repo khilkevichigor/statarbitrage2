@@ -40,11 +40,15 @@ public class StartNewTradeProcessor {
 
         // 1. Предварительная валидация
         Optional<TradingPair> preValidationError = preValidate(tradingPair, settings);
-        if (preValidationError.isPresent()) return preValidationError.get();
+        if (preValidationError.isPresent()) {
+            return preValidationError.get();
+        }
 
         // 2. Получаем и проверяем ZScore данные
         Optional<ZScoreData> maybeZScoreData = updateZScoreDataForExistingPair(tradingPair, settings);
-        if (maybeZScoreData.isEmpty()) return handleTradeError(tradingPair, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
+        if (maybeZScoreData.isEmpty()) {
+            return handleTradeError(tradingPair, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
+        }
 
         final ZScoreData zScoreData = maybeZScoreData.get();
         tradingPairService.updateZScoreDataCurrent(tradingPair, zScoreData);
@@ -118,7 +122,7 @@ public class StartNewTradeProcessor {
         log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());
-        tradingPairService.save(tradingPair); //todo падаем
+        tradingPairService.save(tradingPair);
         return tradingPair;
     }
 }
