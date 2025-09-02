@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,7 @@ public class UpdateTradeProcessor {
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ExitStrategyService exitStrategyService;
-    private final NotificationService notificationService;
+    //    private final NotificationService notificationService;
     private final SendEventService sendEventService;
     private final ChartService chartService;
     private final AveragingService averagingService;
@@ -245,8 +244,9 @@ public class UpdateTradeProcessor {
         tradingPair.setStatus(TradeStatus.CLOSED);
         tradingPair.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
         finalizeClosedTrade(tradingPair, settings);
-        notificationService.sendTelegramClosedPair(tradingPair);
-        sendEventService.sendCoreEvent(new CoreEvent(Collections.singletonList(tradingPair), CoreEvent.Type.ADD_CLOSED_TO_CSV));
+//        notificationService.sendTelegramClosedPair(tradingPair);
+        sendEventService.sendCoreEvent(new CoreEvent(tradingPair, CoreEvent.Type.CLOSED_MESSAGE_TO_TELEGRAM));
+        sendEventService.sendCoreEvent(new CoreEvent(tradingPair, CoreEvent.Type.ADD_CLOSED_TO_CSV));
         settings.setMinimumLotBlacklist("");
         return tradingPair;
     }
@@ -293,8 +293,9 @@ public class UpdateTradeProcessor {
         tradingPair.setStatus(TradeStatus.CLOSED);
         tradingPair.setExitReason(exitReason);
         finalizeClosedTrade(tradingPair, settings);
-        notificationService.sendTelegramClosedPair(tradingPair);
-        sendEventService.sendCoreEvent(new CoreEvent(Collections.singletonList(tradingPair), CoreEvent.Type.ADD_CLOSED_TO_CSV));
+//        notificationService.sendTelegramClosedPair(tradingPair);
+        sendEventService.sendCoreEvent(new CoreEvent(tradingPair, CoreEvent.Type.CLOSED_MESSAGE_TO_TELEGRAM));
+        sendEventService.sendCoreEvent(new CoreEvent(tradingPair, CoreEvent.Type.ADD_CLOSED_TO_CSV));
         settings.setMinimumLotBlacklist("");
         return tradingPair;
     }

@@ -7,20 +7,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
-
 @RestController
 @RequiredArgsConstructor
 public class TestController {
 
     private final SendEventService sendEventService;
 
-    @GetMapping("/test-telegram")
-    public String testTelegram() {
+    @GetMapping("/test-teleg")
+    public String testTelegram2() {
         sendEventService.sendCoreEvent(new CoreEvent(
-                "🎉 Система работает!",
-                "test_user",
-                CoreEvent.Priority.HIGH,
+                "test",
                 CoreEvent.Type.MESSAGE_TO_TELEGRAM
         ));
         return "Событие отправлено!";
@@ -31,7 +27,7 @@ public class TestController {
         TradingPair tradingPair = new TradingPair();
         tradingPair.setPairName("testPair");
         sendEventService.sendCoreEvent(new CoreEvent(
-                Collections.singletonList(tradingPair),
+                tradingPair,
                 CoreEvent.Type.ADD_CLOSED_TO_CSV)
         );
         return "Событие отправлено!";

@@ -1,9 +1,11 @@
 package com.example.core.services;
 
+import com.example.core.messaging.SendEventService;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.Positioninfo;
 import com.example.shared.dto.ProfitExtremum;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.Position;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
@@ -24,7 +26,8 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ProfitExtremumService profitExtremumService;
     private final SettingsService settingsService;
-    private final TelegramNotificationService telegramNotificationService;
+    //    private final TelegramNotificationService telegramNotificationService;
+    private final SendEventService sendEventService;
 
     public ChangesData getChanges(TradingPair tradingPair) {
         log.debug("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
@@ -51,7 +54,8 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
             settingsService.save(settings);
             log.warn("Автотрейдинг отключен.");
 
-            telegramNotificationService.sendTelegramMessage("Ошибка при обновлении changes. Автотрейдинг был отключен.");
+//            telegramNotificationService.sendTelegramMessage("Ошибка при обновлении changes. Автотрейдинг был отключен.");
+            sendEventService.sendCoreEvent(new CoreEvent("Ошибка при обновлении changes. Автотрейдинг был отключен.", CoreEvent.Type.MESSAGE_TO_TELEGRAM));
             log.warn("Уведомление в телеграм отправлено.");
 
             throw new RuntimeException("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары " + tradingPair.getPairName(), e);

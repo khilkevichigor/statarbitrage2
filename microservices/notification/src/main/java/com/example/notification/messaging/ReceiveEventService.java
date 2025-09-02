@@ -1,8 +1,6 @@
 package com.example.notification.messaging;
 
-import com.example.notification.bot.BotConfig;
-import com.example.notification.events.SendAsTextEvent;
-import com.example.notification.service.EventSendService;
+import com.example.notification.service.TelegramNotificationService;
 import com.example.shared.events.rabbit.CoreEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +13,7 @@ import java.util.function.Consumer;
 @Slf4j
 @RequiredArgsConstructor
 public class ReceiveEventService {
-    private final BotConfig botConfig;
-    private final EventSendService eventSendService;
+    private final TelegramNotificationService telegramNotificationService;
 
     @Bean
     public Consumer<CoreEvent> coreEventsConsumer() {
@@ -26,26 +23,9 @@ public class ReceiveEventService {
     private void handleEvent(CoreEvent event) {
         log.info("📨 Получено событие: {}", event.toString());
         switch (event.getType()) {
-            case MESSAGE_TO_TELEGRAM -> sendTelegram(event);
+            case CLOSED_MESSAGE_TO_TELEGRAM -> telegramNotificationService.sendTelegramClosedPair(event.getTradingPair());
+            case MESSAGE_TO_TELEGRAM -> telegramNotificationService.sendTelegramMessage(event.getMessage());
             default -> log.warn("⚠️ Неизвестный тип уведомления: {}", event.getType());
-        }
-    }
-
-    private void sendTelegram(CoreEvent event) {
-        log.info("📤 Отправка Telegram: {} для {}", event.getMessage(), event.getRecipient());
-        sendNotification(event.getMessage());
-    }
-
-    private void sendNotification(String text) {
-        SendAsTextEvent event = SendAsTextEvent.builder()
-                .chatId(String.valueOf(botConfig.getOwnerChatId()))
-                .text(text)
-                .enableMarkdown(false)
-                .build();
-        try {
-            eventSendService.sendTelegramMessageAsTextEvent(event);
-        } catch (Exception e) {
-            log.error("Ошибка отправки сообщения в телеграм {}", e.getMessage(), e);
         }
     }
 }

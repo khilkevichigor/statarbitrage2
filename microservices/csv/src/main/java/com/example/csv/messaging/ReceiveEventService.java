@@ -34,7 +34,7 @@ public class ReceiveEventService {
             // Обработка различных типов событий для экспорта
             switch (event.getType()) {
                 case ADD_CLOSED_TO_CSV:
-                    addToCsv(event);
+                    addToCsv(event.getTradingPair());
                     break;
                 default:
                     log.warn("⚠️ Неизвестный тип события для CSV экспорта: {}", event.getEventType());
@@ -44,11 +44,10 @@ public class ReceiveEventService {
         }
     }
 
-    private void addToCsv(CoreEvent event) {
+    private void addToCsv(TradingPair tradingPair) {
         log.info("📋 Добавление закрытой пары в CSV");
 
         try {
-            TradingPair tradingPair = event.getTradingPairs().get(0);
             csvExportService.addClosedPairToCsv(tradingPair);
             log.info("Пара {} успешно добавлена в csv файл.", tradingPair.getPairName());
         } catch (Exception e) {
