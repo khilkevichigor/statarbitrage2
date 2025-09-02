@@ -67,6 +67,7 @@ public class CoreApplication {
         log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
 
         updateTradingPairsAfterRestart();
+        log.info("");
         log.info("✅ Пары обновлены");
     }
 

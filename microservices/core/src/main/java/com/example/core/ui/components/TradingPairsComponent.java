@@ -13,10 +13,14 @@ import com.example.shared.utils.NumberFormatter;
 import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -261,29 +265,32 @@ public class TradingPairsComponent extends VerticalLayout {
 
     private Button createStartTradingButton(TradingPair tradingPair) {
         Button actionButton = new Button("Торговать", event -> {
-            try {
-                // Ручной запуск - НЕ проверяем автотрейдинг
-                TradingPair newTradingPair = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
-                        .tradingPair(tradingPair)
-                        .checkAutoTrading(false)
-                        .build());
-                if (newTradingPair != null) {
-                    Notification.show(String.format(
-                            "Статус пары %s изменен на %s",
-                            tradingPair.getPairName(), TradeStatus.TRADING
-                    ));
-                } else {
-                    Notification.show(String.format(
-                            "Пропускаем новый трейд для пары %s",
-                            tradingPair.getPairName()
-                    ));
-                }
+            ConfirmationDialog dialog = new ConfirmationDialog("Подтверждение", "Вы уверены, что хотите начать торговлю для пары " + tradingPair.getPairName() + "?", e -> {
+                try {
+                    // Ручной запуск - НЕ проверяем автотрейдинг
+                    TradingPair newTradingPair = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
+                            .tradingPair(tradingPair)
+                            .checkAutoTrading(false)
+                            .build());
+                    if (newTradingPair != null) {
+                        Notification.show(String.format(
+                                "Статус пары %s изменен на %s",
+                                tradingPair.getPairName(), TradeStatus.TRADING
+                        ));
+                    } else {
+                        Notification.show(String.format(
+                                "Пропускаем новый трейд для пары %s",
+                                tradingPair.getPairName()
+                        ));
+                    }
 
-                notifyUIUpdate();
-            } catch (Exception e) {
-                log.error("❌ Ошибка начала торговли для пары: {}", tradingPair.getPairName(), e);
-                Notification.show("Ошибка при открытии торговли: " + e.getMessage());
-            }
+                    notifyUIUpdate();
+                } catch (Exception ex) {
+                    log.error("❌ Ошибка начала торговли для пары: {}", tradingPair.getPairName(), ex);
+                    Notification.show("Ошибка при открытии торговли: " + ex.getMessage());
+                }
+            });
+            dialog.open();
         });
 
         actionButton.getStyle().set("color", "green");
@@ -292,20 +299,23 @@ public class TradingPairsComponent extends VerticalLayout {
 
     private Button createStopTradingButton(TradingPair tradingPair) {
         Button actionButton = new Button("Закрыть", event -> {
-            try {
-                TradingPair updatedTradingPair = updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
-                        .tradingPair(tradingPair)
-                        .closeManually(true)
-                        .build());
-                Notification.show(String.format(
-                        "Статус пары %s изменен на %s",
-                        updatedTradingPair.getPairName(), updatedTradingPair.getStatus()
-                ));
-                notifyUIUpdate();
-            } catch (Exception e) {
-                log.error("❌ Ошибка при закрытия торговли для пары: {}", tradingPair.getPairName(), e);
-                Notification.show("Ошибка при закрытии торговли: " + e.getMessage());
-            }
+            ConfirmationDialog dialog = new ConfirmationDialog("Подтверждение", "Вы уверены, что хотите закрыть торговлю для пары " + tradingPair.getPairName() + "?", e -> {
+                try {
+                    TradingPair updatedTradingPair = updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+                            .tradingPair(tradingPair)
+                            .closeManually(true)
+                            .build());
+                    Notification.show(String.format(
+                            "Статус пары %s изменен на %s",
+                            updatedTradingPair.getPairName(), updatedTradingPair.getStatus()
+                    ));
+                    notifyUIUpdate();
+                } catch (Exception ex) {
+                    log.error("❌ Ошибка при закрытия торговли для пары: {}", tradingPair.getPairName(), ex);
+                    Notification.show("Ошибка при закрытии торговли: " + ex.getMessage());
+                }
+            });
+            dialog.open();
         });
 
         actionButton.getStyle().set("color", "red");
@@ -314,23 +324,26 @@ public class TradingPairsComponent extends VerticalLayout {
 
     private Button createAveragingButton(TradingPair tradingPair) {
         Button actionButton = new Button("Усреднить", event -> {
-            try {
-                var settings = settingsService.getSettings();
-                var result = averagingService.performManualAveraging(tradingPair, settings);
+            ConfirmationDialog dialog = new ConfirmationDialog("Подтверждение", "Вы уверены, что хотите усреднить пару " + tradingPair.getPairName() + "?", e -> {
+                try {
+                    var settings = settingsService.getSettings();
+                    var result = averagingService.performManualAveraging(tradingPair, settings);
 
-                if (result.isSuccess()) {
-                    Notification.show(result.getMessage());
-                    log.debug("✅ Усреднение выполнено для пары: {}", tradingPair.getPairName());
-                } else {
-                    Notification.show("Ошибка: " + result.getMessage());
-                    log.error("❌ Ошибка усреднения для пары: {}", tradingPair.getPairName());
+                    if (result.isSuccess()) {
+                        Notification.show(result.getMessage());
+                        log.debug("✅ Усреднение выполнено для пары: {}", tradingPair.getPairName());
+                    } else {
+                        Notification.show("Ошибка: " + result.getMessage());
+                        log.error("❌ Ошибка усреднения для пары: {}", tradingPair.getPairName());
+                    }
+
+                    notifyUIUpdate();
+                } catch (Exception ex) {
+                    log.error("❌ Ошибка при усреднении для пары: {}", tradingPair.getPairName(), ex);
+                    Notification.show("Ошибка при усреднении: " + ex.getMessage());
                 }
-
-                notifyUIUpdate();
-            } catch (Exception e) {
-                log.error("❌ Ошибка при усреднении для пары: {}", tradingPair.getPairName(), e);
-                Notification.show("Ошибка при усреднении: " + e.getMessage());
-            }
+            });
+            dialog.open();
         });
 
         actionButton.getStyle().set("color", "orange");
@@ -590,6 +603,31 @@ public class TradingPairsComponent extends VerticalLayout {
         } catch (Exception e) {
             log.error("❌ Ошибка при закрытии всех пар", e);
             Notification.show("Ошибка при закрытии всех пар: " + e.getMessage());
+        }
+    }
+
+    private static class ConfirmationDialog extends Dialog {
+
+        public ConfirmationDialog(String header, String text, Consumer<Void> confirmListener) {
+            VerticalLayout layout = new VerticalLayout();
+            layout.setPadding(false);
+            layout.setSpacing(true);
+            layout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+            layout.add(new H4(header));
+            layout.add(new Span(text));
+
+            Button confirmButton = new Button("Да", e -> {
+                confirmListener.accept(null);
+                close();
+            });
+            Button cancelButton = new Button("Нет", e -> close());
+
+            HorizontalLayout buttonLayout = new HorizontalLayout(confirmButton, cancelButton);
+            buttonLayout.setSpacing(true);
+            layout.add(buttonLayout);
+
+            add(layout);
         }
     }
 }
