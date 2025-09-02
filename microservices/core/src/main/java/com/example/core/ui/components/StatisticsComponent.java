@@ -59,23 +59,23 @@ public class StatisticsComponent extends VerticalLayout {
         pairStatsGrid.addColumn(PairAggregatedStatisticsDto::getTotalTrades)
                 .setHeader("Кол-во трейдов").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        pairStatsGrid.addColumn(dto -> formatBigDecimal(dto.getTotalProfitUSDT()) + "$")
-                .setHeader("Суммарный профит USDT").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        pairStatsGrid.addColumn(dto -> formatBigDecimal(dto.getTotalProfitUSDT()))
+                .setHeader("Суммарный профит ($)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        pairStatsGrid.addColumn(dto -> formatBigDecimal(dto.getAverageProfitPercent()) + "%")
-                .setHeader("Средний профит %").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        pairStatsGrid.addColumn(dto -> formatBigDecimal(dto.getAverageProfitPercent()))
+                .setHeader("Средний профит (%)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         pairStatsGrid.addColumn(PairAggregatedStatisticsDto::getAverageTradeDuration)
-                .setHeader("Средняя длительность").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+                .setHeader("Средняя длительность (мин)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         pairStatsGrid.addColumn(PairAggregatedStatisticsDto::getTotalAveragingCount)
                 .setHeader("Всего усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         pairStatsGrid.addColumn(PairAggregatedStatisticsDto::getAverageTimeToMinProfit)
-                .setHeader("Ср. время до Min профита").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+                .setHeader("Ср. время до Min профита (мин)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         pairStatsGrid.addColumn(PairAggregatedStatisticsDto::getAverageTimeToMaxProfit)
-                .setHeader("Ср. время до Max профита").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+                .setHeader("Ср. время до Max профита (мин)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         pairStatsGrid.addColumn(dto -> formatBigDecimal(dto.getAverageZScoreEntry()))
                 .setHeader("Ср. Z-Score Entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);

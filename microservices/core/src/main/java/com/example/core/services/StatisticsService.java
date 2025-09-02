@@ -140,10 +140,10 @@ public class StatisticsService {
                                 .totalTrades(pairs.size())
                                 .totalProfitUSDT(calculateTotalProfit(pairs))
                                 .averageProfitPercent(calculateAverageProfitPercent(pairs))
-                                .averageTradeDuration(calculateAverageTradeDuration(pairs))
+                                .averageTradeDuration(calculateAverageTradeDurationMinutes(pairs))
                                 .totalAveragingCount(calculateTotalAveragingCount(pairs))
-                                .averageTimeToMinProfit(calculateAverageTimeToMinProfit(pairs))
-                                .averageTimeToMaxProfit(calculateAverageTimeToMaxProfit(pairs))
+                                .averageTimeToMinProfit(calculateAverageTimeToMinProfitMinutes(pairs))
+                                .averageTimeToMaxProfit(calculateAverageTimeToMaxProfitMinutes(pairs))
                                 .averageZScoreEntry(calculateAverageZScoreEntry(pairs))
                                 .averageZScoreCurrent(calculateAverageZScoreCurrent(pairs))
                                 .averageZScoreMax(calculateAverageZScoreMax(pairs))
@@ -188,34 +188,36 @@ public class StatisticsService {
         return "N/A";
     }
 
+    private long calculateAverageTradeDurationMinutes(List<TradingPair> pairs) {
+        return (long) pairs.stream()
+                .filter(p -> p.getEntryTime() != 0L && p.getUpdatedTime() != 0L)
+                .mapToLong(p -> p.getUpdatedTime() - p.getEntryTime()) // миллисекунды
+                .average()
+                .orElse(0.0) / 1000 / 60;
+    }
+
     private long calculateTotalAveragingCount(List<TradingPair> pairs) {
         return pairs.stream()
                 .mapToInt(TradingPair::getAveragingCount)
                 .sum();
     }
 
-    private String calculateAverageTimeToMinProfit(List<TradingPair> pairs) {
+    private long calculateAverageTimeToMinProfitMinutes(List<TradingPair> pairs) {
         OptionalDouble average = pairs.stream()
                 .mapToLong(TradingPair::getMinutesToMinProfitPercent)
                 .filter(minutes -> minutes > 0)
                 .average();
 
-        if (average.isPresent()) {
-            return String.format("%.1f мин", average.getAsDouble());
-        }
-        return "N/A";
+        return average.isPresent() ? Math.round(average.getAsDouble()) : -1L;
     }
 
-    private String calculateAverageTimeToMaxProfit(List<TradingPair> pairs) {
+    private long calculateAverageTimeToMaxProfitMinutes(List<TradingPair> pairs) {
         OptionalDouble average = pairs.stream()
                 .mapToLong(TradingPair::getMinutesToMaxProfitPercent)
                 .filter(minutes -> minutes > 0)
                 .average();
 
-        if (average.isPresent()) {
-            return String.format("%.1f мин", average.getAsDouble());
-        }
-        return "N/A";
+        return average.isPresent() ? Math.round(average.getAsDouble()) : -1L;
     }
 
     private BigDecimal calculateAverageZScoreEntry(List<TradingPair> pairs) {
