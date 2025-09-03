@@ -1,25 +1,44 @@
 package com.example.core.ui.components;
 
 import com.example.core.services.SettingsService;
+import com.example.core.services.PortfolioPnLHistoryService;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.Portfolio;
+import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.dto.TradingProviderSwitchResult;
+import org.knowm.xchart.BitmapEncoder;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.XYSeries;
+import org.knowm.xchart.style.markers.None;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -34,6 +53,7 @@ public class PortfolioComponent extends VerticalLayout {
 
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final SettingsService settingsService;
+    private final PortfolioPnLHistoryService pnlHistoryService;
 
     // UI элементы
     private Span totalBalanceLabel;
@@ -46,13 +66,19 @@ public class PortfolioComponent extends VerticalLayout {
     private Span maxDrawdownLabel;
     private Span utilizationLabel;
     private ComboBox<TradingProviderType> tradingModeComboBox;
+    
+    // PnL график компоненты
+    private ComboBox<PortfolioPnLHistoryService.PnLPeriod> pnlPeriodComboBox;
+    private Image pnlChartImage;
+    private Span pnlChangeLabel;
 
     // Флаг для предотвращения рекурсии
     private boolean isUpdatingComboBox = false;
 
-    public PortfolioComponent(TradingIntegrationService tradingIntegrationServiceImpl, SettingsService settingsService) {
+    public PortfolioComponent(TradingIntegrationService tradingIntegrationServiceImpl, SettingsService settingsService, PortfolioPnLHistoryService pnlHistoryService) {
         this.tradingIntegrationServiceImpl = tradingIntegrationServiceImpl;
         this.settingsService = settingsService;
+        this.pnlHistoryService = pnlHistoryService;
         initializeComponent();
         createPortfolioCards();
         updatePortfolioInfo();
@@ -73,6 +99,9 @@ public class PortfolioComponent extends VerticalLayout {
     }
 
     private void createPortfolioCards() {
+        // Карточка с графиком PnL
+        add(createPnLChartCard());
+        
         // Карточка с режимом торговли
         add(createTradingModeCard());
 
@@ -214,6 +243,69 @@ public class PortfolioComponent extends VerticalLayout {
         details.setOpened(false);
         details.getStyle().set("margin-bottom", "1rem");
         details.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderRadius.LARGE);
+
+        return details;
+    }
+
+    /**
+     * Создает карточку с графиком PnL баланса
+     */
+    private Details createPnLChartCard() {
+        Div cardContent = new Div();
+        cardContent.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.BorderRadius.MEDIUM);
+        cardContent.getStyle().set("padding", "1.5rem");
+
+        // Заголовок с выбором периода
+        HorizontalLayout header = new HorizontalLayout();
+        header.setAlignItems(HorizontalLayout.Alignment.CENTER);
+        header.setWidthFull();
+
+        Icon icon = new Icon(VaadinIcon.LINE_CHART);
+        icon.addClassNames(LumoUtility.TextColor.PRIMARY);
+
+        H4 title = new H4("📈 График PnL баланса");
+        title.getStyle().set("margin", "0");
+
+        // Комбобокс для выбора периода
+        pnlPeriodComboBox = new ComboBox<>();
+        pnlPeriodComboBox.setItems(PortfolioPnLHistoryService.PnLPeriod.values());
+        pnlPeriodComboBox.setItemLabelGenerator(PortfolioPnLHistoryService.PnLPeriod::getDisplayName);
+        pnlPeriodComboBox.setValue(PortfolioPnLHistoryService.PnLPeriod.ONE_WEEK);
+        pnlPeriodComboBox.setWidth("150px");
+
+        pnlPeriodComboBox.addValueChangeListener(event -> {
+            if (event.getValue() != null) {
+                updatePnLChart();
+            }
+        });
+
+        // Лейбл с изменением PnL
+        pnlChangeLabel = new Span("0.00%");
+        pnlChangeLabel.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.SEMIBOLD);
+
+        header.add(icon, title);
+        header.setFlexGrow(1, title);
+        header.add(pnlChangeLabel, pnlPeriodComboBox);
+
+        // График
+        pnlChartImage = new Image();
+        pnlChartImage.setWidth("100%");
+        pnlChartImage.setHeight("200px");
+        pnlChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        pnlChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        pnlChartImage.setAlt("График PnL баланса");
+
+        cardContent.add(header, pnlChartImage);
+
+        Details details = new Details();
+        details.setSummaryText("📈 PnL баланса");
+        details.setContent(cardContent);
+        details.setOpened(true);
+        details.getStyle().set("margin-bottom", "1rem");
+        details.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderRadius.LARGE);
+
+        // Загружаем график при создании
+        updatePnLChart();
 
         return details;
     }
@@ -500,5 +592,206 @@ public class PortfolioComponent extends VerticalLayout {
         }
 
         return notification;
+    }
+
+    /**
+     * Обновление графика PnL
+     */
+    private void updatePnLChart() {
+        try {
+            PortfolioPnLHistoryService.PnLPeriod period = pnlPeriodComboBox.getValue();
+            if (period == null) {
+                period = PortfolioPnLHistoryService.PnLPeriod.ONE_WEEK;
+            }
+
+            log.debug("🔄 Обновление графика PnL за период: {}", period.getDisplayName());
+
+            // Получаем данные PnL
+            List<ProfitHistoryItem> history = pnlHistoryService.getPnLHistory(period);
+            
+            if (history == null || history.isEmpty()) {
+                showEmptyPnLChart();
+                return;
+            }
+
+            // Создаем график
+            BufferedImage chartImage = createPnLChart(history, period);
+            
+            if (chartImage != null) {
+                // Устанавливаем изображение графика
+                StreamResource chartResource = createStreamResource(chartImage, "pnl-chart.png");
+                pnlChartImage.setSrc(chartResource);
+                pnlChartImage.setAlt("График PnL за " + period.getDisplayName());
+
+                // Обновляем лейбл с изменением PnL
+                updatePnLChangeLabel(history);
+                
+                log.debug("✅ График PnL обновлен успешно");
+            } else {
+                showEmptyPnLChart();
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении графика PnL", e);
+            showEmptyPnLChart();
+        }
+    }
+
+    /**
+     * Создает график PnL
+     */
+    private BufferedImage createPnLChart(List<ProfitHistoryItem> history, PortfolioPnLHistoryService.PnLPeriod period) {
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+
+        try {
+            // Сортируем по времени
+            history.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+
+            // Подготавливаем данные для графика
+            List<Date> timeAxis = history.stream()
+                .map(item -> new Date(item.getTimestamp()))
+                .collect(Collectors.toList());
+            
+            List<Double> pnlValues = history.stream()
+                .map(ProfitHistoryItem::getProfitPercent)
+                .collect(Collectors.toList());
+
+            // Определяем цвет графика (зеленый для прибыли, красный для убытка)
+            boolean isProfitable = pnlHistoryService.isProfitable(history);
+            Color chartColor = isProfitable ? new Color(46, 204, 113) : new Color(231, 76, 60);
+            Color areaColor = isProfitable ? new Color(46, 204, 113, 50) : new Color(231, 76, 60, 50);
+
+            // Создаем график
+            XYChart chart = new XYChartBuilder()
+                .width(800)
+                .height(200)
+                .title("")
+                .xAxisTitle("")
+                .yAxisTitle("")
+                .build();
+
+            // Настройки стиля
+            chart.getStyler().setLegendVisible(false);
+            chart.getStyler().setDatePattern("HH:mm");
+            chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Area);
+            chart.getStyler().setYAxisTicksVisible(false);
+            chart.getStyler().setYAxisTitleVisible(false);
+            chart.getStyler().setXAxisTitleVisible(false);
+            chart.getStyler().setXAxisTicksVisible(false);
+            chart.getStyler().setPlotBorderVisible(false);
+            chart.getStyler().setChartTitleVisible(false);
+            chart.getStyler().setPlotBackgroundColor(Color.WHITE);
+            chart.getStyler().setChartBackgroundColor(Color.WHITE);
+
+            // Добавляем серию данных
+            XYSeries series = chart.addSeries("PnL", timeAxis, pnlValues);
+            series.setLineColor(chartColor);
+            series.setFillColor(areaColor);
+            series.setMarker(new None());
+            series.setLineWidth(2.0f);
+
+            // Добавляем горизонтальную линию на уровне 0%
+            if (!pnlValues.isEmpty()) {
+                List<Date> zeroLineX = List.of(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+                List<Double> zeroLineY = List.of(0.0, 0.0);
+                
+                XYSeries zeroLine = chart.addSeries("Zero", zeroLineX, zeroLineY);
+                zeroLine.setLineColor(Color.GRAY);
+                zeroLine.setMarker(new None());
+                zeroLine.setLineWidth(1.0f);
+                // zeroLine.setSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+            }
+
+            // Получаем экстремумы для подписей
+            PortfolioPnLHistoryService.PnLExtremes extremes = pnlHistoryService.getExtremes(history);
+            
+            if (extremes.getMin() != null && extremes.getMax() != null) {
+                // Добавляем точки экстремумов
+                ProfitHistoryItem minPoint = extremes.getMin();
+                ProfitHistoryItem maxPoint = extremes.getMax();
+                
+                // Минимальная точка (убыток)
+                XYSeries minSeries = chart.addSeries("Min", 
+                    List.of(new Date(minPoint.getTimestamp())), 
+                    List.of(minPoint.getProfitPercent()));
+                minSeries.setMarker(org.knowm.xchart.style.markers.SeriesMarkers.CIRCLE);
+                minSeries.setMarkerColor(Color.RED);
+                // minSeries.setSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Scatter);
+                
+                // Максимальная точка (прибыль)
+                XYSeries maxSeries = chart.addSeries("Max", 
+                    List.of(new Date(maxPoint.getTimestamp())), 
+                    List.of(maxPoint.getProfitPercent()));
+                maxSeries.setMarker(org.knowm.xchart.style.markers.SeriesMarkers.CIRCLE);
+                maxSeries.setMarkerColor(Color.GREEN);
+                // maxSeries.setSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Scatter);
+            }
+
+            return BitmapEncoder.getBufferedImage(chart);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании графика PnL", e);
+            return null;
+        }
+    }
+
+    /**
+     * Обновляет лейбл с изменением PnL
+     */
+    private void updatePnLChangeLabel(List<ProfitHistoryItem> history) {
+        if (history == null || history.isEmpty()) {
+            pnlChangeLabel.setText("0.00%");
+            pnlChangeLabel.getStyle().remove("color");
+            return;
+        }
+
+        // Сортируем по времени
+        history.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+
+        double startValue = history.get(0).getProfitPercent();
+        double endValue = history.get(history.size() - 1).getProfitPercent();
+        double change = endValue - startValue;
+
+        // Форматируем значение
+        String changeText = String.format("%+.2f%%", change);
+        pnlChangeLabel.setText(changeText);
+
+        // Устанавливаем цвет
+        if (change > 0) {
+            pnlChangeLabel.getStyle().set("color", "var(--lumo-success-color)");
+        } else if (change < 0) {
+            pnlChangeLabel.getStyle().set("color", "var(--lumo-error-color)");
+        } else {
+            pnlChangeLabel.getStyle().remove("color");
+        }
+    }
+
+    /**
+     * Показывает пустой график PnL
+     */
+    private void showEmptyPnLChart() {
+        pnlChartImage.setSrc("");
+        pnlChartImage.setAlt("Нет данных для отображения графика PnL");
+        pnlChangeLabel.setText("0.00%");
+        pnlChangeLabel.getStyle().remove("color");
+        log.debug("📊 Показан пустой график PnL");
+    }
+
+    /**
+     * Создает StreamResource из BufferedImage
+     */
+    private StreamResource createStreamResource(BufferedImage bufferedImage, String fileName) {
+        return new StreamResource(fileName, () -> {
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bufferedImage, "png", baos);
+                return new ByteArrayInputStream(baos.toByteArray());
+            } catch (IOException e) {
+                log.error("❌ Ошибка при создании StreamResource для графика", e);
+                throw new RuntimeException("Failed to create chart stream", e);
+            }
+        });
     }
 }
