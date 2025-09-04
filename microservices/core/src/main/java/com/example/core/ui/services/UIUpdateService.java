@@ -46,8 +46,8 @@ public class UIUpdateService {
     }
 
     private void startPeriodicUpdates() {
-        scheduler.scheduleAtFixedRate(this::triggerUpdate, 5, 15, TimeUnit.SECONDS);
-        log.info("Started periodic UI updates every 15 seconds");
+        scheduler.scheduleAtFixedRate(this::triggerUpdate, 5, 5, TimeUnit.SECONDS);
+        log.info("Started periodic UI updates every 5 seconds");
     }
 
     public void shutdown() {
