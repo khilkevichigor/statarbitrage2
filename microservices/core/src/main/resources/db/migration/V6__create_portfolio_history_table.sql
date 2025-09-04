@@ -1,5 +1,5 @@
 -- Создание таблицы для хранения исторических данных портфолио
-CREATE TABLE portfolio_history
+CREATE TABLE IF NOT EXISTS portfolio_history
 (
     id                     BIGSERIAL PRIMARY KEY,
     snapshot_time          TIMESTAMP NOT NULL,
@@ -14,8 +14,8 @@ CREATE TABLE portfolio_history
 );
 
 -- Создание индексов для быстрого поиска по времени
-CREATE INDEX idx_portfolio_history_snapshot_time ON portfolio_history (snapshot_time);
-CREATE INDEX idx_portfolio_history_provider_type ON portfolio_history (provider_type);
+CREATE INDEX IF NOT EXISTS idx_portfolio_history_snapshot_time ON portfolio_history (snapshot_time);
+CREATE INDEX IF NOT EXISTS idx_portfolio_history_provider_type ON portfolio_history (provider_type);
 
 -- Комментарии к таблице и полям
 COMMENT
