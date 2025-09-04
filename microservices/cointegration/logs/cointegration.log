@@ -1,0 +1,177 @@
+2025-09-04T01:06:53.105-04:00  INFO 33223 --- [           main] c.e.c.CointegrationApplication           : Starting CointegrationApplication using Java 21.0.6 with PID 33223 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/cointegration/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices)
+2025-09-04T01:06:53.106-04:00  INFO 33223 --- [           main] c.e.c.CointegrationApplication           : The following 1 profile is active: "default"
+2025-09-04T01:06:53.573-04:00  INFO 33223 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-09-04T01:06:53.712-04:00  INFO 33223 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 134 ms. Found 5 JPA repository interfaces.
+2025-09-04T01:06:54.040-04:00  INFO 33223 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2025-09-04T01:06:54.044-04:00  INFO 33223 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2025-09-04T01:06:54.092-04:00  INFO 33223 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=0a07ad96-4acf-3aa2-a0d7-114a60921856
+2025-09-04T01:06:54.350-04:00  INFO 33223 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8086 (http)
+2025-09-04T01:06:54.358-04:00  INFO 33223 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-04T01:06:54.358-04:00  INFO 33223 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-09-04T01:06:54.391-04:00  INFO 33223 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-09-04T01:06:54.391-04:00  INFO 33223 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1255 ms
+2025-09-04T01:06:54.613-04:00  INFO 33223 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-09-04T01:06:54.715-04:00  INFO 33223 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@78e50fca
+2025-09-04T01:06:54.716-04:00  INFO 33223 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-09-04T01:06:54.737-04:00  INFO 33223 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/statarbitrage (PostgreSQL 15.14)
+2025-09-04T01:06:54.784-04:00  INFO 33223 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 6 migrations (execution time 00:00.017s)
+2025-09-04T01:06:54.820-04:00  INFO 33223 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 6
+2025-09-04T01:06:54.820-04:00 ERROR 33223 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" has version 6, but no migration could be resolved in the configured locations !
+2025-09-04T01:06:54.823-04:00  INFO 33223 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-09-04T01:06:54.893-04:00  INFO 33223 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-09-04T01:06:54.926-04:00  INFO 33223 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-09-04T01:06:54.944-04:00  INFO 33223 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-09-04T01:06:55.082-04:00  INFO 33223 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-09-04T01:06:55.121-04:00  WARN 33223 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-09-04T01:06:55.130-04:00  INFO 33223 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.14
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-09-04T01:06:55.875-04:00  INFO 33223 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-09-04T01:06:55.876-04:00  INFO 33223 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-09-04T01:06:56.153-04:00  INFO 33223 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-09-04T01:06:56.585-04:00  WARN 33223 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-09-04T01:06:56.661-04:00  INFO 33223 --- [           main] c.example.shared.config.MessagingConfig  : 📨 Messaging Configuration загружена
+2025-09-04T01:06:57.821-04:00  INFO 33223 --- [           main] o.s.c.s.m.DirectWithAttributesChannel    : Channel 'cointegration-service.cointegrationEventsConsumer-in-0' has 1 subscriber(s).
+2025-09-04T01:06:57.989-04:00  INFO 33223 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2025-09-04T01:06:58.081-04:00  INFO 33223 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel errorChannel
+2025-09-04T01:06:58.085-04:00  INFO 33223 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel cointegrationEventsConsumer-in-0
+2025-09-04T01:06:58.087-04:00  INFO 33223 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel nullChannel
+2025-09-04T01:06:58.091-04:00  INFO 33223 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageHandler _org.springframework.integration.errorLogger
+2025-09-04T01:06:58.095-04:00  INFO 33223 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-09-04T01:06:58.095-04:00  INFO 33223 --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'cointegration-service.errorChannel' has 1 subscriber(s).
+2025-09-04T01:06:58.095-04:00  INFO 33223 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : started bean '_org.springframework.integration.errorLogger'
+2025-09-04T01:06:58.125-04:00  INFO 33223 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8086 (http) with context path '/'
+2025-09-04T01:06:58.136-04:00  INFO 33223 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Creating binder: rabbit
+2025-09-04T01:06:58.136-04:00  INFO 33223 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Constructing binder child context for rabbit
+2025-09-04T01:06:58.290-04:00  INFO 33223 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Caching the binder: rabbit
+2025-09-04T01:06:58.303-04:00  INFO 33223 --- [           main] c.s.b.r.p.RabbitExchangeQueueProvisioner : declaring queue for inbound: cointegrationEventsConsumer-in-0.anonymous.Qz9BTB7WQH6kDP7JXJTq_A, bound to: cointegrationEventsConsumer-in-0
+2025-09-04T01:06:58.307-04:00  INFO 33223 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2025-09-04T01:06:58.360-04:00  INFO 33223 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#652b77eb:0/SimpleConnection@37ea9b08 [delegate=amqp://admin@127.0.0.1:5672/, localPort=60102]
+2025-09-04T01:06:58.407-04:00  INFO 33223 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-1283220866.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-09-04T01:06:58.407-04:00  INFO 33223 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-1283220866.cointegrationEventsConsumer-in-0.errors' has 2 subscriber(s).
+2025-09-04T01:06:58.417-04:00  INFO 33223 --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : started bean 'inbound.cointegrationEventsConsumer-in-0.anonymous.Qz9BTB7WQH6kDP7JXJTq_A'
+2025-09-04T01:06:58.450-04:00  INFO 33223 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel rabbit-1283220866.cointegrationEventsConsumer-in-0.errors
+2025-09-04T01:06:58.459-04:00  INFO 33223 --- [           main] c.e.c.CointegrationApplication           : Started CointegrationApplication in 5.863 seconds (process running for 6.72)
+2025-09-04T01:06:58.462-04:00  INFO 33223 --- [           main] c.e.c.CointegrationApplication           : 
+2025-09-04T01:06:58.462-04:00  INFO 33223 --- [           main] c.e.c.CointegrationApplication           : 🚀 Cointegration готов к работе!
+2025-09-04T01:06:58.953-04:00  INFO 33223 --- [on(1)-127.0.0.1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-09-04T01:06:58.953-04:00  INFO 33223 --- [on(1)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-09-04T01:06:58.958-04:00  INFO 33223 --- [on(1)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2025-09-04T01:07:00.030-04:00  INFO 33223 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:07:00.154-04:00  INFO 33223 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:07:00.154-04:00  INFO 33223 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:07:00.154-04:00  INFO 33223 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:07:28.019-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 96
+2025-09-04T01:07:28.026-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:07:28.027-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 2.3902568016185586, (p=4.1972359577235677E-88, r=0.8, adf=0.01, corr=0.857729828884423)
+2025-09-04T01:07:28.029-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 1.039604470131088E-207, (z=1.8175351346600328)
+2025-09-04T01:07:28.030-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-0.8321646454492202)
+2025-09-04T01:07:28.031-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-0.8321646454492202)
+2025-09-04T01:07:28.031-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9789467541395058, (z=-0.8321646454492202)
+2025-09-04T01:07:28.046-04:00  WARN 33223 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:08:00.025-04:00  INFO 33223 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:08:00.126-04:00  INFO 33223 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:08:00.127-04:00  INFO 33223 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:08:00.127-04:00  INFO 33223 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:08:26.445-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 95
+2025-09-04T01:08:26.446-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:08:26.446-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 2.3902568016185586, (p=4.4384288962780535E-88, r=0.8, adf=0.01, corr=0.8576721098992055)
+2025-09-04T01:08:26.446-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 1.267183569769886E-207, (z=1.8175351346600328)
+2025-09-04T01:08:26.446-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-0.8321646454492202)
+2025-09-04T01:08:26.446-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-0.8321646454492202)
+2025-09-04T01:08:26.446-04:00  INFO 33223 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9789184676337969, (z=-0.8321646454492202)
+2025-09-04T01:08:26.449-04:00  WARN 33223 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:08:49.490-04:00  INFO 33223 --- [ionShutdownHook] o.s.a.r.l.SimpleMessageListenerContainer : Waiting for workers to finish.
+2025-09-04T01:08:49.856-04:00  INFO 33223 --- [ionShutdownHook] o.s.a.r.l.SimpleMessageListenerContainer : Successfully waited for workers to finish.
+2025-09-04T01:08:49.867-04:00  INFO 33223 --- [ionShutdownHook] o.s.i.a.i.AmqpInboundChannelAdapter      : stopped bean 'inbound.cointegrationEventsConsumer-in-0.anonymous.Qz9BTB7WQH6kDP7JXJTq_A'
+2025-09-04T01:08:49.973-04:00  INFO 33223 --- [ionShutdownHook] o.s.c.stream.binder.BinderErrorChannel   : Channel 'cointegration-service.rabbit-1283220866.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-09-04T01:08:49.975-04:00  INFO 33223 --- [ionShutdownHook] o.s.c.stream.binder.BinderErrorChannel   : Channel 'cointegration-service.rabbit-1283220866.cointegrationEventsConsumer-in-0.errors' has 0 subscriber(s).
+2025-09-04T01:08:49.982-04:00  INFO 33223 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-09-04T01:08:49.990-04:00  INFO 33223 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-09-04T01:08:50.087-04:00  INFO 33223 --- [ionShutdownHook] o.s.i.endpoint.EventDrivenConsumer       : Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-09-04T01:08:50.088-04:00  INFO 33223 --- [ionShutdownHook] o.s.i.channel.PublishSubscribeChannel    : Channel 'cointegration-service.errorChannel' has 0 subscriber(s).
+2025-09-04T01:08:50.088-04:00  INFO 33223 --- [ionShutdownHook] o.s.i.endpoint.EventDrivenConsumer       : stopped bean '_org.springframework.integration.errorLogger'
+2025-09-04T01:08:50.128-04:00  INFO 33223 --- [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-09-04T01:08:50.144-04:00  INFO 33223 --- [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-09-04T01:08:50.148-04:00  INFO 33223 --- [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2025-09-04T01:08:56.787-04:00  INFO 33299 --- [           main] c.e.c.CointegrationApplication           : Starting CointegrationApplication using Java 21.0.6 with PID 33299 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/cointegration/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices)
+2025-09-04T01:08:56.789-04:00  INFO 33299 --- [           main] c.e.c.CointegrationApplication           : The following 1 profile is active: "default"
+2025-09-04T01:08:58.748-04:00  INFO 33299 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-09-04T01:08:59.228-04:00  INFO 33299 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 454 ms. Found 5 JPA repository interfaces.
+2025-09-04T01:09:00.274-04:00  INFO 33299 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2025-09-04T01:09:00.279-04:00  INFO 33299 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2025-09-04T01:09:00.375-04:00  INFO 33299 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=0a07ad96-4acf-3aa2-a0d7-114a60921856
+2025-09-04T01:09:00.915-04:00  INFO 33299 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8086 (http)
+2025-09-04T01:09:00.925-04:00  INFO 33299 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-04T01:09:00.925-04:00  INFO 33299 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-09-04T01:09:00.995-04:00  INFO 33299 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-09-04T01:09:00.995-04:00  INFO 33299 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 4071 ms
+2025-09-04T01:09:01.450-04:00  INFO 33299 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-09-04T01:09:01.687-04:00  INFO 33299 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@624494d4
+2025-09-04T01:09:01.689-04:00  INFO 33299 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-09-04T01:09:01.728-04:00  INFO 33299 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/statarbitrage (PostgreSQL 15.14)
+2025-09-04T01:09:01.799-04:00  INFO 33299 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 6 migrations (execution time 00:00.027s)
+2025-09-04T01:09:01.828-04:00  INFO 33299 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 6
+2025-09-04T01:09:01.828-04:00 ERROR 33299 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" has version 6, but no migration could be resolved in the configured locations !
+2025-09-04T01:09:01.831-04:00  INFO 33299 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-09-04T01:09:01.948-04:00  INFO 33299 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-09-04T01:09:02.001-04:00  INFO 33299 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-09-04T01:09:02.020-04:00  INFO 33299 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-09-04T01:09:02.179-04:00  INFO 33299 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-09-04T01:09:02.222-04:00  WARN 33299 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-09-04T01:09:02.232-04:00  INFO 33299 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.14
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-09-04T01:09:03.176-04:00  INFO 33299 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-09-04T01:09:03.178-04:00  INFO 33299 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-09-04T01:09:03.502-04:00  INFO 33299 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-09-04T01:09:03.980-04:00  WARN 33299 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-09-04T01:09:04.059-04:00  INFO 33299 --- [           main] c.example.shared.config.MessagingConfig  : 📨 Messaging Configuration загружена
+2025-09-04T01:09:04.967-04:00  INFO 33299 --- [           main] o.s.c.s.m.DirectWithAttributesChannel    : Channel 'cointegration-service.cointegrationEventsConsumer-in-0' has 1 subscriber(s).
+2025-09-04T01:09:05.124-04:00  INFO 33299 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2025-09-04T01:09:05.234-04:00  INFO 33299 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel errorChannel
+2025-09-04T01:09:05.238-04:00  INFO 33299 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel cointegrationEventsConsumer-in-0
+2025-09-04T01:09:05.240-04:00  INFO 33299 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel nullChannel
+2025-09-04T01:09:05.246-04:00  INFO 33299 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageHandler _org.springframework.integration.errorLogger
+2025-09-04T01:09:05.250-04:00  INFO 33299 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-09-04T01:09:05.251-04:00  INFO 33299 --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'cointegration-service.errorChannel' has 1 subscriber(s).
+2025-09-04T01:09:05.251-04:00  INFO 33299 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : started bean '_org.springframework.integration.errorLogger'
+2025-09-04T01:09:05.290-04:00  INFO 33299 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8086 (http) with context path '/'
+2025-09-04T01:09:05.294-04:00  INFO 33299 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Creating binder: rabbit
+2025-09-04T01:09:05.294-04:00  INFO 33299 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Constructing binder child context for rabbit
+2025-09-04T01:09:05.419-04:00  INFO 33299 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Caching the binder: rabbit
+2025-09-04T01:09:05.442-04:00  INFO 33299 --- [           main] c.s.b.r.p.RabbitExchangeQueueProvisioner : declaring queue for inbound: cointegrationEventsConsumer-in-0.anonymous.OI2-bmi1SEifI3CDvKcFkA, bound to: cointegrationEventsConsumer-in-0
+2025-09-04T01:09:05.448-04:00  INFO 33299 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2025-09-04T01:09:05.566-04:00  INFO 33299 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#23d9a633:0/SimpleConnection@16546eba [delegate=amqp://admin@127.0.0.1:5672/, localPort=60147]
+2025-09-04T01:09:05.678-04:00  INFO 33299 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-1567380071.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-09-04T01:09:05.681-04:00  INFO 33299 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-1567380071.cointegrationEventsConsumer-in-0.errors' has 2 subscriber(s).
+2025-09-04T01:09:05.721-04:00  INFO 33299 --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : started bean 'inbound.cointegrationEventsConsumer-in-0.anonymous.OI2-bmi1SEifI3CDvKcFkA'
+2025-09-04T01:09:05.787-04:00  INFO 33299 --- [           main] figuration$IntegrationJmxConfiguration$1 : Registering MessageChannel rabbit-1567380071.cointegrationEventsConsumer-in-0.errors
+2025-09-04T01:09:05.811-04:00  INFO 33299 --- [           main] c.e.c.CointegrationApplication           : Started CointegrationApplication in 9.984 seconds (process running for 11.033)
+2025-09-04T01:09:05.822-04:00  INFO 33299 --- [           main] c.e.c.CointegrationApplication           : 
+2025-09-04T01:09:05.822-04:00  INFO 33299 --- [           main] c.e.c.CointegrationApplication           : 🚀 Cointegration готов к работе!
+2025-09-04T01:09:06.140-04:00  INFO 33299 --- [n(10)-127.0.0.1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-09-04T01:09:06.141-04:00  INFO 33299 --- [n(10)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-09-04T01:09:06.150-04:00  INFO 33299 --- [n(10)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 9 ms
+2025-09-04T01:10:00.208-04:00  INFO 33299 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:10:00.525-04:00  INFO 33299 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:10:00.525-04:00  INFO 33299 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:10:00.525-04:00  INFO 33299 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:10:27.176-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 94
+2025-09-04T01:10:27.179-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:10:27.179-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 2.3902568016185586, (p=4.6146685223515205E-88, r=0.8, adf=0.01, corr=0.8576318696425549)
+2025-09-04T01:10:27.180-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 1.8648004998817346E-207, (z=1.8175351346600328)
+2025-09-04T01:10:27.180-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-0.8321646454492202)
+2025-09-04T01:10:27.180-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-0.8321646454492202)
+2025-09-04T01:10:27.180-04:00  INFO 33299 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.978863149349412, (z=-0.8321646454492202)
+2025-09-04T01:10:27.186-04:00  WARN 33299 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!

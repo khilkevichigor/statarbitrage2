@@ -440,3 +440,199 @@ java.lang.NullPointerException: Cannot invoke "com.example.core.trading.interfac
 2025-09-03T02:22:01.739-04:00  INFO 14360 --- [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
 2025-09-03T02:22:01.741-04:00  INFO 14360 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
 2025-09-03T02:22:01.742-04:00  INFO 14360 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2025-09-04T00:55:49.954-04:00  INFO 32713 --- [           main] com.example.core.CoreApplication         : Starting CoreApplication using Java 17.0.9 with PID 32713 (/Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core/target/classes started by igorkhilkevich in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core)
+2025-09-04T00:55:49.957-04:00  INFO 32713 --- [           main] com.example.core.CoreApplication         : The following 1 profile is active: "default"
+2025-09-04T00:55:50.375-04:00  INFO 32713 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-09-04T00:55:50.525-04:00  INFO 32713 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 144 ms. Found 7 JPA repository interfaces.
+2025-09-04T00:55:50.827-04:00  INFO 32713 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2025-09-04T00:55:50.831-04:00  INFO 32713 --- [           main] faultConfiguringBeanFactoryPostProcessor : No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2025-09-04T00:55:50.890-04:00  INFO 32713 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=f6730c38-4113-3f56-a9d6-da5b64fbe9ea
+2025-09-04T00:55:51.149-04:00  INFO 32713 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8181 (http)
+2025-09-04T00:55:51.158-04:00  INFO 32713 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-04T00:55:51.158-04:00  INFO 32713 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2025-09-04T00:55:51.232-04:00  INFO 32713 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-09-04T00:55:51.232-04:00  INFO 32713 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1246 ms
+2025-09-04T00:55:51.549-04:00  INFO 32713 --- [           main] c.v.f.s.VaadinServletContextInitializer  : Search for subclasses and classes with annotations took 129 ms
+2025-09-04T00:55:51.816-04:00  INFO 32713 --- [           main] c.v.b.d.startup.DevModeStartupListener   : Starting dev-mode updaters in /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/core folder.
+2025-09-04T00:55:51.841-04:00  INFO 32713 --- [           main] c.v.f.s.f.s.FullDependenciesScanner      : Visited 109 classes. Took 12 ms.
+2025-09-04T00:55:51.842-04:00  INFO 32713 --- [           main] c.v.f.s.frontend.BundleValidationUtil    : Checking if a development mode bundle build is needed
+2025-09-04T00:55:51.955-04:00  INFO 32713 --- [           main] c.v.f.s.frontend.BundleValidationUtil    : A development mode bundle build is not needed
+2025-09-04T00:55:51.971-04:00  INFO 32713 --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Copying frontend resources from jar files ...
+2025-09-04T00:55:51.998-04:00  INFO 32713 --- [onPool-worker-1] c.v.f.s.frontend.TaskCopyFrontendFiles   : Visited 18 resources. Took 26 ms.
+2025-09-04T00:55:52.145-04:00  INFO 32713 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-09-04T00:55:52.262-04:00  INFO 32713 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@11e75942
+2025-09-04T00:55:52.263-04:00  INFO 32713 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-09-04T00:55:52.288-04:00  INFO 32713 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/statarbitrage (PostgreSQL 15.14)
+2025-09-04T00:55:52.380-04:00  INFO 32713 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 6
+2025-09-04T00:55:52.382-04:00  INFO 32713 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-09-04T00:55:52.437-04:00  INFO 32713 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-09-04T00:55:52.468-04:00  INFO 32713 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.15.Final
+2025-09-04T00:55:52.487-04:00  INFO 32713 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-09-04T00:55:52.620-04:00  INFO 32713 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-09-04T00:55:52.652-04:00  WARN 32713 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-09-04T00:55:52.661-04:00  INFO 32713 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.14
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-09-04T00:55:53.293-04:00  INFO 32713 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-09-04T00:55:53.294-04:00  INFO 32713 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-09-04T00:55:53.549-04:00  INFO 32713 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-09-04T00:55:53.877-04:00  WARN 32713 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-09-04T00:55:53.981-04:00  WARN 32713 --- [           main] c.e.c.t.p.RealOkxTradingProvider         : ⚠️ OKX API ключи не настроены
+2025-09-04T00:55:53.981-04:00  WARN 32713 --- [           main] c.e.c.t.services.TradingProviderFactory  : ⚠️ Провайдер OKX API не подключен
+2025-09-04T00:55:54.183-04:00  INFO 32713 --- [           main] c.e.core.ui.services.UIUpdateService     : Started periodic UI updates every 15 seconds
+2025-09-04T00:55:54.183-04:00  INFO 32713 --- [           main] c.example.shared.config.MessagingConfig  : 📨 Messaging Configuration загружена
+2025-09-04T00:55:54.576-04:00  INFO 32713 --- [           main] o.s.c.s.m.DirectWithAttributesChannel    : Channel 'core-service.cointegrationEventsConsumer-in-0' has 1 subscriber(s).
+2025-09-04T00:55:54.702-04:00  INFO 32713 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2025-09-04T00:55:54.806-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler mapped to context-path: /*
+2025-09-04T00:55:54.806-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed the following AtmosphereInterceptor mapped to AtmosphereHandler com.vaadin.flow.server.communication.PushAtmosphereHandler
+2025-09-04T00:55:54.825-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.util.VoidAnnotationProcessor for processing annotation
+2025-09-04T00:55:54.829-04:00  INFO 32713 --- [           main] org.atmosphere.util.ForkJoinPool         : Using ForkJoinPool  java.util.concurrent.ForkJoinPool. Set the org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads to -1 to fully use its power.
+2025-09-04T00:55:54.831-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed WebSocketProtocol org.atmosphere.websocket.protocol.SimpleHttpProtocol 
+2025-09-04T00:55:54.834-04:00  INFO 32713 --- [           main] o.a.container.JSR356AsyncSupport         : JSR 356 Mapping path /VAADIN/push
+2025-09-04T00:55:54.839-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installing Default AtmosphereInterceptors
+2025-09-04T00:55:54.839-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CorsInterceptor : CORS Interceptor Support
+2025-09-04T00:55:54.839-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.CacheHeadersInterceptor : Default Response's Headers Interceptor
+2025-09-04T00:55:54.839-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.PaddingAtmosphereInterceptor : Browser Padding Interceptor Support
+2025-09-04T00:55:54.840-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.AndroidAtmosphereInterceptor : Android Interceptor Support
+2025-09-04T00:55:54.840-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.HeartbeatInterceptor : Heartbeat Interceptor Support
+2025-09-04T00:55:54.840-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.SSEAtmosphereInterceptor : SSE Interceptor Support
+2025-09-04T00:55:54.840-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JSONPAtmosphereInterceptor : JSONP Interceptor Support
+2025-09-04T00:55:54.840-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.JavaScriptProtocol : Atmosphere JavaScript Protocol
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor : org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.OnDisconnectInterceptor : Browser disconnection detection
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : 	org.atmosphere.interceptor.IdleResourceInterceptor : org.atmosphere.interceptor.IdleResourceInterceptor
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Set org.atmosphere.cpr.AtmosphereInterceptor.disableDefaults to disable them.
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor CORS Interceptor Support with priority FIRST_BEFORE_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Default Response's Headers Interceptor with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser Padding Interceptor Support with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Android Interceptor Support with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] o.a.interceptor.HeartbeatInterceptor     : HeartbeatInterceptor configured with padding value 'X', client frequency 0 seconds and server frequency 60 seconds
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Heartbeat Interceptor Support with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor SSE Interceptor Support with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor JSONP Interceptor Support with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Atmosphere JavaScript Protocol with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.WebSocketMessageSuspendInterceptor with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor Browser disconnection detection with priority AFTER_DEFAULT 
+2025-09-04T00:55:54.841-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor org.atmosphere.interceptor.IdleResourceInterceptor with priority BEFORE_DEFAULT 
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using EndpointMapper class org.atmosphere.util.DefaultEndpointMapper
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterCache: org.atmosphere.cache.UUIDBroadcasterCache
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Default Broadcaster Class: org.atmosphere.cpr.DefaultBroadcaster
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Shared List Resources: false
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Broadcaster Polling Wait Time 100
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Shared ExecutorService supported: true
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Messaging ExecutorService Pool Size unavailable - Not instance of ThreadPoolExecutor
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Async I/O Thread Pool Size: 200
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using BroadcasterFactory: org.atmosphere.cpr.DefaultBroadcasterFactory
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using AtmosphereResurceFactory: org.atmosphere.cpr.DefaultAtmosphereResourceFactory
+2025-09-04T00:55:54.842-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Using WebSocketProcessor: org.atmosphere.websocket.DefaultWebSocketProcessor
+2025-09-04T00:55:54.843-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Invoke AtmosphereInterceptor on WebSocket message true
+2025-09-04T00:55:54.843-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : HttpSession supported: true
+2025-09-04T00:55:54.843-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using org.atmosphere.inject.InjectableObjectFactory for dependency injection and object creation
+2025-09-04T00:55:54.843-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere is using async support: org.atmosphere.container.JSR356AsyncSupport running under container: Apache Tomcat/10.1.41 using jakarta.servlet/3.0 and jsr356/WebSocket API
+2025-09-04T00:55:54.843-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Atmosphere Framework 3.0.4.slf4jvaadin1 started.
+2025-09-04T00:55:54.845-04:00  INFO 32713 --- [           main] org.atmosphere.cpr.AtmosphereFramework   : Installed AtmosphereInterceptor  Track Message Size Interceptor using | with priority BEFORE_DEFAULT 
+2025-09-04T00:55:54.866-04:00  INFO 32713 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-09-04T00:55:54.866-04:00  INFO 32713 --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 1 subscriber(s).
+2025-09-04T00:55:54.866-04:00  INFO 32713 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : started bean '_org.springframework.integration.errorLogger'
+2025-09-04T00:55:54.902-04:00  INFO 32713 --- [           main] c.v.f.s.DefaultDeploymentConfiguration   : 
+Vaadin is running in DEVELOPMENT mode - do not use for production deployments.
+2025-09-04T00:55:54.929-04:00  INFO 32713 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8181 (http) with context path '/'
+2025-09-04T00:55:54.933-04:00  INFO 32713 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Creating binder: rabbit
+2025-09-04T00:55:54.933-04:00  INFO 32713 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Constructing binder child context for rabbit
+2025-09-04T00:55:55.027-04:00  INFO 32713 --- [           main] o.s.c.s.binder.DefaultBinderFactory      : Caching the binder: rabbit
+2025-09-04T00:55:55.035-04:00  INFO 32713 --- [           main] c.s.b.r.p.RabbitExchangeQueueProvisioner : declaring queue for inbound: cointegration.events.core-group, bound to: cointegration.events
+2025-09-04T00:55:55.039-04:00  INFO 32713 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2025-09-04T00:55:55.114-04:00  INFO 32713 --- [           main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#34d5bd2f:0/SimpleConnection@593a017e [delegate=amqp://admin@127.0.0.1:5672/, localPort=59633]
+2025-09-04T00:55:55.162-04:00  INFO 32713 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-838227686.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-09-04T00:55:55.163-04:00  INFO 32713 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'rabbit-838227686.cointegrationEventsConsumer-in-0.errors' has 2 subscriber(s).
+2025-09-04T00:55:55.175-04:00  INFO 32713 --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : started bean 'inbound.cointegration.events.core-group'
+2025-09-04T00:55:55.196-04:00 ERROR 32713 --- [   scheduling-1] c.e.c.services.PortfolioHistoryService   : ❌ Ошибка при сохранении снапшота портфолио
+java.lang.NullPointerException: Cannot invoke "com.example.core.trading.interfaces.TradingProvider.getPortfolio()" because "provider" is null
+	at com.example.core.trading.services.TradingIntegrationServiceImpl.getPortfolioInfo(TradingIntegrationServiceImpl.java:296)
+	at com.example.core.services.PortfolioHistoryService.saveCurrentPortfolioSnapshot(PortfolioHistoryService.java:33)
+	at com.example.core.services.PortfolioHistoryService.schedulePortfolioSnapshot(PortfolioHistoryService.java:57)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:130)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$2(ScheduledMethodRunnable.java:124)
+	at io.micrometer.observation.Observation.observe(Observation.java:498)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:124)
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:85)
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+2025-09-04T00:55:55.207-04:00  INFO 32713 --- [           main] com.example.core.CoreApplication         : Started CoreApplication in 5.716 seconds (process running for 6.087)
+2025-09-04T00:55:55.749-04:00  INFO 32713 --- [           main] com.example.core.CoreApplication         : ✅ Геолокация при запуске: безопасно для OKX
+2025-09-04T00:55:55.822-04:00  INFO 32713 --- [nio-8181-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-09-04T00:55:55.822-04:00  INFO 32713 --- [nio-8181-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-09-04T00:55:55.824-04:00  INFO 32713 --- [nio-8181-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-09-04T00:55:55.828-04:00  INFO 32713 --- [           main] c.e.c.c.CointegrationApiHealthCheck      : ✅ API коинтеграции в норме
+2025-09-04T00:55:55.917-04:00  INFO 32713 --- [           main] com.example.core.CoreApplication         : ✅ Интеграционный тест API коинтеграции прошел успешно
+2025-09-04T00:55:56.057-04:00  INFO 32713 --- [nio-8181-exec-2] c.vaadin.flow.spring.SpringInstantiator  : The number of beans implementing 'I18NProvider' is 0. Cannot use Spring beans for I18N, falling back to the default behavior
+2025-09-04T00:55:56.109-04:00  INFO 32713 --- [           main] c.e.c.processors.UpdateTradeProcessor    : 
+2025-09-04T00:55:56.109-04:00  INFO 32713 --- [           main] c.e.c.processors.UpdateTradeProcessor    : 🔄 Обновление пары AUCTION-USDT-SWAP/PI-USDT-SWAP...
+2025-09-04T00:55:56.142-04:00 ERROR 32713 --- [           main] o.s.boot.SpringApplication               : Application run failed
+java.lang.NullPointerException: Cannot invoke "com.example.core.trading.interfaces.TradingProvider.updatePositionPrices(java.util.List)" because "provider" is null
+	at com.example.core.processors.UpdateTradeProcessor.updateTrade(UpdateTradeProcessor.java:87)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+	at com.example.core.processors.UpdateTradeProcessor$$SpringCGLIB$$0.updateTrade(<generated>)
+	at com.example.core.CoreApplication.lambda$updateTradingPairsAfterRestart$0(CoreApplication.java:75)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at com.example.core.CoreApplication.updateTradingPairsAfterRestart(CoreApplication.java:75)
+	at com.example.core.CoreApplication.onApplicationReady(CoreApplication.java:69)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.context.event.ApplicationListenerMethodAdapter.doInvoke(ApplicationListenerMethodAdapter.java:382)
+	at org.springframework.context.event.ApplicationListenerMethodAdapter.processEvent(ApplicationListenerMethodAdapter.java:254)
+	at org.springframework.context.event.ApplicationListenerMethodAdapter.onApplicationEvent(ApplicationListenerMethodAdapter.java:173)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:185)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:178)
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:156)
+	at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:454)
+	at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:387)
+	at org.springframework.boot.context.event.EventPublishingRunListener.ready(EventPublishingRunListener.java:109)
+	at org.springframework.boot.SpringApplicationRunListeners.lambda$ready$6(SpringApplicationRunListeners.java:80)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:118)
+	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:112)
+	at org.springframework.boot.SpringApplicationRunListeners.ready(SpringApplicationRunListeners.java:80)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:332)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1362)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1351)
+	at com.example.core.CoreApplication.main(CoreApplication.java:54)
+2025-09-04T00:55:56.147-04:00  INFO 32713 --- [           main] o.s.a.r.l.SimpleMessageListenerContainer : Waiting for workers to finish.
+2025-09-04T00:55:56.178-04:00  INFO 32713 --- [           main] o.s.a.r.l.SimpleMessageListenerContainer : Successfully waited for workers to finish.
+2025-09-04T00:55:56.178-04:00  INFO 32713 --- [           main] o.s.i.a.i.AmqpInboundChannelAdapter      : stopped bean 'inbound.cointegration.events.core-group'
+2025-09-04T00:55:56.195-04:00  INFO 32713 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'core-service.rabbit-838227686.cointegrationEventsConsumer-in-0.errors' has 1 subscriber(s).
+2025-09-04T00:55:56.196-04:00  INFO 32713 --- [           main] o.s.c.stream.binder.BinderErrorChannel   : Channel 'core-service.rabbit-838227686.cointegrationEventsConsumer-in-0.errors' has 0 subscriber(s).
+2025-09-04T00:55:56.197-04:00  INFO 32713 --- [           main] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-09-04T00:55:56.199-04:00  INFO 32713 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-09-04T00:55:56.225-04:00  INFO 32713 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2025-09-04T00:55:56.225-04:00  INFO 32713 --- [           main] o.s.i.channel.PublishSubscribeChannel    : Channel 'core-service.errorChannel' has 0 subscriber(s).
+2025-09-04T00:55:56.226-04:00  INFO 32713 --- [           main] o.s.i.endpoint.EventDrivenConsumer       : stopped bean '_org.springframework.integration.errorLogger'
+2025-09-04T00:55:56.233-04:00  INFO 32713 --- [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-09-04T00:55:56.234-04:00  INFO 32713 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-09-04T00:55:56.235-04:00  INFO 32713 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
