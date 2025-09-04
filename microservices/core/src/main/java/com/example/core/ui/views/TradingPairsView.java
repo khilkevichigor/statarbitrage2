@@ -43,7 +43,7 @@ public class TradingPairsView extends VerticalLayout implements UIUpdateable {
         H2 heading = new H2("Торгуемые пары");
         Button closeAllButton = new Button("Закрыть все");
         closeAllButton.getStyle().set("margin-left", "auto");
-        closeAllButton.addClickListener(e -> tradingPairsComponent.closeAllTrades());
+        closeAllButton.addClickListener(e -> tradingPairsComponent.closeAllTradesWithConfirmation());
 
         HorizontalLayout header = new HorizontalLayout(heading, closeAllButton);
         header.setWidthFull();

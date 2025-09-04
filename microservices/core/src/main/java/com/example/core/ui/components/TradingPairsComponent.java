@@ -606,6 +606,26 @@ public class TradingPairsComponent extends VerticalLayout {
         }
     }
 
+    public void closeAllTradesWithConfirmation() {
+        try {
+            List<TradingPair> tradingPairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            if (tradingPairs.isEmpty()) {
+                Notification.show("Нет активных торговых пар для закрытия");
+                return;
+            }
+            
+            ConfirmationDialog dialog = new ConfirmationDialog(
+                    "Подтверждение", 
+                    String.format("Вы уверены, что хотите закрыть все торговые пары (%d шт.)?", tradingPairs.size()), 
+                    e -> closeAllTrades()
+            );
+            dialog.open();
+        } catch (Exception e) {
+            log.error("❌ Ошибка при подготовке закрытия всех пар", e);
+            Notification.show("Ошибка при подготовке закрытия всех пар: " + e.getMessage());
+        }
+    }
+
     private static class ConfirmationDialog extends Dialog {
 
         public ConfirmationDialog(String header, String text, Consumer<Void> confirmListener) {
