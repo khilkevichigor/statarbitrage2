@@ -587,3 +587,55 @@ feign.FeignException$InternalServerError: [500] during [POST] to [http://localho
 2025-09-04T01:37:28.063-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-1.039590989096679)
 2025-09-04T01:37:28.063-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9779749080007671, (z=-1.039590989096679)
 2025-09-04T01:37:28.066-04:00  WARN 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:38:00.031-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:38:00.109-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:38:00.110-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:38:00.110-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:38:25.573-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 104
+2025-09-04T01:38:25.574-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:38:25.574-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 3.128549959504711, (p=6.884216642154471E-91, r=0.8, adf=0.01, corr=0.8641886003393624)
+2025-09-04T01:38:25.574-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 6.096447191922768E-205, (z=1.6643727104386552)
+2025-09-04T01:38:25.574-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-1.039590989096679)
+2025-09-04T01:38:25.574-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-1.039590989096679)
+2025-09-04T01:38:25.574-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9780163846640556, (z=-1.039590989096679)
+2025-09-04T01:38:25.575-04:00  WARN 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:39:00.034-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:39:00.110-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:39:00.110-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:39:00.111-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:39:30.038-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 102
+2025-09-04T01:39:30.043-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:39:30.045-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 3.128549959504711, (p=7.126958799077937E-91, r=0.8, adf=0.01, corr=0.8641545661907322)
+2025-09-04T01:39:30.050-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 8.328778074011858E-205, (z=1.6643727104386552)
+2025-09-04T01:39:30.050-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-1.039590989096679)
+2025-09-04T01:39:30.051-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-1.039590989096679)
+2025-09-04T01:39:30.051-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9779697901121254, (z=-1.039590989096679)
+2025-09-04T01:39:30.063-04:00  WARN 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:40:00.018-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:40:00.114-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:40:00.114-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:40:00.114-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:40:27.615-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 102
+2025-09-04T01:40:27.617-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:40:27.617-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 3.128549959504711, (p=8.49715594494552E-91, r=0.8, adf=0.01, corr=0.8639817185275125)
+2025-09-04T01:40:27.617-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 7.738266380380663E-205, (z=1.6643727104386552)
+2025-09-04T01:40:27.617-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-1.039590989096679)
+2025-09-04T01:40:27.617-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-1.039590989096679)
+2025-09-04T01:40:27.617-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9779807811635965, (z=-1.039590989096679)
+2025-09-04T01:40:27.618-04:00  WARN 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:41:00.035-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:41:00.265-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:41:00.265-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:41:00.265-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...
+2025-09-04T01:41:38.950-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : Всего коинтегрированных пар 104
+2025-09-04T01:41:38.987-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  : 📊 Статистика перед отбором пар:
+2025-09-04T01:41:38.987-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔥 Лучший Z-Score: 3.128549959504711, (p=7.219148839500441E-91, r=0.8, adf=0.01, corr=0.8641419410138349)
+2025-09-04T01:41:38.990-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📉 Лучший P-Value: 8.142573257817487E-205, (z=1.6643727104386552)
+2025-09-04T01:41:38.991-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    📈 Лучший R-Squared: 0.8, (z=-1.039590989096679)
+2025-09-04T01:41:38.991-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔍 Лучший ADF: 0.01, (z=-1.039590989096679)
+2025-09-04T01:41:38.994-04:00  INFO 33895 --- [   scheduling-1] c.e.cointegration.service.ZScoreService  :    🔗 Лучшая корреляция: 0.9779731700377193, (z=-1.039590989096679)
+2025-09-04T01:41:39.015-04:00  WARN 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : ⚠️ Отобрано 0 пар!
+2025-09-04T01:42:00.040-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🔄 Шедуллер поиска коинтегрированных пар запущен...
+2025-09-04T01:42:00.287-04:00  INFO 33895 --- [   scheduling-1] c.e.c.s.FindCointPairsScheduler          : 🆕 Начинаем отбор...
+2025-09-04T01:42:00.288-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 
+2025-09-04T01:42:00.288-04:00  INFO 33895 --- [   scheduling-1] c.e.c.p.FetchCointPairsProcessor         : 🔎 Начало поиска пар...

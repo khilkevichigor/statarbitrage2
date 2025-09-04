@@ -58,14 +58,24 @@ public class CoreApplication {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
+        try {
+            //ждем чтобы не мешать логи и было по красоте
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         // Проверка геолокации при запуске
         geolocationService.checkGeolocationOnStartup();
+        log.info("");
         log.info("✅ Геолокация при запуске: безопасно для OKX");
 
         // Проверка Cointegration API
         checkCointegrationApiHealth();
         log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
 
+        log.info("");
+        log.info("Запускаю плановое обновление пар при запуске...");
         updateTradingPairsAfterRestart();
         log.info("");
         log.info("✅ Пары обновлены");

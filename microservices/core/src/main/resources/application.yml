@@ -45,7 +45,7 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: true
     out-of-order: false
-#    repair: true
+  #    repair: true
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
@@ -107,6 +107,7 @@ management:
 logging:
   level:
     com.example.core: INFO
+    com.vaadin.flow.spring.SpringInstantiator: WARN # убираем предупреждение о локализации i18n
     root: INFO
   file:
     name: core/logs/core.log
