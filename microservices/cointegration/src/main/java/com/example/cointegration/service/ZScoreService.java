@@ -364,7 +364,18 @@ public class ZScoreService {
                         "zScore", Double.NaN
                 ));
 
-        log.info("Всего коинтегрированных пар {}", zScoreDataList.size());
+        long total = zScoreDataList.size();
+
+        long above2  = zScoreDataList.stream().mapToDouble(this::extractLastZScore).filter(z -> z > 2.0).count();
+        long above25 = zScoreDataList.stream().mapToDouble(this::extractLastZScore).filter(z -> z > 2.5).count();
+        long above3  = zScoreDataList.stream().mapToDouble(this::extractLastZScore).filter(z -> z > 3.0).count();
+        long above35 = zScoreDataList.stream().mapToDouble(this::extractLastZScore).filter(z -> z > 3.5).count();
+        long above4  = zScoreDataList.stream().mapToDouble(this::extractLastZScore).filter(z -> z > 4.0).count();
+
+        //        log.info("Всего коинтегрированных пар {}", zScoreDataList.size());
+        log.info("Всего коинтегрированных пар {} из них >2.0:{{}}, >2.5:{{}}, >3.0:{{}}, >3.5:{{}}, >4.0:{{}}",
+                total, above2, above25, above3, above35, above4);
+
         log.info("📊 Статистика перед отбором пар:");
         log.info("   🔥 Лучший Z-Score: {}, (p={}, r={}, adf={}, corr={})", maxZScoreData.get("maxZScore"), maxZScoreData.get("pValue"), maxZScoreData.get("R"), maxZScoreData.get("Adf"), maxZScoreData.get("Corr"));
         log.info("   📉 Лучший P-Value: {}, (z={})", minPValueData.get("pValue"), minPValueData.get("zScore"));
@@ -405,6 +416,14 @@ public class ZScoreService {
         }
 
         return bestPairs;
+    }
+
+    private double extractLastZScore(ZScoreData data) {
+        List<ZScoreParam> params = data.getZScoreHistory();
+        if (params != null && !params.isEmpty()) {
+            return params.get(params.size() - 1).getZscore();
+        }
+        return data.getLatestZScore() != null ? data.getLatestZScore() : 0.0;
     }
 
     private ZScoreData getDetailedZScoreData(ZScoreData best, Map<String, List<Candle>> candlesMap, Settings settings) {
