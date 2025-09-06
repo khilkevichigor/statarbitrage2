@@ -4,6 +4,7 @@ import com.example.core.repositories.SettingsRepository;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SettingsService {
     private final SettingsRepository settingsRepository;
+    
+    @Lazy
+    private final AutoVolumeService autoVolumeService;
 
     public Settings getSettings() {
         List<Settings> allSettings = settingsRepository.findAll();
@@ -31,5 +35,14 @@ public class SettingsService {
     @Transactional
     public void save(Settings settings) {
         settingsRepository.save(settings);
+        
+        // Логируем состояние автообъема после сохранения настроек
+        if (autoVolumeService != null) {
+            try {
+                autoVolumeService.logAutoVolumeStatus(settings);
+            } catch (Exception e) {
+                log.warn("⚠️ Не удалось залогировать состояние автообъема: {}", e.getMessage());
+            }
+        }
     }
 }

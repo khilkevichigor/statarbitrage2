@@ -231,6 +231,11 @@ public class Settings {
     @Column(name = "max_averaging_count")
     private int maxAveragingCount = 3;
 
+    // ===== Автообъем =====
+    @Builder.Default
+    @Column(name = "auto_volume_enabled")
+    private boolean autoVolumeEnabled = false;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

@@ -4,6 +4,7 @@ import com.example.core.schedulers.TradeAndSimulationScheduler;
 import com.example.core.services.SettingsService;
 import com.example.core.services.CapitalCalculationService;
 import com.example.core.services.PortfolioService;
+import com.example.core.services.AutoVolumeService;
 import com.example.shared.models.Settings;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -43,23 +44,28 @@ public class SettingsComponent extends VerticalLayout {
     private final TradeAndSimulationScheduler tradeAndSimulationScheduler;
     private final CapitalCalculationService capitalCalculationService;
     private final PortfolioService portfolioService;
+    private final AutoVolumeService autoVolumeService;
     private final Binder<Settings> settingsBinder;
 
     private Settings currentSettings;
     private Checkbox autoTradingCheckbox;
     private Runnable autoTradingChangeCallback;
     
-    // Поля для расчета депозита
+    // Поля для расчета депозита и автообъема
     private Span capitalInfoSpan;
+    private NumberField autoVolumeLongField;
+    private NumberField autoVolumeShortField;
 
     public SettingsComponent(SettingsService settingsService,
                              TradeAndSimulationScheduler tradeAndSimulationScheduler,
                              CapitalCalculationService capitalCalculationService,
-                             PortfolioService portfolioService) {
+                             PortfolioService portfolioService,
+                             AutoVolumeService autoVolumeService) {
         this.settingsService = settingsService;
         this.tradeAndSimulationScheduler = tradeAndSimulationScheduler;
         this.capitalCalculationService = capitalCalculationService;
         this.portfolioService = portfolioService;
+        this.autoVolumeService = autoVolumeService;
         this.settingsBinder = new Binder<>(Settings.class);
 
         initializeComponent();
@@ -269,9 +275,21 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(averagingDrawdownMultiplierField, 0.1, 1.0);
         setNumberFieldProperties(maxAveragingCountField, 1, 1);
 
+        // Создаем поля автообъема
+        Checkbox autoVolumeCheckbox = new Checkbox("Автообъем");
+        autoVolumeLongField = new NumberField("Текущий автообъем лонг ($)");
+        autoVolumeShortField = new NumberField("Текущий автообъем шорт ($)");
+        
+        // Настраиваем поля автообъема как readonly
+        autoVolumeLongField.setReadOnly(true);
+        autoVolumeShortField.setReadOnly(true);
+        autoVolumeLongField.setHelperText("Рассчитанный автоматически размер позиции лонг");
+        autoVolumeShortField.setHelperText("Рассчитанный автоматически размер позиции шорт");
+
         add(createCapitalManagementSection(usePairsField, maxShortMarginSize, maxLongMarginSize, 
                 leverageField, autoAveragingCheckbox, averagingDrawdownThresholdField,
-                averagingVolumeMultiplierField, averagingDrawdownMultiplierField, maxAveragingCountField));
+                averagingVolumeMultiplierField, averagingDrawdownMultiplierField, maxAveragingCountField,
+                autoVolumeCheckbox, autoVolumeLongField, autoVolumeShortField));
 
         add(createExitStrategySection(
                 exitTakeField,
@@ -337,6 +355,9 @@ public class SettingsComponent extends VerticalLayout {
         // Привязываем поля усреднения отдельно
         bindAveragingFields(autoAveragingCheckbox, averagingDrawdownThresholdField,
                 averagingVolumeMultiplierField, averagingDrawdownMultiplierField, maxAveragingCountField);
+                
+        // Привязываем поля автообъема
+        bindAutoVolumeFields(autoVolumeCheckbox);
 
         settingsBinder.readBean(currentSettings);
     }
@@ -774,6 +795,40 @@ public class SettingsComponent extends VerticalLayout {
                 .bind(settings -> (double) settings.getMaxAveragingCount(),
                         (settings, value) -> settings.setMaxAveragingCount(value.intValue()));
     }
+    
+    /**
+     * Привязывает поля автообъема к настройкам
+     */
+    private void bindAutoVolumeFields(Checkbox autoVolumeCheckbox) {
+        // Привязываем чекбокс автообъема
+        settingsBinder.forField(autoVolumeCheckbox)
+                .bind(Settings::isAutoVolumeEnabled, Settings::setAutoVolumeEnabled);
+        
+        // Инициализируем значения автообъема
+        updateAutoVolumeValues();
+    }
+    
+    /**
+     * Обновляет значения полей автообъема
+     */
+    private void updateAutoVolumeValues() {
+        try {
+            // Получаем текущие настройки для расчета автообъема
+            Settings settings = settingsService.getSettings();
+            AutoVolumeService.AutoVolumeData autoVolumeData = autoVolumeService.calculateAutoVolume(settings);
+            
+            autoVolumeLongField.setValue(autoVolumeData.getLongVolume().doubleValue());
+            autoVolumeShortField.setValue(autoVolumeData.getShortVolume().doubleValue());
+            
+            log.debug("📊 Обновлены значения автообъема: лонг={}, шорт={}", 
+                autoVolumeData.getLongVolume(), autoVolumeData.getShortVolume());
+                
+        } catch (Exception e) {
+            log.warn("⚠️ Ошибка при обновлении значений автообъема: {}", e.getMessage());
+            autoVolumeLongField.setValue(0.0);
+            autoVolumeShortField.setValue(0.0);
+        }
+    }
 
     private void setupValidation() {
         settingsBinder.setStatusLabel(null);
@@ -847,7 +902,10 @@ public class SettingsComponent extends VerticalLayout {
                                                    NumberField averagingDrawdownThresholdField,
                                                    NumberField averagingVolumeMultiplierField,
                                                    NumberField averagingDrawdownMultiplierField,
-                                                   NumberField maxAveragingCountField) {
+                                                   NumberField maxAveragingCountField,
+                                                   Checkbox autoVolumeCheckbox,
+                                                   NumberField autoVolumeLongField,
+                                                   NumberField autoVolumeShortField) {
         
         FormLayout capitalForm = createFormLayout();
         
@@ -883,6 +941,26 @@ public class SettingsComponent extends VerticalLayout {
                              autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField);
         });
         
+        // Логика активации/деактивации полей автообъема
+        boolean isAutoVolumeEnabled = currentSettings.isAutoVolumeEnabled();
+        maxShortMarginSize.setEnabled(!isAutoVolumeEnabled);
+        maxLongMarginSize.setEnabled(!isAutoVolumeEnabled);
+        
+        autoVolumeCheckbox.addValueChangeListener(event -> {
+            boolean autoVolumeEnabled = event.getValue();
+            
+            // Деактивируем/активируем поля размера риска
+            maxShortMarginSize.setEnabled(!autoVolumeEnabled);
+            maxLongMarginSize.setEnabled(!autoVolumeEnabled);
+            
+            // Обновляем значения автообъема
+            updateAutoVolumeValues();
+            
+            // Обновляем информацию о капитале
+            updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
+                             autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField);
+        });
+        
         // Слушатели для обновления информации о капитале
         usePairsField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
                                                                    autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
@@ -904,6 +982,9 @@ public class SettingsComponent extends VerticalLayout {
                 maxShortMarginSize,
                 maxLongMarginSize,
                 leverageField,
+                autoVolumeCheckbox,
+                autoVolumeLongField,
+                autoVolumeShortField,
                 autoAveragingCheckbox,
                 averagingDrawdownThresholdField,
                 averagingVolumeMultiplierField,
@@ -959,6 +1040,9 @@ public class SettingsComponent extends VerticalLayout {
             }
             
             capitalInfoSpan.setText(message);
+            
+            // Обновляем значения автообъема при изменении настроек
+            updateAutoVolumeValues();
             
         } catch (Exception e) {
             capitalInfoSpan.setText("⚠️ Ошибка расчета капитала: " + e.getMessage());
