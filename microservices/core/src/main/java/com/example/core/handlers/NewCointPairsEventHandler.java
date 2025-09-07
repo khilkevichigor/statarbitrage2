@@ -1,6 +1,7 @@
 package com.example.core.handlers;
 
 import com.example.core.converters.CointPairToTradingPairConverter;
+import com.example.core.messaging.SendEventService;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.repositories.CointPairRepository;
 import com.example.core.services.EventSendService;
@@ -12,6 +13,7 @@ import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.UpdateUiEvent;
 import com.example.shared.events.rabbit.CointegrationEvent;
+import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.CointPair;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
@@ -37,6 +39,7 @@ public class NewCointPairsEventHandler {
     private final OkxPortfolioManager okxPortfolioManager;
     private final CointPairRepository cointPairRepository;
     private final PriceIntersectionService priceIntersectionService;
+    private final SendEventService sendEventService;
 
     public void handle(CointegrationEvent event) {
         try {
@@ -258,6 +261,11 @@ public class NewCointPairsEventHandler {
                     .tradingPair(pair)
                     .checkAutoTrading(true)
                     .build());
+            if (result != null) {
+                byte[] intersectionChart = {}; //todo получаем чарт пересечений как массив байт и отправляем
+                String message = "Новый трейд: " + pair.getPairName();
+                sendEventService.sendCoreEvent(new CoreEvent(message, intersectionChart, CoreEvent.Type.ENTRY_INTERSECTION_CHART));
+            }
             return result != null;
         } catch (Exception e) {
             log.warn("⚠️ Не удалось запустить новый трейд для пары {}: {}", pair.getPairName(), e.getMessage());

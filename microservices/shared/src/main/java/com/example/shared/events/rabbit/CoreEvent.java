@@ -13,12 +13,14 @@ public class CoreEvent extends BaseEvent {
     private TradingPair tradingPair;
     private Type type;
     private String message;
+    private byte[] data;
 
     public enum Type {
         ADD_CLOSED_TO_CSV,
         CLEAR_COINT_PAIRS,
         MESSAGE_TO_TELEGRAM,
-        CLOSED_MESSAGE_TO_TELEGRAM
+        CLOSED_MESSAGE_TO_TELEGRAM,
+        ENTRY_INTERSECTION_CHART
     }
 
     public CoreEvent(TradingPair tradingPair, Type type) {
@@ -28,24 +30,18 @@ public class CoreEvent extends BaseEvent {
         this.type = type;
     }
 
+    public CoreEvent(String message, byte[] data, Type type) {
+        super("CORE_EVENT");
+        super.setBindingName(BINDING_NAME);
+        this.data = data;
+        this.type = type;
+        this.message = message;
+    }
+
     public CoreEvent(String message, Type type) {
         super("CORE_EVENT");
         super.setBindingName(BINDING_NAME);
         this.message = message;
         this.type = type;
     }
-
-//    public CoreEvent(String message, CoreEvent.Type type) {
-//        super("CORE_EVENT");
-//        super.setBindingName(BINDING_NAME);
-//        this.message = message;
-//        this.type = type;
-//    }
-//
-//    public CoreEvent(List<TradingPair> tradingPairs, CoreEvent.Type type) {
-//        super("CORE_EVENT");
-//        super.setBindingName(BINDING_NAME);
-//        this.tradingPairs = tradingPairs;
-//        this.type = type;
-//    }
 }
