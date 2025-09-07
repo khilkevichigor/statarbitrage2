@@ -51,28 +51,23 @@ public class ChartController {
         Mat result = src.clone();
 
         if ("mask".equalsIgnoreCase(mode)) {
-            // --- расширяем линии ---
             Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3));
             Imgproc.dilate(redMask, redMask, kernel);
             Imgproc.dilate(greenMask, greenMask, kernel);
 
-            // --- пересечение масок ---
             Mat intersectionMask = new Mat();
             Core.bitwise_and(redMask, greenMask, intersectionMask);
             intersections = getLinePoints(intersectionMask);
 
-            // рисуем
             for (Point p : intersections) {
                 Imgproc.circle(result, p, 3, new Scalar(255, 0, 0), -1);
             }
 
         } else {
-            // --- точки линий ---
             List<Point> redPoints = getLinePoints(redMask);
             List<Point> greenPoints = getLinePoints(greenMask);
 
             if ("pixel".equalsIgnoreCase(mode)) {
-                // строгое совпадение
                 for (Point rp : redPoints) {
                     for (Point gp : greenPoints) {
                         if (Math.abs(rp.x - gp.x) <= 1 && Math.abs(rp.y - gp.y) <= 1) {
@@ -81,7 +76,6 @@ public class ChartController {
                     }
                 }
             } else if ("distance".equalsIgnoreCase(mode)) {
-                // расстояние <= N
                 for (Point rp : redPoints) {
                     for (Point gp : greenPoints) {
                         double dx = rp.x - gp.x;
@@ -93,11 +87,25 @@ public class ChartController {
                 }
             }
 
-            // рисуем
             for (Point p : redPoints) result.put((int) p.y, (int) p.x, new double[]{0, 0, 255});
             for (Point p : greenPoints) result.put((int) p.y, (int) p.x, new double[]{0, 255, 0});
             for (Point p : intersections) Imgproc.circle(result, p, 3, new Scalar(255, 0, 0), -1);
         }
+
+        // --- Текст с количеством пересечений ---
+        String text = "Intersections: " + intersections.size();
+        int font = Imgproc.FONT_HERSHEY_SIMPLEX;
+        double fontScale = 2.0; // очень крупный текст
+        int thickness = 5;
+        Imgproc.putText(
+                result,
+                text,
+                new Point(50, 200), // координаты (слева сверху)
+                font,
+                fontScale,
+                new Scalar(0, 255, 255), // ярко-жёлтый цвет
+                thickness
+        );
 
         String outPath = path.replace(".png", "_" + mode + "_out.png");
         Imgcodecs.imwrite(outPath, result);
