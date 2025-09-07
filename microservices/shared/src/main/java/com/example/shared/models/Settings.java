@@ -236,6 +236,15 @@ public class Settings {
     @Column(name = "auto_volume_enabled")
     private boolean autoVolumeEnabled = false;
 
+    // ===== Фильтр по пересечениям нормализованных цен =====
+    @Builder.Default
+    @Column(name = "min_intersections")
+    private int minIntersections = 10;
+
+    @Builder.Default
+    @Column(name = "use_min_intersections")
+    private boolean useMinIntersections = false;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();

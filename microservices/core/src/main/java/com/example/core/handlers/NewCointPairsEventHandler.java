@@ -4,6 +4,7 @@ import com.example.core.converters.CointPairToTradingPairConverter;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.repositories.CointPairRepository;
 import com.example.core.services.EventSendService;
+import com.example.core.services.PriceIntersectionService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.TradingPairService;
 import com.example.core.trading.services.OkxPortfolioManager;
@@ -35,6 +36,7 @@ public class NewCointPairsEventHandler {
     private final TradingPairService tradingPairRepository;
     private final OkxPortfolioManager okxPortfolioManager;
     private final CointPairRepository cointPairRepository;
+    private final PriceIntersectionService priceIntersectionService;
 
     public void handle(CointegrationEvent event) {
         try {
@@ -66,7 +68,7 @@ public class NewCointPairsEventHandler {
             log.info("Осталось {} пар из {} после фильтрации по trading парам", filteredByTradingPairs.size(), filteredByMinLotCointPairs.size());
 
             List<CointPair> filteredByEnoughIntersections = filterByMinIntersections(filteredByTradingPairs);
-            log.info("Осталось {} пар из {} после фильтрации по достаточному пересечению нормализованных цен", filteredByTradingPairs.size(), filteredByEnoughIntersections.size());
+            log.info("Осталось {} пар из {} после фильтрации по достаточному пересечению нормализованных цен", filteredByEnoughIntersections.size(), filteredByTradingPairs.size());
 
             Map<String, List<CointPair>> missedAndRemainingPairs = splitAndGetMissedAndRemainingPairs(filteredByEnoughIntersections);
             List<CointPair> missedCointPairs = missedAndRemainingPairs.get("missed");
@@ -148,8 +150,42 @@ public class NewCointPairsEventHandler {
     }
 
     private List<CointPair> filterByMinIntersections(List<CointPair> cointPairs) {
+        Settings settings = settingsService.getSettings();
 
-        return null;
+        // Если фильтр отключен, возвращаем исходный список
+        if (!settings.isUseMinIntersections()) {
+            log.debug("📊 Фильтр по пересечениям нормализованных цен отключен");
+            return cointPairs;
+        }
+
+        int minIntersections = settings.getMinIntersections();
+        log.info("📊 Применяем фильтр по пересечениям: минимум {} пересечений", minIntersections);
+
+        List<CointPair> filteredPairs = new ArrayList<>();
+
+        for (CointPair cointPair : cointPairs) {
+            try {
+                int intersections = priceIntersectionService.calculateIntersections(cointPair);
+
+                log.info("📊 Пара {}: {} пересечений нормализованных цен",
+                        cointPair.getPairName(), intersections);
+
+                if (intersections >= minIntersections) {
+                    filteredPairs.add(cointPair);
+                    log.debug("✅ Пара {} прошла фильтр: {} >= {} пересечений",
+                            cointPair.getPairName(), intersections, minIntersections);
+                } else {
+                    log.info("❌ Пара {} отфильтрована: {} < {} пересечений",
+                            cointPair.getPairName(), intersections, minIntersections);
+                }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при подсчете пересечений для пары {}: {}",
+                        cointPair.getPairName(), e.getMessage(), e);
+                // В случае ошибки не добавляем пару в отфильтрованный список
+            }
+        }
+
+        return filteredPairs;
     }
 
     private List<String> getUsedTickers() {
