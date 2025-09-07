@@ -103,7 +103,7 @@ public class ChartController {
                 new Point(50, 200), // координаты (слева сверху)
                 font,
                 fontScale,
-                new Scalar(0, 255, 255), // ярко-жёлтый цвет
+                new Scalar(0, 165, 255), // ярко-жёлтый цвет
                 thickness
         );
 
