@@ -1,4 +1,4 @@
-package com.example.core.experemental;
+package com.example.core.experemental.intersections;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
