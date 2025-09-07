@@ -1172,16 +1172,16 @@ public class ChartService {
 
     /**
      * Создает чарт нормализованных цен с подсчетом и отображением пересечений
-     * 
-     * @param longCandles свечи для long позиции
-     * @param shortCandles свечи для short позиции  
-     * @param pairName название пары для заголовка
+     *
+     * @param longCandles        свечи для long позиции
+     * @param shortCandles       свечи для short позиции
+     * @param pairName           название пары для заголовка
      * @param intersectionsCount количество найденных пересечений
-     * @param saveToProject флаг сохранения в корень проекта
+     * @param saveToProject      флаг сохранения в корень проекта
      * @return BufferedImage созданного чарта
      */
-    public BufferedImage createNormalizedPriceIntersectionsChart(List<Candle> longCandles, List<Candle> shortCandles, 
-                                                               String pairName, int intersectionsCount, boolean saveToProject) {
+    public BufferedImage createNormalizedPriceIntersectionsChart(List<Candle> longCandles, List<Candle> shortCandles,
+                                                                 String pairName, int intersectionsCount, boolean saveToProject) {
         log.info("📊 Создание чарта нормализованных цен с пересечениями для пары: {} (пересечений: {})", pairName, intersectionsCount);
 
         if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
@@ -1209,8 +1209,8 @@ public class ChartService {
             // Создаем чарт
             XYChart chart = new XYChartBuilder()
                     .width(1920).height(720)
-                    .title(String.format("Нормализованные цены: %s (Пересечений: %d из %d точек)", 
-                           pairName, intersectionsCount, minSize))
+                    .title(String.format("Нормализованные цены: %s (Пересечений: %d из %d точек)",
+                            pairName, intersectionsCount, minSize))
                     .xAxisTitle("Время").yAxisTitle("Нормализованная цена")
                     .build();
 
@@ -1309,10 +1309,10 @@ public class ChartService {
             if (currentFirstAboveSecond != firstAboveSecond) {
                 // Находим приблизительную точку пересечения (среднее значение)
                 double intersectionValue = (prices1[i] + prices2[i]) / 2.0;
-                
+
                 intersectionTimes.add(timeAxis.get(i));
                 intersectionValues.add(intersectionValue);
-                
+
                 firstAboveSecond = currentFirstAboveSecond;
             }
         }
@@ -1328,22 +1328,22 @@ public class ChartService {
     }
 
     /**
-     * Сохраняет чарт в корень проекта
+     * Сохраняет чарт в папку microservices/charts/filter/intersections
      */
     private void saveChartToProject(BufferedImage chartImage, String pairName, int intersectionsCount) {
         try {
-            // Получаем путь к корню проекта (поднимаемся из microservices/)
-            Path projectRoot = Paths.get(System.getProperty("user.dir")).getParent();
-            if (projectRoot == null) {
-                projectRoot = Paths.get(System.getProperty("user.dir"));
-            }
+            // Создаем путь к папке charts/filter/intersections внутри microservices
+            Path chartsDir = Paths.get(System.getProperty("user.dir"), "charts", "filter", "intersections");
+
+            // Создаем директории если они не существуют
+            Files.createDirectories(chartsDir);
 
             // Создаем безопасное имя файла
-            String safeFileName = pairName.replaceAll("[^a-zA-Z0-9-_]", "_") + 
-                                "_intersections_" + intersectionsCount + 
-                                "_" + System.currentTimeMillis() + ".png";
-            
-            Path chartPath = projectRoot.resolve(safeFileName);
+            String safeFileName = pairName.replaceAll("[^a-zA-Z0-9-_]", "_") +
+                    "_intersections_" + intersectionsCount +
+                    "_" + System.currentTimeMillis() + ".png";
+
+            Path chartPath = chartsDir.resolve(safeFileName);
 
             // Сохраняем чарт используя стандартный Java ImageIO
             javax.imageio.ImageIO.write(chartImage, "PNG", chartPath.toFile());

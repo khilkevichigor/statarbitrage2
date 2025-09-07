@@ -27,6 +27,21 @@ public class ReceiveEventService {
     }
 
     //===КЕЙС ликвидация BERA/NMR===
+
+    /*
+    ПЕРЕСЕЧЕНИЕ ГРАФИКОВ
+    у меня есть сервис который считает пересечение в пикселях для картинки и в точках для нормализованных цен
+    пиксели: com.example.core.experemental.intersections.AnalyzeChartIntersectionsService.analyze
+    точки:   com.example.core.services.PriceIntersectionService.calculateIntersectionsWithChart
+
+    чарты с точками попадают в /Users/igorkhilkevich/IdeaProjects/statarbitrage/microservices/charts/filter/intersections работает на этапе получения пар от Cointegration
+    чарты с пикселями генерятся на лету и сохраняются на рабочем столе. Работает через Постман
+
+    теперь нужно определиться что выбрать, точки вроде норм!
+    нужно при открытии пары слать в телегу чарт с пересечениями что бы трекать как работает
+
+     */
+
     //todo перейти на отбор пар из топ-N по coinmarketcap
     //todo сделать уведомления что просадка >10, >20, >30 - соответственно ставим на карандаш и чекаем ликвидацию
     //todo чекер что позицию ликвиднуло
