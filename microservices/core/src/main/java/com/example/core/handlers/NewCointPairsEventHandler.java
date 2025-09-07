@@ -66,7 +66,7 @@ public class NewCointPairsEventHandler {
             log.info("Осталось {} пар из {} после фильтрации по trading парам", filteredByTradingPairs.size(), filteredByMinLotCointPairs.size());
 
             List<CointPair> filteredByEnoughIntersections = filterByEnoughIntersections(filteredByTradingPairs);
-            log.info("Осталось {} пар из {} после фильтрации по достаточному пересечению графиков", filteredByTradingPairs.size(), filteredByEnoughIntersections.size());
+            log.info("Осталось {} пар из {} после фильтрации по достаточному пересечению нормализованных цен", filteredByTradingPairs.size(), filteredByEnoughIntersections.size());
 
             Map<String, List<CointPair>> missedAndRemainingPairs = splitAndGetMissedAndRemainingPairs(filteredByEnoughIntersections);
             List<CointPair> missedCointPairs = missedAndRemainingPairs.get("missed");
