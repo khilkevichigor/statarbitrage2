@@ -2,6 +2,9 @@ package com.example.core.services;
 
 import com.example.shared.dto.Candle;
 import com.example.shared.models.CointPair;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,53 @@ import java.util.List;
 public class PriceIntersectionService {
 
     private final ChartService chartService;
+
+    /**
+     * Подсчитывает количество пересечений нормализованных цен закрытия для пары
+     * и возвращает результат с нормализованными ценами
+     *
+     * @param cointPair пара для анализа
+     * @return результат с количеством пересечений и нормализованными ценами
+     */
+    public IntersectionResult calculateIntersectionsWithData(CointPair cointPair) {
+        List<Candle> longCandles = cointPair.getLongTickerCandles();
+        List<Candle> shortCandles = cointPair.getShortTickerCandles();
+
+        if (longCandles == null || shortCandles == null ||
+                longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Отсутствуют данные свечей для пары {}: long={}, short={}",
+                    cointPair.getPairName(),
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null");
+            return new IntersectionResult(0, null, null);
+        }
+
+        int minSize = Math.min(longCandles.size(), shortCandles.size());
+        if (minSize < 2) {
+            log.warn("⚠️ Недостаточно данных для анализа пересечений пары {}: minSize={}",
+                    cointPair.getPairName(), minSize);
+            return new IntersectionResult(0, null, null);
+        }
+
+        try {
+            // Нормализация цен
+            double[] normalizedLongPrices = normalizePrices(longCandles, minSize);
+            double[] normalizedShortPrices = normalizePrices(shortCandles, minSize);
+
+            // Подсчет пересечений
+            int intersections = countIntersections(normalizedLongPrices, normalizedShortPrices);
+
+            log.info("📊 Пара {}: найдено {} пересечений нормализованных цен из {} точек данных",
+                    cointPair.getPairName(), intersections, minSize);
+
+            return new IntersectionResult(intersections, normalizedLongPrices, normalizedShortPrices);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при подсчете пересечений для пары {}: {}",
+                    cointPair.getPairName(), e.getMessage(), e);
+            return new IntersectionResult(0, null, null);
+        }
+    }
 
     /**
      * Подсчитывает количество пересечений нормализованных цен закрытия для пары
@@ -129,10 +179,19 @@ public class PriceIntersectionService {
         return intersections;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class IntersectionResult {
+        private int intersections;
+        private double[] normalizedLongPrices;
+        private double[] normalizedShortPrices;
+    }
+
     /**
      * Подсчитывает пересечения и создает чарт нормализованных цен с пересечениями
      *
-     * @param cointPair пара для анализа  
+     * @param cointPair   пара для анализа
      * @param createChart флаг создания чарта (можно использовать для отключения)
      * @return количество пересечений
      */
@@ -157,17 +216,18 @@ public class PriceIntersectionService {
         }
 
         try {
-            // Подсчет пересечений (используем существующий метод)
-            int intersections = calculateIntersections(cointPair);
+            // Подсчет пересечений с получением нормализованных цен
+            IntersectionResult result = calculateIntersectionsWithData(cointPair);
+            int intersections = result.getIntersections();
 
             // Создаем чарт если требуется
             if (createChart) {
                 log.info("📊 Создание чарта нормализованных цен для пары {} с {} пересечениями",
-                         cointPair.getPairName(), intersections);
-                
+                        cointPair.getPairName(), intersections);
+
                 BufferedImage chartImage = chartService.createNormalizedPriceIntersectionsChart(
-                    longCandles, shortCandles, cointPair.getPairName(), intersections, true);
-                
+                        longCandles, shortCandles, cointPair.getPairName(), intersections, true);
+
                 if (chartImage.getWidth() > 1 && chartImage.getHeight() > 1) {
                     log.info("✅ Чарт нормализованных цен создан для пары {} (пересечений: {}, точек данных: {})",
                             cointPair.getPairName(), intersections, minSize);

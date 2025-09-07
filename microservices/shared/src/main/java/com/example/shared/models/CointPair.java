@@ -530,6 +530,22 @@ public class CointPair {
     @Column(name = "last_averaging_timestamp")
     private long lastAveragingTimestamp;
 
+    // ===== Поля для нормализованных цен пересечений =====
+    @Column(name = "normalized_long_prices_json", columnDefinition = "TEXT")
+    private String normalizedLongPricesJson;
+
+    @Column(name = "normalized_short_prices_json", columnDefinition = "TEXT")
+    private String normalizedShortPricesJson;
+
+    @Column(name = "intersections_count")
+    private Integer intersectionsCount;
+
+    @Transient
+    private double[] normalizedLongPrices;
+
+    @Transient
+    private double[] normalizedShortPrices;
+
     public CointPair(String longTicker, String shortTicker) {
         this.longTicker = longTicker;
         this.shortTicker = shortTicker;
@@ -919,6 +935,96 @@ public class CointPair {
         } catch (Exception e) {
             log.error("Ошибка десериализации коротких свечей для пары {}", pairName, e);
             this.shortTickerCandles = new ArrayList<>();
+        }
+    }
+
+    /**
+     * Получить нормализованные цены длинного тикера
+     */
+    public double[] getNormalizedLongPrices() {
+        if (normalizedLongPrices == null && normalizedLongPricesJson != null && !normalizedLongPricesJson.isEmpty()) {
+            loadNormalizedLongPricesFromJson();
+        }
+        return normalizedLongPrices;
+    }
+
+    /**
+     * Установить нормализованные цены длинного тикера
+     */
+    public void setNormalizedLongPrices(double[] normalizedLongPrices) {
+        this.normalizedLongPrices = normalizedLongPrices;
+        saveNormalizedLongPricesToJson();
+    }
+
+    /**
+     * Получить нормализованные цены короткого тикера
+     */
+    public double[] getNormalizedShortPrices() {
+        if (normalizedShortPrices == null && normalizedShortPricesJson != null && !normalizedShortPricesJson.isEmpty()) {
+            loadNormalizedShortPricesFromJson();
+        }
+        return normalizedShortPrices;
+    }
+
+    /**
+     * Установить нормализованные цены короткого тикера
+     */
+    public void setNormalizedShortPrices(double[] normalizedShortPrices) {
+        this.normalizedShortPrices = normalizedShortPrices;
+        saveNormalizedShortPricesToJson();
+    }
+
+    /**
+     * Сериализация нормализованных цен длинного тикера в JSON для сохранения в БД
+     */
+    private void saveNormalizedLongPricesToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.normalizedLongPricesJson = mapper.writeValueAsString(normalizedLongPrices);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации нормализованных цен длинного тикера для пары {}", pairName, e);
+        }
+    }
+
+    /**
+     * Десериализация нормализованных цен длинного тикера из JSON при загрузке из БД
+     */
+    private void loadNormalizedLongPricesFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<double[]> typeRef = new TypeReference<>() {
+            };
+            this.normalizedLongPrices = mapper.readValue(normalizedLongPricesJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации нормализованных цен длинного тикера для пары {}", pairName, e);
+            this.normalizedLongPrices = null;
+        }
+    }
+
+    /**
+     * Сериализация нормализованных цен короткого тикера в JSON для сохранения в БД
+     */
+    private void saveNormalizedShortPricesToJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            this.normalizedShortPricesJson = mapper.writeValueAsString(normalizedShortPrices);
+        } catch (Exception e) {
+            log.error("Ошибка сериализации нормализованных цен короткого тикера для пары {}", pairName, e);
+        }
+    }
+
+    /**
+     * Десериализация нормализованных цен короткого тикера из JSON при загрузке из БД
+     */
+    private void loadNormalizedShortPricesFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<double[]> typeRef = new TypeReference<>() {
+            };
+            this.normalizedShortPrices = mapper.readValue(normalizedShortPricesJson, typeRef);
+        } catch (Exception e) {
+            log.error("Ошибка десериализации нормализованных цен короткого тикера для пары {}", pairName, e);
+            this.normalizedShortPrices = null;
         }
     }
 

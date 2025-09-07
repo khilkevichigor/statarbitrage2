@@ -141,6 +141,12 @@ public class CointPairToTradingPairConverter implements Converter<CointPair, Tra
                 .settingsAveragingVolumeMultiplier(source.getSettingsAveragingVolumeMultiplier())
                 .averagingCount(source.getAveragingCount())
                 .lastAveragingTimestamp(source.getLastAveragingTimestamp())
+                // Копирование нормализованных цен и количества пересечений
+                .normalizedLongPricesJson(source.getNormalizedLongPricesJson())
+                .normalizedShortPricesJson(source.getNormalizedShortPricesJson())
+                .normalizedLongPrices(source.getNormalizedLongPrices())
+                .normalizedShortPrices(source.getNormalizedShortPrices())
+                .intersectionsCount(source.getIntersectionsCount())
                 .build();
     }
 }

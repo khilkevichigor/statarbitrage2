@@ -165,13 +165,22 @@ public class NewCointPairsEventHandler {
 
         for (CointPair cointPair : cointPairs) {
             try {
-//                int intersections = priceIntersectionService.calculateIntersections(cointPair);
-                int intersections = priceIntersectionService.calculateIntersectionsWithChart(cointPair, true);
+                // Получаем пересечения вместе с нормализованными ценами
+                var result = priceIntersectionService.calculateIntersectionsWithData(cointPair);
+                int intersections = result.getIntersections();
 
                 log.info("📊 Пара {}: {} пересечений нормализованных цен",
                         cointPair.getPairName(), intersections);
 
                 if (intersections >= minIntersections) {
+                    // Сохраняем нормализованные цены и количество пересечений
+                    cointPair.setNormalizedLongPrices(result.getNormalizedLongPrices());
+                    cointPair.setNormalizedShortPrices(result.getNormalizedShortPrices());
+                    cointPair.setIntersectionsCount(intersections);
+
+                    // Создаем чарт для отобранных пар
+                    priceIntersectionService.calculateIntersectionsWithChart(cointPair, true);
+
                     filteredPairs.add(cointPair);
                     log.debug("✅ Пара {} прошла фильтр: {} >= {} пересечений",
                             cointPair.getPairName(), intersections, minIntersections);
