@@ -143,7 +143,7 @@ public class AutoVolumeService {
                     autoVolume.getShortVolume(), 
                     autoVolume.getReserveAmount());
             } else {
-                log.info("i️ Автообъем выключен. Автообъем был бы: лонг={}, шорт={}, на усреднение={}", 
+                log.info("Автообъем выключен. Автообъем был бы: лонг={}, шорт={}, на усреднение={}",
                     autoVolume.getLongVolume(), 
                     autoVolume.getShortVolume(), 
                     autoVolume.getReserveAmount());

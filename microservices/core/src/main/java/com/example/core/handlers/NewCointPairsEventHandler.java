@@ -165,7 +165,8 @@ public class NewCointPairsEventHandler {
 
         for (CointPair cointPair : cointPairs) {
             try {
-                int intersections = priceIntersectionService.calculateIntersections(cointPair);
+//                int intersections = priceIntersectionService.calculateIntersections(cointPair);
+                int intersections = priceIntersectionService.calculateIntersectionsWithChart(cointPair, true);
 
                 log.info("📊 Пара {}: {} пересечений нормализованных цен",
                         cointPair.getPairName(), intersections);

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.awt.image.BufferedImage;
 import java.util.List;
 
 /**
@@ -15,6 +16,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PriceIntersectionService {
+
+    private final ChartService chartService;
 
     /**
      * Подсчитывает количество пересечений нормализованных цен закрытия для пары
@@ -50,7 +53,7 @@ public class PriceIntersectionService {
             // Подсчет пересечений
             int intersections = countIntersections(normalizedLongPrices, normalizedShortPrices);
 
-            log.debug("📊 Пара {}: найдено {} пересечений нормализованных цен из {} точек данных",
+            log.info("📊 Пара {}: найдено {} пересечений нормализованных цен из {} точек данных",
                     cointPair.getPairName(), intersections, minSize);
 
             return intersections;
@@ -124,5 +127,61 @@ public class PriceIntersectionService {
         }
 
         return intersections;
+    }
+
+    /**
+     * Подсчитывает пересечения и создает чарт нормализованных цен с пересечениями
+     *
+     * @param cointPair пара для анализа  
+     * @param createChart флаг создания чарта (можно использовать для отключения)
+     * @return количество пересечений
+     */
+    public int calculateIntersectionsWithChart(CointPair cointPair, boolean createChart) {
+        List<Candle> longCandles = cointPair.getLongTickerCandles();
+        List<Candle> shortCandles = cointPair.getShortTickerCandles();
+
+        if (longCandles == null || shortCandles == null ||
+                longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Отсутствуют данные свечей для пары {}: long={}, short={}",
+                    cointPair.getPairName(),
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null");
+            return 0;
+        }
+
+        int minSize = Math.min(longCandles.size(), shortCandles.size());
+        if (minSize < 2) {
+            log.warn("⚠️ Недостаточно данных для анализа пересечений пары {}: minSize={}",
+                    cointPair.getPairName(), minSize);
+            return 0;
+        }
+
+        try {
+            // Подсчет пересечений (используем существующий метод)
+            int intersections = calculateIntersections(cointPair);
+
+            // Создаем чарт если требуется
+            if (createChart) {
+                log.info("📊 Создание чарта нормализованных цен для пары {} с {} пересечениями",
+                         cointPair.getPairName(), intersections);
+                
+                BufferedImage chartImage = chartService.createNormalizedPriceIntersectionsChart(
+                    longCandles, shortCandles, cointPair.getPairName(), intersections, true);
+                
+                if (chartImage.getWidth() > 1 && chartImage.getHeight() > 1) {
+                    log.info("✅ Чарт нормализованных цен создан для пары {} (пересечений: {}, точек данных: {})",
+                            cointPair.getPairName(), intersections, minSize);
+                } else {
+                    log.warn("⚠️ Не удалось создать чарт для пары {}", cointPair.getPairName());
+                }
+            }
+
+            return intersections;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при подсчете пересечений с чартом для пары {}: {}",
+                    cointPair.getPairName(), e.getMessage(), e);
+            return 0;
+        }
     }
 }

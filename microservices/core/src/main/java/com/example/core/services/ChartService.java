@@ -17,6 +17,10 @@ import org.springframework.stereotype.Service;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1164,6 +1168,193 @@ public class ChartService {
                 pixelHistory.size(), tradingPair.getPairName(), showProfit, showEntryPoint);
 
         return BitmapEncoder.getBufferedImage(chart);
+    }
+
+    /**
+     * Создает чарт нормализованных цен с подсчетом и отображением пересечений
+     * 
+     * @param longCandles свечи для long позиции
+     * @param shortCandles свечи для short позиции  
+     * @param pairName название пары для заголовка
+     * @param intersectionsCount количество найденных пересечений
+     * @param saveToProject флаг сохранения в корень проекта
+     * @return BufferedImage созданного чарта
+     */
+    public BufferedImage createNormalizedPriceIntersectionsChart(List<Candle> longCandles, List<Candle> shortCandles, 
+                                                               String pairName, int intersectionsCount, boolean saveToProject) {
+        log.info("📊 Создание чарта нормализованных цен с пересечениями для пары: {} (пересечений: {})", pairName, intersectionsCount);
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Нет данных свечей для создания чарта пары {}", pairName);
+            return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        }
+
+        int minSize = Math.min(longCandles.size(), shortCandles.size());
+        if (minSize < 2) {
+            log.warn("⚠️ Недостаточно данных для создания чарта пары {}: minSize={}", pairName, minSize);
+            return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        }
+
+        try {
+            // Нормализация цен (используем тот же алгоритм что в PriceIntersectionService)
+            double[] normalizedLongPrices = normalizePricesForChart(longCandles, minSize);
+            double[] normalizedShortPrices = normalizePricesForChart(shortCandles, minSize);
+
+            // Временные метки
+            List<Date> timeAxis = new ArrayList<>();
+            for (int i = 0; i < minSize; i++) {
+                timeAxis.add(new Date(longCandles.get(i).getTimestamp()));
+            }
+
+            // Создаем чарт
+            XYChart chart = new XYChartBuilder()
+                    .width(1920).height(720)
+                    .title(String.format("Нормализованные цены: %s (Пересечений: %d из %d точек)", 
+                           pairName, intersectionsCount, minSize))
+                    .xAxisTitle("Время").yAxisTitle("Нормализованная цена")
+                    .build();
+
+            chart.getStyler().setLegendVisible(true);
+            chart.getStyler().setDatePattern("HH:mm");
+            chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+            chart.getStyler().setYAxisTicksVisible(true);
+            chart.getStyler().setYAxisTitleVisible(true);
+
+            // Добавляем серии данных
+            List<Double> longPricesList = Arrays.stream(normalizedLongPrices).boxed().collect(Collectors.toList());
+            List<Double> shortPricesList = Arrays.stream(normalizedShortPrices).boxed().collect(Collectors.toList());
+
+            XYSeries longSeries = chart.addSeries("LONG (нормализованная)", timeAxis, longPricesList);
+            longSeries.setLineColor(Color.GREEN);
+            longSeries.setMarker(new None());
+            longSeries.setLineStyle(new BasicStroke(2.0f));
+
+            XYSeries shortSeries = chart.addSeries("SHORT (нормализованная)", timeAxis, shortPricesList);
+            shortSeries.setLineColor(Color.RED);
+            shortSeries.setMarker(new None());
+            shortSeries.setLineStyle(new BasicStroke(2.0f));
+
+            // Добавляем точки пересечений
+            addIntersectionPoints(chart, timeAxis, normalizedLongPrices, normalizedShortPrices);
+
+            // Добавляем горизонтальные линии для ориентации
+            addHorizontalLine(chart, timeAxis, 1.0, Color.GRAY);  // Максимум
+            addHorizontalLine(chart, timeAxis, 0.5, Color.BLACK); // Средняя линия
+            addHorizontalLine(chart, timeAxis, 0.0, Color.GRAY);  // Минимум
+
+            BufferedImage chartImage = BitmapEncoder.getBufferedImage(chart);
+
+            // Сохраняем в корень проекта если нужно
+            if (saveToProject) {
+                saveChartToProject(chartImage, pairName, intersectionsCount);
+            }
+
+            log.info("✅ Чарт нормализованных цен создан для пары {} с {} пересечениями", pairName, intersectionsCount);
+            return chartImage;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании чарта нормализованных цен для пары {}: {}", pairName, e.getMessage(), e);
+            return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        }
+    }
+
+    /**
+     * Нормализует цены закрытия для чарта (аналогично PriceIntersectionService)
+     */
+    private double[] normalizePricesForChart(List<Candle> candles, int size) {
+        double[] prices = new double[size];
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+
+        // Извлекаем цены закрытия и находим min/max
+        for (int i = 0; i < size; i++) {
+            prices[i] = candles.get(i).getClose();
+            min = Math.min(min, prices[i]);
+            max = Math.max(max, prices[i]);
+        }
+
+        // Нормализуем
+        double range = max - min;
+        if (range == 0) {
+            // Все цены одинаковые - возвращаем массив нулей
+            return new double[size];
+        }
+
+        for (int i = 0; i < size; i++) {
+            prices[i] = (prices[i] - min) / range;
+        }
+
+        return prices;
+    }
+
+    /**
+     * Добавляет точки пересечений на чарт
+     */
+    private void addIntersectionPoints(XYChart chart, List<Date> timeAxis, double[] prices1, double[] prices2) {
+        List<Date> intersectionTimes = new ArrayList<>();
+        List<Double> intersectionValues = new ArrayList<>();
+
+        if (prices1.length != prices2.length || prices1.length < 2) {
+            return;
+        }
+
+        // Определяем начальное положение (кто выше)
+        boolean firstAboveSecond = prices1[0] > prices2[0];
+
+        // Проходим по всем точкам и ищем пересечения
+        for (int i = 1; i < prices1.length; i++) {
+            boolean currentFirstAboveSecond = prices1[i] > prices2[i];
+
+            // Если положение изменилось - это пересечение
+            if (currentFirstAboveSecond != firstAboveSecond) {
+                // Находим приблизительную точку пересечения (среднее значение)
+                double intersectionValue = (prices1[i] + prices2[i]) / 2.0;
+                
+                intersectionTimes.add(timeAxis.get(i));
+                intersectionValues.add(intersectionValue);
+                
+                firstAboveSecond = currentFirstAboveSecond;
+            }
+        }
+
+        if (!intersectionTimes.isEmpty()) {
+            XYSeries intersectionSeries = chart.addSeries("Пересечения", intersectionTimes, intersectionValues);
+            intersectionSeries.setMarker(SeriesMarkers.CIRCLE);
+            intersectionSeries.setMarkerColor(Color.BLUE);
+            intersectionSeries.setLineColor(new Color(0, 0, 0, 0)); // Прозрачный цвет линии
+
+            log.info("✅ Добавлено {} точек пересечений на чарт", intersectionTimes.size());
+        }
+    }
+
+    /**
+     * Сохраняет чарт в корень проекта
+     */
+    private void saveChartToProject(BufferedImage chartImage, String pairName, int intersectionsCount) {
+        try {
+            // Получаем путь к корню проекта (поднимаемся из microservices/)
+            Path projectRoot = Paths.get(System.getProperty("user.dir")).getParent();
+            if (projectRoot == null) {
+                projectRoot = Paths.get(System.getProperty("user.dir"));
+            }
+
+            // Создаем безопасное имя файла
+            String safeFileName = pairName.replaceAll("[^a-zA-Z0-9-_]", "_") + 
+                                "_intersections_" + intersectionsCount + 
+                                "_" + System.currentTimeMillis() + ".png";
+            
+            Path chartPath = projectRoot.resolve(safeFileName);
+
+            // Сохраняем чарт используя стандартный Java ImageIO
+            javax.imageio.ImageIO.write(chartImage, "PNG", chartPath.toFile());
+
+            log.info("✅ Чарт нормализованных цен сохранен: {}", chartPath.toAbsolutePath());
+
+        } catch (IOException e) {
+            log.error("❌ Ошибка при сохранении чарта: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("❌ Неожиданная ошибка при сохранении чарта: {}", e.getMessage(), e);
+        }
     }
 }
 
