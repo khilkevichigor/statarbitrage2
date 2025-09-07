@@ -1338,17 +1338,31 @@ public class ChartService {
             // Создаем директории если они не существуют
             Files.createDirectories(chartsDir);
 
-            // Создаем безопасное имя файла
-            String safeFileName = pairName.replaceAll("[^a-zA-Z0-9-_]", "_") +
-                    "_intersections_" + intersectionsCount +
-                    "_" + System.currentTimeMillis() + ".png";
+            // Создаем базовое имя файла без timestamp
+            String baseName = pairName.replaceAll("[^a-zA-Z0-9-_]", "_") + "_intersections";
+            String fileName = baseName + "_" + intersectionsCount + ".png";
+            Path chartPath = chartsDir.resolve(fileName);
 
-            Path chartPath = chartsDir.resolve(safeFileName);
+            // Удаляем все старые файлы для этой пары (по базовому имени)
+            try {
+                Files.list(chartsDir)
+                        .filter(path -> path.getFileName().toString().startsWith(baseName + "_"))
+                        .forEach(oldFile -> {
+                            try {
+                                Files.delete(oldFile);
+                                log.info("🗑️ Удален старый чарт: {}", oldFile.getFileName());
+                            } catch (IOException e) {
+                                log.warn("⚠️ Не удалось удалить старый чарт {}: {}", oldFile.getFileName(), e.getMessage());
+                            }
+                        });
+            } catch (IOException e) {
+                log.warn("⚠️ Ошибка при поиске старых файлов чартов: {}", e.getMessage());
+            }
 
-            // Сохраняем чарт используя стандартный Java ImageIO
+            // Сохраняем новый чарт используя стандартный Java ImageIO
             javax.imageio.ImageIO.write(chartImage, "PNG", chartPath.toFile());
 
-            log.info("✅ Чарт нормализованных цен сохранен: {}", chartPath.toAbsolutePath());
+            log.info("✅ Чарт нормализованных цен обновлен: {}", chartPath.toAbsolutePath());
 
         } catch (IOException e) {
             log.error("❌ Ошибка при сохранении чарта: {}", e.getMessage(), e);
