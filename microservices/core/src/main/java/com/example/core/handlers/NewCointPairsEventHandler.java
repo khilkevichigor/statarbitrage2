@@ -65,7 +65,10 @@ public class NewCointPairsEventHandler {
             List<CointPair> filteredByTradingPairs = filterByExistingTradingPairs(filteredByMinLotCointPairs);
             log.info("Осталось {} пар из {} после фильтрации по trading парам", filteredByTradingPairs.size(), filteredByMinLotCointPairs.size());
 
-            Map<String, List<CointPair>> missedAndRemainingPairs = splitAndGetMissedAndRemainingPairs(filteredByTradingPairs);
+            List<CointPair> filteredByEnoughIntersections = filterByEnoughIntersections(filteredByTradingPairs);
+            log.info("Осталось {} пар из {} после фильтрации по достаточному пересечению графиков", filteredByTradingPairs.size(), filteredByEnoughIntersections.size());
+
+            Map<String, List<CointPair>> missedAndRemainingPairs = splitAndGetMissedAndRemainingPairs(filteredByEnoughIntersections);
             List<CointPair> missedCointPairs = missedAndRemainingPairs.get("missed");
             List<CointPair> remainingCointPairs = missedAndRemainingPairs.get("remaining");
             log.info("Разделили: {} пар(ы) для начала нового трейда и {} пар(ы) для сохранения в бд", missedCointPairs.size(), remainingCointPairs.size());
@@ -142,6 +145,11 @@ public class NewCointPairsEventHandler {
             }
         });
         return filteredByTradingPairs;
+    }
+
+    private List<CointPair> filterByEnoughIntersections(List<CointPair> cointPairs) {
+
+        return null;
     }
 
     private List<String> getUsedTickers() {
