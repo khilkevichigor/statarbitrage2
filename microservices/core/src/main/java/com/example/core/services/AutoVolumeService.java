@@ -69,7 +69,7 @@ public class AutoVolumeService {
     public int getActiveTradingPairsCount() {
         try {
             int count = tradingPairRepository.countByStatus(TradeStatus.TRADING);
-            log.info("📊 Количество активных TRADING пар: {}", count);
+            log.debug("📊 Количество активных TRADING пар: {}", count);
             return count;
         } catch (Exception e) {
             log.error("❌ Ошибка при получении количества активных пар: {}", e.getMessage());
