@@ -2,6 +2,7 @@ package com.example.core.repositories;
 
 import com.example.shared.models.PortfolioHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -39,6 +40,7 @@ public interface PortfolioHistoryRepository extends JpaRepository<PortfolioHisto
     /**
      * Удалить записи старше указанной даты (для очистки старых данных)
      */
+    @Modifying
     @Query("DELETE FROM PortfolioHistory ph WHERE ph.snapshotTime < :beforeTime")
     void deleteBySnapshotTimeBefore(@Param("beforeTime") LocalDateTime beforeTime);
 
