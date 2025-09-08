@@ -272,7 +272,7 @@ public class NewCointPairsEventHandler {
             if (result != null) {
                 // Получаем чарт пересечений как массив байт
                 byte[] intersectionChart = new byte[0];
-                CointPair cointPair = cointPairByUuid.get(pair.getUuid());
+                CointPair cointPair = cointPairByUuid.get(pair.getUuid().toString());
                 if (cointPair != null) {
                     intersectionChart = priceIntersectionService.getIntersectionChartAsBytes(cointPair);
                     log.info("📊 Получен чарт пересечений для пары {}: {} байт", 
