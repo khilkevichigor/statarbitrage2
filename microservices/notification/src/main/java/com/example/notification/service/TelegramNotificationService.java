@@ -1,6 +1,7 @@
 package com.example.notification.service;
 
 import com.example.notification.bot.BotConfig;
+import com.example.notification.events.SendAsPhotoEvent;
 import com.example.notification.events.SendAsTextEvent;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.TimeFormatterUtil;
@@ -29,6 +30,28 @@ public class TelegramNotificationService implements NotificationService {
     @Override
     public void sendTelegramMessage(String message) {
         sendNotification(message);
+    }
+
+    public void sendTelegramPhoto(byte[] photoBytes, String caption) {
+        if (photoBytes == null || photoBytes.length == 0) {
+            log.warn("⚠️ Получен пустой массив байт для отправки фото в Telegram");
+            return;
+        }
+        
+        SendAsPhotoEvent event = SendAsPhotoEvent.builder()
+                .chatId(String.valueOf(botConfig.getOwnerChatId()))
+                .photoBytes(photoBytes)
+                .caption(caption)
+                .enableMarkdown(false)
+                .build();
+        
+        try {
+            log.info("📸 Отправляем фото в Telegram: {} байт, подпись: '{}'", 
+                    photoBytes.length, caption);
+            eventSendService.sendTelegramMessageAsPhotoEvent(event);
+        } catch (Exception e) {
+            log.error("❌ Ошибка отправки фото в Telegram: {}", e.getMessage(), e);
+        }
     }
 
     private void sendNotification(String text) {

@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,7 +88,20 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onSendAsPhotoEvent(SendAsPhotoEvent event) {
         SendPhoto photo = new SendPhoto();
         photo.setChatId(event.getChatId());
-        photo.setPhoto(new InputFile(event.getPhoto()));
+        
+        // Поддержка двух вариантов: photoBytes (byte[]) или photo (File)
+        if (event.getPhotoBytes() != null && event.getPhotoBytes().length > 0) {
+            log.info("📸 Отправляем фото из byte[] размером {} байт", event.getPhotoBytes().length);
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(event.getPhotoBytes());
+            photo.setPhoto(new InputFile(inputStream, "chart.png"));
+        } else if (event.getPhoto() != null) {
+            log.info("📸 Отправляем фото из файла: {}", event.getPhoto().getName());
+            photo.setPhoto(new InputFile(event.getPhoto()));
+        } else {
+            log.warn("⚠️ В SendAsPhotoEvent не указано ни photoBytes, ни photo - пропускаем отправку");
+            return;
+        }
+        
         photo.setCaption(event.getCaption());
         photo.setParseMode(event.isEnableMarkdown() ? "Markdown" : null);
 

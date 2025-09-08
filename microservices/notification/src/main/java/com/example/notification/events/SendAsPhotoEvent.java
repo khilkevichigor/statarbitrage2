@@ -14,6 +14,7 @@ import java.io.File;
 public class SendAsPhotoEvent {
     private String chatId;
     private File photo;
+    private byte[] photoBytes;
     private String caption;
     private boolean enableMarkdown;
 }

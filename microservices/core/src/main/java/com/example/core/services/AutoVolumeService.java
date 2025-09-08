@@ -54,7 +54,7 @@ public class AutoVolumeService {
             }
             
             BigDecimal availableBalance = portfolio.getAvailableBalance();
-            log.info("💰 Доступный USDT баланс: {}", availableBalance);
+            log.debug("💰 Доступный USDT баланс: {}", availableBalance);
             return availableBalance;
             
         } catch (Exception e) {
@@ -88,10 +88,10 @@ public class AutoVolumeService {
             int activeTradingPairs = getActiveTradingPairsCount();
             int totalPairsToTrade = (int) settings.getUsePairs();
             
-            log.info("🔢 Исходные данные для расчета автообъема:");
-            log.info("💰 Доступно USDT: {}", availableUsdt);
-            log.info("📊 Активные TRADING пары: {}", activeTradingPairs);
-            log.info("⚙️ Общее количество пар: {}", totalPairsToTrade);
+            log.debug("🔢 Исходные данные для расчета автообъема:");
+            log.debug("💰 Доступно USDT: {}", availableUsdt);
+            log.debug("📊 Активные TRADING пары: {}", activeTradingPairs);
+            log.debug("⚙️ Общее количество пар: {}", totalPairsToTrade);
             
             if (availableUsdt.compareTo(BigDecimal.ZERO) <= 0) {
                 log.warn("⚠️ Недостаточно средств для расчета автообъема");
@@ -119,8 +119,8 @@ public class AutoVolumeService {
                 RoundingMode.HALF_UP
             );
             
-            log.info("📈 Рассчитанный объем позиции (лонг/шорт): {}", positionSize);
-            log.info("💾 Резерв на усреднения: {}", reserve);
+            log.debug("📈 Рассчитанный объем позиции (лонг/шорт): {}", positionSize);
+            log.debug("💾 Резерв на усреднения: {}", reserve);
             
             return new AutoVolumeData(positionSize, positionSize, reserve);
             
@@ -143,7 +143,7 @@ public class AutoVolumeService {
                     autoVolume.getShortVolume(), 
                     autoVolume.getReserveAmount());
             } else {
-                log.info("Автообъем выключен. Автообъем был бы: лонг={}, шорт={}, на усреднение={}",
+                log.debug("Автообъем выключен. Автообъем был бы: лонг={}, шорт={}, на усреднение={}",
                     autoVolume.getLongVolume(), 
                     autoVolume.getShortVolume(), 
                     autoVolume.getReserveAmount());

@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 /**
@@ -242,6 +244,59 @@ public class PriceIntersectionService {
             log.error("❌ Ошибка при подсчете пересечений с чартом для пары {}: {}",
                     cointPair.getPairName(), e.getMessage(), e);
             return 0;
+        }
+    }
+
+    /**
+     * Создает чарт пересечений нормализованных цен и возвращает его как массив байт
+     *
+     * @param cointPair пара для анализа
+     * @return массив байт чарта в формате PNG или пустой массив в случае ошибки
+     */
+    public byte[] getIntersectionChartAsBytes(CointPair cointPair) {
+        List<Candle> longCandles = cointPair.getLongTickerCandles();
+        List<Candle> shortCandles = cointPair.getShortTickerCandles();
+
+        if (longCandles == null || shortCandles == null ||
+                longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Отсутствуют данные свечей для создания чарта пары {}: long={}, short={}",
+                    cointPair.getPairName(),
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null");
+            return new byte[0];
+        }
+
+        try {
+            // Подсчитываем пересечения для получения количества
+            IntersectionResult result = calculateIntersectionsWithData(cointPair);
+            int intersections = result.getIntersections();
+
+            log.info("📊 Создание чарта пересечений для отправки в Telegram: пара {}, пересечений {}",
+                    cointPair.getPairName(), intersections);
+
+            // Создаем чарт без сохранения в файл
+            BufferedImage chartImage = chartService.createNormalizedPriceIntersectionsChart(
+                    longCandles, shortCandles, cointPair.getPairName(), intersections, false);
+
+            if (chartImage.getWidth() <= 1 || chartImage.getHeight() <= 1) {
+                log.warn("⚠️ Не удалось создать чарт для пары {}", cointPair.getPairName());
+                return new byte[0];
+            }
+
+            // Конвертируем BufferedImage в массив байт
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(chartImage, "PNG", baos);
+            byte[] imageBytes = baos.toByteArray();
+
+            log.info("✅ Чарт пересечений создан и конвертирован в байты: пара {}, размер {} байт",
+                    cointPair.getPairName(), imageBytes.length);
+
+            return imageBytes;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании чарта пересечений как массив байт для пары {}: {}",
+                    cointPair.getPairName(), e.getMessage(), e);
+            return new byte[0];
         }
     }
 }

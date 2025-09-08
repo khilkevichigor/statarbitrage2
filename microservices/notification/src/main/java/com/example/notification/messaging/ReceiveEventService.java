@@ -25,7 +25,11 @@ public class ReceiveEventService {
         switch (event.getType()) {
             case CLOSED_MESSAGE_TO_TELEGRAM -> telegramNotificationService.sendTelegramClosedPair(event.getTradingPair());
             case MESSAGE_TO_TELEGRAM -> telegramNotificationService.sendTelegramMessage(event.getMessage());
-            //todo получаем чарт пересечений и отправляем в телеграм
+            case ENTRY_INTERSECTION_CHART -> {
+                log.info("📊 Получен чарт пересечений для отправки в Telegram: {} байт", 
+                        event.getData() != null ? event.getData().length : 0);
+                telegramNotificationService.sendTelegramPhoto(event.getData(), event.getMessage());
+            }
             default -> log.warn("⚠️ Неизвестный тип уведомления: {}", event.getType());
         }
     }

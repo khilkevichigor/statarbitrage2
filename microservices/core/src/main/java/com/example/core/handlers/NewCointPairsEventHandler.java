@@ -41,6 +41,9 @@ public class NewCointPairsEventHandler {
     private final PriceIntersectionService priceIntersectionService;
     private final SendEventService sendEventService;
 
+    // Мапа для хранения соответствия UUID -> CointPair для получения чартов
+    private final Map<String, CointPair> cointPairByUuid = new HashMap<>();
+
     public void handle(CointegrationEvent event) {
         try {
             log.info("");
@@ -83,6 +86,11 @@ public class NewCointPairsEventHandler {
                 cointPairRepository.saveAll(remainingCointPairs);
                 log.info("💾 Сохранили {} оставшихся пар для работы через UI", remainingCointPairs.size());
             }
+
+            // Сохраняем CointPairs в мапу для дальнейшего получения чартов
+            cointPairByUuid.clear();
+            missedCointPairs.forEach(cointPair -> 
+                cointPairByUuid.put(cointPair.getUuid().toString(), cointPair));
 
             List<TradingPair> tradingPairs = convertToTradingPair(missedCointPairs);
             log.info("{} CointPairs сконверчены в {} TradingPairs", missedCointPairs.size(), tradingPairs.size());
@@ -262,7 +270,18 @@ public class NewCointPairsEventHandler {
                     .checkAutoTrading(true)
                     .build());
             if (result != null) {
-                byte[] intersectionChart = {}; //todo получаем чарт пересечений как массив байт и отправляем
+                // Получаем чарт пересечений как массив байт
+                byte[] intersectionChart = new byte[0];
+                CointPair cointPair = cointPairByUuid.get(pair.getUuid());
+                if (cointPair != null) {
+                    intersectionChart = priceIntersectionService.getIntersectionChartAsBytes(cointPair);
+                    log.info("📊 Получен чарт пересечений для пары {}: {} байт", 
+                            pair.getPairName(), intersectionChart.length);
+                } else {
+                    log.warn("⚠️ Не найден CointPair для UUID {} (пара {})", 
+                            pair.getUuid(), pair.getPairName());
+                }
+
                 String message = "Новый трейд: " + pair.getPairName();
                 sendEventService.sendCoreEvent(new CoreEvent(message, intersectionChart, CoreEvent.Type.ENTRY_INTERSECTION_CHART));
             }
