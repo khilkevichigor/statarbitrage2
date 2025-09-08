@@ -1243,6 +1243,9 @@ public class ChartService {
             addHorizontalLine(chart, timeAxis, 0.0, Color.GRAY);  // Минимум
 
             BufferedImage chartImage = BitmapEncoder.getBufferedImage(chart);
+            
+            // Добавляем текст с количеством пересечений на изображение
+            addIntersectionTextToImage(chartImage, intersectionsCount);
 
             // Сохраняем в корень проекта если нужно
             if (saveToProject) {
@@ -1368,6 +1371,48 @@ public class ChartService {
             log.error("❌ Ошибка при сохранении чарта: {}", e.getMessage(), e);
         } catch (Exception e) {
             log.error("❌ Неожиданная ошибка при сохранении чарта: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Добавляет текст с количеством пересечений на изображение чарта
+     */
+    private void addIntersectionTextToImage(BufferedImage chartImage, int intersectionsCount) {
+        try {
+            Graphics2D g2d = chartImage.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // Настройки текста (по аналогии с AnalyzeChartIntersectionsService)
+            String text = "Intersections: " + intersectionsCount;
+            Font font = new Font("Arial", Font.BOLD, 48);  // Крупный жирный текст
+            g2d.setFont(font);
+
+            // Измеряем размер текста
+            FontMetrics fontMetrics = g2d.getFontMetrics();
+            int textWidth = fontMetrics.stringWidth(text);
+            int textHeight = fontMetrics.getHeight();
+
+            // Позиционируем в левом верхнем углу с отступом
+            int x = 20;
+            int y = 70;
+
+            // Рисуем фон для текста (белый прямоугольник с черной рамкой)
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(x - 10, y - textHeight + 5, textWidth + 20, textHeight + 10);
+            g2d.setColor(Color.BLACK);
+            g2d.drawRect(x - 10, y - textHeight + 5, textWidth + 20, textHeight + 10);
+
+            // Рисуем текст
+            g2d.setColor(Color.RED);  // Красный цвет для выделения
+            g2d.drawString(text, x, y);
+
+            g2d.dispose();
+
+            log.info("✅ Добавлен текст на чарт: '{}'", text);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при добавлении текста на чарт: {}", e.getMessage(), e);
         }
     }
 }
