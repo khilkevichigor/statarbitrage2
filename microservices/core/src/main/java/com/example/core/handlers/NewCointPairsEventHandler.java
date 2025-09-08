@@ -269,7 +269,7 @@ public class NewCointPairsEventHandler {
                     .tradingPair(pair)
                     .checkAutoTrading(true)
                     .build());
-            if (result != null) {
+            if (result != null && result.getStatus().equals(TradeStatus.TRADING)) {
                 // Получаем чарт пересечений как массив байт
                 byte[] intersectionChart = new byte[0];
                 CointPair cointPair = cointPairByUuid.get(pair.getUuid().toString());
