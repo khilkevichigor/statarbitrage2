@@ -1,6 +1,7 @@
 package com.example.core.experemental;
 
 import com.example.core.client.CandlesFeignClient;
+import com.example.core.client.OkxFeignClient;
 import com.example.core.experemental.stability.dto.StabilityRequestDto;
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.experemental.stability.service.StabilityAnalysisService;
@@ -25,6 +26,7 @@ public class StabilityAnalysisController {
 
     private final StabilityAnalysisService stabilityAnalysisService;
     private final CandlesFeignClient candlesFeignClient;
+    private final OkxFeignClient okxFeignClient;
     private final SettingsService settingsService;
 
     /**
@@ -80,24 +82,45 @@ public class StabilityAnalysisController {
     }
     
     /**
-     * Получает все доступные свечи из системы без исключений (как в FetchPairsProcessor)
+     * Получает все доступные свечи из системы через новый эндпоинт
+     * Использует /api/candles/all-available для получения всех тикеров и их свечей
      */
     private Map<String, List<Candle>> getAllAvailableCandles(Settings settings) {
         try {
-            // Создаем запрос БЕЗ указания конкретных тикеров - получаем ВСЕ доступные
-            CandlesRequest candlesRequest = new CandlesRequest(settings, null);
+            log.info("📈 Получение всех доступных свечей через новый эндпоинт /all-available...");
             
-            long start = System.currentTimeMillis();
-            Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(candlesRequest);
-            long elapsed = System.currentTimeMillis() - start;
+            long startTime = System.currentTimeMillis();
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllAvailableCandles(settings);
+            long elapsed = System.currentTimeMillis() - startTime;
             
-            log.info("📈 Загружено свечей для {} тикеров за {} сек", 
+            if (candlesMap == null || candlesMap.isEmpty()) {
+                log.warn("⚠️ Получен пустой результат от сервиса свечей");
+                return new HashMap<>();
+            }
+            
+            log.info("✅ Получено {} тикеров с свечами за {} сек через новый эндпоинт", 
                     candlesMap.size(), String.format("%.2f", elapsed / 1000.0));
+            
+            // Показываем статистику по свечам
+            if (!candlesMap.isEmpty()) {
+                int totalCandles = candlesMap.values().stream()
+                        .mapToInt(List::size)
+                        .sum();
+                
+                List<String> tickers = List.copyOf(candlesMap.keySet());
+                log.info("📊 Статистика: {} тикеров, всего {} свечей", 
+                        candlesMap.size(), totalCandles);
+                
+                log.info("🎯 Тикеры: {}", 
+                        tickers.size() > 15 ? 
+                            String.join(", ", tickers.subList(0, 15)) + "... и еще " + (tickers.size() - 15) :
+                            String.join(", ", tickers));
+            }
             
             return candlesMap;
             
         } catch (Exception e) {
-            log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
+            log.error("❌ Ошибка при получении свечей через новый эндпоинт: {}", e.getMessage(), e);
             return new HashMap<>();
         }
     }
@@ -113,11 +136,12 @@ public class StabilityAnalysisController {
         map.put("minWindowSize", (int) settings.getMinWindowSize());
         
         // Добавляем дополнительные параметры, которые могут понадобиться
-        map.put("minCorrelation", settings.getMinCorrelation());
-        map.put("maxPValue", settings.getMaxPValue());
-        map.put("maxAdfValue", settings.getMaxAdfValue());
-        map.put("minRSquared", settings.getMinRSquared());
-        map.put("minZ", settings.getMinZ());
+//        map.put("minCorrelation", settings.getMinCorrelation());
+        map.put("minCorrelation", 0);
+        map.put("maxPValue", 0);
+        map.put("maxAdfValue", 0);
+        map.put("minRSquared", 0);
+        map.put("minZ", 0);
         map.put("candleLimit", (int) settings.getCandleLimit());
         map.put("timeframe", settings.getTimeframe());
         
