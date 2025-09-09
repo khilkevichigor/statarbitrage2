@@ -32,7 +32,7 @@ public class CandlesService {
         return candlesMap;
     }
 
-    private Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
+    public Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
         return okxFeignClient.getCandlesMap(swapTickers, settings.getTimeframe(), (int) settings.getCandleLimit(), isSorted);
     }
 

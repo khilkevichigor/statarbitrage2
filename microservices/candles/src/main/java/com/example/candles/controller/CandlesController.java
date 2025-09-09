@@ -1,5 +1,6 @@
 package com.example.candles.controller;
 
+import com.example.candles.client.OkxFeignClient;
 import com.example.candles.service.CandlesService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
@@ -7,8 +8,6 @@ import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Collections;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +19,7 @@ import java.util.Map;
 public class CandlesController {
 
     private final CandlesService candlesService;
+    private final OkxFeignClient okxFeignClient;
 
     @PostMapping("/applicable-map")
     public Map<String, List<Candle>> getApplicableCandlesMap(@RequestBody CandlesRequest request) {
@@ -34,14 +34,16 @@ public class CandlesController {
      * Новый эндпоинт для анализа стабильности - получает ВСЕ доступные свечи
      * Использует пустой список тикеров для получения всех доступных тикеров
      */
-    @PostMapping("/all-available")
-    public Map<String, List<Candle>> getAllAvailableCandles(@RequestBody Settings settings) {
+    @PostMapping("/all")
+    public Map<String, List<Candle>> getAllCandles(@RequestBody Settings settings) {
         log.info("🔍 Получение всех доступных свечей для анализа стабильности...");
         
         long startTime = System.currentTimeMillis();
-        
+
+        List<String> swapTickers = okxFeignClient.getAllSwapTickers(true);
+
         // Передаем пустой список тикеров для получения ВСЕХ доступных
-        Map<String, List<Candle>> result = candlesService.getApplicableCandlesMap(settings, Collections.emptyList());
+        Map<String, List<Candle>> result = candlesService.getCandles(settings, swapTickers, true);
         
         long elapsed = System.currentTimeMillis() - startTime;
         

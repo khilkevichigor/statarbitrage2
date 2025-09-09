@@ -235,7 +235,7 @@ public class SettingsComponent extends VerticalLayout {
         // Set step and min values for number fields
         setNumberFieldProperties(candleLimitField, 1, 1);
         setNumberFieldProperties(minZField, 0.1, 0.0);
-        setNumberFieldProperties(minRSquaredField, 0.1, 0.5);
+        setNumberFieldProperties(minRSquaredField, 0.1, 0.1);
         setNumberFieldProperties(minWindowSizeField, 1, 1);
         setNumberFieldProperties(minPValueField, 0.001, 0.0);
         setNumberFieldProperties(maxAdfValueField, 0.001, 0.0);

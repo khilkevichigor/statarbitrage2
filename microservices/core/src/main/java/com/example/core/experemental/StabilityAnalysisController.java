@@ -7,7 +7,6 @@ import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.experemental.stability.service.StabilityAnalysisService;
 import com.example.core.services.SettingsService;
 import com.example.shared.dto.Candle;
-import com.example.shared.dto.CandlesRequest;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +45,7 @@ public class StabilityAnalysisController {
                     settings.getMinWindowSize(), settings.getMinCorrelation());
             
             // Получаем все свечи для всех доступных тикеров (без исключений)
-            Map<String, List<Candle>> candlesMap = getAllAvailableCandles(settings);
+            Map<String, List<Candle>> candlesMap = getAllCandles(settings);
             
             if (candlesMap.isEmpty()) {
                 log.warn("⚠️ Не удалось получить данные свечей");
@@ -85,12 +84,12 @@ public class StabilityAnalysisController {
      * Получает все доступные свечи из системы через новый эндпоинт
      * Использует /api/candles/all-available для получения всех тикеров и их свечей
      */
-    private Map<String, List<Candle>> getAllAvailableCandles(Settings settings) {
+    private Map<String, List<Candle>> getAllCandles(Settings settings) {
         try {
             log.info("📈 Получение всех доступных свечей через новый эндпоинт /all-available...");
             
             long startTime = System.currentTimeMillis();
-            Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllAvailableCandles(settings);
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandles(settings);
             long elapsed = System.currentTimeMillis() - startTime;
             
             if (candlesMap == null || candlesMap.isEmpty()) {
@@ -136,17 +135,15 @@ public class StabilityAnalysisController {
         map.put("minWindowSize", (int) settings.getMinWindowSize());
         
         // Добавляем дополнительные параметры, которые могут понадобиться
-//        map.put("minCorrelation", settings.getMinCorrelation());
-        map.put("minCorrelation", 0);
-        map.put("maxPValue", 0);
-        map.put("maxAdfValue", 0);
-        map.put("minRSquared", 0);
-        map.put("minZ", 0);
+        map.put("minCorrelation", settings.getMinCorrelation());
+        map.put("maxPValue", settings.getMaxPValue());
+        map.put("maxAdfValue", settings.getMaxAdfValue());
+        map.put("minRSquared", settings.getMinRSquared());
+        map.put("minZ", settings.getMinZ());
         map.put("candleLimit", (int) settings.getCandleLimit());
         map.put("timeframe", settings.getTimeframe());
         
-        log.info("🔧 Настройки для Python анализа стабильности: minWindowSize={}, остальные параметры включены", 
-                (int) settings.getMinWindowSize());
+        log.info("🔧 Настройки для Python анализа стабильности: {}", map);
         return map;
     }
 }

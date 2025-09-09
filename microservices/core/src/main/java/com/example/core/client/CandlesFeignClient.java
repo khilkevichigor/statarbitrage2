@@ -19,6 +19,6 @@ public interface CandlesFeignClient {
     /**
      * Новый метод для получения всех доступных свечей для анализа стабильности
      */
-    @PostMapping("/api/candles/all-available")
-    Map<String, List<Candle>> getAllAvailableCandles(@RequestBody Settings settings);
+    @PostMapping("/api/candles/all")
+    Map<String, List<Candle>> getAllCandles(@RequestBody Settings settings);
 }
