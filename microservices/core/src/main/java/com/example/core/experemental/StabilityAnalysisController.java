@@ -28,6 +28,7 @@ public class StabilityAnalysisController {
     private final OkxFeignClient okxFeignClient;
     private final SettingsService settingsService;
 
+    //todo для лучших пар делать глубокий анализ - для начала считать максимальную раздвижку нормализованных цен, пересечения для 1Д, и тд что бы была полная аналитика че ждать от пары
     /**
      * Эндпоинт для анализа стабильности всех возможных пар
      * Получает все тикеры из системы и отправляет их на анализ стабильности в Python
@@ -132,16 +133,16 @@ public class StabilityAnalysisController {
         Map<String, Object> map = new HashMap<>();
         
         // Основной параметр который использует Python StabilityAnalyzer
-        map.put("minWindowSize", (int) settings.getMinWindowSize());
+        map.put("minWindowSize", 100);
         
         // Добавляем дополнительные параметры, которые могут понадобиться
-        map.put("minCorrelation", settings.getMinCorrelation());
-        map.put("maxPValue", settings.getMaxPValue());
-        map.put("maxAdfValue", settings.getMaxAdfValue());
-        map.put("minRSquared", settings.getMinRSquared());
-        map.put("minZ", settings.getMinZ());
-        map.put("candleLimit", (int) settings.getCandleLimit());
-        map.put("timeframe", settings.getTimeframe());
+        map.put("minCorrelation", 0.1);
+        map.put("maxPValue", 1);
+        map.put("maxAdfValue", 1);
+        map.put("minRSquared", 0.1);
+        map.put("minZ", -10);
+        map.put("candleLimit", 300);
+        map.put("timeframe", "1D");
         
         log.info("🔧 Настройки для Python анализа стабильности: {}", map);
         return map;
