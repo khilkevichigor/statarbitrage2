@@ -81,6 +81,8 @@ vaadin:
   launch-browser: true
   urlMapping: /
   allowed-packages: /com/example/statarbitrage/vaadin
+  devmode:
+    allowlist: "localhost,127.0.0.1"
 
 # Cointegration Analysis API
 cointegration:
