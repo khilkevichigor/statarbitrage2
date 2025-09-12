@@ -56,6 +56,15 @@ spring:
   cloud:
     compatibility-verifier:
       enabled: false
+    openfeign:
+      client:
+        config:
+          candles-service:
+            connectTimeout: 30000  # 30 секунд
+            readTimeout: 180000    # 3 минуты
+          default:
+            connectTimeout: 10000  # 10 секунд для остальных
+            readTimeout: 60000     # 1 минута для остальных
     stream:
       bindings:
         core-events-out-0:

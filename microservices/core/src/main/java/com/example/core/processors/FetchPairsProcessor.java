@@ -81,6 +81,10 @@ public class FetchPairsProcessor {
     private Map<String, List<Candle>> getCandles(Settings settings, List<String> tradingTickers) {
         long start = System.currentTimeMillis();
 
+        log.info("📊 Запрос свечей: таймфрейм={}, лимит={}, исключить_тикеров={}",
+                settings.getTimeframe(), (int) settings.getCandleLimit(),
+                tradingTickers != null ? tradingTickers.size() : 0);
+
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
@@ -88,12 +92,30 @@ public class FetchPairsProcessor {
                 .minVolume(settings.getMinVolume())
                 .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                 .minimumLotBlacklist(settings.getMinimumLotBlacklist())
-                .tickers(tradingTickers) // Передаем список тикеров
+                .tickers(null) // Получаем все доступные тикеры
+                .excludeTickers(tradingTickers) // Исключаем уже торгуемые тикеры
                 .build();
 
-        Map<String, List<Candle>> map = candlesFeignClient.getAllCandlesExtended(request);
-        log.debug("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
-        return map;
+        try {
+            log.info("⏳ Отправка запроса к candles микросервису...");
+            Map<String, List<Candle>> map = candlesFeignClient.getAllCandlesExtended(request);
+
+            double elapsed = (System.currentTimeMillis() - start) / 1000.0;
+            if (map != null && !map.isEmpty()) {
+                log.info("✅ Свечи загружены за {} сек. Получено {} тикеров",
+                        String.format("%.2f", elapsed), map.size());
+            } else {
+                log.warn("⚠️ Получен пустой результат за {} сек", String.format("%.2f", elapsed));
+            }
+
+            return map != null ? map : new HashMap<>();
+
+        } catch (Exception e) {
+            double elapsed = (System.currentTimeMillis() - start) / 1000.0;
+            log.error("❌ Ошибка при получении свечей за {} сек: {}",
+                    String.format("%.2f", elapsed), e.getMessage());
+            return new HashMap<>();
+        }
     }
 
     private List<ZScoreData> computeZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, int count) {

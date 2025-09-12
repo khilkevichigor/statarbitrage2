@@ -89,6 +89,7 @@ public class StartNewTradeProcessor {
                 .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                 .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
+                .excludeTickers(null) // Никого не исключаем
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandlesExtended(request);

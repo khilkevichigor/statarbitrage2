@@ -108,6 +108,7 @@ public class StablePairService {
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(null) // Получаем все доступные тикеры
+                    .excludeTickers(null) // Никого не исключаем
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getAllCandlesExtended(request);
@@ -132,6 +133,7 @@ public class StablePairService {
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(null) // Получаем все доступные тикеры
+                    .excludeTickers(null) // Никого не исключаем
                     .build();
             return candlesFeignClient.getAllCandlesExtended(fallbackRequest);
         }
@@ -157,6 +159,7 @@ public class StablePairService {
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(null) // Получаем все доступные тикеры
+                    .excludeTickers(null) // Никого не исключаем
                     .build();
             Map<String, List<Candle>> initialData = candlesFeignClient.getAllCandlesExtended(initialRequest);
 

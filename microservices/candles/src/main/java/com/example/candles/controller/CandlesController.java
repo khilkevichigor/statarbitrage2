@@ -99,6 +99,15 @@ public class CandlesController {
         } else {
             log.info("🌐 Получаем все доступные тикеры");
             swapTickers = okxFeignClient.getAllSwapTickers(true);
+
+            // Исключаем тикеры из excludeTickers если они указаны
+            if (request.getExcludeTickers() != null && !request.getExcludeTickers().isEmpty()) {
+                log.info("❌ Исключаем {} тикеров из результата", request.getExcludeTickers().size());
+                swapTickers = swapTickers.stream()
+                        .filter(ticker -> !request.getExcludeTickers().contains(ticker))
+                        .collect(java.util.stream.Collectors.toList());
+                log.info("✅ После исключения осталось {} тикеров", swapTickers.size());
+            }
         }
 
         // Используем расширенный сервис для получения большого количества свечей

@@ -100,6 +100,7 @@ public class StabilityAnalysisController {
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(null) // Получаем все доступные тикеры
+                    .excludeTickers(null) // Никого не исключаем
                     .build();
 
             long startTime = System.currentTimeMillis();

@@ -46,4 +46,10 @@ public class ExtendedCandlesRequest {
      * Если null или пустой - будут получены все доступные тикеры
      */
     private List<String> tickers;
+
+    /**
+     * Список тикеров которые нужно исключить из результата.
+     * Используется для исключения уже торгуемых тикеров при поиске новых пар
+     */
+    private List<String> excludeTickers;
 }

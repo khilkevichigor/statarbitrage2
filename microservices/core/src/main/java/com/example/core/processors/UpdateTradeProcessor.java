@@ -199,6 +199,7 @@ public class UpdateTradeProcessor {
                 .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                 .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
+                .excludeTickers(null) // Никого не исключаем
                 .build();
 
         // Получаем все свечи через расширенный эндпоинт с пагинацией
