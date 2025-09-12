@@ -92,6 +92,19 @@ public class OkxController {
     }
 
     /**
+     * Получить исторические свечи с параметром before для пагинации
+     */
+    @GetMapping("/candles/before")
+    public List<Candle> getCandlesBefore(
+            @RequestParam String symbol,
+            @RequestParam(defaultValue = "1m") String timeFrame,
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam long before
+    ) {
+        return okxClient.getCandlesWithBefore(symbol, timeFrame, limit, before);
+    }
+
+    /**
      * Получить тикер по символу (JsonArray) - для совместимости
      */
 //    @GetMapping("/ticker/raw")

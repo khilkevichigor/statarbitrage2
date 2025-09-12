@@ -146,6 +146,54 @@ public class OkxClient {
     }
 
     /**
+     * Получение свечей с параметром before для пагинации
+     */
+    public List<Candle> getCandlesWithBefore(String symbol, String timeFrame, int limit, long beforeTimestamp) {
+        applyRateLimit();
+        JsonArray rawCandles = getCandlesWithBeforeTimestamp(symbol, timeFrame, limit, beforeTimestamp);
+        List<Candle> candles = new ArrayList<>();
+
+        if (rawCandles == null || rawCandles.size() == 0) {
+            log.debug("⚠️ Нет исторических данных свечей для {} до {}", symbol, beforeTimestamp);
+            return candles;
+        }
+
+        for (JsonElement el : rawCandles) {
+            JsonArray candleArr = el.getAsJsonArray();
+            candles.add(Candle.fromJsonArray(candleArr));
+        }
+        Collections.reverse(candles);
+        return candles;
+    }
+
+    /**
+     * Внутренний метод для получения свечей с before timestamp
+     */
+    private JsonArray getCandlesWithBeforeTimestamp(String symbol, String timeFrame, int limit, long beforeTimestamp) {
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/api/v5/market/candles?instId=" + symbol +
+                        "&bar=" + timeFrame + "&limit=" + limit + "&before=" + beforeTimestamp)
+                .build();
+
+        try {
+            Response response = client.newCall(request).execute();
+            String json = response.body().string();
+            JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+
+            JsonArray data = obj.getAsJsonArray("data");
+            if (data == null || data.size() == 0) {
+                log.debug("⚠️ Пустой ответ от OKX для {} с before={}", symbol, beforeTimestamp);
+                return new JsonArray();
+            }
+
+            return data;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении свечей с before для {}: {}", symbol, e.getMessage());
+            return new JsonArray();
+        }
+    }
+
+    /**
      * Получает тикер в виде DTO
      */
     public OkxTickerDto getTickerDto(String symbol) {

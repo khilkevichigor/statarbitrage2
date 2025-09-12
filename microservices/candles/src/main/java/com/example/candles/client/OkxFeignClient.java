@@ -43,4 +43,15 @@ public interface OkxFeignClient {
             @RequestParam(defaultValue = "1000000") double minQuoteVolume,
             @RequestParam(defaultValue = "false") boolean sorted
     );
+
+    /**
+     * Получить исторические свечи с параметром before для пагинации
+     */
+    @GetMapping("/api/okx/candles/before")
+    List<Candle> getCandlesBefore(
+            @RequestParam String symbol,
+            @RequestParam(defaultValue = "1m") String timeFrame,
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam long before
+    );
 }

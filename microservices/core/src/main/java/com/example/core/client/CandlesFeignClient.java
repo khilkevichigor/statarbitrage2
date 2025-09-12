@@ -21,4 +21,11 @@ public interface CandlesFeignClient {
      */
     @PostMapping("/api/candles/all")
     Map<String, List<Candle>> getAllCandles(@RequestBody Settings settings);
+
+    /**
+     * Метод для получения большого количества свечей с пагинацией через candles микросервис
+     * Микросервис сам будет делать несколько запросов к OKX API для получения нужного количества свечей
+     */
+    @PostMapping("/api/candles/all-extended")
+    Map<String, List<Candle>> getAllCandlesExtended(@RequestBody ExtendedCandlesRequest request);
 }

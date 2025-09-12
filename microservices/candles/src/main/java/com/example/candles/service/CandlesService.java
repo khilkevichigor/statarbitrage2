@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +47,126 @@ public class CandlesService {
         return okxFeignClient.getValidTickers(filteredTickers, timeFrame, (int) settings.getCandleLimit(), minVolume, isSorted);
     }
 
+    /**
+     * Расширенный метод для получения большого количества свечей с пагинацией
+     * Собирает данные через несколько запросов к OKX API для обхода лимита в 300 свечей
+     */
+    public Map<String, List<Candle>> getCandlesExtended(Settings settings, List<String> swapTickers, int totalLimit) {
+        log.info("📊 Расширенный запрос {} свечей для {} тикеров (таймфрейм: {})",
+                totalLimit, swapTickers.size(), settings.getTimeframe());
+
+        if (totalLimit <= 300) {
+            // Если лимит 300 или меньше, используем стандартный метод
+            return getCandles(settings, swapTickers, true);
+        }
+
+        Map<String, List<Candle>> result = new HashMap<>();
+        int batchSize = 300; // Максимум для OKX API
+        int remainingCandles = totalLimit;
+
+        try {
+            // Создаем настройки для первой пачки (максимум 300 свечей)
+            Settings initialSettings = new Settings();
+            initialSettings.copyFrom(settings);
+            initialSettings.setCandleLimit(Math.min(batchSize, remainingCandles));
+
+            log.debug("🔄 Получаем первую пачку из {} свечей", initialSettings.getCandleLimit());
+            Map<String, List<Candle>> initialBatch = getCandles(initialSettings, swapTickers, true);
+
+            if (initialBatch.isEmpty()) {
+                log.warn("⚠️ Не удалось получить начальные данные");
+                return result;
+            }
+
+            // Для каждого тикера собираем дополнительные исторические данные
+            for (Map.Entry<String, List<Candle>> entry : initialBatch.entrySet()) {
+                String ticker = entry.getKey();
+                List<Candle> allCandles = new ArrayList<>(entry.getValue());
+
+                if (allCandles.isEmpty()) {
+                    continue;
+                }
+
+                remainingCandles = totalLimit - allCandles.size();
+
+                // Получаем дополнительные исторические данные пачками
+                while (remainingCandles > 0 && allCandles.size() < totalLimit) {
+                    try {
+                        // Получаем timestamp самой старой свечи для пагинации
+                        long oldestTimestamp = allCandles.get(0).getTimestamp();
+
+                        // Запрашиваем историческую пачку
+                        int batchLimit = Math.min(batchSize, remainingCandles);
+                        List<Candle> historicalBatch = getCandlesPaginated(ticker, settings.getTimeframe(),
+                                batchLimit, oldestTimestamp);
+
+                        if (historicalBatch.isEmpty()) {
+                            log.debug("📉 Нет больше исторических данных для {}", ticker);
+                            break;
+                        }
+
+                        // Добавляем в начало списка (более старые данные)
+                        allCandles.addAll(0, historicalBatch);
+                        remainingCandles -= historicalBatch.size();
+
+                        // Небольшая задержка между запросами
+                        Thread.sleep(150);
+
+                    } catch (Exception e) {
+                        log.warn("⚠️ Ошибка при получении исторических данных для {}: {}",
+                                ticker, e.getMessage());
+                        break;
+                    }
+                }
+
+                // Обрезаем до нужного размера (берём самые свежие)
+                if (allCandles.size() > totalLimit) {
+                    allCandles = allCandles.subList(allCandles.size() - totalLimit, allCandles.size());
+                }
+
+                result.put(ticker, allCandles);
+            }
+
+            log.info("✅ Расширенный запрос завершен. Получено {} тикеров со средним количеством {} свечей",
+                    result.size(),
+                    result.values().stream().mapToInt(List::size).average().orElse(0));
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка в расширенном запросе свечей: {}", e.getMessage(), e);
+            // Fallback к стандартному методу с ограничением в 300 свечей
+            log.warn("🔄 Используем fallback к стандартному методу с ограничением 300 свечей");
+            Settings fallbackSettings = new Settings();
+            fallbackSettings.copyFrom(settings);
+            fallbackSettings.setCandleLimit(300);
+            return getCandles(fallbackSettings, swapTickers, true);
+        }
+
+        return result;
+    }
+
+    /**
+     * Получение исторических свечей с использованием параметра before для пагинации
+     */
+    private List<Candle> getCandlesPaginated(String ticker, String timeframe, int limit, long beforeTimestamp) {
+        try {
+            log.debug("🔍 Запрос {} исторических свечей для {} до timestamp {}",
+                    limit, ticker, beforeTimestamp);
+
+            // Вызываем OKX API с параметром before для пагинации
+            List<Candle> historicalCandles = okxFeignClient.getCandlesBefore(ticker, timeframe, limit, beforeTimestamp);
+
+            log.debug("📊 Получено {} исторических свечей для {} до timestamp {}",
+                    historicalCandles.size(), ticker, beforeTimestamp);
+
+            return historicalCandles;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении исторических свечей для {} до {}: {}",
+                    ticker, beforeTimestamp, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
     private void validateCandlesLimitAndThrow(Map<String, List<Candle>> candlesMap, Settings settings) {
         if (candlesMap == null) {
             throw new IllegalArgumentException("Мапа свечей не может быть null!");
@@ -64,7 +186,7 @@ public class CandlesService {
                 );
                 throw new IllegalArgumentException(
                         String.format(
-                                "❌ Размер списка свечей для тикера %s: %d, ожидается: %d",
+                                "❌ Размер списка свечей для тикера %s: %d, ожидается: %.0f",
                                 ticker, candles.size(), candleLimit
                         )
                 );
