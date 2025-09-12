@@ -18,7 +18,7 @@ public class FeignConfig {
     public Request.Options requestOptions() {
         return new Request.Options(
                 30, TimeUnit.SECONDS, // connectTimeout - таймаут подключения 30 секунд
-                180, TimeUnit.SECONDS, // readTimeout - таймаут чтения 3 минуты
+                1800, TimeUnit.SECONDS, // readTimeout - таймаут чтения 3 минуты
                 true // followRedirects
         );
     }

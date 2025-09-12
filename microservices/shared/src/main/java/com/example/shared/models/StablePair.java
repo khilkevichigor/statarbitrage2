@@ -9,6 +9,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -131,12 +132,107 @@ public class StablePair {
     // Конструктор для создания из DTO (будет использоваться в core микросервисе)
     public static StablePair fromStabilityResult(Object stabilityResult,
                                                  String timeframe, String period, Map<String, Object> searchSettings) {
-        // Этот метод будет использоваться через рефлексию или расширен в core микросервисе
-        // где есть доступ к StabilityResultDto
         StablePair stablePair = new StablePair();
         stablePair.setTimeframe(timeframe);
         stablePair.setPeriod(period);
         stablePair.setSearchSettingsMap(searchSettings);
+
+        // Извлекаем данные из StabilityResultDto через рефлексию
+        // поскольку shared модуль не имеет прямого доступа к core DTO классам
+        try {
+            Class<?> dtoClass = stabilityResult.getClass();
+
+            // Извлекаем ticker_a и ticker_b
+            java.lang.reflect.Field tickerAField = dtoClass.getDeclaredField("tickerA");
+            tickerAField.setAccessible(true);
+            String tickerA = (String) tickerAField.get(stabilityResult);
+            stablePair.setTickerA(tickerA);
+
+            java.lang.reflect.Field tickerBField = dtoClass.getDeclaredField("tickerB");
+            tickerBField.setAccessible(true);
+            String tickerB = (String) tickerBField.get(stabilityResult);
+            stablePair.setTickerB(tickerB);
+
+            // Извлекаем остальные поля
+            java.lang.reflect.Field totalScoreField = dtoClass.getDeclaredField("totalScore");
+            totalScoreField.setAccessible(true);
+            Integer totalScore = (Integer) totalScoreField.get(stabilityResult);
+            stablePair.setTotalScore(totalScore);
+
+            java.lang.reflect.Field stabilityRatingField = dtoClass.getDeclaredField("stabilityRating");
+            stabilityRatingField.setAccessible(true);
+            String stabilityRating = (String) stabilityRatingField.get(stabilityResult);
+            stablePair.setStabilityRating(stabilityRating);
+
+            java.lang.reflect.Field isTradeableField = dtoClass.getDeclaredField("isTradeable");
+            isTradeableField.setAccessible(true);
+            Boolean isTradeable = (Boolean) isTradeableField.get(stabilityResult);
+            stablePair.setIsTradeable(isTradeable);
+
+            java.lang.reflect.Field dataPointsField = dtoClass.getDeclaredField("dataPoints");
+            dataPointsField.setAccessible(true);
+            Integer dataPoints = (Integer) dataPointsField.get(stabilityResult);
+            stablePair.setDataPoints(dataPoints);
+
+            java.lang.reflect.Field analysisTimeField = dtoClass.getDeclaredField("analysisTimeSeconds");
+            analysisTimeField.setAccessible(true);
+            Double analysisTimeSeconds = (Double) analysisTimeField.get(stabilityResult);
+            stablePair.setAnalysisTimeSeconds(analysisTimeSeconds);
+
+            // Сохраняем весь объект в JSON формате для analysisResults
+            Map<String, Object> analysisResultsMap = new HashMap<>();
+            analysisResultsMap.put("tickerA", tickerA);
+            analysisResultsMap.put("tickerB", tickerB);
+            analysisResultsMap.put("totalScore", totalScore);
+            analysisResultsMap.put("stabilityRating", stabilityRating);
+            analysisResultsMap.put("isTradeable", isTradeable);
+            analysisResultsMap.put("dataPoints", dataPoints);
+            analysisResultsMap.put("analysisTimeSeconds", analysisTimeSeconds);
+
+            // Пытаемся извлечь дополнительные поля если они есть
+            try {
+                java.lang.reflect.Field blockScoresField = dtoClass.getDeclaredField("blockScores");
+                blockScoresField.setAccessible(true);
+                Object blockScores = blockScoresField.get(stabilityResult);
+                analysisResultsMap.put("blockScores", blockScores);
+            } catch (Exception e) {
+                // Поле может отсутствовать
+            }
+
+            try {
+                java.lang.reflect.Field qualityMetricsField = dtoClass.getDeclaredField("qualityMetrics");
+                qualityMetricsField.setAccessible(true);
+                Object qualityMetrics = qualityMetricsField.get(stabilityResult);
+                analysisResultsMap.put("qualityMetrics", qualityMetrics);
+            } catch (Exception e) {
+                // Поле может отсутствовать
+            }
+
+            try {
+                java.lang.reflect.Field redFlagsField = dtoClass.getDeclaredField("redFlags");
+                redFlagsField.setAccessible(true);
+                Object redFlags = redFlagsField.get(stabilityResult);
+                analysisResultsMap.put("redFlags", redFlags);
+            } catch (Exception e) {
+                // Поле может отсутствовать
+            }
+
+            try {
+                java.lang.reflect.Field summaryField = dtoClass.getDeclaredField("summary");
+                summaryField.setAccessible(true);
+                Object summary = summaryField.get(stabilityResult);
+                analysisResultsMap.put("summary", summary);
+            } catch (Exception e) {
+                // Поле может отсутствовать
+            }
+
+            stablePair.setAnalysisResultsMap(analysisResultsMap);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при извлечении данных из StabilityResultDto: {}", e.getMessage(), e);
+            throw new RuntimeException("Не удалось создать StablePair из результата анализа", e);
+        }
+
         return stablePair;
     }
 }
