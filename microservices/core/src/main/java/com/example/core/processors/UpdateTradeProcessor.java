@@ -139,22 +139,28 @@ public class UpdateTradeProcessor {
             return;
         }
 
-        final Settings settings = settingsService.getSettings();
-        final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(freshTradingPair, settings);
-        final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
-        final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
+        try {
+            final Settings settings = settingsService.getSettings();
+            final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(freshTradingPair, settings);
+            final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
+            final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
 
-        if (zScoreData != null) {
-            freshTradingPair.setLongTickerCandles(candlesMap.get(freshTradingPair.getLongTicker()));
-            freshTradingPair.setShortTickerCandles(candlesMap.get(freshTradingPair.getShortTicker()));
-            tradingPairService.updateZScoreDataCurrent(freshTradingPair, zScoreData);
+            if (zScoreData != null) {
+                freshTradingPair.setLongTickerCandles(candlesMap.get(freshTradingPair.getLongTicker()));
+                freshTradingPair.setShortTickerCandles(candlesMap.get(freshTradingPair.getShortTicker()));
+                tradingPairService.updateZScoreDataCurrent(freshTradingPair, zScoreData);
 
-            // Обновляем пиксельный спред для наблюдаемой пары
-            log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshTradingPair.getPairName());
-            chartService.calculatePixelSpreadIfNeeded(freshTradingPair); // Инициализация при первом запуске
-            chartService.addCurrentPixelSpreadPoint(freshTradingPair); // Добавляем новую точку
+                // Обновляем пиксельный спред для наблюдаемой пары
+                log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshTradingPair.getPairName());
+                chartService.calculatePixelSpreadIfNeeded(freshTradingPair); // Инициализация при первом запуске
+                chartService.addCurrentPixelSpreadPoint(freshTradingPair); // Добавляем новую точку
 
-            tradingPairService.save(freshTradingPair);
+                tradingPairService.save(freshTradingPair);
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Ошибка при обновлении наблюдаемой пары {}: {}", 
+                    freshTradingPair.getPairName(), e.getMessage());
+            // Не выбрасываем исключение дальше, чтобы не нарушить работу планировщика
         }
     }
 
@@ -187,6 +193,25 @@ public class UpdateTradeProcessor {
     private Map<String, Object> updateZScoreDataForExistingPair(TradingPair tradingPair, Settings settings) {
         CandlesRequest request = new CandlesRequest(tradingPair, settings);
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(request);
+        
+        // Проверяем, что получены данные свечей
+        if (candlesMap == null || candlesMap.isEmpty()) {
+            log.warn("⚠️ Данные свечей не получены для пары {} — пропуск обновления", tradingPair.getPairName());
+            throw new RuntimeException("Данные свечей не получены — пропуск анализа");
+        }
+        
+        // Проверяем, что получены свечи для обоих тикеров
+        if (!candlesMap.containsKey(tradingPair.getLongTicker()) || 
+            !candlesMap.containsKey(tradingPair.getShortTicker()) ||
+            candlesMap.get(tradingPair.getLongTicker()).isEmpty() || 
+            candlesMap.get(tradingPair.getShortTicker()).isEmpty()) {
+            log.warn("⚠️ Недостаточно данных свечей для пары {} (long: {}, short: {}) — пропуск обновления", 
+                    tradingPair.getPairName(), 
+                    candlesMap.containsKey(tradingPair.getLongTicker()) ? candlesMap.get(tradingPair.getLongTicker()).size() : 0,
+                    candlesMap.containsKey(tradingPair.getShortTicker()) ? candlesMap.get(tradingPair.getShortTicker()).size() : 0);
+            throw new RuntimeException("Недостаточно данных свечей — пропуск анализа");
+        }
+        
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();
         result.put("candlesMap", candlesMap);
@@ -224,7 +249,7 @@ public class UpdateTradeProcessor {
                 zScoreData.getJohansenCointegratingVector() != null ? zScoreData.getJohansenCointegratingVector().size() : 0,
                 zScoreData.getJohansenError() != null ? zScoreData.getJohansenError() : "N/A"));
 
-        logMessage.append(String.format(". Чек: pValue=%s, ADF=%s, R²=%s, stablePeriods=%d",
+        logMessage.append(String.format(". Чек: pValue=%s, ADF=%s, R2=%s, stablePeriods=%d",
                 FormatUtil.color(zScoreData.getJohansenCointPValue(), settings.getMaxPValue()),
                 FormatUtil.color(zScoreData.getAvgAdfPvalue(), settings.getMaxAdfValue()),
                 FormatUtil.color(zScoreData.getAvgRSquared(), settings.getMinRSquared()),
@@ -261,7 +286,7 @@ public class UpdateTradeProcessor {
 
     private TradingPair handleNoOpenPositions(TradingPair tradingPair) {
         log.debug("==> handleNoOpenPositions: НАЧАЛО для пары {}", tradingPair.getPairName());
-        log.debug("ℹ️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", tradingPair.getPairName());
+        log.debug("i️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", tradingPair.getPairName());
 
         final Positioninfo verificationResult = tradingIntegrationServiceImpl.verifyPositionsClosed(tradingPair);
         log.debug("Результат верификации закрытия позиций: {}", verificationResult);

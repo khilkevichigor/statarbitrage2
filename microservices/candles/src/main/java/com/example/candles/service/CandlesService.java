@@ -21,7 +21,18 @@ public class CandlesService {
     private final OkxFeignClient okxFeignClient;
 
     public Map<String, List<Candle>> getApplicableCandlesMap(TradingPair tradingPair, Settings settings) {
-        Map<String, List<Candle>> candlesMap = getCandles(settings, List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()), false);
+        List<String> tickers = List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker());
+        
+        // Используем расширенный метод с пагинацией если требуется больше 300 свечей
+        Map<String, List<Candle>> candlesMap;
+        if (settings.getCandleLimit() > 300) {
+            log.info("🔄 Используем пагинацию для получения {} свечей для пары {}", 
+                    (int)settings.getCandleLimit(), tradingPair.getPairName());
+            candlesMap = getCandlesExtended(settings, tickers, (int)settings.getCandleLimit());
+        } else {
+            candlesMap = getCandles(settings, tickers, false);
+        }
+        
         validateCandlesLimitAndThrow(candlesMap, settings);
         return candlesMap;
     }
@@ -29,7 +40,17 @@ public class CandlesService {
     //todo сделать умнее - через кэш или бд - зачем каждую минуту это делать! если объем есть то можно целый день работать, ну или чекать 1раз/час
     public Map<String, List<Candle>> getApplicableCandlesMap(Settings settings, List<String> tradingTickers) {
         List<String> applicableTickers = getApplicableTickers(settings, tradingTickers, "1D", true);
-        Map<String, List<Candle>> candlesMap = getCandles(settings, applicableTickers, true);
+        
+        // Используем расширенный метод с пагинацией если требуется больше 300 свечей
+        Map<String, List<Candle>> candlesMap;
+        if (settings.getCandleLimit() > 300) {
+            log.info("🔄 Используем пагинацию для получения {} свечей для {} тикеров", 
+                    (int)settings.getCandleLimit(), applicableTickers.size());
+            candlesMap = getCandlesExtended(settings, applicableTickers, (int)settings.getCandleLimit());
+        } else {
+            candlesMap = getCandles(settings, applicableTickers, true);
+        }
+        
         validateCandlesLimitAndThrow(candlesMap, settings);
         return candlesMap;
     }
@@ -173,23 +194,32 @@ public class CandlesService {
         }
 
         double candleLimit = settings.getCandleLimit();
+        int minAcceptableCandles = (int) (candleLimit * 0.9); // Принимаем 90% от требуемого количества
 
         candlesMap.forEach((ticker, candles) -> {
             if (candles == null) {
                 log.error("❌ Список свечей для тикера {} равен null!", ticker);
                 throw new IllegalArgumentException("Список свечей не может быть null для тикера: " + ticker);
             }
-            if (candles.size() != candleLimit) {
+            
+            // Гибкая валидация - принимаем если есть хотя бы 90% от требуемого количества
+            if (candles.size() < minAcceptableCandles) {
                 log.error(
-                        "❌ Размер списка свечей {} для тикера {} не совпадает с лимитом {}",
-                        candles.size(), ticker, candleLimit
+                        "❌ Недостаточно свечей для тикера {}: получено {}, минимум требуется {}",
+                        ticker, candles.size(), minAcceptableCandles
                 );
                 throw new IllegalArgumentException(
                         String.format(
-                                "❌ Размер списка свечей для тикера %s: %d, ожидается: %.0f",
-                                ticker, candles.size(), candleLimit
+                                "❌ Недостаточно свечей для тикера %s: %d, минимум требуется: %d (90%% от %.0f)",
+                                ticker, candles.size(), minAcceptableCandles, candleLimit
                         )
                 );
+            }
+            
+            // Предупреждение если количество не точно совпадает но в допустимых пределах
+            if (candles.size() != (int) candleLimit) {
+                log.warn("⚠️ Количество свечей для тикера {} отличается от заданного: получено {}, ожидалось {}",
+                        ticker, candles.size(), (int) candleLimit);
             }
         });
     }

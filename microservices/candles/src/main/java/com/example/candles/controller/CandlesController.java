@@ -27,10 +27,22 @@ public class CandlesController {
 
     @PostMapping("/applicable-map")
     public Map<String, List<Candle>> getApplicableCandlesMap(@RequestBody CandlesRequest request) {
-        if (request.isUsePairData()) {
-            return candlesService.getApplicableCandlesMap(request.getTradingPair(), request.getSettings());
-        } else {
-            return candlesService.getApplicableCandlesMap(request.getSettings(), request.getTradingTickers());
+        try {
+            if (request.isUsePairData()) {
+                log.debug("📊 Запрос свечей для пары: {} (лимит: {})", 
+                        request.getTradingPair().getPairName(), request.getSettings().getCandleLimit());
+                return candlesService.getApplicableCandlesMap(request.getTradingPair(), request.getSettings());
+            } else {
+                log.debug("📊 Запрос свечей для {} тикеров (лимит: {})", 
+                        request.getTradingTickers().size(), request.getSettings().getCandleLimit());
+                return candlesService.getApplicableCandlesMap(request.getSettings(), request.getTradingTickers());
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
+            
+            // Возвращаем пустую карту вместо выброса исключения
+            // Это предотвратит падение Python API запросов
+            return Map.of();
         }
     }
 

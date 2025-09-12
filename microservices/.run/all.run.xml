@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="all" type="CompoundRunConfigurationType">
+    <toRun name="OkxApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="CandlesApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="CointegrationApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="CsvApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="NotificationApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="CoreApplication" type="SpringBootApplicationConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>
