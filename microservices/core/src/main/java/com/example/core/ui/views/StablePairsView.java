@@ -5,19 +5,16 @@ import com.example.core.services.StablePairService;
 import com.example.core.ui.components.ZScoreChartDialog;
 import com.example.core.ui.layout.MainLayout;
 import com.example.shared.models.StablePair;
-import com.example.shared.utils.NumberFormatter;
 import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -32,7 +29,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +57,7 @@ public class StablePairsView extends VerticalLayout {
     private NumberField minRSquaredField;
     private Checkbox maxPValueEnabled;
     private NumberField maxPValueField;
-    
+
     private Button searchButton;
     private Button clearAllButton;
     private ProgressBar progressBar;
@@ -118,7 +114,7 @@ public class StablePairsView extends VerticalLayout {
         row1.setWidthFull();
 
         timeframeComboBox = new ComboBox<>("Таймфрейм");
-        timeframeComboBox.setItems("1m", "5m", "15m", "1h", "4h", "1D", "1W", "1M");
+        timeframeComboBox.setItems("1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M");
         timeframeComboBox.setValue("1D");
         timeframeComboBox.setWidth("150px");
 
@@ -178,7 +174,7 @@ public class StablePairsView extends VerticalLayout {
         maxAdfValueField.setValue(0.1);
         maxAdfValueField.setWidth("120px");
         maxAdfValueField.setEnabled(maxAdfValueEnabled.getValue());
-        maxAdfValueEnabled.addValueChangeListener(e -> 
+        maxAdfValueEnabled.addValueChangeListener(e ->
                 maxAdfValueField.setEnabled(e.getValue()));
 
         HorizontalLayout corrGroup = new HorizontalLayout(minCorrelationEnabled, minCorrelationField);
@@ -258,7 +254,7 @@ public class StablePairsView extends VerticalLayout {
         title.getStyle().set("margin", "0 0 15px 0");
 
         foundPairsGrid = createFoundPairsGrid();
-        
+
         section.add(title, foundPairsGrid);
         return section;
     }
@@ -274,7 +270,7 @@ public class StablePairsView extends VerticalLayout {
         title.getStyle().set("margin", "0 0 15px 0");
 
         monitoringPairsGrid = createMonitoringPairsGrid();
-        
+
         section.add(title, monitoringPairsGrid);
         return section;
     }
@@ -359,31 +355,31 @@ public class StablePairsView extends VerticalLayout {
     private void performSearch() {
         searchButton.setEnabled(false);
         progressBar.setVisible(true);
-        
+
         try {
             String timeframe = timeframeComboBox.getValue();
             String period = periodComboBox.getValue();
             Map<String, Object> searchSettings = buildSearchSettings();
-            
+
             log.info("🔍 Запуск поиска стабильных пар: TF={}, Period={}", timeframe, period);
-            
+
             // Выполняем поиск в фоновом потоке
             getUI().ifPresent(ui -> {
                 Thread searchThread = new Thread(() -> {
                     try {
                         StabilityResponseDto response = stablePairService.searchStablePairs(
                                 timeframe, period, searchSettings);
-                        
+
                         ui.access(() -> {
                             progressBar.setVisible(false);
                             searchButton.setEnabled(true);
-                            
+
                             if (response.getSuccess()) {
                                 Notification.show(
-                                        String.format("✅ Поиск завершен! Найдено %d торгуемых пар из %d проанализированных", 
-                                                response.getTradeablePairsFound(), 
-                                                response.getTotalPairsAnalyzed()),
-                                        5000, Notification.Position.TOP_CENTER)
+                                                String.format("✅ Поиск завершен! Найдено %d торгуемых пар из %d проанализированных",
+                                                        response.getTradeablePairsFound(),
+                                                        response.getTotalPairsAnalyzed()),
+                                                5000, Notification.Position.TOP_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                                 loadFoundPairs();
                                 updateStatistics();
@@ -392,7 +388,7 @@ public class StablePairsView extends VerticalLayout {
                                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                             }
                         });
-                        
+
                     } catch (Exception e) {
                         log.error("Ошибка при поиске пар: {}", e.getMessage(), e);
                         ui.access(() -> {
@@ -405,7 +401,7 @@ public class StablePairsView extends VerticalLayout {
                 });
                 searchThread.start();
             });
-            
+
         } catch (Exception e) {
             log.error("Ошибка при инициации поиска: {}", e.getMessage(), e);
             progressBar.setVisible(false);
@@ -417,7 +413,7 @@ public class StablePairsView extends VerticalLayout {
 
     private Map<String, Object> buildSearchSettings() {
         Map<String, Object> settings = new HashMap<>();
-        
+
         if (minCorrelationEnabled.getValue() && minCorrelationField.getValue() != null) {
             settings.put("minCorrelation", minCorrelationField.getValue());
         }
@@ -433,7 +429,7 @@ public class StablePairsView extends VerticalLayout {
         if (maxPValueEnabled.getValue() && maxPValueField.getValue() != null) {
             settings.put("maxPValue", maxPValueField.getValue());
         }
-        
+
         return settings;
     }
 
@@ -441,24 +437,25 @@ public class StablePairsView extends VerticalLayout {
         ConfirmDialog dialog = new ConfirmDialog(
                 "Очистка результатов",
                 "Вы уверены, что хотите удалить все найденные пары? " +
-                "Пары в мониторинге НЕ будут удалены.",
+                        "Пары в мониторинге НЕ будут удалены.",
                 "Очистить", event -> {
-                    try {
-                        int deletedCount = stablePairService.clearAllFoundPairs();
-                        Notification.show(
+            try {
+                int deletedCount = stablePairService.clearAllFoundPairs();
+                Notification.show(
                                 String.format("🧹 Удалено %d найденных пар", deletedCount),
                                 3000, Notification.Position.TOP_CENTER)
-                                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                        loadFoundPairs();
-                        updateStatistics();
-                    } catch (Exception e) {
-                        log.error("Ошибка при очистке пар: {}", e.getMessage(), e);
-                        Notification.show("❌ Ошибка при очистке: " + e.getMessage(),
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                loadFoundPairs();
+                updateStatistics();
+            } catch (Exception e) {
+                log.error("Ошибка при очистке пар: {}", e.getMessage(), e);
+                Notification.show("❌ Ошибка при очистке: " + e.getMessage(),
                                 3000, Notification.Position.TOP_CENTER)
-                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                    }
-                },
-                "Отмена", event -> {});
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        },
+                "Отмена", event -> {
+        });
         dialog.open();
     }
 
@@ -466,8 +463,8 @@ public class StablePairsView extends VerticalLayout {
         try {
             stablePairService.addToMonitoring(pair.getId());
             Notification.show(
-                    String.format("➕ Пара %s добавлена в мониторинг", pair.getPairName()),
-                    3000, Notification.Position.BOTTOM_CENTER)
+                            String.format("➕ Пара %s добавлена в мониторинг", pair.getPairName()),
+                            3000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             loadData(); // Перезагружаем обе таблицы
         } catch (Exception e) {
@@ -481,8 +478,8 @@ public class StablePairsView extends VerticalLayout {
         try {
             stablePairService.removeFromMonitoring(pair.getId());
             Notification.show(
-                    String.format("➖ Пара %s удалена из мониторинга", pair.getPairName()),
-                    3000, Notification.Position.BOTTOM_CENTER)
+                            String.format("➖ Пара %s удалена из мониторинга", pair.getPairName()),
+                            3000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             loadData(); // Перезагружаем обе таблицы
         } catch (Exception e) {
@@ -497,22 +494,23 @@ public class StablePairsView extends VerticalLayout {
                 "Удаление пары",
                 String.format("Вы уверены, что хотите удалить пару %s?", pair.getPairName()),
                 "Удалить", event -> {
-                    try {
-                        stablePairService.deleteFoundPair(pair.getId());
-                        Notification.show(
+            try {
+                stablePairService.deleteFoundPair(pair.getId());
+                Notification.show(
                                 String.format("🗑️ Пара %s удалена", pair.getPairName()),
                                 3000, Notification.Position.BOTTOM_CENTER)
-                                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                        loadFoundPairs();
-                        updateStatistics();
-                    } catch (Exception e) {
-                        log.error("Ошибка при удалении пары: {}", e.getMessage(), e);
-                        Notification.show("❌ Ошибка: " + e.getMessage(),
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                loadFoundPairs();
+                updateStatistics();
+            } catch (Exception e) {
+                log.error("Ошибка при удалении пары: {}", e.getMessage(), e);
+                Notification.show("❌ Ошибка: " + e.getMessage(),
                                 3000, Notification.Position.TOP_CENTER)
-                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                    }
-                },
-                "Отмена", event -> {});
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        },
+                "Отмена", event -> {
+        });
         dialog.open();
     }
 
@@ -523,12 +521,12 @@ public class StablePairsView extends VerticalLayout {
             tempTradingPair.setLongTicker(pair.getTickerA());
             tempTradingPair.setShortTicker(pair.getTickerB());
             tempTradingPair.setPairName(pair.getPairName());
-            
+
             zScoreChartDialog.showChart(tempTradingPair);
         } catch (Exception e) {
             log.error("Ошибка при показе графика для пары {}: {}", pair.getPairName(), e.getMessage(), e);
             Notification.show("❌ Ошибка при загрузке графика: " + e.getMessage(),
-                    3000, Notification.Position.TOP_CENTER)
+                            3000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
@@ -568,9 +566,9 @@ public class StablePairsView extends VerticalLayout {
             Map<String, Object> stats = stablePairService.getSearchStatistics();
             int totalFound = ((Number) stats.get("totalFound")).intValue();
             int totalInMonitoring = ((Number) stats.get("totalInMonitoring")).intValue();
-            
+
             statsLabel.setText(String.format(
-                    "📊 Найдено пар: %d | В мониторинге: %d", 
+                    "📊 Найдено пар: %d | В мониторинге: %d",
                     totalFound, totalInMonitoring));
         } catch (Exception e) {
             log.error("Ошибка при обновлении статистики: {}", e.getMessage(), e);

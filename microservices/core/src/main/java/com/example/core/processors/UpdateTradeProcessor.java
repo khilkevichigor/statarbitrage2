@@ -158,7 +158,7 @@ public class UpdateTradeProcessor {
                 tradingPairService.save(freshTradingPair);
             }
         } catch (Exception e) {
-            log.warn("⚠️ Ошибка при обновлении наблюдаемой пары {}: {}", 
+            log.warn("⚠️ Ошибка при обновлении наблюдаемой пары {}: {}",
                     freshTradingPair.getPairName(), e.getMessage());
             // Не выбрасываем исключение дальше, чтобы не нарушить работу планировщика
         }
@@ -191,27 +191,49 @@ public class UpdateTradeProcessor {
     }
 
     private Map<String, Object> updateZScoreDataForExistingPair(TradingPair tradingPair, Settings settings) {
-        CandlesRequest request = new CandlesRequest(tradingPair, settings);
-        Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(request);
-        
+        // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
+        ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
+                .timeframe(settings.getTimeframe())
+                .candleLimit((int) settings.getCandleLimit())
+                .minVolume(settings.getMinVolume())
+                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
+                .build();
+
+        // Получаем все свечи через расширенный эндпоинт с пагинацией
+        Map<String, List<Candle>> allCandlesMap = candlesFeignClient.getAllCandlesExtended(extendedRequest);
+
         // Проверяем, что получены данные свечей
-        if (candlesMap == null || candlesMap.isEmpty()) {
+        if (allCandlesMap == null || allCandlesMap.isEmpty()) {
             log.warn("⚠️ Данные свечей не получены для пары {} — пропуск обновления", tradingPair.getPairName());
             throw new RuntimeException("Данные свечей не получены — пропуск анализа");
         }
-        
+
+        // Фильтруем только нужные тикеры для данной пары
+        Map<String, List<Candle>> candlesMap = new HashMap<>();
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
+
+        if (allCandlesMap.containsKey(longTicker)) {
+            candlesMap.put(longTicker, allCandlesMap.get(longTicker));
+        }
+        if (allCandlesMap.containsKey(shortTicker)) {
+            candlesMap.put(shortTicker, allCandlesMap.get(shortTicker));
+        }
+
         // Проверяем, что получены свечи для обоих тикеров
-        if (!candlesMap.containsKey(tradingPair.getLongTicker()) || 
-            !candlesMap.containsKey(tradingPair.getShortTicker()) ||
-            candlesMap.get(tradingPair.getLongTicker()).isEmpty() || 
-            candlesMap.get(tradingPair.getShortTicker()).isEmpty()) {
-            log.warn("⚠️ Недостаточно данных свечей для пары {} (long: {}, short: {}) — пропуск обновления", 
-                    tradingPair.getPairName(), 
-                    candlesMap.containsKey(tradingPair.getLongTicker()) ? candlesMap.get(tradingPair.getLongTicker()).size() : 0,
-                    candlesMap.containsKey(tradingPair.getShortTicker()) ? candlesMap.get(tradingPair.getShortTicker()).size() : 0);
+        if (!candlesMap.containsKey(longTicker) ||
+                !candlesMap.containsKey(shortTicker) ||
+                candlesMap.get(longTicker).isEmpty() ||
+                candlesMap.get(shortTicker).isEmpty()) {
+            log.warn("⚠️ Недостаточно данных свечей для пары {} (long: {}, short: {}) — пропуск обновления",
+                    tradingPair.getPairName(),
+                    candlesMap.containsKey(longTicker) ? candlesMap.get(longTicker).size() : 0,
+                    candlesMap.containsKey(shortTicker) ? candlesMap.get(shortTicker).size() : 0);
             throw new RuntimeException("Недостаточно данных свечей — пропуск анализа");
         }
-        
+
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();
         result.put("candlesMap", candlesMap);

@@ -1,13 +1,13 @@
 package com.example.core.services;
 
 import com.example.core.client.CandlesFeignClient;
-import com.example.core.client.ExtendedCandlesRequest;
 import com.example.core.experemental.stability.dto.StabilityRequestDto;
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.experemental.stability.dto.StabilityResultDto;
 import com.example.core.experemental.stability.service.StabilityAnalysisService;
 import com.example.core.repositories.StablePairRepository;
 import com.example.shared.dto.Candle;
+import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Settings;
 import com.example.shared.models.StablePair;
 import lombok.RequiredArgsConstructor;
@@ -83,18 +83,8 @@ public class StablePairService {
             int candleLimit = calculateCandleLimit(timeframe, period);
             log.info("📊 Запрашиваем {} свечей для таймфрейма {} и периода {}", candleLimit, timeframe, period);
 
-            // Если свечей меньше или равно 300, используем стандартный способ
-            if (candleLimit <= 300) {
-                Settings tempSettings = new Settings();
-                tempSettings.copyFrom(settings);
-                tempSettings.setCandleLimit(candleLimit);
-                tempSettings.setTimeframe(timeframe);
-
-                return candlesFeignClient.getAllCandles(tempSettings);
-            } else {
-                // Для больших периодов используем расширенный запрос к candles микросервису
-                return getCandlesExtended(settings, timeframe, candleLimit);
-            }
+            // Всегда используем расширенный запрос к candles микросервису с пагинацией
+            return getCandlesExtended(settings, timeframe, candleLimit);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
@@ -117,6 +107,7 @@ public class StablePairService {
                     .minVolume(settings.getMinVolume())
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                    .tickers(null) // Получаем все доступные тикеры
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getAllCandlesExtended(request);
@@ -132,13 +123,17 @@ public class StablePairService {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при расширенном получении свечей: {}", e.getMessage(), e);
-            // Fallback к стандартному методу с ограничением
-            log.warn("🔄 Используем fallback к стандартному методу с ограничением 300 свечей");
-            Settings tempSettings = new Settings();
-            tempSettings.copyFrom(settings);
-            tempSettings.setCandleLimit(300);
-            tempSettings.setTimeframe(timeframe);
-            return candlesFeignClient.getAllCandles(tempSettings);
+            // Fallback к расширенному методу с ограничением
+            log.warn("🔄 Используем fallback к расширенному методу с ограничением 300 свечей");
+            ExtendedCandlesRequest fallbackRequest = ExtendedCandlesRequest.builder()
+                    .timeframe(timeframe)
+                    .candleLimit(300)
+                    .minVolume(settings.getMinVolume())
+                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                    .tickers(null) // Получаем все доступные тикеры
+                    .build();
+            return candlesFeignClient.getAllCandlesExtended(fallbackRequest);
         }
     }
 
@@ -155,7 +150,15 @@ public class StablePairService {
             tempSettings.setCandleLimit(300); // Максимум для OKX
             tempSettings.setTimeframe(timeframe);
 
-            Map<String, List<Candle>> initialData = candlesFeignClient.getAllCandles(tempSettings);
+            ExtendedCandlesRequest initialRequest = ExtendedCandlesRequest.builder()
+                    .timeframe(timeframe)
+                    .candleLimit(300)
+                    .minVolume(settings.getMinVolume())
+                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                    .tickers(null) // Получаем все доступные тикеры
+                    .build();
+            Map<String, List<Candle>> initialData = candlesFeignClient.getAllCandlesExtended(initialRequest);
 
             if (initialData.isEmpty()) {
                 log.warn("⚠️ Не удалось получить начальные данные свечей");
@@ -269,8 +272,8 @@ public class StablePairService {
             case "1m" -> 60 * 1000L;
             case "5m" -> 5 * 60 * 1000L;
             case "15m" -> 15 * 60 * 1000L;
-            case "1h" -> 60 * 60 * 1000L;
-            case "4h" -> 4 * 60 * 60 * 1000L;
+            case "1H" -> 60 * 60 * 1000L;
+            case "4H" -> 4 * 60 * 60 * 1000L;
             case "1D" -> 24 * 60 * 60 * 1000L;
             case "1W" -> 7 * 24 * 60 * 60 * 1000L;
             case "1M" -> 30L * 24 * 60 * 60 * 1000L; // Примерно месяц
@@ -297,8 +300,8 @@ public class StablePairService {
             case "1m" -> multiplier * 24 * 60; // минуты в день
             case "5m" -> multiplier * 24 * 12; // 5-минутки в день
             case "15m" -> multiplier * 24 * 4; // 15-минутки в день
-            case "1h" -> multiplier * 24; // часы в день
-            case "4h" -> multiplier * 6; // 4-часовки в день
+            case "1H" -> multiplier * 24; // часы в день
+            case "4H" -> multiplier * 6; // 4-часовки в день
             case "1D" -> multiplier; // дни
             case "1W" -> multiplier / 7; // недели
             case "1M" -> multiplier / 30; // месяцы

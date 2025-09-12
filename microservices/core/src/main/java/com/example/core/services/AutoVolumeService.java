@@ -19,7 +19,7 @@ import java.math.RoundingMode;
 @Service
 @RequiredArgsConstructor
 public class AutoVolumeService {
-    
+
     private final OkxPortfolioManager okxPortfolioManager;
     private final TradingPairRepository tradingPairRepository;
 
@@ -30,16 +30,24 @@ public class AutoVolumeService {
         private final BigDecimal longVolume;
         private final BigDecimal shortVolume;
         private final BigDecimal reserveAmount;
-        
+
         public AutoVolumeData(BigDecimal longVolume, BigDecimal shortVolume, BigDecimal reserveAmount) {
             this.longVolume = longVolume;
             this.shortVolume = shortVolume;
             this.reserveAmount = reserveAmount;
         }
-        
-        public BigDecimal getLongVolume() { return longVolume; }
-        public BigDecimal getShortVolume() { return shortVolume; }
-        public BigDecimal getReserveAmount() { return reserveAmount; }
+
+        public BigDecimal getLongVolume() {
+            return longVolume;
+        }
+
+        public BigDecimal getShortVolume() {
+            return shortVolume;
+        }
+
+        public BigDecimal getReserveAmount() {
+            return reserveAmount;
+        }
     }
 
     /**
@@ -52,11 +60,11 @@ public class AutoVolumeService {
                 log.warn("⚠️ Не удалось получить портфолио для расчета автообъема");
                 return BigDecimal.ZERO;
             }
-            
+
             BigDecimal availableBalance = portfolio.getAvailableBalance();
             log.debug("💰 Доступный USDT баланс: {}", availableBalance);
             return availableBalance;
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при получении доступного USDT баланса: {}", e.getMessage());
             return BigDecimal.ZERO;
@@ -87,43 +95,43 @@ public class AutoVolumeService {
             BigDecimal availableUsdt = getAvailableUsdtBalance();
             int activeTradingPairs = getActiveTradingPairsCount();
             int totalPairsToTrade = (int) settings.getUsePairs();
-            
+
             log.debug("🔢 Исходные данные для расчета автообъема:");
             log.debug("💰 Доступно USDT: {}", availableUsdt);
             log.debug("📊 Активные TRADING пары: {}", activeTradingPairs);
             log.debug("⚙️ Общее количество пар: {}", totalPairsToTrade);
-            
+
             if (availableUsdt.compareTo(BigDecimal.ZERO) <= 0) {
                 log.warn("⚠️ Недостаточно средств для расчета автообъема");
                 return new AutoVolumeData(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
             }
-            
+
             // Расчет по формуле: свободные_USDT / (2 * (кол-во_пар - TRADING_пары + 1))
             int denominator = 2 * (totalPairsToTrade - activeTradingPairs + 1);
-            
+
             if (denominator <= 0) {
                 log.warn("⚠️ Некорректные параметры для расчета автообъема. Знаменатель: {}", denominator);
                 return new AutoVolumeData(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
             }
-            
+
             BigDecimal positionSize = availableUsdt.divide(
-                BigDecimal.valueOf(denominator), 
-                2, 
-                RoundingMode.HALF_UP
+                    BigDecimal.valueOf(denominator),
+                    2,
+                    RoundingMode.HALF_UP
             );
-            
+
             // Рассчитываем резерв (1 часть)
             BigDecimal reserve = availableUsdt.divide(
-                BigDecimal.valueOf(totalPairsToTrade - activeTradingPairs + 1),
-                2, 
-                RoundingMode.HALF_UP
+                    BigDecimal.valueOf(totalPairsToTrade - activeTradingPairs + 1),
+                    2,
+                    RoundingMode.HALF_UP
             );
-            
+
             log.debug("📈 Рассчитанный объем позиции (лонг/шорт): {}", positionSize);
             log.debug("💾 Резерв на усреднения: {}", reserve);
-            
+
             return new AutoVolumeData(positionSize, positionSize, reserve);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при расчете автообъема: {}", e.getMessage());
             return new AutoVolumeData(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
@@ -136,17 +144,17 @@ public class AutoVolumeService {
     public void logAutoVolumeStatus(Settings settings) {
         try {
             AutoVolumeData autoVolume = calculateAutoVolume(settings);
-            
+
             if (settings.isAutoVolumeEnabled()) {
-                log.info("✅ Автообъем включен. Рассчитанный автообъем: лонг={}, шорт={}, на усреднение={}", 
-                    autoVolume.getLongVolume(), 
-                    autoVolume.getShortVolume(), 
-                    autoVolume.getReserveAmount());
+                log.debug("✅ Автообъем включен. Рассчитанный автообъем: лонг={}, шорт={}, на усреднение={}",
+                        autoVolume.getLongVolume(),
+                        autoVolume.getShortVolume(),
+                        autoVolume.getReserveAmount());
             } else {
                 log.debug("Автообъем выключен. Автообъем был бы: лонг={}, шорт={}, на усреднение={}",
-                    autoVolume.getLongVolume(), 
-                    autoVolume.getShortVolume(), 
-                    autoVolume.getReserveAmount());
+                        autoVolume.getLongVolume(),
+                        autoVolume.getShortVolume(),
+                        autoVolume.getReserveAmount());
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при логировании состояния автообъема: {}", e.getMessage());

@@ -1,9 +1,11 @@
-package com.example.core.client;
+package com.example.shared.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
  * DTO для запроса большого количества свечей с пагинацией
@@ -15,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class ExtendedCandlesRequest {
 
     /**
-     * Таймфрейм (1m, 5m, 15m, 1h, 4h, 1D, 1W, 1M)
+     * Таймфрейм (1m, 5m, 15m, 1H, 4H, 1D, 1W, 1M)
      */
     private String timeframe;
 
@@ -38,4 +40,10 @@ public class ExtendedCandlesRequest {
      * Черный список тикеров для исключения
      */
     private String minimumLotBlacklist;
+
+    /**
+     * Список конкретных тикеров для получения свечей.
+     * Если null или пустой - будут получены все доступные тикеры
+     */
+    private List<String> tickers;
 }

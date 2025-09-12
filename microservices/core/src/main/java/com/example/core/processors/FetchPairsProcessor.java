@@ -5,7 +5,7 @@ import com.example.core.services.SettingsService;
 import com.example.core.services.TradingPairService;
 import com.example.core.services.ZScoreService;
 import com.example.shared.dto.Candle;
-import com.example.shared.dto.CandlesRequest;
+import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
@@ -80,8 +80,18 @@ public class FetchPairsProcessor {
 
     private Map<String, List<Candle>> getCandles(Settings settings, List<String> tradingTickers) {
         long start = System.currentTimeMillis();
-        CandlesRequest request = new CandlesRequest(settings, tradingTickers);
-        Map<String, List<Candle>> map = candlesFeignClient.getApplicableCandlesMap(request);
+
+        // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
+        ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
+                .timeframe(settings.getTimeframe())
+                .candleLimit((int) settings.getCandleLimit())
+                .minVolume(settings.getMinVolume())
+                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                .tickers(tradingTickers) // Передаем список тикеров
+                .build();
+
+        Map<String, List<Candle>> map = candlesFeignClient.getAllCandlesExtended(request);
         log.debug("✅ Свечи загружены за {} сек", String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
         return map;
     }

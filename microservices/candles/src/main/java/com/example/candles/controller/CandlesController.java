@@ -1,10 +1,10 @@
 package com.example.candles.controller;
 
 import com.example.candles.client.OkxFeignClient;
-import com.example.candles.dto.ExtendedCandlesRequest;
 import com.example.candles.service.CandlesService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
+import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,17 +29,17 @@ public class CandlesController {
     public Map<String, List<Candle>> getApplicableCandlesMap(@RequestBody CandlesRequest request) {
         try {
             if (request.isUsePairData()) {
-                log.debug("📊 Запрос свечей для пары: {} (лимит: {})", 
+                log.debug("📊 Запрос свечей для пары: {} (лимит: {})",
                         request.getTradingPair().getPairName(), request.getSettings().getCandleLimit());
                 return candlesService.getApplicableCandlesMap(request.getTradingPair(), request.getSettings());
             } else {
-                log.debug("📊 Запрос свечей для {} тикеров (лимит: {})", 
+                log.debug("📊 Запрос свечей для {} тикеров (лимит: {})",
                         request.getTradingTickers().size(), request.getSettings().getCandleLimit());
                 return candlesService.getApplicableCandlesMap(request.getSettings(), request.getTradingTickers());
             }
         } catch (Exception e) {
             log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
-            
+
             // Возвращаем пустую карту вместо выброса исключения
             // Это предотвратит падение Python API запросов
             return Map.of();
@@ -91,8 +91,15 @@ public class CandlesController {
         // Конвертируем ExtendedCandlesRequest в Settings
         Settings settings = convertToSettings(request);
 
-        // Получаем все доступные тикеры
-        List<String> swapTickers = okxFeignClient.getAllSwapTickers(true);
+        // Получаем тикеры: используем переданный список или все доступные
+        List<String> swapTickers;
+        if (request.getTickers() != null && !request.getTickers().isEmpty()) {
+            log.info("📝 Используем переданный список из {} тикеров", request.getTickers().size());
+            swapTickers = request.getTickers();
+        } else {
+            log.info("🌐 Получаем все доступные тикеры");
+            swapTickers = okxFeignClient.getAllSwapTickers(true);
+        }
 
         // Используем расширенный сервис для получения большого количества свечей
         Map<String, List<Candle>> result = candlesService.getCandlesExtended(settings, swapTickers, request.getCandleLimit());

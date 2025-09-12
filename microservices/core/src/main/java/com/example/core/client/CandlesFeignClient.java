@@ -2,6 +2,7 @@ package com.example.core.client;
 
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
+import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Settings;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;

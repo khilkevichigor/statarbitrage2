@@ -81,8 +81,17 @@ public class StartNewTradeProcessor {
     }
 
     private Optional<ZScoreData> updateZScoreDataForExistingPair(TradingPair tradingPair, Settings settings) {
-        CandlesRequest request = new CandlesRequest(tradingPair, settings);
-        Map<String, List<Candle>> candlesMap = candlesFeignClient.getApplicableCandlesMap(request);
+        // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
+        ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
+                .timeframe(settings.getTimeframe())
+                .candleLimit((int) settings.getCandleLimit())
+                .minVolume(settings.getMinVolume())
+                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
+                .build();
+
+        Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandlesExtended(request);
         return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(tradingPair, settings, candlesMap);
     }
 

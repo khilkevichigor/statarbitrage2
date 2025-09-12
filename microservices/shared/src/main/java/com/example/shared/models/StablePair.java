@@ -45,7 +45,7 @@ public class StablePair {
     private Double analysisTimeSeconds;
 
     @Column(name = "timeframe", length = 10)
-    private String timeframe; // 1m, 5m, 15m, 1h, 4h, 1D, 1W, 1M
+    private String timeframe; // 1m, 5m, 15m, 1H, 4H, 1D, 1W, 1M
 
     @Column(name = "period", length = 20)
     private String period; // день, неделя, месяц, 1 год, 2 года, 3 года
@@ -124,35 +124,19 @@ public class StablePair {
         }
     }
 
-    // Конструктор для создания из DTO
-    public static StablePair fromStabilityResult(com.example.core.experemental.stability.dto.StabilityResultDto result,
+    public String getPairName() {
+        return tickerA + "/" + tickerB;
+    }
+
+    // Конструктор для создания из DTO (будет использоваться в core микросервисе)
+    public static StablePair fromStabilityResult(Object stabilityResult,
                                                  String timeframe, String period, Map<String, Object> searchSettings) {
+        // Этот метод будет использоваться через рефлексию или расширен в core микросервисе
+        // где есть доступ к StabilityResultDto
         StablePair stablePair = new StablePair();
-        stablePair.setTickerA(result.getTickerA());
-        stablePair.setTickerB(result.getTickerB());
-        stablePair.setTotalScore(result.getTotalScore());
-        stablePair.setStabilityRating(result.getStabilityRating());
-        stablePair.setIsTradeable(result.getIsTradeable());
-        stablePair.setDataPoints(result.getDataPoints());
-        stablePair.setAnalysisTimeSeconds(result.getAnalysisTimeSeconds());
         stablePair.setTimeframe(timeframe);
         stablePair.setPeriod(period);
         stablePair.setSearchSettingsMap(searchSettings);
-        
-        // Сохраняем все результаты анализа
-        Map<String, Object> analysisMap = Map.of(
-            "blockScores", result.getBlockScores() != null ? result.getBlockScores() : Map.of(),
-            "qualityMetrics", result.getQualityMetrics() != null ? result.getQualityMetrics() : Map.of(),
-            "redFlags", result.getRedFlags() != null ? result.getRedFlags() : Map.of(),
-            "summary", result.getSummary() != null ? result.getSummary() : Map.of(),
-            "error", result.getError() != null ? result.getError() : ""
-        );
-        stablePair.setAnalysisResultsMap(analysisMap);
-        
         return stablePair;
-    }
-
-    public String getPairName() {
-        return tickerA + "/" + tickerB;
     }
 }

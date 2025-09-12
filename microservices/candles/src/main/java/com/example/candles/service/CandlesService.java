@@ -22,17 +22,17 @@ public class CandlesService {
 
     public Map<String, List<Candle>> getApplicableCandlesMap(TradingPair tradingPair, Settings settings) {
         List<String> tickers = List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker());
-        
+
         // Используем расширенный метод с пагинацией если требуется больше 300 свечей
         Map<String, List<Candle>> candlesMap;
         if (settings.getCandleLimit() > 300) {
-            log.info("🔄 Используем пагинацию для получения {} свечей для пары {}", 
-                    (int)settings.getCandleLimit(), tradingPair.getPairName());
-            candlesMap = getCandlesExtended(settings, tickers, (int)settings.getCandleLimit());
+            log.info("🔄 Используем пагинацию для получения {} свечей для пары {}",
+                    (int) settings.getCandleLimit(), tradingPair.getPairName());
+            candlesMap = getCandlesExtended(settings, tickers, (int) settings.getCandleLimit());
         } else {
             candlesMap = getCandles(settings, tickers, false);
         }
-        
+
         validateCandlesLimitAndThrow(candlesMap, settings);
         return candlesMap;
     }
@@ -40,23 +40,35 @@ public class CandlesService {
     //todo сделать умнее - через кэш или бд - зачем каждую минуту это делать! если объем есть то можно целый день работать, ну или чекать 1раз/час
     public Map<String, List<Candle>> getApplicableCandlesMap(Settings settings, List<String> tradingTickers) {
         List<String> applicableTickers = getApplicableTickers(settings, tradingTickers, "1D", true);
-        
+
         // Используем расширенный метод с пагинацией если требуется больше 300 свечей
         Map<String, List<Candle>> candlesMap;
         if (settings.getCandleLimit() > 300) {
-            log.info("🔄 Используем пагинацию для получения {} свечей для {} тикеров", 
-                    (int)settings.getCandleLimit(), applicableTickers.size());
-            candlesMap = getCandlesExtended(settings, applicableTickers, (int)settings.getCandleLimit());
+            log.info("🔄 Используем пагинацию для получения {} свечей для {} тикеров",
+                    (int) settings.getCandleLimit(), applicableTickers.size());
+            candlesMap = getCandlesExtended(settings, applicableTickers, (int) settings.getCandleLimit());
         } else {
             candlesMap = getCandles(settings, applicableTickers, true);
         }
-        
+
         validateCandlesLimitAndThrow(candlesMap, settings);
         return candlesMap;
     }
 
     public Map<String, List<Candle>> getCandles(Settings settings, List<String> swapTickers, boolean isSorted) {
-        return okxFeignClient.getCandlesMap(swapTickers, settings.getTimeframe(), (int) settings.getCandleLimit(), isSorted);
+        try {
+            log.debug("📡 Запрос к OKX для {} тикеров (таймфрейм: {}, лимит: {}, сортировка: {})",
+                    swapTickers.size(), settings.getTimeframe(), (int) settings.getCandleLimit(), isSorted);
+
+            Map<String, List<Candle>> result = okxFeignClient.getCandlesMap(swapTickers, settings.getTimeframe(), (int) settings.getCandleLimit(), isSorted);
+
+            log.debug("📈 Получен ответ от OKX: {} тикеров с данными", result.size());
+
+            return result;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при запросе к OKX сервису: {}", e.getMessage(), e);
+            return new HashMap<>();
+        }
     }
 
     private List<String> getApplicableTickers(Settings settings, List<String> tradingTickers, String timeFrame, boolean isSorted) {
@@ -91,13 +103,17 @@ public class CandlesService {
             initialSettings.copyFrom(settings);
             initialSettings.setCandleLimit(Math.min(batchSize, remainingCandles));
 
-            log.debug("🔄 Получаем первую пачку из {} свечей", initialSettings.getCandleLimit());
+            log.debug("🔄 Получаем первую пачку из {} свечей для тикеров: {}",
+                    initialSettings.getCandleLimit(), swapTickers);
             Map<String, List<Candle>> initialBatch = getCandles(initialSettings, swapTickers, true);
 
             if (initialBatch.isEmpty()) {
-                log.warn("⚠️ Не удалось получить начальные данные");
+                log.warn("⚠️ Не удалось получить начальные данные для тикеров: {} (таймфрейм: {}, лимит: {})",
+                        swapTickers, settings.getTimeframe(), initialSettings.getCandleLimit());
                 return result;
             }
+
+            log.debug("✅ Получена первая пачка: {} тикеров с данными", initialBatch.size());
 
             // Для каждого тикера собираем дополнительные исторические данные
             for (Map.Entry<String, List<Candle>> entry : initialBatch.entrySet()) {
@@ -201,7 +217,7 @@ public class CandlesService {
                 log.error("❌ Список свечей для тикера {} равен null!", ticker);
                 throw new IllegalArgumentException("Список свечей не может быть null для тикера: " + ticker);
             }
-            
+
             // Гибкая валидация - принимаем если есть хотя бы 90% от требуемого количества
             if (candles.size() < minAcceptableCandles) {
                 log.error(
@@ -215,7 +231,7 @@ public class CandlesService {
                         )
                 );
             }
-            
+
             // Предупреждение если количество не точно совпадает но в допустимых пределах
             if (candles.size() != (int) candleLimit) {
                 log.warn("⚠️ Количество свечей для тикера {} отличается от заданного: получено {}, ожидалось {}",

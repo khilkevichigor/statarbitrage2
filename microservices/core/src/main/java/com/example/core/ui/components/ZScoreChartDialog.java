@@ -182,8 +182,8 @@ public class ZScoreChartDialog extends Dialog {
             case "1m" -> 20;
             case "5m" -> 20;
             case "15m" -> 14;
-            case "1h" -> 14;
-            case "4h" -> 12;
+            case "1H" -> 14;
+            case "4H" -> 12;
             case "1d" -> 10;
             default -> 14;
         };

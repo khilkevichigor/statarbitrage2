@@ -22,7 +22,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.binder.ValidationResult;
@@ -181,7 +180,7 @@ public class SettingsComponent extends VerticalLayout {
         // Create form fields - создаем выпадающие списки с взаимодействием
         Select<String> timeframeField = createTimeframeSelect();
         Select<String> periodField = createPeriodSelect();
-        
+
         // Добавляем логику взаимодействия между таймфреймом и периодом
         setupTimeframePeriodInteraction(timeframeField, periodField);
         NumberField minZField = new NumberField("Min Z");
@@ -380,14 +379,14 @@ public class SettingsComponent extends VerticalLayout {
         Select<String> timeframeSelect = new Select<>();
         timeframeSelect.setLabel("Таймфрейм");
         timeframeSelect.setItems(TimeframeOptions.getAll().keySet());
-        
+
         // Устанавливаем значение по умолчанию на основе текущих настроек
         String currentTimeframeApi = currentSettings.getTimeframe();
         String currentTimeframeDisplay = TimeframeOptions.getDisplayName(currentTimeframeApi);
         timeframeSelect.setValue(currentTimeframeDisplay);
-        
+
         timeframeSelect.setHelperText("Выберите временной интервал для анализа");
-        
+
         return timeframeSelect;
     }
 
@@ -398,13 +397,13 @@ public class SettingsComponent extends VerticalLayout {
         Select<String> periodSelect = new Select<>();
         periodSelect.setLabel("Период");
         periodSelect.setItems(PeriodOptions.getAll().keySet());
-        
+
         // Вычисляем текущий период на основе candleLimit и timeframe
         String currentPeriod = calculateCurrentPeriod();
         periodSelect.setValue(currentPeriod);
-        
+
         periodSelect.setHelperText("Выберите период для анализа данных");
-        
+
         return periodSelect;
     }
 
@@ -415,20 +414,20 @@ public class SettingsComponent extends VerticalLayout {
         try {
             int candleLimit = (int) currentSettings.getCandleLimit();
             String timeframe = currentSettings.getTimeframe();
-            
+
             // Приблизительный расчет периода
             int daysInPeriod = switch (timeframe) {
                 case "1m" -> candleLimit / (24 * 60);
                 case "5m" -> candleLimit / (24 * 12);
                 case "15m" -> candleLimit / (24 * 4);
-                case "1h" -> candleLimit / 24;
-                case "4h" -> candleLimit / 6;
+                case "1H" -> candleLimit / 24;
+                case "4H" -> candleLimit / 6;
                 case "1D" -> candleLimit;
                 case "1W" -> candleLimit * 7;
                 case "1M" -> candleLimit * 30;
                 default -> candleLimit / 24;
             };
-            
+
             // Определяем ближайший период
             if (daysInPeriod <= 1) return "день";
             if (daysInPeriod <= 7) return "неделя";
@@ -436,7 +435,7 @@ public class SettingsComponent extends VerticalLayout {
             if (daysInPeriod <= 365) return "1 год";
             if (daysInPeriod <= 730) return "2 года";
             return "3 года";
-            
+
         } catch (Exception e) {
             log.warn("Ошибка при расчете текущего периода: {}", e.getMessage());
             return PeriodOptions.getDefault();
@@ -453,31 +452,31 @@ public class SettingsComponent extends VerticalLayout {
                 // Получаем API код выбранного таймфрейма
                 String timeframeApi = TimeframeOptions.getApiCode(event.getValue());
                 String currentPeriod = periodField.getValue();
-                
+
                 // Рассчитываем новое значение candleLimit на основе нового таймфрейма и текущего периода
                 int newCandleLimit = PeriodOptions.calculateCandleLimit(timeframeApi, currentPeriod);
-                
+
                 // Обновляем текущие настройки временно для пересчета
                 currentSettings.setTimeframe(timeframeApi);
                 currentSettings.setCandleLimit(newCandleLimit);
-                
+
                 log.debug("🔄 Таймфрейм изменен на '{}', пересчитан candleLimit: {}", event.getValue(), newCandleLimit);
             }
         });
-        
+
         // При изменении периода автоматически пересчитываем candleLimit
         periodField.addValueChangeListener(event -> {
             if (event.getValue() != null && timeframeField.getValue() != null) {
                 // Получаем API код текущего таймфрейма
                 String timeframeApi = TimeframeOptions.getApiCode(timeframeField.getValue());
                 String selectedPeriod = event.getValue();
-                
+
                 // Рассчитываем новое значение candleLimit
                 int newCandleLimit = PeriodOptions.calculateCandleLimit(timeframeApi, selectedPeriod);
-                
+
                 // Обновляем текущие настройки временно для пересчета
                 currentSettings.setCandleLimit(newCandleLimit);
-                
+
                 log.debug("🔄 Период изменен на '{}', пересчитан candleLimit: {}", event.getValue(), newCandleLimit);
             }
         });
@@ -801,7 +800,7 @@ public class SettingsComponent extends VerticalLayout {
                         candleLimit -> calculateCurrentPeriod()
                 )
                 .bind(settings -> (int) settings.getCandleLimit(),
-                      (settings, candleLimit) -> settings.setCandleLimit(candleLimit));
+                        (settings, candleLimit) -> settings.setCandleLimit(candleLimit));
 
         settingsBinder.forField(minZField).bind(Settings::getMinZ, Settings::setMinZ);
         settingsBinder.forField(minRSquaredField).bind(Settings::getMinRSquared, Settings::setMinRSquared);
