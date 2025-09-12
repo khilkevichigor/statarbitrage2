@@ -36,4 +36,11 @@ public final class TimeFormatterUtil {
 
         return sb.toString().trim();
     }
+
+    public static String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "-";
+        }
+        return FORMATTER.format(dateTime);
+    }
 }

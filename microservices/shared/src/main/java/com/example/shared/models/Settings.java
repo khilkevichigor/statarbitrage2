@@ -249,4 +249,88 @@ public class Settings {
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
     }
+
+    /**
+     * Копирует все настройки из другого объекта Settings
+     */
+    public void copyFrom(Settings other) {
+        if (other == null) return;
+        
+        this.timeframe = other.timeframe;
+        this.candleLimit = other.candleLimit;
+        this.minZ = other.minZ;
+        this.minWindowSize = other.minWindowSize;
+        this.maxPValue = other.maxPValue;
+        this.maxAdfValue = other.maxAdfValue;
+        this.minRSquared = other.minRSquared;
+        this.minCorrelation = other.minCorrelation;
+        this.minVolume = other.minVolume;
+        this.checkInterval = other.checkInterval;
+        this.maxLongMarginSize = other.maxLongMarginSize;
+        this.maxShortMarginSize = other.maxShortMarginSize;
+        this.leverage = other.leverage;
+        this.exitTake = other.exitTake;
+        this.exitStop = other.exitStop;
+        this.exitZMin = other.exitZMin;
+        this.exitZMax = other.exitZMax;
+        this.exitZMaxPercent = other.exitZMaxPercent;
+        this.exitTimeMinutes = other.exitTimeMinutes;
+        this.exitBreakEvenPercent = other.exitBreakEvenPercent;
+        this.exitNegativeZMinProfitPercent = other.exitNegativeZMinProfitPercent;
+        this.usePairs = other.usePairs;
+        this.autoTradingEnabled = other.autoTradingEnabled;
+        
+        // Флаги фильтров
+        this.useMinZFilter = other.useMinZFilter;
+        this.useMinRSquaredFilter = other.useMinRSquaredFilter;
+        this.useMaxPValueFilter = other.useMaxPValueFilter;
+        this.useMaxAdfValueFilter = other.useMaxAdfValueFilter;
+        this.useMinCorrelationFilter = other.useMinCorrelationFilter;
+        this.useMinVolumeFilter = other.useMinVolumeFilter;
+        
+        // Флаги стратегий выхода
+        this.useExitTake = other.useExitTake;
+        this.useExitStop = other.useExitStop;
+        this.useExitZMin = other.useExitZMin;
+        this.useExitZMax = other.useExitZMax;
+        this.useExitZMaxPercent = other.useExitZMaxPercent;
+        this.useExitTimeMinutes = other.useExitTimeMinutes;
+        this.useExitBreakEvenPercent = other.useExitBreakEvenPercent;
+        this.useExitNegativeZMinProfitPercent = other.useExitNegativeZMinProfitPercent;
+        this.useCointegrationStabilityFilter = other.useCointegrationStabilityFilter;
+        
+        // Списки
+        this.minimumLotBlacklist = other.minimumLotBlacklist;
+        this.observedPairs = other.observedPairs;
+        
+        // Флаги скоринга
+        this.useZScoreScoring = other.useZScoreScoring;
+        this.usePixelSpreadScoring = other.usePixelSpreadScoring;
+        this.useCointegrationScoring = other.useCointegrationScoring;
+        this.useModelQualityScoring = other.useModelQualityScoring;
+        this.useStatisticsScoring = other.useStatisticsScoring;
+        this.useBonusScoring = other.useBonusScoring;
+        
+        // Веса скоринга
+        this.zScoreScoringWeight = other.zScoreScoringWeight;
+        this.pixelSpreadScoringWeight = other.pixelSpreadScoringWeight;
+        this.cointegrationScoringWeight = other.cointegrationScoringWeight;
+        this.modelQualityScoringWeight = other.modelQualityScoringWeight;
+        this.statisticsScoringWeight = other.statisticsScoringWeight;
+        this.bonusScoringWeight = other.bonusScoringWeight;
+        
+        // Усреднение
+        this.autoAveragingEnabled = other.autoAveragingEnabled;
+        this.averagingDrawdownThreshold = other.averagingDrawdownThreshold;
+        this.averagingVolumeMultiplier = other.averagingVolumeMultiplier;
+        this.averagingDrawdownMultiplier = other.averagingDrawdownMultiplier;
+        this.maxAveragingCount = other.maxAveragingCount;
+        
+        // Автообъем
+        this.autoVolumeEnabled = other.autoVolumeEnabled;
+        
+        // Фильтр по пересечениям
+        this.minIntersections = other.minIntersections;
+        this.useMinIntersections = other.useMinIntersections;
+    }
 }

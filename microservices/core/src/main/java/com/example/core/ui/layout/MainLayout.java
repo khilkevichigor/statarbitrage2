@@ -42,6 +42,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Настройки", SettingsView.class, VaadinIcon.COG.create()));
 
         // Пункты меню для торговых пар
+        nav.addItem(new SideNavItem("Стабильные пары", StablePairsView.class, VaadinIcon.SEARCH.create()));
         nav.addItem(new SideNavItem("Отобранные пары", SelectedPairsView.class, VaadinIcon.FILTER.create()));
         nav.addItem(new SideNavItem("Торгуемые пары", TradingPairsView.class, VaadinIcon.PLAY.create()));
         nav.addItem(new SideNavItem("Наблюдаемые пары", ObservedPairsView.class, VaadinIcon.EYE.create()));
@@ -69,6 +70,7 @@ public class MainLayout extends AppLayout {
             case "DashboardView" -> "Главная";
             case "PortfolioView" -> "Портфолио";
             case "SettingsView" -> "Настройки";
+            case "StablePairsView" -> "Стабильные пары";
             case "SelectedPairsView" -> "Отобранные пары";
             case "TradingPairsView" -> "Торгуемые пары";
             case "ObservedPairsView" -> "Наблюдаемые пары";
