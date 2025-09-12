@@ -10,39 +10,9 @@ import java.util.List;
 @FeignClient(name = "okx-service", url = "${okx.service.url:http://localhost:8088}")
 public interface OkxFeignClient {
 
-//    @GetMapping("/api/okx/tickers")
-//    List<String> getAllSwapTickers(@RequestParam(defaultValue = "false") boolean sorted);
-//
-//    @GetMapping("/api/okx/candles")
-//    List<Candle> getCandles(
-//            @RequestParam String symbol,
-//            @RequestParam(defaultValue = "1m") String timeFrame,
-//            @RequestParam(defaultValue = "100") int limit
-//    );
-//
-//    @PostMapping("/api/okx/candles/map")
-//    Map<String, List<Candle>> getCandlesMap(
-//            @RequestBody List<String> symbols,
-//            @RequestParam(defaultValue = "1m") String timeFrame,
-//            @RequestParam(defaultValue = "100") int limit,
-//            @RequestParam(defaultValue = "false") boolean sorted
-//    );
-//
-//    @GetMapping("/api/okx/price")
-//    BigDecimal getCurrentPrice(@RequestParam String symbol);
-//
-//    @PostMapping("/api/okx/tickers/valid")
-//    List<String> getValidTickers(
-//            @RequestBody List<String> symbols,
-//            @RequestParam(defaultValue = "1m") String timeFrame,
-//            @RequestParam(defaultValue = "100") int limit,
-//            @RequestParam(defaultValue = "1000000") double minQuoteVolume,
-//            @RequestParam(defaultValue = "false") boolean sorted
-//    );
-
     @GetMapping("/api/okx/ticker")
     OkxTickerDto getTicker(@RequestParam String symbol);
-    
+
     @GetMapping("/api/okx/tickers")
     List<String> getAllSwapTickers(@RequestParam(defaultValue = "false") boolean sorted);
 }

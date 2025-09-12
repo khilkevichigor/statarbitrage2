@@ -14,12 +14,14 @@ import java.util.Map;
 @FeignClient(name = "candles-service", url = "${candles.service.url:http://localhost:8091}")
 public interface CandlesFeignClient {
 
+    @Deprecated
     @PostMapping("/api/candles/applicable-map")
     Map<String, List<Candle>> getApplicableCandlesMap(@RequestBody CandlesRequest request);
 
     /**
      * Новый метод для получения всех доступных свечей для анализа стабильности
      */
+    @Deprecated
     @PostMapping("/api/candles/all")
     Map<String, List<Candle>> getAllCandles(@RequestBody Settings settings);
 
