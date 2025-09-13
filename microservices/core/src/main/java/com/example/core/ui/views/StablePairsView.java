@@ -135,6 +135,8 @@ public class StablePairsView extends VerticalLayout {
 
         searchButton = new Button("Искать стабильные пары", VaadinIcon.SEARCH.create());
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        //todo сделать асинхронно через кролика - отправляем эвент в cointegration, он считает и кидает свой эвент с результатами или пишет в бд и кидает эвент что бы мы забрали с бд
         searchButton.addClickListener(e -> performSearch());
 
         clearAllButton = new Button("Очистить все", VaadinIcon.TRASH.create());
@@ -307,6 +309,7 @@ public class StablePairsView extends VerticalLayout {
         grid.addColumn(StablePair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(StablePair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(StablePair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCreatedAt() != null ? TimeFormatterUtil.formatDateTime(pair.getCreatedAt()) : "-")).setHeader("Добавлена").setAutoWidth(true).setFlexGrow(0);
         // Колонка действий
         grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
