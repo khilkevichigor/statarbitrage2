@@ -108,4 +108,10 @@ public class TradeHistory {
     @Column(name = "timestamp")
     private long timestamp;
 
+    @Column(name = "timeframe", length = 10)
+    private String timeframe; // ТФ: 1m, 5m, 15m, 1H, 4H, 1D, 1W, 1M
+
+    @Column(name = "candle_count")
+    private Integer candleCount; // Свечей: количество свечей использованных для анализа
+
 }

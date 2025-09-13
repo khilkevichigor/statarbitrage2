@@ -94,6 +94,12 @@ public class StatisticsComponent extends VerticalLayout {
 
         pairStatsGrid.addColumn(dto -> formatBigDecimal(dto.getAverageCorrelationCurrent()))
                 .setHeader("Ср. Correlation Current").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        pairStatsGrid.addColumn(dto -> dto.getMostUsedTimeframe() != null ? dto.getMostUsedTimeframe() : "-")
+                .setHeader("ТФ (частый)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+                
+        pairStatsGrid.addColumn(dto -> dto.getMostUsedCandleCount() != null ? dto.getMostUsedCandleCount().toString() : "-")
+                .setHeader("Свечей (частое)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
     }
 
     public void updateStatistics() {

@@ -28,7 +28,7 @@ public class TradeAndSimulationScheduler {
     private final UpdateTradeProcessor updateTradeProcessor;
     private final EventSendService eventSendService;
 
-    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
+//    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
     public void updateTrades() {
         if (!canStartUpdateTrades()) {
             return;

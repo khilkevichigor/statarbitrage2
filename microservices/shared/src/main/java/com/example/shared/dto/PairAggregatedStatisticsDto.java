@@ -27,4 +27,7 @@ public class PairAggregatedStatisticsDto {
     private BigDecimal averageZScoreMin;
     private BigDecimal averageCorrelationEntry;
     private BigDecimal averageCorrelationCurrent;
+    
+    private String mostUsedTimeframe; // Наиболее часто используемый ТФ для этой пары
+    private Integer mostUsedCandleCount; // Наиболее часто используемое количество свечей
 }

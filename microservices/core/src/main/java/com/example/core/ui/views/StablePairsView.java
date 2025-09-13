@@ -286,6 +286,7 @@ public class StablePairsView extends VerticalLayout {
         grid.addColumn(StablePair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getIsTradeable() != null && pair.getIsTradeable() ? "Да" : "Нет")).setHeader("Торгуемая").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getDataPoints() != null ? pair.getDataPoints().toString() : "-")).setHeader("Точки").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(StablePair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(StablePair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getSearchDate() != null ? TimeFormatterUtil.formatDateTime(pair.getSearchDate()) : "-")).setHeader("Дата поиска").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -304,6 +305,7 @@ public class StablePairsView extends VerticalLayout {
         grid.addColumn(StablePair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-")).setHeader("Скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(StablePair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(StablePair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCreatedAt() != null ? TimeFormatterUtil.formatDateTime(pair.getCreatedAt()) : "-")).setHeader("Добавлена").setAutoWidth(true).setFlexGrow(0);
         // Колонка действий

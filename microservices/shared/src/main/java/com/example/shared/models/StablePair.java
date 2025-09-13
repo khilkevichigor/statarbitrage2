@@ -42,6 +42,9 @@ public class StablePair {
     @Column(name = "data_points")
     private Integer dataPoints;
 
+    @Column(name = "candle_count")
+    private Integer candleCount;
+
     @Column(name = "analysis_time_seconds")
     private Double analysisTimeSeconds;
 
@@ -179,6 +182,9 @@ public class StablePair {
             Double analysisTimeSeconds = (Double) analysisTimeField.get(stabilityResult);
             stablePair.setAnalysisTimeSeconds(analysisTimeSeconds);
 
+            // Устанавливаем candleCount равным dataPoints (количество точек данных = количество свечей)
+            stablePair.setCandleCount(dataPoints);
+            
             // Сохраняем весь объект в JSON формате для analysisResults
             Map<String, Object> analysisResultsMap = new HashMap<>();
             analysisResultsMap.put("tickerA", tickerA);
@@ -187,6 +193,7 @@ public class StablePair {
             analysisResultsMap.put("stabilityRating", stabilityRating);
             analysisResultsMap.put("isTradeable", isTradeable);
             analysisResultsMap.put("dataPoints", dataPoints);
+            analysisResultsMap.put("candleCount", dataPoints);
             analysisResultsMap.put("analysisTimeSeconds", analysisTimeSeconds);
 
             // Пытаемся извлечь дополнительные поля если они есть
