@@ -146,15 +146,16 @@ public class OkxClient {
     }
 
     /**
-     * Получение свечей с параметром before для пагинации
+     * Получение свечей с параметром after для пагинации
+     * ИСПРАВЛЕНО: after получает данные ДО указанного времени (исторические)
      */
-    public List<Candle> getCandlesWithBefore(String symbol, String timeFrame, int limit, long beforeTimestamp) {
+    public List<Candle> getCandlesWithBefore(String symbol, String timeFrame, int limit, long afterTimestamp) {
         applyRateLimit();
-        JsonArray rawCandles = getCandlesWithBeforeTimestamp(symbol, timeFrame, limit, beforeTimestamp);
+        JsonArray rawCandles = getCandlesWithBeforeTimestamp(symbol, timeFrame, limit, afterTimestamp);
         List<Candle> candles = new ArrayList<>();
 
         if (rawCandles == null || rawCandles.size() == 0) {
-            log.debug("⚠️ Нет исторических данных свечей для {} до {}", symbol, beforeTimestamp);
+            log.debug("⚠️ Нет исторических данных свечей для {} до {}", symbol, afterTimestamp);
             return candles;
         }
 
@@ -167,46 +168,58 @@ public class OkxClient {
     }
 
     /**
-     * Внутренний метод для получения свечей с before timestamp
+     * Внутренний метод для получения ИСТОРИЧЕСКИХ свечей с after timestamp
+     * КРИТИЧЕСКИ ИСПРАВЛЕНО: Используем AFTER для получения данных ДО указанного времени (более старые)
      */
-    private JsonArray getCandlesWithBeforeTimestamp(String symbol, String timeFrame, int limit, long beforeTimestamp) {
-        String url = BASE_URL + "/api/v5/market/candles?instId=" + symbol +
-                "&bar=" + timeFrame + "&limit=" + limit + "&before=" + beforeTimestamp;
-        
+    private JsonArray getCandlesWithBeforeTimestamp(String symbol, String timeFrame, int limit, long afterTimestamp) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем AFTER для исторических данных (более старые чем указанная точка)
+        String url = BASE_URL + "/api/v5/market/history-candles?instId=" + symbol +
+                "&bar=" + timeFrame + "&limit=" + limit + "&after=" + afterTimestamp;
+
         log.warn("🔍 DEBUG: OKX API запрос = {}", url);
-        log.warn("🔍 DEBUG: beforeTimestamp = {} (дата: {})", beforeTimestamp, new java.util.Date(beforeTimestamp));
-        
+        log.warn("🔍 DEBUG: Используем AFTER для получения данных ДО timestamp = {} ({})",
+                afterTimestamp, new java.util.Date(afterTimestamp));
+
         Request request = new Request.Builder().url(url).build();
 
         try {
             Response response = client.newCall(request).execute();
             String json = response.body().string();
-            
+
             log.warn("🔍 DEBUG: OKX ответ для {} = {}", symbol, json.length() > 500 ? json.substring(0, 500) + "..." : json);
-            
+
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
 
             JsonArray data = obj.getAsJsonArray("data");
             if (data == null || data.size() == 0) {
-                log.debug("⚠️ Пустой ответ от OKX для {} с before={}", symbol, beforeTimestamp);
+                log.debug("⚠️ Пустой ответ от OKX для {} с after={}", symbol, afterTimestamp);
                 return new JsonArray();
             }
 
             // DEBUG: показать первую и последнюю свечу
             if (data.size() > 0) {
                 JsonArray firstCandle = data.get(0).getAsJsonArray();
-                JsonArray lastCandle = data.get(data.size()-1).getAsJsonArray();
+                JsonArray lastCandle = data.get(data.size() - 1).getAsJsonArray();
                 long firstTimestamp = Long.parseLong(firstCandle.get(0).getAsString());
                 long lastTimestamp = Long.parseLong(lastCandle.get(0).getAsString());
-                
-                log.warn("🔍 DEBUG: OKX вернул {} свечей. Первая: {} ({}), Последняя: {} ({})", 
-                    data.size(), firstTimestamp, new java.util.Date(firstTimestamp),
-                    lastTimestamp, new java.util.Date(lastTimestamp));
+
+                log.warn("🔍 DEBUG: OKX вернул {} свечей. Первая: {} ({}), Последняя: {} ({})",
+                        data.size(), firstTimestamp, new java.util.Date(firstTimestamp),
+                        lastTimestamp, new java.util.Date(lastTimestamp));
+
+                // Проверяем что полученные данные корректны - все должны быть ДО afterTimestamp
+                if (lastTimestamp >= afterTimestamp) {
+                    log.error("🚨 ПРОБЛЕМА: Последняя свеча ({}) >= after ({}). OKX вернул неверные данные!",
+                            new java.util.Date(lastTimestamp), new java.util.Date(afterTimestamp));
+                } else {
+                    log.info("✅ УСПЕХ: Все полученные свечи ДО указанного времени {} < {}",
+                            new java.util.Date(lastTimestamp), new java.util.Date(afterTimestamp));
+                }
             }
 
             return data;
         } catch (Exception e) {
-            log.error("❌ Ошибка при получении свечей с before для {}: {}", symbol, e.getMessage());
+            log.error("❌ Ошибка при получении свечей с after для {}: {}", symbol, e.getMessage());
             return new JsonArray();
         }
     }
