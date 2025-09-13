@@ -1,10 +1,10 @@
 package com.example.core.ui.views;
 
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
-import com.example.core.services.StablePairService;
+import com.example.core.services.PairService;
 import com.example.core.ui.components.ZScoreChartDialog;
 import com.example.core.ui.layout.MainLayout;
-import com.example.shared.models.StablePair;
+import com.example.shared.models.Pair;
 import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -41,7 +41,7 @@ import java.util.Map;
 @Route(value = "stable-pairs", layout = MainLayout.class)
 public class StablePairsView extends VerticalLayout {
 
-    private final StablePairService stablePairService;
+    private final PairService pairService;
     private final ZScoreChartDialog zScoreChartDialog;
 
     // Элементы формы поиска
@@ -63,14 +63,14 @@ public class StablePairsView extends VerticalLayout {
     private ProgressBar progressBar;
 
     // Таблицы
-    private Grid<StablePair> foundPairsGrid;
-    private Grid<StablePair> monitoringPairsGrid;
+    private Grid<Pair> foundPairsGrid;
+    private Grid<Pair> monitoringPairsGrid;
 
     // Статистика
     private Span statsLabel;
 
-    public StablePairsView(StablePairService stablePairService, ZScoreChartDialog zScoreChartDialog) {
-        this.stablePairService = stablePairService;
+    public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog) {
+        this.pairService = pairService;
         this.zScoreChartDialog = zScoreChartDialog;
 
         initializeLayout();
@@ -277,20 +277,20 @@ public class StablePairsView extends VerticalLayout {
         return section;
     }
 
-    private Grid<StablePair> createFoundPairsGrid() {
-        Grid<StablePair> grid = new Grid<>(StablePair.class, false);
+    private Grid<Pair> createFoundPairsGrid() {
+        Grid<Pair> grid = new Grid<>(Pair.class, false);
         grid.setHeight("300px");
         grid.addThemeVariants(com.vaadin.flow.component.grid.GridVariant.LUMO_ROW_STRIPES);
 
         // Основные колонки
-        grid.addColumn(StablePair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-")).setHeader("Скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(StablePair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getIsTradeable() != null && pair.getIsTradeable() ? "Да" : "Нет")).setHeader("Торгуемая").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getDataPoints() != null ? pair.getDataPoints().toString() : "-")).setHeader("Точки").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(StablePair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(StablePair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getSearchDate() != null ? TimeFormatterUtil.formatDateTime(pair.getSearchDate()) : "-")).setHeader("Дата поиска").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         // Колонка действий
         grid.addColumn(new ComponentRenderer<>(this::createFoundPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -298,18 +298,18 @@ public class StablePairsView extends VerticalLayout {
         return grid;
     }
 
-    private Grid<StablePair> createMonitoringPairsGrid() {
-        Grid<StablePair> grid = new Grid<>(StablePair.class, false);
+    private Grid<Pair> createMonitoringPairsGrid() {
+        Grid<Pair> grid = new Grid<>(Pair.class, false);
         grid.setHeight("200px");
         grid.addThemeVariants(com.vaadin.flow.component.grid.GridVariant.LUMO_ROW_STRIPES);
 
         // Основные колонки
-        grid.addColumn(StablePair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-")).setHeader("Скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(StablePair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(StablePair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(StablePair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Pair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCreatedAt() != null ? TimeFormatterUtil.formatDateTime(pair.getCreatedAt()) : "-")).setHeader("Добавлена").setAutoWidth(true).setFlexGrow(0);
         // Колонка действий
         grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -317,7 +317,7 @@ public class StablePairsView extends VerticalLayout {
         return grid;
     }
 
-    private HorizontalLayout createFoundPairActions(StablePair pair) {
+    private HorizontalLayout createFoundPairActions(Pair pair) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
 
@@ -339,7 +339,7 @@ public class StablePairsView extends VerticalLayout {
         return actions;
     }
 
-    private HorizontalLayout createMonitoringPairActions(StablePair pair) {
+    private HorizontalLayout createMonitoringPairActions(Pair pair) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
 
@@ -372,7 +372,7 @@ public class StablePairsView extends VerticalLayout {
             getUI().ifPresent(ui -> {
                 Thread searchThread = new Thread(() -> {
                     try {
-                        StabilityResponseDto response = stablePairService.searchStablePairs(
+                        StabilityResponseDto response = pairService.searchStablePairs(
                                 timeframe, period, searchSettings);
 
                         ui.access(() -> {
@@ -445,7 +445,7 @@ public class StablePairsView extends VerticalLayout {
                         "Пары в мониторинге НЕ будут удалены.",
                 "Очистить", event -> {
             try {
-                int deletedCount = stablePairService.clearAllFoundPairs();
+                int deletedCount = pairService.clearAllFoundPairs();
                 Notification.show(
                                 String.format("🧹 Удалено %d найденных пар", deletedCount),
                                 3000, Notification.Position.TOP_CENTER)
@@ -464,9 +464,9 @@ public class StablePairsView extends VerticalLayout {
         dialog.open();
     }
 
-    private void addToMonitoring(StablePair pair) {
+    private void addToMonitoring(Pair pair) {
         try {
-            stablePairService.addToMonitoring(pair.getId());
+            pairService.addToMonitoring(pair.getId());
             Notification.show(
                             String.format("➕ Пара %s добавлена в мониторинг", pair.getPairName()),
                             3000, Notification.Position.BOTTOM_CENTER)
@@ -479,9 +479,9 @@ public class StablePairsView extends VerticalLayout {
         }
     }
 
-    private void removeFromMonitoring(StablePair pair) {
+    private void removeFromMonitoring(Pair pair) {
         try {
-            stablePairService.removeFromMonitoring(pair.getId());
+            pairService.removeFromMonitoring(pair.getId());
             Notification.show(
                             String.format("➖ Пара %s удалена из мониторинга", pair.getPairName()),
                             3000, Notification.Position.BOTTOM_CENTER)
@@ -494,13 +494,13 @@ public class StablePairsView extends VerticalLayout {
         }
     }
 
-    private void deleteFoundPair(StablePair pair) {
+    private void deleteFoundPair(Pair pair) {
         ConfirmDialog dialog = new ConfirmDialog(
                 "Удаление пары",
                 String.format("Вы уверены, что хотите удалить пару %s?", pair.getPairName()),
                 "Удалить", event -> {
             try {
-                stablePairService.deleteFoundPair(pair.getId());
+                pairService.deleteFoundPair(pair.getId());
                 Notification.show(
                                 String.format("🗑️ Пара %s удалена", pair.getPairName()),
                                 3000, Notification.Position.BOTTOM_CENTER)
@@ -519,7 +519,7 @@ public class StablePairsView extends VerticalLayout {
         dialog.open();
     }
 
-    private void calculateZScore(StablePair pair) {
+    private void calculateZScore(Pair pair) {
         try {
             log.info("🧮 Расчет Z-Score для пары {}", pair.getPairName());
             
@@ -528,7 +528,7 @@ public class StablePairsView extends VerticalLayout {
                 Thread calculateThread = new Thread(() -> {
                     try {
                         com.example.shared.models.TradingPair calculatedTradingPair = 
-                                stablePairService.calculateZScoreForStablePair(pair);
+                                pairService.calculateZScoreForStablePair(pair);
 
                         ui.access(() -> {
                             if (calculatedTradingPair != null) {
@@ -577,7 +577,7 @@ public class StablePairsView extends VerticalLayout {
 
     private void loadFoundPairs() {
         try {
-            List<StablePair> pairs = stablePairService.getAllFoundPairs();
+            List<Pair> pairs = pairService.getAllFoundPairs();
             foundPairsGrid.setItems(pairs);
             log.debug("Загружено {} найденных пар", pairs.size());
         } catch (Exception e) {
@@ -589,7 +589,7 @@ public class StablePairsView extends VerticalLayout {
 
     private void loadMonitoringPairs() {
         try {
-            List<StablePair> pairs = stablePairService.getMonitoringPairs();
+            List<Pair> pairs = pairService.getMonitoringPairs();
             monitoringPairsGrid.setItems(pairs);
             log.debug("Загружено {} пар в мониторинге", pairs.size());
         } catch (Exception e) {
@@ -601,7 +601,7 @@ public class StablePairsView extends VerticalLayout {
 
     private void updateStatistics() {
         try {
-            Map<String, Object> stats = stablePairService.getSearchStatistics();
+            Map<String, Object> stats = pairService.getSearchStatistics();
             int totalFound = ((Number) stats.get("totalFound")).intValue();
             int totalInMonitoring = ((Number) stats.get("totalInMonitoring")).intValue();
 
