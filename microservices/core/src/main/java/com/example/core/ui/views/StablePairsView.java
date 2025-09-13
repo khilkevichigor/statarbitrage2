@@ -325,22 +325,17 @@ public class StablePairsView extends VerticalLayout {
         addButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
         addButton.addClickListener(e -> addToMonitoring(pair));
 
-        Button calculateZScoreButton = new Button("Z-Score", VaadinIcon.CALC.create());
-        calculateZScoreButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
-        calculateZScoreButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
-        calculateZScoreButton.addClickListener(e -> calculateZScore(pair));
-
         Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
         chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        chartButton.getElement().setAttribute("title", "Показать график");
-        chartButton.addClickListener(e -> showChart(pair));
+        chartButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
+        chartButton.addClickListener(e -> calculateZScore(pair));
 
         Button deleteButton = new Button(VaadinIcon.TRASH.create());
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         deleteButton.getElement().setAttribute("title", "Удалить");
         deleteButton.addClickListener(e -> deleteFoundPair(pair));
 
-        actions.add(addButton, calculateZScoreButton, chartButton, deleteButton);
+        actions.add(addButton, chartButton, deleteButton);
         return actions;
     }
 
@@ -350,8 +345,8 @@ public class StablePairsView extends VerticalLayout {
 
         Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
         chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        chartButton.getElement().setAttribute("title", "Показать график");
-        chartButton.addClickListener(e -> showChart(pair));
+        chartButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
+        chartButton.addClickListener(e -> calculateZScore(pair));
 
         Button removeButton = new Button(VaadinIcon.MINUS.create());
         removeButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
@@ -573,22 +568,6 @@ public class StablePairsView extends VerticalLayout {
         }
     }
 
-    private void showChart(StablePair pair) {
-        try {
-            // Создаем временную TradingPair для отображения графика
-            com.example.shared.models.TradingPair tempTradingPair = new com.example.shared.models.TradingPair();
-            tempTradingPair.setLongTicker(pair.getTickerA());
-            tempTradingPair.setShortTicker(pair.getTickerB());
-            tempTradingPair.setPairName(pair.getPairName());
-
-            zScoreChartDialog.showChart(tempTradingPair);
-        } catch (Exception e) {
-            log.error("Ошибка при показе графика для пары {}: {}", pair.getPairName(), e.getMessage(), e);
-            Notification.show("❌ Ошибка при загрузке графика: " + e.getMessage(),
-                            3000, Notification.Position.TOP_CENTER)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-        }
-    }
 
     private void loadData() {
         loadFoundPairs();
