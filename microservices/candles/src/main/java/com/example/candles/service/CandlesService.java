@@ -131,6 +131,16 @@ public class CandlesService {
                     try {
                         // Получаем timestamp самой старой свечи для пагинации
                         long oldestTimestamp = allCandles.get(0).getTimestamp();
+                        log.info("🔍 {}: получаем {} доп.свечей до timestamp {} ({}) (уже собрано: {})",
+                                ticker, Math.min(batchSize, remainingCandles), oldestTimestamp, 
+                                new java.util.Date(oldestTimestamp), allCandles.size());
+                                
+                        // DEBUG: показать несколько самых старых свечей
+                        log.warn("🔍 DEBUG: Первые 3 свечи в allCandles для {}:", ticker);
+                        for (int debugI = 0; debugI < Math.min(3, allCandles.size()); debugI++) {
+                            long ts = allCandles.get(debugI).getTimestamp();
+                            log.warn("  [{}]: {} ({})", debugI, ts, new java.util.Date(ts));
+                        }
 
                         // Запрашиваем историческую пачку
                         int batchLimit = Math.min(batchSize, remainingCandles);
@@ -142,9 +152,27 @@ public class CandlesService {
                             break;
                         }
 
-                        // Добавляем в начало списка (более старые данные)
+                        log.info("📊 {}: получено {} исторических свечей. Временной диапазон: {} - {}",
+                                ticker, historicalBatch.size(),
+                                historicalBatch.isEmpty() ? "пусто" : historicalBatch.get(0).getTimestamp(),
+                                historicalBatch.isEmpty() ? "пусто" : historicalBatch.get(historicalBatch.size()-1).getTimestamp());
+
+                        // Проверяем правильность временного порядка
+                        if (!historicalBatch.isEmpty() && !allCandles.isEmpty()) {
+                            long lastHistorical = historicalBatch.get(historicalBatch.size()-1).getTimestamp();
+                            long firstCurrent = allCandles.get(0).getTimestamp();
+                            if (lastHistorical >= firstCurrent) {
+                                log.warn("⚠️ {}: нарушение хронологии! Последняя историческая свеча ({}) >= первой текущей ({})", 
+                                        ticker, lastHistorical, firstCurrent);
+                            }
+                        }
+
+                        // ИСПРАВЛЕНО: добавляем исторические свечи в НАЧАЛО списка (более старые данные идут первыми)
                         allCandles.addAll(0, historicalBatch);
                         remainingCandles -= historicalBatch.size();
+
+                        log.info("✅ {}: теперь всего свечей: {}, осталось получить: {}",
+                                ticker, allCandles.size(), remainingCandles);
 
                         // Небольшая задержка между запросами
                         Thread.sleep(150);
@@ -158,8 +186,14 @@ public class CandlesService {
 
                 // Обрезаем до нужного размера (берём самые свежие)
                 if (allCandles.size() > totalLimit) {
+                    int originalSize = allCandles.size();
                     allCandles = allCandles.subList(allCandles.size() - totalLimit, allCandles.size());
+                    log.info("✂️ {}: обрезали с {} до {} свечей (берем самые свежие)",
+                            ticker, originalSize, allCandles.size());
                 }
+
+                // Проверяем итоговый хронологический порядок
+                validateCandlesTimeOrder(ticker, allCandles);
 
                 result.put(ticker, allCandles);
             }
@@ -201,6 +235,40 @@ public class CandlesService {
             log.error("❌ Ошибка при получении исторических свечей для {} до {}: {}",
                     ticker, beforeTimestamp, e.getMessage());
             return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Проверяет хронологический порядок свечей и логирует проблемы
+     */
+    private void validateCandlesTimeOrder(String ticker, List<Candle> candles) {
+        if (candles == null || candles.size() < 2) {
+            return;
+        }
+
+        boolean hasTimeOrderIssues = false;
+        long prevTimestamp = candles.get(0).getTimestamp();
+        
+        for (int i = 1; i < candles.size(); i++) {
+            long currentTimestamp = candles.get(i).getTimestamp();
+            if (currentTimestamp <= prevTimestamp) {
+                if (!hasTimeOrderIssues) {
+                    log.warn("❌ {}: нарушение хронологического порядка свечей!", ticker);
+                    hasTimeOrderIssues = true;
+                }
+                log.warn("❌ {}: свеча {} (timestamp={}) <= предыдущей {} (timestamp={})", 
+                        ticker, i, currentTimestamp, i-1, prevTimestamp);
+            }
+            prevTimestamp = currentTimestamp;
+        }
+        
+        if (!hasTimeOrderIssues) {
+            log.info("✅ {}: хронологический порядок {} свечей корректен. Диапазон: {} - {}",
+                    ticker, candles.size(), 
+                    candles.get(0).getTimestamp(), 
+                    candles.get(candles.size()-1).getTimestamp());
+        } else {
+            log.error("❌ {}: КРИТИЧЕСКАЯ ОШИБКА - нарушен хронологический порядок свечей! Это может привести к неверным расчетам Z-Score и графикам!", ticker);
         }
     }
 

@@ -470,9 +470,21 @@ public class ChartService {
             return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         }
 
+        log.info("📊 Создание графика для пары {}/{}. LONG: {} свечей, SHORT: {} свечей, Z-Score история: {} записей",
+                longTicker, shortTicker, longCandles.size(), shortCandles.size(), 
+                history != null ? history.size() : 0);
+
+        // Проверяем исходный порядок свечей
+        validateCandleOrder(longTicker, longCandles);
+        validateCandleOrder(shortTicker, shortCandles);
+
         // Сортировка по времени
         longCandles.sort(Comparator.comparing(Candle::getTimestamp));
         shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        log.info("📈 После сортировки - LONG диапазон: {} - {}, SHORT диапазон: {} - {}",
+                longCandles.get(0).getTimestamp(), longCandles.get(longCandles.size()-1).getTimestamp(),
+                shortCandles.get(0).getTimestamp(), shortCandles.get(shortCandles.size()-1).getTimestamp());
 
         // Синхронизация с Z-Score историей, если она доступна
         if (history != null && !history.isEmpty()) {
@@ -480,7 +492,7 @@ public class ChartService {
             long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
             long bufferTime = 300000; // 5 минут буфер
 
-            log.debug("📊 Синхронизируем Price чарт с Z-Score диапазоном: {} - {}",
+            log.info("📊 Синхронизируем Price чарт с Z-Score диапазоном: {} - {}",
                     new Date(zScoreStartTime), new Date(zScoreEndTime));
 
             // Фильтруем свечи по временному диапазону Z-Score
@@ -492,7 +504,7 @@ public class ChartService {
                     .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
                     .toList();
 
-            log.debug("📊 Отфильтрованные свечи для Price чарта: LONG {}, SHORT {}",
+            log.info("📊 Отфильтрованные свечи для Price чарта: LONG {}, SHORT {}",
                     longCandles.size(), shortCandles.size());
 
             if (longCandles.isEmpty() || shortCandles.isEmpty()) {
@@ -1371,6 +1383,40 @@ public class ChartService {
             log.error("❌ Ошибка при сохранении чарта: {}", e.getMessage(), e);
         } catch (Exception e) {
             log.error("❌ Неожиданная ошибка при сохранении чарта: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Проверяет хронологический порядок свечей и логирует проблемы
+     */
+    private void validateCandleOrder(String ticker, List<Candle> candles) {
+        if (candles == null || candles.size() < 2) {
+            return;
+        }
+
+        boolean hasTimeOrderIssues = false;
+        long prevTimestamp = candles.get(0).getTimestamp();
+        
+        for (int i = 1; i < candles.size(); i++) {
+            long currentTimestamp = candles.get(i).getTimestamp();
+            if (currentTimestamp <= prevTimestamp) {
+                if (!hasTimeOrderIssues) {
+                    log.warn("❌ {}: нарушение хронологического порядка свечей в ChartService!", ticker);
+                    hasTimeOrderIssues = true;
+                }
+                log.warn("❌ {}: свеча {} (timestamp={}) <= предыдущей {} (timestamp={})", 
+                        ticker, i, new Date(currentTimestamp), i-1, new Date(prevTimestamp));
+            }
+            prevTimestamp = currentTimestamp;
+        }
+        
+        if (!hasTimeOrderIssues) {
+            log.info("✅ {}: ChartService - хронологический порядок {} свечей корректен. Диапазон: {} - {}",
+                    ticker, candles.size(), 
+                    new Date(candles.get(0).getTimestamp()), 
+                    new Date(candles.get(candles.size()-1).getTimestamp()));
+        } else {
+            log.error("❌ {}: КРИТИЧЕСКАЯ ОШИБКА в ChartService - нарушен хронологический порядок свечей! Это приведет к неверным графикам!", ticker);
         }
     }
 

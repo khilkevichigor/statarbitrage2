@@ -170,20 +170,38 @@ public class OkxClient {
      * Внутренний метод для получения свечей с before timestamp
      */
     private JsonArray getCandlesWithBeforeTimestamp(String symbol, String timeFrame, int limit, long beforeTimestamp) {
-        Request request = new Request.Builder()
-                .url(BASE_URL + "/api/v5/market/candles?instId=" + symbol +
-                        "&bar=" + timeFrame + "&limit=" + limit + "&before=" + beforeTimestamp)
-                .build();
+        String url = BASE_URL + "/api/v5/market/candles?instId=" + symbol +
+                "&bar=" + timeFrame + "&limit=" + limit + "&before=" + beforeTimestamp;
+        
+        log.warn("🔍 DEBUG: OKX API запрос = {}", url);
+        log.warn("🔍 DEBUG: beforeTimestamp = {} (дата: {})", beforeTimestamp, new java.util.Date(beforeTimestamp));
+        
+        Request request = new Request.Builder().url(url).build();
 
         try {
             Response response = client.newCall(request).execute();
             String json = response.body().string();
+            
+            log.warn("🔍 DEBUG: OKX ответ для {} = {}", symbol, json.length() > 500 ? json.substring(0, 500) + "..." : json);
+            
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
 
             JsonArray data = obj.getAsJsonArray("data");
             if (data == null || data.size() == 0) {
                 log.debug("⚠️ Пустой ответ от OKX для {} с before={}", symbol, beforeTimestamp);
                 return new JsonArray();
+            }
+
+            // DEBUG: показать первую и последнюю свечу
+            if (data.size() > 0) {
+                JsonArray firstCandle = data.get(0).getAsJsonArray();
+                JsonArray lastCandle = data.get(data.size()-1).getAsJsonArray();
+                long firstTimestamp = Long.parseLong(firstCandle.get(0).getAsString());
+                long lastTimestamp = Long.parseLong(lastCandle.get(0).getAsString());
+                
+                log.warn("🔍 DEBUG: OKX вернул {} свечей. Первая: {} ({}), Последняя: {} ({})", 
+                    data.size(), firstTimestamp, new java.util.Date(firstTimestamp),
+                    lastTimestamp, new java.util.Date(lastTimestamp));
             }
 
             return data;
