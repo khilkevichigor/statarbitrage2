@@ -3,6 +3,7 @@ package com.example.core.services;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class CreatePairDataService {
 
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
     private final PixelSpreadService pixelSpreadService;
+    private final SettingsService settingsService;
 
     /**
      * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
@@ -68,6 +70,19 @@ public class CreatePairDataService {
         tradingPair.setLongTickerCandles(undervaluedCandles);
         tradingPair.setShortTickerCandles(overvaluedCandles);
         tradingPair.setTimestamp(System.currentTimeMillis()); //создание и обноаление
+        
+        // Заполняем поля настроек сразу при создании пары
+        Settings settings = settingsService.getSettings();
+        tradingPair.setSettingsTimeframe(settings.getTimeframe());
+        tradingPair.setSettingsCandleLimit(settings.getCandleLimit());
+        tradingPair.setSettingsMinZ(settings.getMinZ());
+        tradingPair.setSettingsMinWindowSize(settings.getMinWindowSize());
+        tradingPair.setSettingsMinPValue(settings.getMaxPValue());
+        tradingPair.setSettingsMaxAdfValue(settings.getMaxAdfValue());
+        tradingPair.setSettingsMinRSquared(settings.getMinRSquared());
+        tradingPair.setSettingsMinCorrelation(settings.getMinCorrelation());
+        tradingPair.setSettingsMinVolume(settings.getMinVolume());
+        tradingPair.setSettingsCheckInterval(settings.getCheckInterval());
 
         updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
 
