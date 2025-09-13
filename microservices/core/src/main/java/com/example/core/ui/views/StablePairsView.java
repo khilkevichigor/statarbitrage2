@@ -325,6 +325,11 @@ public class StablePairsView extends VerticalLayout {
         addButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
         addButton.addClickListener(e -> addToMonitoring(pair));
 
+        Button calculateZScoreButton = new Button("Z-Score", VaadinIcon.CALC.create());
+        calculateZScoreButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        calculateZScoreButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
+        calculateZScoreButton.addClickListener(e -> calculateZScore(pair));
+
         Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
         chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         chartButton.getElement().setAttribute("title", "Показать график");
@@ -335,7 +340,7 @@ public class StablePairsView extends VerticalLayout {
         deleteButton.getElement().setAttribute("title", "Удалить");
         deleteButton.addClickListener(e -> deleteFoundPair(pair));
 
-        actions.add(addButton, chartButton, deleteButton);
+        actions.add(addButton, calculateZScoreButton, chartButton, deleteButton);
         return actions;
     }
 
@@ -517,6 +522,55 @@ public class StablePairsView extends VerticalLayout {
                 "Отмена", event -> {
         });
         dialog.open();
+    }
+
+    private void calculateZScore(StablePair pair) {
+        try {
+            log.info("🧮 Расчет Z-Score для пары {}", pair.getPairName());
+            
+            // Выполняем расчет в фоновом потоке
+            getUI().ifPresent(ui -> {
+                Thread calculateThread = new Thread(() -> {
+                    try {
+                        com.example.shared.models.TradingPair calculatedTradingPair = 
+                                stablePairService.calculateZScoreForStablePair(pair);
+
+                        ui.access(() -> {
+                            if (calculatedTradingPair != null) {
+                                Notification.show(
+                                                String.format("✅ Z-Score рассчитан для пары %s! Показываю график...", 
+                                                        pair.getPairName()),
+                                                3000, Notification.Position.BOTTOM_CENTER)
+                                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                                
+                                // Показываем график с рассчитанными данными
+                                zScoreChartDialog.showChart(calculatedTradingPair);
+                            } else {
+                                Notification.show(
+                                                String.format("❌ Не удалось рассчитать Z-Score для пары %s", 
+                                                        pair.getPairName()),
+                                                3000, Notification.Position.TOP_CENTER)
+                                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        log.error("Ошибка при расчете Z-Score для пары {}: {}", pair.getPairName(), e.getMessage(), e);
+                        ui.access(() -> {
+                            Notification.show("❌ Ошибка расчета: " + e.getMessage(), 
+                                            5000, Notification.Position.TOP_CENTER)
+                                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                        });
+                    }
+                });
+                calculateThread.start();
+            });
+
+        } catch (Exception e) {
+            log.error("Ошибка при инициации расчета Z-Score для пары {}: {}", pair.getPairName(), e.getMessage(), e);
+            Notification.show("❌ Ошибка: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
     }
 
     private void showChart(StablePair pair) {

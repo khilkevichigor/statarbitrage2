@@ -8,8 +8,11 @@ import com.example.core.experemental.stability.service.StabilityAnalysisService;
 import com.example.core.repositories.StablePairRepository;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
+import com.example.shared.dto.ZScoreData;
+import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Settings;
 import com.example.shared.models.StablePair;
+import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,9 @@ public class StablePairService {
     private final StabilityAnalysisService stabilityAnalysisService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
+    private final TradingPairService tradingPairService;
+    private final ZScoreService zScoreService;
+    private final ChartService chartService;
 
     /**
      * Поиск стабильных пар с заданными параметрами
@@ -470,5 +476,88 @@ public class StablePairService {
         result.put("ratingDistribution", ratingStats);
 
         return result;
+    }
+
+    /**
+     * Рассчитать Z-Score для стабильной пары и вернуть готовую TradingPair с данными
+     * Используется для предпросмотра пары перед добавлением в мониторинг
+     */
+    public TradingPair calculateZScoreForStablePair(StablePair stablePair) {
+        try {
+            log.info("🧮 Расчет Z-Score для стабильной пары {}", stablePair.getPairName());
+            
+            // Получаем настройки системы
+            Settings settings = settingsService.getSettings();
+            
+            // Используем таймфрейм и период из найденной стабильной пары
+            String timeframe = stablePair.getTimeframe() != null ? stablePair.getTimeframe() : settings.getTimeframe();
+            int candleLimit = (int) settings.getCandleLimit();
+            
+            // Создаем запрос для получения свечей конкретной пары
+            ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
+                    .timeframe(timeframe)
+                    .candleLimit(candleLimit)
+                    .minVolume(settings.getMinVolume())
+                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+                    .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB())) // Только два конкретных тикера
+                    .excludeTickers(null)
+                    .build();
+            
+            // Получаем свечи для пары
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandlesExtended(extendedRequest);
+            
+            if (candlesMap == null || candlesMap.isEmpty()) {
+                log.warn("⚠️ Не удалось получить данные свечей для пары {}", stablePair.getPairName());
+                return null;
+            }
+            
+            // Проверяем наличие свечей для обоих тикеров
+            List<Candle> longCandles = candlesMap.get(stablePair.getTickerA());
+            List<Candle> shortCandles = candlesMap.get(stablePair.getTickerB());
+            
+            if (longCandles == null || longCandles.isEmpty() || 
+                shortCandles == null || shortCandles.isEmpty()) {
+                log.warn("⚠️ Недостаточно данных свечей для пары {} (long: {}, short: {})", 
+                        stablePair.getPairName(),
+                        longCandles != null ? longCandles.size() : 0,
+                        shortCandles != null ? shortCandles.size() : 0);
+                return null;
+            }
+            
+            // Создаем временную TradingPair для расчетов
+            TradingPair tradingPair = new TradingPair();
+            tradingPair.setLongTicker(stablePair.getTickerA());
+            tradingPair.setShortTicker(stablePair.getTickerB());
+            tradingPair.setPairName(stablePair.getPairName());
+            tradingPair.setStatus(TradeStatus.OBSERVED); // Статус "наблюдаемая"
+            tradingPair.setLongTickerCandles(longCandles);
+            tradingPair.setShortTickerCandles(shortCandles);
+            
+            // Рассчитываем Z-Score данные
+            ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+            
+            if (zScoreData != null) {
+                // Обновляем Z-Score данные в TradingPair
+                tradingPairService.updateZScoreDataCurrent(tradingPair, zScoreData);
+                
+                // Инициализируем пиксельный спред
+                chartService.calculatePixelSpreadIfNeeded(tradingPair);
+                chartService.addCurrentPixelSpreadPoint(tradingPair);
+                
+                log.info("✅ Z-Score рассчитан для пары {}. Latest Z-Score: {}", 
+                        stablePair.getPairName(), zScoreData.getLatestZScore());
+                
+                return tradingPair;
+            } else {
+                log.warn("⚠️ Не удалось рассчитать Z-Score для пары {}", stablePair.getPairName());
+                return null;
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при расчете Z-Score для стабильной пары {}: {}", 
+                    stablePair.getPairName(), e.getMessage(), e);
+            return null;
+        }
     }
 }
