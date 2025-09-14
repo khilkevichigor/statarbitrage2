@@ -3,7 +3,7 @@ package com.example.candles.service;
 import com.example.candles.client.OkxFeignClient;
 import com.example.shared.dto.Candle;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,8 +20,8 @@ public class CandlesService {
 
     private final OkxFeignClient okxFeignClient;
 
-    public Map<String, List<Candle>> getApplicableCandlesMap(TradingPair tradingPair, Settings settings) {
-        List<String> tickers = List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker());
+    public Map<String, List<Candle>> getApplicableCandlesMap(Pair tradingPair, Settings settings) {
+        List<String> tickers = List.of(tradingPair.getTickerA(), tradingPair.getTickerB());
 
         // Используем расширенный метод с пагинацией если требуется больше 300 свечей
         Map<String, List<Candle>> candlesMap;

@@ -1,7 +1,7 @@
 package com.example.shared.dto;
 
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +14,7 @@ import java.util.List;
 public class CandlesRequest {
     private Settings settings;
     private List<String> tradingTickers;
-    private TradingPair tradingPair;
+    private Pair tradingPair;
     private boolean usePairData;
 
     public CandlesRequest(Settings settings, List<String> tradingTickers) {
@@ -23,7 +23,7 @@ public class CandlesRequest {
         this.usePairData = false;
     }
 
-    public CandlesRequest(TradingPair tradingPair, Settings settings) {
+    public CandlesRequest(Pair tradingPair, Settings settings) {
         this.tradingPair = tradingPair;
         this.settings = settings;
         this.usePairData = true;
