@@ -1,9 +1,10 @@
 package com.example.cointegration.service;
 
-import com.example.cointegration.repositories.TradingPairRepository;
+import com.example.cointegration.repositories.PairRepository;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class ExcludeExistingTradingPairsService {
 
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository tradingPairRepository;
 
     /**
      * Исключает из списка ZScoreData те пары, которые уже торгуются
@@ -29,14 +30,14 @@ public class ExcludeExistingTradingPairsService {
             return;
         }
 
-        List<TradingPair> tradingPairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> tradingPairs = tradingPairRepository.findByTypeAndStatusOrderByCreatedAtDesc(PairType.TRADING, TradeStatus.TRADING);
         if (tradingPairs.isEmpty()) {
             log.debug("Нет активных торговых пар, все ZScoreData будут использоваться.");
             return;
         }
 
         Set<String> existingKeys = tradingPairs.stream()
-                .map(pair -> buildKey(pair.getLongTicker(), pair.getShortTicker()))
+                .map(pair -> buildKey(pair.getTickerA(), pair.getTickerB()))
                 .collect(Collectors.toSet());
 
         int beforeSize = zScoreDataList.size();

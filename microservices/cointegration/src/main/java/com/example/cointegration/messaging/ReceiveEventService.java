@@ -1,6 +1,6 @@
 package com.example.cointegration.messaging;
 
-import com.example.cointegration.repositories.CointPairRepository;
+import com.example.cointegration.repositories.PairRepository;
 import com.example.shared.events.rabbit.CointegrationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 @Service
 @RequiredArgsConstructor
 public class ReceiveEventService {
-    private final CointPairRepository cointPairRepository;
+    private final PairRepository cointPairRepository;
 
     /**
      * Вычитываем нужный топик

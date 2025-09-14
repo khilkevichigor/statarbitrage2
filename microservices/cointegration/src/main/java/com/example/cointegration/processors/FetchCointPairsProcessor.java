@@ -2,7 +2,7 @@ package com.example.cointegration.processors;
 
 import com.example.cointegration.client.CandlesFeignClient;
 import com.example.cointegration.messaging.SendEventService;
-import com.example.cointegration.repositories.TradingPairRepository;
+import com.example.cointegration.repositories.PairRepository;
 import com.example.cointegration.service.CointPairService;
 import com.example.cointegration.service.SettingsService;
 import com.example.cointegration.service.ZScoreService;
@@ -13,7 +13,6 @@ import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Pair;
 import com.example.shared.enums.PairType;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import com.example.shared.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FetchCointPairsProcessor {
     private final CointPairService cointPairService;
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository tradingPairRepository;
     private final ZScoreService zScoreService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
@@ -68,11 +67,11 @@ public class FetchCointPairsProcessor {
     }
 
     private List<String> getUsedTickers() {
-        List<TradingPair> activePairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> activePairs = tradingPairRepository.findByTypeAndStatusOrderByCreatedAtDesc(PairType.TRADING, TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
-        for (TradingPair pair : activePairs) {
-            tickers.add(pair.getLongTicker());
-            tickers.add(pair.getShortTicker());
+        for (Pair pair : activePairs) {
+            tickers.add(pair.getTickerA());
+            tickers.add(pair.getTickerB());
         }
         return tickers;
     }
