@@ -13,7 +13,6 @@ import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
