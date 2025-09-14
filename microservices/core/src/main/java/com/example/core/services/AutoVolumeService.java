@@ -1,6 +1,7 @@
 package com.example.core.services;
 
-import com.example.core.repositories.TradingPairRepository;
+import com.example.core.repositories.PairRepository;
+import com.example.shared.enums.PairType;
 import com.example.core.trading.services.OkxPortfolioManager;
 import com.example.shared.dto.Portfolio;
 import com.example.shared.enums.TradeStatus;
@@ -21,7 +22,7 @@ import java.math.RoundingMode;
 public class AutoVolumeService {
 
     private final OkxPortfolioManager okxPortfolioManager;
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository tradingPairRepository;
 
     /**
      * Данные автообъема
@@ -76,7 +77,7 @@ public class AutoVolumeService {
      */
     public int getActiveTradingPairsCount() {
         try {
-            int count = tradingPairRepository.countByStatus(TradeStatus.TRADING);
+            int count = tradingPairRepository.countByTypeAndStatus(PairType.TRADING, TradeStatus.TRADING);
             log.debug("📊 Количество активных TRADING пар: {}", count);
             return count;
         } catch (Exception e) {

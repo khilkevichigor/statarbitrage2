@@ -225,4 +225,10 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.status = :status ORDER BY p.updatedTime DESC")
     List<Pair> findTradingPairsByStatusOrderByUpdatedTime(@Param("status") TradeStatus status);
+    
+    /**
+     * Подсчет пар по типу и статусу
+     */
+    @Query("SELECT COUNT(p) FROM Pair p WHERE p.type = :type AND p.status = :status")
+    int countByTypeAndStatus(@Param("type") PairType type, @Param("status") TradeStatus status);
 }
