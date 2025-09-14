@@ -1,6 +1,6 @@
 package com.example.shared.events.rabbit;
 
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 public class CoreEvent extends BaseEvent {
     private static final String BINDING_NAME = "core-events-out-0";
-    private TradingPair tradingPair;
+    private Pair tradingPair;
     private Type type;
     private String message;
     private byte[] data;
@@ -23,7 +23,7 @@ public class CoreEvent extends BaseEvent {
         ENTRY_INTERSECTION_CHART
     }
 
-    public CoreEvent(TradingPair tradingPair, Type type) {
+    public CoreEvent(Pair tradingPair, Type type) {
         super("CORE_EVENT");
         super.setBindingName(BINDING_NAME);
         this.tradingPair = tradingPair;

@@ -2,7 +2,7 @@ package com.example.core.services;
 
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitExtremum;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,8 +16,8 @@ public class ProfitExtremumService {
     private static final long MILLISECONDS_IN_MINUTE = 1000 * 60;
 
     // Экстремумы берём из pairData, т.к. changesData создаётся заново при каждом вызове
-    public ProfitExtremum getProfitExtremums(TradingPair tradingPair, ChangesData changesData) {
-        long currentTimeInMinutes = (System.currentTimeMillis() - tradingPair.getEntryTime()) / MILLISECONDS_IN_MINUTE;
+    public ProfitExtremum getProfitExtremums(Pair tradingPair, ChangesData changesData) {
+        long currentTimeInMinutes = (System.currentTimeMillis() - tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()) / MILLISECONDS_IN_MINUTE;
 
         BigDecimal currentProfitPercent = changesData.getProfitPercentChanges() != null
                 ? changesData.getProfitPercentChanges()

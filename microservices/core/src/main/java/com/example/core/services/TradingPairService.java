@@ -1,19 +1,21 @@
 package com.example.core.services;
 
-import com.example.core.repositories.TradingPairRepository;
+import com.example.core.repositories.PairRepository;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.TradeResult;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +25,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class TradingPairService {
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository pairRepository;
     private final CalculateChangesService calculateChangesServiceImpl;
     private final EntryPointService entryPointService;
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
@@ -34,11 +36,11 @@ public class TradingPairService {
     private final PortfolioService portfolioServiceImpl;
     private final UpdateSettingsParamService updateSettingsParamService;
 
-    public List<TradingPair> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
-        List<TradingPair> pairs = createPairDataService.createPairs(top, candlesMap);
+    public List<Pair> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
+        List<Pair> pairs = createPairDataService.createPairs(top, candlesMap);
         // Сохраняем с обработкой конфликтов
-        List<TradingPair> savedPairs = new ArrayList<>();
-        for (TradingPair pair : pairs) {
+        List<Pair> savedPairs = new ArrayList<>();
+        for (Pair pair : pairs) {
             try {
                 save(pair);
                 savedPairs.add(pair);
@@ -54,54 +56,58 @@ public class TradingPairService {
         return pairs;
     }
 
-    public void updateZScoreDataCurrent(TradingPair tradingPair, ZScoreData zScoreData) {
+    public void updateZScoreDataCurrent(Pair tradingPair, ZScoreData zScoreData) {
         updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
     }
 
-    public void save(TradingPair tradingPair) {
-        tradingPair.setUpdatedTime(System.currentTimeMillis()); //перед сохранением обновляем время
-        tradingPairRepository.save(tradingPair); //todo падаем
+    public void save(Pair tradingPair) {
+        tradingPair.setUpdatedTime(LocalDateTime.now()); //перед сохранением обновляем время
+        pairRepository.save(tradingPair);
     }
 
-    public void saveAll(List<TradingPair> tradingPairList) {
-        tradingPairList.forEach(pairData -> pairData.setUpdatedTime(System.currentTimeMillis()));
-        tradingPairRepository.saveAll(tradingPairList);
+    public void saveAll(List<Pair> tradingPairList) {
+        tradingPairList.forEach(pairData -> pairData.setUpdatedTime(LocalDateTime.now()));
+        pairRepository.saveAll(tradingPairList);
     }
 
-    public TradingPair findById(Long id) {
-        return tradingPairRepository.findById(id).orElse(null);
+    public Pair findById(Long id) {
+        return pairRepository.findById(id).orElse(null);
     }
 
-    public List<TradingPair> findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus status) {
-        long startOfDay = LocalDate.now()
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli();
-        return tradingPairRepository.findAllByStatusOrderByEntryTimeTodayDesc(status, startOfDay);
+    public List<Pair> findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus status) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        return pairRepository.findTradingPairsByStatusAndEntryTimeAfter(status, startOfDay);
     }
 
-    public List<TradingPair> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
-        return tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(status);
+    public List<Pair> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
+        return pairRepository.findTradingPairsByStatus(status);
     }
 
-    public List<TradingPair> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
-        return tradingPairRepository.findAllByStatusOrderByUpdatedTimeDesc(status);
+    public List<Pair> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
+        return pairRepository.findTradingPairsByStatus(status);
     }
 
-    public List<TradingPair> findAllByStatusIn(List<TradeStatus> statuses) {
-        return tradingPairRepository.findAllByStatusIn(statuses);
+    public List<Pair> findAllByStatusIn(List<TradeStatus> statuses) {
+        List<Pair> result = new ArrayList<>();
+        for (TradeStatus status : statuses) {
+            result.addAll(pairRepository.findTradingPairsByStatus(status));
+        }
+        return result;
     }
 
-    public List<TradingPair> findByTickers(String longTicker, String shortTicker) {
-        return tradingPairRepository.findByLongTickerAndShortTicker(longTicker, shortTicker);
+    public List<Pair> findByTickers(String longTicker, String shortTicker) {
+        return pairRepository.findByTickerAAndTickerB(longTicker, shortTicker)
+                .stream()
+                .filter(pair -> pair.getType() == PairType.TRADING)
+                .toList();
     }
 
     public int deleteAllByStatus(TradeStatus status) {
-        return tradingPairRepository.deleteAllByStatus(status);
+        return pairRepository.deleteByTypeAndStatus(PairType.TRADING, status);
     }
 
-    public void delete(TradingPair tradingPair) {
-        tradingPairRepository.delete(tradingPair);
+    public void delete(Pair tradingPair) {
+        pairRepository.delete(tradingPair);
     }
 
     public void excludeExistingTradingPairs(List<ZScoreData> zScoreDataList) {
@@ -116,24 +122,24 @@ public class TradingPairService {
         return calculateUnrealizedProfitTotalService.getUnrealizedProfitUSDTTotal();
     }
 
-    public void addEntryPoints(TradingPair tradingPair, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
+    public void addEntryPoints(Pair tradingPair, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
         entryPointService.addEntryPoints(tradingPair, zScoreData, openLongTradeResult, openShortTradeResult);
     }
 
-    public void addChanges(TradingPair tradingPair) {
+    public void addChanges(Pair tradingPair) {
         ChangesData changes = calculateChangesServiceImpl.getChanges(tradingPair);
         updateChangesService.update(tradingPair, changes);
     }
 
-    public void updatePortfolioBalanceBeforeTradeUSDT(TradingPair tradingPair) {
+    public void updatePortfolioBalanceBeforeTradeUSDT(Pair tradingPair) {
         portfolioServiceImpl.updatePortfolioBalanceBeforeTradeUSDT(tradingPair);
     }
 
-    public void updatePortfolioBalanceAfterTradeUSDT(TradingPair tradingPair) {
+    public void updatePortfolioBalanceAfterTradeUSDT(Pair tradingPair) {
         portfolioServiceImpl.updatePortfolioBalanceAfterTradeUSDT(tradingPair);
     }
 
-    public void updateSettingsParam(TradingPair tradingPair, Settings settings) {
+    public void updateSettingsParam(Pair tradingPair, Settings settings) {
         updateSettingsParamService.updateSettingsParam(tradingPair, settings);
     }
 }

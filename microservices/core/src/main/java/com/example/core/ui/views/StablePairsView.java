@@ -527,7 +527,7 @@ public class StablePairsView extends VerticalLayout {
             getUI().ifPresent(ui -> {
                 Thread calculateThread = new Thread(() -> {
                     try {
-                        com.example.shared.models.TradingPair calculatedTradingPair = 
+                        Pair calculatedTradingPair = 
                                 pairService.calculateZScoreForStablePair(pair);
 
                         ui.access(() -> {

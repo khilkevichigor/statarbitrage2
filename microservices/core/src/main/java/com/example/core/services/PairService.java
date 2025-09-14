@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Сервис для работы с унифицированной моделью Pair
@@ -155,6 +158,25 @@ public class PairService {
     }
 
     /**
+     * Удаление пары по объекту
+     */
+    @Transactional
+    public void delete(Pair pair) {
+        if (pair == null) {
+            log.warn("Попытка удаления null пары");
+            return;
+        }
+        
+        if (pair.getType() != null && pair.getType().isStable() && Boolean.TRUE.equals(pair.getIsInMonitoring())) {
+            throw new IllegalArgumentException("Нельзя удалить пару, находящуюся в мониторинге");
+        }
+
+        pairRepository.delete(pair);
+        log.info("🗑️ Пара удалена: {} (ID: {})", pair.getPairName(), pair.getId());
+    }
+
+
+    /**
      * Очистить все найденные стабильные пары (не в мониторинге)
      */
     @Transactional
@@ -218,10 +240,10 @@ public class PairService {
     // ======== Z-SCORE РАСЧЕТЫ ========
 
     /**
-     * Рассчитать Z-Score для стабильной пары и вернуть готовую TradingPair с данными
+     * Рассчитать Z-Score для стабильной пары и вернуть готовую Pair с данными
      * Используется для предпросмотра пары перед добавлением в мониторинг
      */
-    public TradingPair calculateZScoreForStablePair(Pair stablePair) {
+    public Pair calculateZScoreForStablePair(Pair stablePair) {
         if (!stablePair.getType().isStable()) {
             throw new IllegalArgumentException("Расчет Z-Score доступен только для стабильных пар");
         }
@@ -268,10 +290,11 @@ public class PairService {
                 return null;
             }
             
-            // Создаем временную TradingPair для расчетов
-            TradingPair tradingPair = new TradingPair();
-            tradingPair.setLongTicker(stablePair.getTickerA());
-            tradingPair.setShortTicker(stablePair.getTickerB());
+            // Создаем временную Pair для расчетов
+            Pair tradingPair = new Pair();
+            tradingPair.setType(PairType.TRADING);
+            tradingPair.setTickerA(stablePair.getTickerA());
+            tradingPair.setTickerB(stablePair.getTickerB());
             tradingPair.setPairName(stablePair.getPairName());
             tradingPair.setStatus(TradeStatus.OBSERVED); // Статус "наблюдаемая"
             tradingPair.setLongTickerCandles(longCandles);
@@ -349,6 +372,55 @@ public class PairService {
         log.info("🔄 Пара {} конвертирована в TRADING", pair.getPairName());
 
         return pair;
+    }
+
+    // ======== МЕТОДЫ ДЛЯ ИСКЛЮЧЕНИЯ СУЩЕСТВУЮЩИХ ПАР ========
+
+    /**
+     * Исключает из списка ZScoreData те пары, которые уже торгуются
+     * Используется для предотвращения создания дублирующих торговых пар
+     */
+    public void excludeExistingPairs(List<ZScoreData> zScoreDataList) {
+        if (zScoreDataList == null || zScoreDataList.isEmpty()) {
+            log.debug("Список ZScoreData пуст, пропускаем исключение торговых пар.");
+            return;
+        }
+
+        // Получаем все активные торговые пары
+        List<Pair> tradingPairs = pairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        if (tradingPairs.isEmpty()) {
+            log.debug("Нет активных торговых пар, все ZScoreData будут использоваться.");
+            return;
+        }
+
+        // Создаем набор ключей для быстрого поиска
+        Set<String> existingKeys = tradingPairs.stream()
+                .map(pair -> buildPairKey(pair.getTickerA(), pair.getTickerB()))
+                .collect(Collectors.toSet());
+
+        int beforeSize = zScoreDataList.size();
+
+        // Удаляем ZScoreData для уже торгующихся пар
+        zScoreDataList.removeIf(z ->
+                existingKeys.contains(buildPairKey(z.getUnderValuedTicker(), z.getOverValuedTicker()))
+        );
+
+        int removed = beforeSize - zScoreDataList.size();
+        if (removed > 0) {
+            log.info("🚫 Исключено {} уже торгующихся пар из ZScoreData", removed);
+        } else {
+            log.debug("✅ Нет совпадений с активными торговыми парами — ничего не исключено.");
+        }
+    }
+
+    /**
+     * Строит уникальный ключ пары, не зависящий от порядка тикеров
+     * Используется для сравнения пар независимо от того, какой тикер указан первым
+     */
+    private String buildPairKey(String ticker1, String ticker2) {
+        return Stream.of(ticker1, ticker2)
+                .sorted()
+                .collect(Collectors.joining("-"));
     }
 
     // ======== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ========

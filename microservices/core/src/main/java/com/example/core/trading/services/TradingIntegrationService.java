@@ -6,7 +6,7 @@ import com.example.shared.dto.Portfolio;
 import com.example.shared.dto.Positioninfo;
 import com.example.shared.dto.TradingProviderSwitchResult;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,29 +18,29 @@ public interface TradingIntegrationService {
     /**
      * Открытие пары позиций для статарбитража - СИНХРОННО
      */
-    ArbitragePairTradeInfo openArbitragePair(TradingPair tradingPair, Settings settings);
+    ArbitragePairTradeInfo openArbitragePair(Pair tradingPair, Settings settings);
 
     /**
      * Закрытие пары позиций - СИНХРОННО
      */
-    ArbitragePairTradeInfo closeArbitragePair(TradingPair tradingPair);
+    ArbitragePairTradeInfo closeArbitragePair(Pair tradingPair);
 
     /**
      * Проверка что позиции действительно закрыты на бирже с получением PnL
      */
-    Positioninfo verifyPositionsClosed(TradingPair tradingPair);
+    Positioninfo verifyPositionsClosed(Pair tradingPair);
 
     /**
      * Получение актуальной информации по открытым позициям для обновления changes
      */
-    Positioninfo getOpenPositionsInfo(TradingPair tradingPair);
+    Positioninfo getOpenPositionsInfo(Pair tradingPair);
 
     /**
      * Получение актуальной информации по позициям для пары
      */
-    Positioninfo getPositionInfo(TradingPair tradingPair);
+    Positioninfo getPositionInfo(Pair tradingPair);
 
-    void deletePositions(TradingPair tradingPair);
+    void deletePositions(Pair tradingPair);
 
     /**
      * Получение информации о портфолио

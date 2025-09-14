@@ -3,7 +3,7 @@ package com.example.notification.service;
 import com.example.notification.bot.BotConfig;
 import com.example.notification.events.SendAsPhotoEvent;
 import com.example.notification.events.SendAsTextEvent;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ public class TelegramNotificationService implements NotificationService {
     private static final String EMOJI_RED = "🔴";
 
     @Override
-    public void sendTelegramClosedPair(TradingPair tradingPair) {
+    public void sendTelegramClosedPair(Pair tradingPair) {
         String message = formatCloseMessage(tradingPair);
         sendNotification(message);
     }
@@ -67,7 +67,7 @@ public class TelegramNotificationService implements NotificationService {
         }
     }
 
-    private String formatCloseMessage(TradingPair tradingPair) {
+    private String formatCloseMessage(Pair tradingPair) {
         return String.format(
                 """
                         Пара закрыта
@@ -78,7 +78,10 @@ public class TelegramNotificationService implements NotificationService {
                         %s""",
                 tradingPair.getPairName(),
                 tradingPair.getProfitUSDTChanges().compareTo(BigDecimal.ZERO) >= 0 ? EMOJI_GREEN : EMOJI_RED, tradingPair.getProfitUSDTChanges(), tradingPair.getProfitPercentChanges(),
-                TimeFormatterUtil.formatDurationFromMillis(tradingPair.getUpdatedTime() - tradingPair.getEntryTime()),
+                TimeFormatterUtil.formatDurationFromMillis(
+                        tradingPair.getUpdatedTime() != null && tradingPair.getEntryTime() != null ?
+                                tradingPair.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() -
+                                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 0L),
                 tradingPair.getExitReason(),
                 tradingPair.getUuid()
         );

@@ -3,7 +3,7 @@ package com.example.core.services;
 import com.example.core.repositories.TradeHistoryRepository;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradeHistory;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import java.util.Optional;
 public class TradeHistoryService {
     private final TradeHistoryRepository tradeHistoryRepository;
 
-    public void updateTradeLog(TradingPair tradingPair, Settings settings) {
+    public void updateTradeLog(Pair tradingPair, Settings settings) {
         String longTicker = tradingPair.getLongTicker();
         String shortTicker = tradingPair.getShortTicker();
         String pairDataUuid = tradingPair.getUuid().toString();
@@ -54,11 +54,11 @@ public class TradeHistoryService {
 
         tradeHistory.setMinZ(tradingPair.getMinZ());
         tradeHistory.setMaxZ(tradingPair.getMaxZ());
-        tradeHistory.setCurrentZ(tradingPair.getZScoreCurrent());
+        tradeHistory.setCurrentZ(tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent().doubleValue() : 0.0);
 
-        tradeHistory.setMinCorr(tradingPair.getMinCorr());
-        tradeHistory.setMaxCorr(tradingPair.getMaxCorr());
-        tradeHistory.setCurrentCorr(tradingPair.getCorrelationCurrent());
+        tradeHistory.setMinCorr(tradingPair.getMinCorr() != null ? tradingPair.getMinCorr() : BigDecimal.ZERO);
+        tradeHistory.setMaxCorr(tradingPair.getMaxCorr() != null ? tradingPair.getMaxCorr() : BigDecimal.ZERO);
+        tradeHistory.setCurrentCorr(tradingPair.getCorrelationCurrent() != null ? tradingPair.getCorrelationCurrent().doubleValue() : 0.0);
 
         tradeHistory.setExitTake(settings.getExitTake());
         tradeHistory.setExitStop(settings.getExitStop());
@@ -78,7 +78,9 @@ public class TradeHistoryService {
 //                .format(formatter);
 //
 //        tradeHistory.setEntryTime(formattedEntryTime);
-        tradeHistory.setEntryTime(tradingPair.getEntryTime());
+        tradeHistory.setEntryTime(tradingPair.getEntryTime() != null ? 
+                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
+                System.currentTimeMillis());
 //        tradeHistory.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         tradeHistory.setTimestamp(System.currentTimeMillis());
 

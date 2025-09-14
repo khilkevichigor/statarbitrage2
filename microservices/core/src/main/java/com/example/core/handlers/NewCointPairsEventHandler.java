@@ -7,7 +7,7 @@ import com.example.core.repositories.CointPairRepository;
 import com.example.core.services.EventSendService;
 import com.example.core.services.PriceIntersectionService;
 import com.example.core.services.SettingsService;
-import com.example.core.services.TradingPairService;
+import com.example.core.repositories.PairRepository;
 import com.example.core.trading.services.OkxPortfolioManager;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.enums.TradeStatus;
@@ -15,8 +15,8 @@ import com.example.shared.events.UpdateUiEvent;
 import com.example.shared.events.rabbit.CointegrationEvent;
 import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ public class NewCointPairsEventHandler {
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final EventSendService eventSendService;
     private final SettingsService settingsService;
-    private final TradingPairService tradingPairRepository;
+    private final PairRepository tradingPairRepository;
     private final OkxPortfolioManager okxPortfolioManager;
     private final CointPairRepository cointPairRepository;
     private final PriceIntersectionService priceIntersectionService;
@@ -92,7 +92,7 @@ public class NewCointPairsEventHandler {
             missedCointPairs.forEach(cointPair -> 
                 cointPairByUuid.put(cointPair.getUuid().toString(), cointPair));
 
-            List<TradingPair> tradingPairs = convertToTradingPair(missedCointPairs);
+            List<Pair> tradingPairs = convertToTradingPair(missedCointPairs);
             log.info("{} CointPairs сконверчены в {} TradingPairs", missedCointPairs.size(), tradingPairs.size());
 
             int startedNewTrades = startNewTrades(tradingPairs);
@@ -124,7 +124,7 @@ public class NewCointPairsEventHandler {
     private Map<String, List<CointPair>> splitAndGetMissedAndRemainingPairs(List<CointPair> cointPairs) {
         Map<String, List<CointPair>> result = new HashMap<>();
 
-        List<TradingPair> activePairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> activePairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
         Settings settings = settingsService.getSettings();
         int usePairs = (int) settings.getUsePairs();
 
@@ -210,9 +210,9 @@ public class NewCointPairsEventHandler {
     }
 
     private List<String> getUsedTickers() {
-        List<TradingPair> activePairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> activePairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
-        for (TradingPair pair : activePairs) {
+        for (Pair pair : activePairs) {
             tickers.add(pair.getLongTicker());
             tickers.add(pair.getShortTicker());
         }
@@ -232,10 +232,10 @@ public class NewCointPairsEventHandler {
         return filteredCointPairs;
     }
 
-    private List<TradingPair> convertToTradingPair(List<CointPair> cointPairs) {
-        List<TradingPair> convertedPairs = new ArrayList<>();
+    private List<Pair> convertToTradingPair(List<CointPair> cointPairs) {
+        List<Pair> convertedPairs = new ArrayList<>();
         cointPairs.forEach(pair -> {
-            TradingPair converted = cointPairToTradingPairConverter.convert(pair);
+            Pair converted = cointPairToTradingPairConverter.convert(pair);
             if (converted != null) {
                 tradingPairRepository.save(converted);
                 convertedPairs.add(converted);
@@ -251,7 +251,7 @@ public class NewCointPairsEventHandler {
                 .toList();
     }
 
-    private int startNewTrades(List<TradingPair> newPairs) {
+    private int startNewTrades(List<Pair> newPairs) {
         AtomicInteger count = new AtomicInteger(0);
 
         newPairs.forEach(pair -> {
@@ -263,9 +263,9 @@ public class NewCointPairsEventHandler {
         return count.get();
     }
 
-    private boolean startSingleNewTrade(TradingPair pair) {
+    private boolean startSingleNewTrade(Pair pair) {
         try {
-            TradingPair result = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
+            Pair result = startNewTradeProcessor.startNewTrade(StartNewTradeRequest.builder()
                     .tradingPair(pair)
                     .checkAutoTrading(true)
                     .build());

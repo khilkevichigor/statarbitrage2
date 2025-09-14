@@ -6,7 +6,7 @@ import com.example.core.services.PixelSpreadService;
 import com.example.core.services.SettingsService;
 import com.example.shared.models.ChartSettings;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -56,7 +56,7 @@ public class ZScoreChartDialog extends Dialog {
     private Checkbox showStochRsiCheckbox;
     private Checkbox showProfitCheckbox;
     private Checkbox showEntryPointCheckbox;
-    private TradingPair currentTradingPair;
+    private Pair currentPair;
 
     public ZScoreChartDialog(SettingsService settingsService, ChartService chartService,
                              PixelSpreadService pixelSpreadService, ChartSettingsService chartSettingsService) {
@@ -193,7 +193,7 @@ public class ZScoreChartDialog extends Dialog {
      * Обновляет главный чарт с учетом выбранных типов
      */
     private void refreshMainChart() {
-        if (currentTradingPair == null) return;
+        if (currentPair == null) return;
 
         try {
             boolean showZScore = showZScoreCheckbox.getValue();
@@ -232,19 +232,19 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showProfit = showProfitCheckbox.getValue();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
-                chartImage = chartService.createZScoreChart(currentTradingPair, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
+                chartImage = chartService.createZScoreChart(currentPair, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
                 log.debug("📊 Создан Z-Score чарт с индикаторами: EMA={}, StochRSI={}, Profit={}", showEma, showStochRsi, showProfit);
 
             } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
                 // Только Price чарт с профитом
                 boolean showProfit = showProfitCheckbox.getValue();
-                chartImage = chartService.createPriceChartWithProfit(currentTradingPair, false, showProfit, showEntryPoint);
+                chartImage = chartService.createPriceChartWithProfit(currentPair, false, showProfit, showEntryPoint);
                 log.debug("📊 Создан Price чарт с Profit={}", showProfit);
 
             } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
                 // Только Pixel Spread чарт с профитом
                 boolean showProfit = showProfitCheckbox.getValue();
-                chartImage = chartService.createPixelSpreadChartWithProfit(currentTradingPair, showProfit, showEntryPoint);
+                chartImage = chartService.createPixelSpreadChartWithProfit(currentPair, showProfit, showEntryPoint);
                 log.debug("📊 Создан Pixel Spread чарт с Profit={}", showProfit);
 
             } else {
@@ -255,18 +255,18 @@ public class ZScoreChartDialog extends Dialog {
                 boolean showProfit = showProfitCheckbox.getValue();
                 int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
 
-                chartImage = chartService.createCombinedChart(currentTradingPair, showZScore, showCombinedPrice, showPixelSpread, showEma, emaPeriod, showStochRsi, showProfit, showEntryPoint);
+                chartImage = chartService.createCombinedChart(currentPair, showZScore, showCombinedPrice, showPixelSpread, showEma, emaPeriod, showStochRsi, showProfit, showEntryPoint);
                 log.debug("📊 Создан комбинированный чарт: ZScore={}, Price={}, PixelSpread={}", showZScore, showCombinedPrice, showPixelSpread);
             }
 
             if (chartImage != null) {
                 StreamResource chartResource = createStreamResource(chartImage, "main-chart.png");
                 mainChartImage.setSrc(chartResource);
-                mainChartImage.setAlt("Chart for " + currentTradingPair.getPairName());
+                mainChartImage.setAlt("Chart for " + currentPair.getPairName());
             } else {
                 mainChartImage.setSrc("");
                 mainChartImage.setAlt("Failed to generate chart");
-                log.warn("⚠️ Не удалось создать чарт для пары: {}", currentTradingPair.getPairName());
+                log.warn("⚠️ Не удалось создать чарт для пары: {}", currentPair.getPairName());
             }
 
         } catch (Exception e) {
@@ -328,7 +328,7 @@ public class ZScoreChartDialog extends Dialog {
      *
      * @param tradingPair данные торговой пары
      */
-    public void showChart(TradingPair tradingPair) {
+    public void showChart(Pair tradingPair) {
         if (tradingPair == null) {
             log.warn("⚠️ Попытка показать чарт для null PairData");
             return;
@@ -338,7 +338,7 @@ public class ZScoreChartDialog extends Dialog {
             log.debug("📊 Показываем Z-Score чарт для пары: {}", tradingPair.getPairName());
 
             // Сохраняем текущие данные пары
-            this.currentTradingPair = tradingPair;
+            this.currentPair = tradingPair;
 
             // Устанавливаем заголовок
             pairTitle.setText(String.format("📊 Z-Score Chart: %s", tradingPair.getPairName()));
@@ -363,7 +363,7 @@ public class ZScoreChartDialog extends Dialog {
                     chartSettings.isShowEntryPoint());
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService
-            pixelSpreadService.calculatePixelSpreadIfNeeded(currentTradingPair);
+            pixelSpreadService.calculatePixelSpreadIfNeeded(currentPair);
 
             // Генерируем и показываем чарт согласно выбранным чекбоксам
             refreshMainChart();
@@ -406,7 +406,7 @@ public class ZScoreChartDialog extends Dialog {
     /**
      * Обновляет панель с детальной информацией о паре
      */
-    private void updateDetailsPanel(TradingPair tradingPair) {
+    private void updateDetailsPanel(Pair tradingPair) {
         detailsPanel.removeAll();
 
         // Создаем HTML-контент с детальной информацией
@@ -419,11 +419,11 @@ public class ZScoreChartDialog extends Dialog {
         metricsRow1.setWidthFull();
 
         Div zScoreInfo = createMetricDiv("Current Z-Score",
-                String.format("%.3f", tradingPair.getZScoreCurrent()),
-                getZScoreColor(tradingPair.getZScoreCurrent()));
+                String.format("%.3f", tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent().doubleValue() : 0.0),
+                getZScoreColor(tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent().doubleValue() : 0.0));
 
         Div correlationInfo = createMetricDiv("Correlation",
-                String.format("%.3f", tradingPair.getCorrelationCurrent()), "#2196F3");
+                String.format("%.3f", tradingPair.getCorrelationCurrent() != null ? tradingPair.getCorrelationCurrent().doubleValue() : 0.0), "#2196F3");
 
         Div statusInfo = createMetricDiv("Status",
                 tradingPair.getStatus().toString(), "#4CAF50");
@@ -455,7 +455,7 @@ public class ZScoreChartDialog extends Dialog {
         }
 
         // Trading recommendations
-        Div recommendationDiv = createRecommendationDiv(tradingPair.getZScoreCurrent());
+        Div recommendationDiv = createRecommendationDiv(tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent().doubleValue() : 0.0);
         details.add(recommendationDiv);
 
         detailsPanel.add(details);

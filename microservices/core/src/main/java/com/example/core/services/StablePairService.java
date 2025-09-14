@@ -12,7 +12,8 @@ import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Settings;
 import com.example.shared.models.StablePair;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
+import com.example.shared.enums.PairType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -482,7 +483,7 @@ public class StablePairService {
      * Рассчитать Z-Score для стабильной пары и вернуть готовую TradingPair с данными
      * Используется для предпросмотра пары перед добавлением в мониторинг
      */
-    public TradingPair calculateZScoreForStablePair(StablePair stablePair) {
+    public Pair calculateZScoreForStablePair(StablePair stablePair) {
         try {
             log.info("🧮 Расчет Z-Score для стабильной пары {}", stablePair.getPairName());
             
@@ -525,14 +526,16 @@ public class StablePairService {
                 return null;
             }
             
-            // Создаем временную TradingPair для расчетов
-            TradingPair tradingPair = new TradingPair();
-            tradingPair.setLongTicker(stablePair.getTickerA());
-            tradingPair.setShortTicker(stablePair.getTickerB());
-            tradingPair.setPairName(stablePair.getPairName());
-            tradingPair.setStatus(TradeStatus.OBSERVED); // Статус "наблюдаемая"
-            tradingPair.setLongTickerCandles(longCandles);
-            tradingPair.setShortTickerCandles(shortCandles);
+            // Создаем временную Pair для расчетов
+            Pair tradingPair = Pair.builder()
+                .type(PairType.STABLE)
+                .tickerA(stablePair.getTickerA())
+                .tickerB(stablePair.getTickerB())
+                .pairName(stablePair.getPairName())
+                .status(TradeStatus.OBSERVED) // Статус "наблюдаемая"
+                .longTickerCandles(longCandles)
+                .shortTickerCandles(shortCandles)
+                .build();
             
             // Рассчитываем Z-Score данные
             ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);

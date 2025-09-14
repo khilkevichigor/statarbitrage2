@@ -6,7 +6,7 @@ import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,17 +29,17 @@ public class StartNewTradeProcessor {
     private final CandlesFeignClient candlesFeignClient;
 
     @Transactional
-    public TradingPair startNewTrade(StartNewTradeRequest request) {
+    public Pair startNewTrade(StartNewTradeRequest request) {
         startNewTradeValidationService.validateRequest(request);
 
-        final TradingPair tradingPair = request.getTradingPair();
+        final Pair tradingPair = request.getTradingPair();
         final Settings settings = settingsService.getSettings();
 
         log.info("");
         log.info("🚀 Начинаем новый трейд для пары {} tradingPairId={}...", tradingPair.getPairName(), tradingPair.getId());
 
         // 1. Предварительная валидация
-        Optional<TradingPair> preValidationError = preValidate(tradingPair, settings);
+        Optional<Pair> preValidationError = preValidate(tradingPair, settings);
         if (preValidationError.isPresent()) {
             return preValidationError.get();
         }
@@ -72,7 +72,7 @@ public class StartNewTradeProcessor {
         return openTradePosition(tradingPair, zScoreData, settings);
     }
 
-    private Optional<TradingPair> preValidate(TradingPair tradingPair, Settings settings) {
+    private Optional<Pair> preValidate(Pair tradingPair, Settings settings) {
         if (startNewTradeValidationService.isLastZLessThenMinZ(tradingPair, settings)) {
             log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", tradingPair.getPairName());
             return Optional.of(handleTradeError(tradingPair, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM));
@@ -80,7 +80,7 @@ public class StartNewTradeProcessor {
         return Optional.empty();
     }
 
-    private Optional<ZScoreData> updateZScoreDataForExistingPair(TradingPair tradingPair, Settings settings) {
+    private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
@@ -102,7 +102,7 @@ public class StartNewTradeProcessor {
                 zScoreData.getJohansenCointPValue(), zScoreData.getAvgAdfPvalue(), zScoreData.getLatestZScore(), zScoreData.getPearsonCorr()));
     }
 
-    private TradingPair openTradePosition(TradingPair tradingPair, ZScoreData zScoreData, Settings settings) {
+    private Pair openTradePosition(Pair tradingPair, ZScoreData zScoreData, Settings settings) {
         ArbitragePairTradeInfo openResult = tradingIntegrationServiceImpl.openArbitragePair(tradingPair, settings);
 
         if (openResult == null || !openResult.isSuccess()) {
@@ -128,7 +128,7 @@ public class StartNewTradeProcessor {
         return tradingPair;
     }
 
-    private TradingPair handleTradeError(TradingPair tradingPair, StartTradeErrorType errorType) {
+    private Pair handleTradeError(Pair tradingPair, StartTradeErrorType errorType) {
         log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());

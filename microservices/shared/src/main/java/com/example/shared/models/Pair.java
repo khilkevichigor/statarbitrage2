@@ -339,6 +339,174 @@ public class Pair {
     @Column(name = "updated_time")
     private LocalDateTime updatedTime;
 
+    // ======== ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ ДЛЯ ТОРГОВЫХ ПАР ========
+    // Эти поля будут null для типа STABLE, заполнены для COINTEGRATED и TRADING
+
+    // Торговые изменения
+    @CsvExportable(order = 46)
+    @Column(name = "z_score_changes", precision = 18, scale = 8)
+    private BigDecimal zScoreChanges;
+
+    @CsvExportable(order = 47)
+    @Column(name = "long_usdt_changes", precision = 18, scale = 8)
+    private BigDecimal longUSDTChanges;
+
+    @CsvExportable(order = 48)
+    @Column(name = "long_percent_changes", precision = 18, scale = 8)
+    private BigDecimal longPercentChanges;
+
+    @CsvExportable(order = 49)
+    @Column(name = "short_usdt_changes", precision = 18, scale = 8)
+    private BigDecimal shortUSDTChanges;
+
+    @CsvExportable(order = 50)
+    @Column(name = "short_percent_changes", precision = 18, scale = 8)
+    private BigDecimal shortPercentChanges;
+
+    // Портфель и прибыль
+    @CsvExportable(order = 51)
+    @Column(name = "portfolio_before_trade_usdt", precision = 18, scale = 8)
+    private BigDecimal portfolioBeforeTradeUSDT;
+
+    @CsvExportable(order = 52)
+    @Column(name = "profit_usdt_changes", precision = 18, scale = 8)
+    private BigDecimal profitUSDTChanges;
+
+    @CsvExportable(order = 53)
+    @Column(name = "portfolio_after_trade_usdt", precision = 18, scale = 8)
+    private BigDecimal portfolioAfterTradeUSDT;
+
+    @CsvExportable(order = 54)
+    @Column(name = "profit_percent_changes", precision = 18, scale = 8)
+    private BigDecimal profitPercentChanges;
+
+    // Время до экстремумов прибыли
+    @CsvExportable(order = 55)
+    @Column(name = "minutes_to_min_profit_percent")
+    private Long minutesToMinProfitPercent;
+
+    @CsvExportable(order = 56)
+    @Column(name = "minutes_to_max_profit_percent")
+    private Long minutesToMaxProfitPercent;
+
+    @CsvExportable(order = 57)
+    @Column(name = "min_profit_percent_changes", precision = 18, scale = 8)
+    private BigDecimal minProfitPercentChanges;
+
+    @CsvExportable(order = 58)
+    @Column(name = "max_profit_percent_changes", precision = 18, scale = 8)
+    private BigDecimal maxProfitPercentChanges;
+
+    // Форматированные поля
+    @CsvExportable(order = 59)
+    @Column(name = "formatted_time_to_min_profit", columnDefinition = "TEXT")
+    private String formattedTimeToMinProfit;
+
+    @CsvExportable(order = 60)
+    @Column(name = "formatted_time_to_max_profit", columnDefinition = "TEXT")
+    private String formattedTimeToMaxProfit;
+
+    @CsvExportable(order = 61)
+    @Column(name = "formatted_profit_long", columnDefinition = "TEXT")
+    private String formattedProfitLong;
+
+    @CsvExportable(order = 62)
+    @Column(name = "formatted_profit_short", columnDefinition = "TEXT")
+    private String formattedProfitShort;
+
+    @CsvExportable(order = 63)
+    @Column(name = "formatted_profit_common", columnDefinition = "TEXT")
+    private String formattedProfitCommon;
+
+    // Экстремальные значения
+    @CsvExportable(order = 64)
+    @Column(name = "max_z", precision = 18, scale = 8)
+    private BigDecimal maxZ;
+
+    @CsvExportable(order = 65)
+    @Column(name = "min_z", precision = 18, scale = 8)
+    private BigDecimal minZ;
+
+    @CsvExportable(order = 66)
+    @Column(name = "max_long", precision = 18, scale = 8)
+    private BigDecimal maxLong;
+
+    @CsvExportable(order = 67)
+    @Column(name = "min_long", precision = 18, scale = 8)
+    private BigDecimal minLong;
+
+    @CsvExportable(order = 68)
+    @Column(name = "max_short", precision = 18, scale = 8)
+    private BigDecimal maxShort;
+
+    @CsvExportable(order = 69)
+    @Column(name = "min_short", precision = 18, scale = 8)
+    private BigDecimal minShort;
+
+    @CsvExportable(order = 70)
+    @Column(name = "max_corr", precision = 18, scale = 8)
+    private BigDecimal maxCorr;
+
+    @CsvExportable(order = 71)
+    @Column(name = "min_corr", precision = 18, scale = 8)
+    private BigDecimal minCorr;
+
+    // Информация о выходе
+    @CsvExportable(order = 72)
+    @Column(name = "exit_reason", columnDefinition = "TEXT")
+    private String exitReason;
+
+    @CsvExportable(order = 73)
+    @Column(name = "close_at_breakeven")
+    private Boolean closeAtBreakeven;
+
+    // Торговые настройки
+    @CsvExportable(order = 74)
+    @Column(name = "settings_candle_limit", precision = 10, scale = 2)
+    private BigDecimal settingsCandleLimit;
+
+    @CsvExportable(order = 75)
+    @Column(name = "settings_min_z", precision = 10, scale = 4)
+    private BigDecimal settingsMinZ;
+
+    // Усреднение
+    @CsvExportable(order = 76)
+    @Column(name = "averaging_count")
+    private Integer averagingCount;
+
+    @CsvExportable(order = 77)
+    @Column(name = "last_averaging_timestamp")
+    private Long lastAveragingTimestamp;
+
+    // Дополнительные поля для усреднения
+    @Column(name = "last_averaging_profit_percent", precision = 18, scale = 8)
+    private BigDecimal lastAveragingProfitPercent;
+
+    // Настройки усреднения (сохранённые для отслеживания)
+    @Column(name = "settings_averaging_drawdown_multiplier")
+    private Double settingsAveragingDrawdownMultiplier;
+
+    @Column(name = "settings_max_averaging_count")
+    private Integer settingsMaxAveragingCount;
+
+    // Нормализованные цены JSON (для совместимости с более поздними версиями)
+    @Column(name = "normalized_long_prices_json", columnDefinition = "TEXT")
+    private String normalizedLongPricesJson;
+
+    @Column(name = "normalized_short_prices_json", columnDefinition = "TEXT")
+    private String normalizedShortPricesJson;
+
+    // Transient поля для нормализованных цен
+    @Transient
+    private List<BigDecimal> normalizedLongPrices;
+
+    @Transient
+    private List<BigDecimal> normalizedShortPrices;
+
+    @CsvExportable(order = 78)
+    @Column(name = "intersections_count")
+    private Integer intersectionsCount;
+
     // ======== МЕТОДЫ ЖИЗНЕННОГО ЦИКЛА ========
 
     @PrePersist
@@ -603,5 +771,45 @@ public class Pair {
         } catch (Exception e) {
             // Поле может отсутствовать - игнорируем
         }
+    }
+
+    // ======== МЕТОДЫ ДЛЯ РАБОТЫ С HISTORY ========
+
+    public void addPixelSpreadPoint(PixelSpreadHistoryItem item) {
+        if (pixelSpreadHistory == null) {
+            pixelSpreadHistory = new ArrayList<>();
+        }
+        pixelSpreadHistory.add(item);
+    }
+
+    public List<PixelSpreadHistoryItem> getPixelSpreadHistory() {
+        return pixelSpreadHistory != null ? pixelSpreadHistory : new ArrayList<>();
+    }
+
+    public void addZScorePoint(ZScoreParam item) {
+        if (zScoreHistory == null) {
+            zScoreHistory = new ArrayList<>();
+        }
+        zScoreHistory.add(item);
+    }
+
+    public List<ZScoreParam> getZScoreHistory() {
+        return zScoreHistory != null ? zScoreHistory : new ArrayList<>();
+    }
+
+    public void addProfitHistoryPoint(ProfitHistoryItem item) {
+        if (profitHistory == null) {
+            profitHistory = new ArrayList<>();
+        }
+        profitHistory.add(item);
+    }
+
+    public List<ProfitHistoryItem> getProfitHistory() {
+        return profitHistory != null ? profitHistory : new ArrayList<>();
+    }
+
+    // Метод для совместимости с TradingPair
+    public String getSettingsTimeframe() {
+        return getTimeframe();
     }
 }

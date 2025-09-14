@@ -2,7 +2,8 @@ package com.example.core.services;
 
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
+import com.example.shared.enums.PairType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ public class ObservedPairsService {
         }
 
         List<String> pairs = Arrays.asList(pairsString.split(","));
-        List<TradingPair> tradingPairList = new ArrayList<>();
+        List<Pair> tradingPairList = new ArrayList<>();
 
         for (String pair : pairs) {
             String[] tickers = pair.split("/");
@@ -46,7 +47,12 @@ public class ObservedPairsService {
                     continue;
                 }
 
-                TradingPair tradingPair = new TradingPair(longTicker, shortTicker);
+                Pair tradingPair = Pair.builder()
+                    .type(PairType.TRADING)
+                    .tickerA(longTicker)
+                    .tickerB(shortTicker)
+                    .pairName(longTicker + "/" + shortTicker)
+                    .build();
                 tradingPair.setStatus(TradeStatus.OBSERVED);
                 tradingPairList.add(tradingPair);
             }

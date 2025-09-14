@@ -3,7 +3,7 @@ package com.example.core;
 import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
 import com.example.core.processors.UpdateTradeProcessor;
-import com.example.core.repositories.TradingPairRepository;
+import com.example.core.repositories.PairRepository;
 import com.example.core.trading.services.GeolocationService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.UpdateTradeRequest;
@@ -40,9 +40,9 @@ public class CoreApplication {
     private final PythonRestClient pythonRestClient;
     private final GeolocationService geolocationService;
     private final UpdateTradeProcessor updateTradeProcessor;
-    private final TradingPairRepository pairDataService;
+    private final PairRepository pairDataService;
 
-    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, TradingPairRepository pairDataService) {
+    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, PairRepository pairDataService) {
         this.healthCheck = healthCheck;
         this.pythonRestClient = pythonRestClient;
         this.geolocationService = geolocationService;
@@ -76,13 +76,13 @@ public class CoreApplication {
 
         log.info("");
         log.info("Запускаю плановое обновление пар при запуске...");
-        updateTradingPairsAfterRestart();
+        updatePairsAfterRestart();
         log.info("");
         log.info("✅ Пары обновлены");
     }
 
-    private void updateTradingPairsAfterRestart() {
-        pairDataService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).forEach(pairData -> updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
+    private void updatePairsAfterRestart() {
+        pairDataService.findTradingPairsByStatus(TradeStatus.TRADING).forEach(pairData -> updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
                 .tradingPair(pairData)
                 .build()));
     }

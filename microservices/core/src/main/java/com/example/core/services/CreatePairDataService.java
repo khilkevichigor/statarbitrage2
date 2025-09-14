@@ -2,14 +2,17 @@ package com.example.core.services;
 
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import com.example.shared.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,12 +29,12 @@ public class CreatePairDataService {
     /**
      * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
      */
-    public List<TradingPair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
-        List<TradingPair> result = new ArrayList<>();
+    public List<Pair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+        List<Pair> result = new ArrayList<>();
 
         for (ZScoreData zScoreData : zScoreDataList) {
             try {
-                TradingPair tradingPair = buildPairData(zScoreData, candlesMap);
+                Pair tradingPair = buildPairData(zScoreData, candlesMap);
                 result.add(tradingPair);
             } catch (IllegalArgumentException e) {
                 log.warn("⚠️ Пропущена пара {}/{}: {}",
@@ -50,9 +53,9 @@ public class CreatePairDataService {
     }
 
     /**
-     * Строит одну пару на основе Z-данных и свечей
+     * Строит одну торговую пару на основе Z-данных и свечей
      */
-    private TradingPair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    private Pair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         String undervalued = zScoreData.getUnderValuedTicker();
         String overvalued = zScoreData.getOverValuedTicker();
 
@@ -63,27 +66,31 @@ public class CreatePairDataService {
             throw new IllegalArgumentException("Недостаточно данных по свечам");
         }
 
-        TradingPair tradingPair = new TradingPair(undervalued, overvalued);
-        tradingPair.setStatus(TradeStatus.SELECTED);
-        tradingPair.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedCandles));
-        tradingPair.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
+        // Создаём торговую пару с типом TRADING
+        Pair tradingPair = Pair.builder()
+            .type(PairType.TRADING)
+            .status(TradeStatus.SELECTED)
+            .tickerA(undervalued)  // Long ticker
+            .tickerB(overvalued)   // Short ticker
+            .pairName(undervalued + "/" + overvalued)
+            .longTickerCurrentPrice(BigDecimal.valueOf(CandlesUtil.getLastClose(undervaluedCandles)))
+            .shortTickerCurrentPrice(BigDecimal.valueOf(CandlesUtil.getLastClose(overvaluedCandles)))
+            .timestamp(System.currentTimeMillis())
+            .entryTime(LocalDateTime.now())
+            .updatedTime(LocalDateTime.now())
+            .createdAt(LocalDateTime.now())
+            .searchDate(LocalDateTime.now())
+            .build();
+
+        // Устанавливаем свечи
         tradingPair.setLongTickerCandles(undervaluedCandles);
         tradingPair.setShortTickerCandles(overvaluedCandles);
-        tradingPair.setTimestamp(System.currentTimeMillis()); //создание и обноаление
         
         // Заполняем поля настроек сразу при создании пары
         Settings settings = settingsService.getSettings();
-        tradingPair.setSettingsTimeframe(settings.getTimeframe());
-        tradingPair.setSettingsCandleLimit(settings.getCandleLimit());
-        tradingPair.setSettingsMinZ(settings.getMinZ());
-        tradingPair.setSettingsMinWindowSize(settings.getMinWindowSize());
-        tradingPair.setSettingsMinPValue(settings.getMaxPValue());
-        tradingPair.setSettingsMaxAdfValue(settings.getMaxAdfValue());
-        tradingPair.setSettingsMinRSquared(settings.getMinRSquared());
-        tradingPair.setSettingsMinCorrelation(settings.getMinCorrelation());
-        tradingPair.setSettingsMinVolume(settings.getMinVolume());
-        tradingPair.setSettingsCheckInterval(settings.getCheckInterval());
-
+        tradingPair.setSettingsCandleLimit(BigDecimal.valueOf(settings.getCandleLimit()));
+        tradingPair.setSettingsMinZ(BigDecimal.valueOf(settings.getMinZ()));
+        
         updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
 
         // Рассчитываем пиксельный спред для новой пары

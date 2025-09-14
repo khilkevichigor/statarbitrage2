@@ -2,7 +2,7 @@ package com.example.csv.messaging;
 
 import com.example.csv.service.CsvExportService;
 import com.example.shared.events.rabbit.CoreEvent;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +44,7 @@ public class ReceiveEventService {
         }
     }
 
-    private void addToCsv(TradingPair tradingPair) {
+    private void addToCsv(Pair tradingPair) {
         log.info("📋 Добавление закрытой пары в CSV");
 
         try {

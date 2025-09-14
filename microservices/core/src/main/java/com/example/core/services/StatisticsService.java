@@ -1,10 +1,11 @@
 package com.example.core.services;
 
 import com.example.core.repositories.TradeHistoryRepository;
+import com.example.core.services.ExitReasonType;
 import com.example.shared.dto.PairAggregatedStatisticsDto;
 import com.example.shared.dto.TradePairsStatisticsDto;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,22 +27,22 @@ public class StatisticsService {
 
     public TradePairsStatisticsDto collectStatistics() {
         BigDecimal unrealizedProfitUSDTToday = tradingPairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
-                .map(TradingPair::getProfitUSDTChanges)
+                .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedProfitUSDTTotal = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
-                .map(TradingPair::getProfitUSDTChanges)
+                .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedProfitPercentToday = tradingPairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
-                .map(TradingPair::getProfitPercentChanges)
+                .map(Pair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedProfitPercentTotal = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
-                .map(TradingPair::getProfitPercentChanges)
+                .map(Pair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -125,15 +126,15 @@ public class StatisticsService {
 
     public List<PairAggregatedStatisticsDto> getClosedPairsAggregatedStatistics() {
         try {
-            List<TradingPair> closedPairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
+            List<Pair> closedPairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
 
-            Map<String, List<TradingPair>> pairGroups = closedPairs.stream()
-                    .collect(Collectors.groupingBy(TradingPair::getPairName));
+            Map<String, List<Pair>> pairGroups = closedPairs.stream()
+                    .collect(Collectors.groupingBy(Pair::getPairName));
 
             return pairGroups.entrySet().stream()
                     .map(entry -> {
                         String pairName = entry.getKey();
-                        List<TradingPair> pairs = entry.getValue();
+                        List<Pair> pairs = entry.getValue();
 
                         return PairAggregatedStatisticsDto.builder()
                                 .pairName(pairName)
@@ -160,26 +161,27 @@ public class StatisticsService {
         }
     }
 
-    private BigDecimal calculateTotalProfit(List<TradingPair> pairs) {
+    private BigDecimal calculateTotalProfit(List<Pair> pairs) {
         return pairs.stream()
-                .map(TradingPair::getProfitUSDTChanges)
+                .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal calculateAverageProfitPercent(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageProfitPercent(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getProfitPercentChanges)
+                .map(Pair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();
         return average.isPresent() ? BigDecimal.valueOf(average.getAsDouble()) : BigDecimal.ZERO;
     }
 
-    private String calculateAverageTradeDuration(List<TradingPair> pairs) {
+    private String calculateAverageTradeDuration(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .filter(p -> p.getEntryTime() != 0L && p.getUpdatedTime() != 0L)
-                .mapToLong(p -> p.getUpdatedTime() - p.getEntryTime())
+                .filter(p -> p.getEntryTime() != null && p.getUpdatedTime() != null)
+                .mapToLong(p -> p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 
+                          p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
                 .average();
 
         if (average.isPresent()) {
@@ -188,41 +190,42 @@ public class StatisticsService {
         return "N/A";
     }
 
-    private long calculateAverageTradeDurationMinutes(List<TradingPair> pairs) {
+    private long calculateAverageTradeDurationMinutes(List<Pair> pairs) {
         return (long) pairs.stream()
-                .filter(p -> p.getEntryTime() != 0L && p.getUpdatedTime() != 0L)
-                .mapToLong(p -> p.getUpdatedTime() - p.getEntryTime()) // миллисекунды
+                .filter(p -> p.getEntryTime() != null && p.getUpdatedTime() != null)
+                .mapToLong(p -> p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 
+                          p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()) // миллисекунды
                 .average()
                 .orElse(0.0) / 1000 / 60;
     }
 
-    private long calculateTotalAveragingCount(List<TradingPair> pairs) {
+    private long calculateTotalAveragingCount(List<Pair> pairs) {
         return pairs.stream()
-                .mapToInt(TradingPair::getAveragingCount)
+                .mapToInt(Pair::getAveragingCount)
                 .sum();
     }
 
-    private long calculateAverageTimeToMinProfitMinutes(List<TradingPair> pairs) {
+    private long calculateAverageTimeToMinProfitMinutes(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .mapToLong(TradingPair::getMinutesToMinProfitPercent)
+                .mapToLong(Pair::getMinutesToMinProfitPercent)
                 .filter(minutes -> minutes > 0)
                 .average();
 
         return average.isPresent() ? Math.round(average.getAsDouble()) : -1L;
     }
 
-    private long calculateAverageTimeToMaxProfitMinutes(List<TradingPair> pairs) {
+    private long calculateAverageTimeToMaxProfitMinutes(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .mapToLong(TradingPair::getMinutesToMaxProfitPercent)
+                .mapToLong(Pair::getMinutesToMaxProfitPercent)
                 .filter(minutes -> minutes > 0)
                 .average();
 
         return average.isPresent() ? Math.round(average.getAsDouble()) : -1L;
     }
 
-    private BigDecimal calculateAverageZScoreEntry(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageZScoreEntry(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getZScoreEntry)
+                .map(Pair::getZScoreEntry)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();
@@ -231,9 +234,9 @@ public class StatisticsService {
                 BigDecimal.ZERO;
     }
 
-    private BigDecimal calculateAverageZScoreCurrent(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageZScoreCurrent(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getZScoreCurrent)
+                .map(Pair::getZScoreCurrent)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();
@@ -242,9 +245,9 @@ public class StatisticsService {
                 BigDecimal.ZERO;
     }
 
-    private BigDecimal calculateAverageZScoreMax(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageZScoreMax(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getMaxZ)
+                .map(Pair::getMaxZ)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();
@@ -253,9 +256,9 @@ public class StatisticsService {
                 BigDecimal.ZERO;
     }
 
-    private BigDecimal calculateAverageZScoreMin(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageZScoreMin(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getMinZ)
+                .map(Pair::getMinZ)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();
@@ -264,9 +267,9 @@ public class StatisticsService {
                 BigDecimal.ZERO;
     }
 
-    private BigDecimal calculateAverageCorrelationEntry(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageCorrelationEntry(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getCorrelationEntry)
+                .map(Pair::getCorrelationEntry)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();
@@ -275,9 +278,9 @@ public class StatisticsService {
                 BigDecimal.ZERO;
     }
 
-    private BigDecimal calculateAverageCorrelationCurrent(List<TradingPair> pairs) {
+    private BigDecimal calculateAverageCorrelationCurrent(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .map(TradingPair::getCorrelationCurrent)
+                .map(Pair::getCorrelationCurrent)
                 .filter(Objects::nonNull)
                 .mapToDouble(value -> value.doubleValue())
                 .average();

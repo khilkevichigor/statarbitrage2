@@ -2,7 +2,7 @@ package com.example.core.controllers;
 
 import com.example.core.messaging.SendEventService;
 import com.example.shared.events.rabbit.CoreEvent;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,7 +24,7 @@ public class TestController {
 
     @GetMapping("/test-csv")
     public String testCsv() {
-        TradingPair tradingPair = new TradingPair();
+        Pair tradingPair = new Pair();
         tradingPair.setPairName("testPair");
         sendEventService.sendCoreEvent(new CoreEvent(
                 tradingPair,

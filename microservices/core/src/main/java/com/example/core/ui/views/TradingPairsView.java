@@ -52,7 +52,7 @@ public class TradingPairsView extends VerticalLayout implements UIUpdateable {
         add(header);
 
         // Показываем только активные торгуемые пары
-        tradingPairsComponent.showOnlyTradingPairs();
+        tradingPairsComponent.showOnlyPairs();
         add(tradingPairsComponent);
     }
 

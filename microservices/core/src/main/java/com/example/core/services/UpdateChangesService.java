@@ -2,7 +2,7 @@ package com.example.core.services;
 
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitHistoryItem;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,18 +11,18 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UpdateChangesService {
-    public void update(TradingPair tradingPair, ChangesData changes) {
+    public void update(Pair tradingPair, ChangesData changes) {
         tradingPair.setMinLong(changes.getMinLong());
         tradingPair.setMaxLong(changes.getMaxLong());
         tradingPair.setLongUSDTChanges(changes.getLongUSDTChanges());
         tradingPair.setLongPercentChanges(changes.getLongPercentChanges());
-        tradingPair.setLongTickerCurrentPrice(changes.getLongCurrentPrice().doubleValue());
+        tradingPair.setLongTickerCurrentPrice(changes.getLongCurrentPrice());
 
         tradingPair.setMinShort(changes.getMinShort());
         tradingPair.setMaxShort(changes.getMaxShort());
         tradingPair.setShortUSDTChanges(changes.getShortUSDTChanges());
         tradingPair.setShortPercentChanges(changes.getShortPercentChanges());
-        tradingPair.setShortTickerCurrentPrice(changes.getShortCurrentPrice().doubleValue());
+        tradingPair.setShortTickerCurrentPrice(changes.getShortCurrentPrice());
 
         tradingPair.setMinZ(changes.getMinZ());
         tradingPair.setMaxZ(changes.getMaxZ());

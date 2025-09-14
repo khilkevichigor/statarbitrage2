@@ -2,7 +2,7 @@ package com.example.core.services;
 
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.services.TradingProviderFactory;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,12 +17,12 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final TradingProviderFactory tradingProviderFactory;
 
     @Override
-    public void updatePortfolioBalanceBeforeTradeUSDT(TradingPair tradingPair) {
+    public void updatePortfolioBalanceBeforeTradeUSDT(Pair tradingPair) {
         tradingPair.setPortfolioBeforeTradeUSDT(getBalanceUSDT());
     }
 
     @Override
-    public void updatePortfolioBalanceAfterTradeUSDT(TradingPair tradingPair) {
+    public void updatePortfolioBalanceAfterTradeUSDT(Pair tradingPair) {
         tradingPair.setPortfolioAfterTradeUSDT(getBalanceUSDT());
     }
 

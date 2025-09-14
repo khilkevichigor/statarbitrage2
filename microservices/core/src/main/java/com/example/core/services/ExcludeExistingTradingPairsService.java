@@ -1,9 +1,10 @@
 package com.example.core.services;
 
-import com.example.core.repositories.TradingPairRepository;
+import com.example.core.repositories.PairRepository;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class ExcludeExistingTradingPairsService {
 
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository pairRepository;
 
     /**
      * Исключает из списка ZScoreData те пары, которые уже торгуются
@@ -29,7 +30,7 @@ public class ExcludeExistingTradingPairsService {
             return;
         }
 
-        List<TradingPair> tradingPairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> tradingPairs = pairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
         if (tradingPairs.isEmpty()) {
             log.debug("Нет активных торговых пар, все ZScoreData будут использоваться.");
             return;

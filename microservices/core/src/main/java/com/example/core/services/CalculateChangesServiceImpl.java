@@ -8,7 +8,7 @@ import com.example.shared.dto.ProfitExtremum;
 import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.Position;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     //    private final TelegramNotificationService telegramNotificationService;
     private final SendEventService sendEventService;
 
-    public ChangesData getChanges(TradingPair tradingPair) {
+    public ChangesData getChanges(Pair tradingPair) {
         log.debug("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
         try {
 
@@ -62,7 +62,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         }
     }
 
-    private ChangesData getFromPositions(TradingPair tradingPair, Positioninfo positionsInfo) {
+    private ChangesData getFromPositions(Pair tradingPair, Positioninfo positionsInfo) {
         log.debug("--> getFromPositions: НАЧАЛО для пары {}", tradingPair.getPairName());
         Position longPosition = positionsInfo.getLongPosition();
         Position shortPosition = positionsInfo.getShortPosition();
@@ -79,7 +79,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
                 getFromOpenPositions(tradingPair, changesData, longPosition, shortPosition);
     }
 
-    private ChangesData getFromClosedPositions(TradingPair tradingPair, ChangesData changesData, Position longPosition, Position shortPosition) {
+    private ChangesData getFromClosedPositions(Pair tradingPair, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.debug("--> getFromClosedPositions для пары {}", tradingPair.getPairName());
 
         BigDecimal totalRealizedPnlUSDT = safeScale(safeGet(longPosition.getRealizedPnLUSDT()).add(safeGet(shortPosition.getRealizedPnLUSDT())), 8);
@@ -112,7 +112,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         return getProfitAndStatistics(tradingPair, changesData, totalRealizedPnlUSDT, totalRealizedPnlPercent, true, longPosition, shortPosition);
     }
 
-    private ChangesData getFromOpenPositions(TradingPair tradingPair, ChangesData changesData, Position longPosition, Position shortPosition) {
+    private ChangesData getFromOpenPositions(Pair tradingPair, ChangesData changesData, Position longPosition, Position shortPosition) {
         log.debug("--> getFromOpenPositions для пары {}", tradingPair.getPairName());
 
         // Суммарный USDT-профит (уже с учетом комиссий)
@@ -161,7 +161,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         return getProfitAndStatistics(tradingPair, changesData, totalUnrealizedPnlUSDT, totalUnrealizedPnlPercent, false, longPosition, shortPosition);
     }
 
-    private ChangesData getProfitAndStatistics(TradingPair tradingPair, ChangesData changesData, BigDecimal pnlUSDT, BigDecimal pnlPercent,
+    private ChangesData getProfitAndStatistics(Pair tradingPair, ChangesData changesData, BigDecimal pnlUSDT, BigDecimal pnlPercent,
                                                boolean isPositionsClosed,
                                                Position longPosition, Position shortPosition) {
 
@@ -179,15 +179,16 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         return getStatistics(tradingPair, changesData);
     }
 
-    private ChangesData getStatistics(TradingPair tradingPair, ChangesData changesData) {
-        BigDecimal zScoreEntry = BigDecimal.valueOf(tradingPair.getZScoreEntry());
-        BigDecimal zScoreCurrent = BigDecimal.valueOf(tradingPair.getZScoreCurrent());
+    private ChangesData getStatistics(Pair tradingPair, ChangesData changesData) {
+        BigDecimal zScoreEntry = tradingPair.getZScoreEntry() != null ? tradingPair.getZScoreEntry() : BigDecimal.ZERO;
+        BigDecimal zScoreCurrent = tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent() : BigDecimal.ZERO;
         changesData.setZScoreChanges(safeScale(zScoreCurrent.subtract(zScoreEntry), 2));
 
         ProfitExtremum profitExtremum = profitExtremumService.getProfitExtremums(tradingPair, changesData);
 
         updateExtremumValues(tradingPair, changesData, changesData.getLongPercentChanges(), changesData.getShortPercentChanges(),
-                BigDecimal.valueOf(tradingPair.getZScoreCurrent()), BigDecimal.valueOf(tradingPair.getCorrelationCurrent()));
+                tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent() : BigDecimal.ZERO, 
+                tradingPair.getCorrelationCurrent() != null ? tradingPair.getCorrelationCurrent() : BigDecimal.ZERO);
 
         changesData.setMinProfitChanges(profitExtremum.minProfit());
         changesData.setMaxProfitChanges(profitExtremum.maxProfit());
@@ -199,14 +200,14 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         return changesData;
     }
 
-    private void logFinalResults(TradingPair tradingPair, ChangesData changesData) {
+    private void logFinalResults(Pair tradingPair, ChangesData changesData) {
         log.info("📊 ЛОНГ {}: вход: {}, тек.: {}, изм.: {} %", tradingPair.getLongTicker(), tradingPair.getLongTickerEntryPrice(), changesData.getLongCurrentPrice(), changesData.getLongPercentChanges());
         log.info("📉 ШОРТ {}: вход: {}, тек.: {}, изм.: {} %", tradingPair.getShortTicker(), tradingPair.getShortTickerEntryPrice(), changesData.getShortCurrentPrice(), changesData.getShortPercentChanges());
         log.info("💰 Текущий профит: {} USDT ({} %)", changesData.getProfitUSDTChanges(), changesData.getProfitPercentChanges());
         log.info("📈 Max профит: {} % ({} минут), Min профит: {} % ({} минут)", changesData.getMaxProfitChanges(), changesData.getTimeInMinutesSinceEntryToMaxProfit(), changesData.getMinProfitChanges(), changesData.getTimeInMinutesSinceEntryToMinProfit());
     }
 
-    private void updateExtremumValues(TradingPair tradingPair, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
+    private void updateExtremumValues(Pair tradingPair, ChangesData changesData, BigDecimal longPct, BigDecimal shortPct,
                                       BigDecimal zScore, BigDecimal corr) {
         changesData.setMinZ(updateMin(tradingPair.getMinZ(), zScore));
         changesData.setMaxZ(updateMax(tradingPair.getMaxZ(), zScore));

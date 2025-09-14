@@ -6,7 +6,7 @@ import com.example.core.services.TradingPairService;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.UpdateUiEvent;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -37,7 +37,7 @@ public class TradeAndSimulationScheduler {
         long schedulerStart = System.currentTimeMillis();
 
         try {
-            List<TradingPair> tradingPairs = executeUpdateTrades();
+            List<Pair> tradingPairs = executeUpdateTrades();
             logUpdateTradesCompletion(schedulerStart, tradingPairs.size());
         } finally {
             updateTradesRunning.set(false);
@@ -61,10 +61,10 @@ public class TradeAndSimulationScheduler {
         return true;
     }
 
-    private List<TradingPair> executeUpdateTrades() {
+    private List<Pair> executeUpdateTrades() {
         log.debug("🔄 Шедуллер обновления трейдов запущен...");
 
-        List<TradingPair> updatablePairs = getUpdatablePairs();
+        List<Pair> updatablePairs = getUpdatablePairs();
         if (updatablePairs.isEmpty()) {
             return updatablePairs;
         }
@@ -75,7 +75,7 @@ public class TradeAndSimulationScheduler {
         return updatablePairs;
     }
 
-    private List<TradingPair> getUpdatablePairs() {
+    private List<Pair> getUpdatablePairs() {
         try {
             return tradingPairService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
         } catch (Exception e) {
@@ -84,11 +84,11 @@ public class TradeAndSimulationScheduler {
         }
     }
 
-    private void processTradeUpdates(List<TradingPair> updatablePairs) {
+    private void processTradeUpdates(List<Pair> updatablePairs) {
         updatablePairs.forEach(this::updateSingleTrade);
     }
 
-    private void updateSingleTrade(TradingPair tradingPair) {
+    private void updateSingleTrade(Pair tradingPair) {
         try {
             if (tradingPair.getStatus() == TradeStatus.TRADING) {
                 updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()

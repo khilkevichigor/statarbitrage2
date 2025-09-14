@@ -1,11 +1,12 @@
 package com.example.core.services;
 
-import com.example.core.repositories.TradingPairRepository;
+import com.example.core.repositories.PairRepository;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.Positioninfo;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Pair;
 import com.example.shared.models.Position;
-import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,16 +20,16 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class CalculateUnrealizedProfitTotalService {
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository tradingPairRepository;
     private final TradingIntegrationService tradingIntegrationService;
 
     public BigDecimal getUnrealizedProfitPercentTotal() {
-        List<TradingPair> tradingPairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> tradingPairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
 
         BigDecimal totalWeightedProfit = BigDecimal.ZERO;
         BigDecimal totalAllocatedAmount = BigDecimal.ZERO;
 
-        for (TradingPair pair : tradingPairs) {
+        for (Pair pair : tradingPairs) {
             try {
                 // Получаем информацию о позициях для текущей пары
                 Positioninfo positionInfo = tradingIntegrationService.getPositionInfo(pair);
@@ -131,9 +132,9 @@ public class CalculateUnrealizedProfitTotalService {
     }
 
     public BigDecimal getUnrealizedProfitUSDTTotal() {
-        List<TradingPair> tradingPairs = tradingPairRepository.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> tradingPairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
         return tradingPairs.stream()
-                .map(TradingPair::getProfitUSDTChanges)
+                .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }

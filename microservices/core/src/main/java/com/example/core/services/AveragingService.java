@@ -1,12 +1,13 @@
 package com.example.core.services;
 
-import com.example.core.repositories.TradingPairRepository;
+import com.example.core.repositories.PairRepository;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.dto.ArbitragePairTradeInfo;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class AveragingService {
 
     private final TradingIntegrationService tradingIntegrationService;
     private final TradingProviderFactory tradingProviderFactory;
-    private final TradingPairRepository tradingPairRepository;
+    private final PairRepository tradingPairRepository;
 
     /**
      * Выполняет ручное усреднение позиции для указанной пары
@@ -34,7 +35,7 @@ public class AveragingService {
      * @return результат операции усреднения
      */
     @Transactional
-    public AveragingResult performManualAveraging(TradingPair tradingPair, Settings settings) {
+    public AveragingResult performManualAveraging(Pair tradingPair, Settings settings) {
         log.info("");
         log.info("🔄 Начало ручного усреднения для пары: {}", tradingPair.getPairName());
 
@@ -49,7 +50,7 @@ public class AveragingService {
      * @return результат операции усреднения
      */
     @Transactional
-    public AveragingResult performAutoAveraging(TradingPair tradingPair, Settings settings) {
+    public AveragingResult performAutoAveraging(Pair tradingPair, Settings settings) {
         log.info("🤖 Начало автоматического усреднения для пары: {}", tradingPair.getPairName());
 
         return executeAveraging(tradingPair, settings, "AUTO");
@@ -62,7 +63,7 @@ public class AveragingService {
      * @param settings    настройки торговли
      * @return true, если нужно усреднить
      */
-    public boolean shouldPerformAutoAveraging(TradingPair tradingPair, Settings settings) {
+    public boolean shouldPerformAutoAveraging(Pair tradingPair, Settings settings) {
         // Проверяем, включено ли автоусреднение
         if (!settings.isAutoAveragingEnabled()) {
             return false;
@@ -104,7 +105,7 @@ public class AveragingService {
     /**
      * Основной метод выполнения усреднения
      */
-    private AveragingResult executeAveraging(TradingPair tradingPair, Settings settings, String trigger) {
+    private AveragingResult executeAveraging(Pair tradingPair, Settings settings, String trigger) {
         try {
             // Создаем временные настройки с прогрессивно увеличенным объемом
             Settings averagingSettings = createAveragingSettings(settings, tradingPair.getAveragingCount());
@@ -280,7 +281,7 @@ public class AveragingService {
     /**
      * Проверяет, находится ли пара в активном трейде
      */
-    private boolean isActiveTrade(TradingPair tradingPair) {
+    private boolean isActiveTrade(Pair tradingPair) {
         return tradingPair.getStatus() == TradeStatus.TRADING;
     }
 

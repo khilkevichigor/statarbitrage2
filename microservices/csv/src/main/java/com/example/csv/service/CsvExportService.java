@@ -1,7 +1,7 @@
 package com.example.csv.service;
 
 import com.example.shared.models.CsvExportable;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -30,11 +30,10 @@ public class CsvExportService {
     private static final String CSV_FILE_PREFIX = "closed_trades_";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public void addClosedPairToCsv(TradingPair tradingPair) {
+    public void addClosedPairToCsv(Pair tradingPair) {
         try {
-            tradingPair.updateFormattedFieldsBeforeExportToCsv();
-
-            List<Field> exportableFields = getExportableFields(TradingPair.class);
+            // Форматированные поля будут заполняться автоматически через getter'ы
+            List<Field> exportableFields = getExportableFields(Pair.class);
             String schemaSignature = getSchemaSignature(exportableFields);
 
             File existingFile = findExistingFile(schemaSignature);
@@ -105,7 +104,7 @@ public class CsvExportService {
                 .collect(Collectors.joining(","));
     }
 
-    private String toCsvRow(TradingPair tradingPair, List<Field> fields) throws IllegalAccessException {
+    private String toCsvRow(Pair tradingPair, List<Field> fields) throws IllegalAccessException {
         List<String> values = new ArrayList<>();
         for (Field field : fields) {
             field.setAccessible(true);

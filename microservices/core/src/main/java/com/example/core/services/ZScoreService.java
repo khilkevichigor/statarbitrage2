@@ -5,7 +5,7 @@ import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.dto.ZScoreParam;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ZScoreService {
 
-    private final TradingPairService tradingPairService;
+    private final PairService tradingPairService;
     private final PythonRestClient pythonRestClient;
     private final ObtainTopZScoreDataBeforeCreateNewPairService obtainTopZScoreDataBeforeCreateNewPairService;
     private final FilterZScoreDataForExistingPairBeforeNewTradeService filterZScoreDataForExistingPairBeforeNewTradeService;
@@ -44,7 +44,7 @@ public class ZScoreService {
         }
     }
 
-    private void filterIncompleteZScoreParams(TradingPair tradingPair, List<ZScoreData> zScoreDataList, Settings settings) {
+    private void filterIncompleteZScoreParams(Pair tradingPair, List<ZScoreData> zScoreDataList, Settings settings) {
         double expected = settings.getExpectedZParamsCount();
         double maxZScore = zScoreDataList.stream()
                 .map(data -> (data.getZScoreHistory() != null && !data.getZScoreHistory().isEmpty()) ? data.getZScoreHistory().get(data.getZScoreHistory().size() - 1) : null)
@@ -198,12 +198,12 @@ public class ZScoreService {
         }
         checkZScoreParamsSize(rawZScoreDataList);
         if (excludeExistingPairs) {
-            tradingPairService.excludeExistingTradingPairs(rawZScoreDataList);
+            tradingPairService.excludeExistingPairs(rawZScoreDataList);
         }
         return rawZScoreDataList;
     }
 
-    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(TradingPair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
+    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");

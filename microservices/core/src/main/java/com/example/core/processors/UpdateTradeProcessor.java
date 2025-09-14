@@ -10,7 +10,7 @@ import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import com.example.shared.utils.FormatUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,10 +68,10 @@ public class UpdateTradeProcessor {
     // + todo точка на чарте профита что бы было лучше видно где последнее значение
 
     @Transactional
-    public TradingPair updateTrade(UpdateTradeRequest request) {
+    public Pair updateTrade(UpdateTradeRequest request) {
         validateRequest(request);
 
-        final TradingPair tradingPair = loadFreshPairData(request.getTradingPair());
+        final Pair tradingPair = loadFreshPairData(request.getTradingPair());
         if (tradingPair == null) {
             return request.getTradingPair();
         }
@@ -133,33 +133,33 @@ public class UpdateTradeProcessor {
     }
 
     @Transactional
-    public void updateObservedPair(TradingPair tradingPair) {
-        final TradingPair freshTradingPair = loadFreshPairData(tradingPair);
-        if (freshTradingPair == null) {
+    public void updateObservedPair(Pair tradingPair) {
+        final Pair freshPair = loadFreshPairData(tradingPair);
+        if (freshPair == null) {
             return;
         }
 
         try {
             final Settings settings = settingsService.getSettings();
-            final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(freshTradingPair, settings);
+            final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(freshPair, settings);
             final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
             final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
 
             if (zScoreData != null) {
-                freshTradingPair.setLongTickerCandles(candlesMap.get(freshTradingPair.getLongTicker()));
-                freshTradingPair.setShortTickerCandles(candlesMap.get(freshTradingPair.getShortTicker()));
-                tradingPairService.updateZScoreDataCurrent(freshTradingPair, zScoreData);
+                freshPair.setLongTickerCandles(candlesMap.get(freshPair.getLongTicker()));
+                freshPair.setShortTickerCandles(candlesMap.get(freshPair.getShortTicker()));
+                tradingPairService.updateZScoreDataCurrent(freshPair, zScoreData);
 
                 // Обновляем пиксельный спред для наблюдаемой пары
-                log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshTradingPair.getPairName());
-                chartService.calculatePixelSpreadIfNeeded(freshTradingPair); // Инициализация при первом запуске
-                chartService.addCurrentPixelSpreadPoint(freshTradingPair); // Добавляем новую точку
+                log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshPair.getPairName());
+                chartService.calculatePixelSpreadIfNeeded(freshPair); // Инициализация при первом запуске
+                chartService.addCurrentPixelSpreadPoint(freshPair); // Добавляем новую точку
 
-                tradingPairService.save(freshTradingPair);
+                tradingPairService.save(freshPair);
             }
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при обновлении наблюдаемой пары {}: {}",
-                    freshTradingPair.getPairName(), e.getMessage());
+                    freshPair.getPairName(), e.getMessage());
             // Не выбрасываем исключение дальше, чтобы не нарушить работу планировщика
         }
     }
@@ -170,18 +170,18 @@ public class UpdateTradeProcessor {
         }
     }
 
-    private TradingPair loadFreshPairData(TradingPair tradingPair) {
-        final TradingPair freshTradingPair = tradingPairService.findById(tradingPair.getId());
-        if (freshTradingPair == null || freshTradingPair.getStatus() == TradeStatus.CLOSED) {
+    private Pair loadFreshPairData(Pair tradingPair) {
+        final Pair freshPair = tradingPairService.findById(tradingPair.getId());
+        if (freshPair == null || freshPair.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}", tradingPair.getPairName());
             return null;
         }
 
-        log.debug("🚀 Начинаем обновление трейда для {}/{}", freshTradingPair.getLongTicker(), freshTradingPair.getShortTicker());
-        return freshTradingPair;
+        log.debug("🚀 Начинаем обновление трейда для {}/{}", freshPair.getLongTicker(), freshPair.getShortTicker());
+        return freshPair;
     }
 
-    private boolean arePositionsClosed(TradingPair tradingPair) {
+    private boolean arePositionsClosed(Pair tradingPair) {
         final Positioninfo openPositionsInfo = tradingIntegrationServiceImpl.getOpenPositionsInfo(tradingPair);
         if (openPositionsInfo.isPositionsClosed()) {
             log.error("❌ Позиции уже закрыты для пары {}.", tradingPair.getPairName());
@@ -190,7 +190,7 @@ public class UpdateTradeProcessor {
         return false;
     }
 
-    private Map<String, Object> updateZScoreDataForExistingPair(TradingPair tradingPair, Settings settings) {
+    private Map<String, Object> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
@@ -281,7 +281,7 @@ public class UpdateTradeProcessor {
         log.info(logMessage.toString());
     }
 
-    private TradingPair handleManualClose(TradingPair tradingPair, Settings settings) {
+    private Pair handleManualClose(Pair tradingPair, Settings settings) {
         final ArbitragePairTradeInfo closeInfo = tradingIntegrationServiceImpl.closeArbitragePair(tradingPair);
         if (closeInfo == null || !closeInfo.isSuccess()) {
             return handleTradeError(tradingPair, UpdateTradeErrorType.MANUAL_CLOSE_FAILED);
@@ -299,7 +299,7 @@ public class UpdateTradeProcessor {
         return tradingPair;
     }
 
-    private void finalizeClosedTrade(TradingPair tradingPair, Settings settings) {
+    private void finalizeClosedTrade(Pair tradingPair, Settings settings) {
         tradingPairService.addChanges(tradingPair);
         tradingPairService.updatePortfolioBalanceAfterTradeUSDT(tradingPair); //баланс после
         tradingIntegrationServiceImpl.deletePositions(tradingPair);
@@ -307,7 +307,7 @@ public class UpdateTradeProcessor {
         tradeHistoryService.updateTradeLog(tradingPair, settings);
     }
 
-    private TradingPair handleNoOpenPositions(TradingPair tradingPair) {
+    private Pair handleNoOpenPositions(Pair tradingPair) {
         log.debug("==> handleNoOpenPositions: НАЧАЛО для пары {}", tradingPair.getPairName());
         log.debug("i️ Нет открытых позиций для пары {}! Возможно они были закрыты вручную на бирже.", tradingPair.getPairName());
 
@@ -316,18 +316,18 @@ public class UpdateTradeProcessor {
 
         if (verificationResult.isPositionsClosed()) {
             log.debug("✅ Подтверждено: позиции закрыты на бирже для пары {}, PnL: {} USDT ({} %)", tradingPair.getPairName(), verificationResult.getTotalPnLUSDT(), verificationResult.getTotalPnLPercent());
-            TradingPair result = handleTradeError(tradingPair, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
+            Pair result = handleTradeError(tradingPair, UpdateTradeErrorType.MANUALLY_CLOSED_NO_POSITIONS);
             log.debug("<== handleNoOpenPositions: КОНЕЦ (позиции закрыты) для пары {}", tradingPair.getPairName());
             return result;
         } else {
             log.warn("⚠️ Позиции НЕ найдены на бирже для пары {}. Это может быть ошибка синхронизации.", tradingPair.getPairName());
-            TradingPair result = handleTradeError(tradingPair, UpdateTradeErrorType.POSITIONS_NOT_FOUND);
+            Pair result = handleTradeError(tradingPair, UpdateTradeErrorType.POSITIONS_NOT_FOUND);
             log.debug("<== handleNoOpenPositions: КОНЕЦ (позиции не найдены) для пары {}", tradingPair.getPairName());
             return result;
         }
     }
 
-    private TradingPair handleAutoClose(TradingPair tradingPair, Settings settings, String exitReason) {
+    private Pair handleAutoClose(Pair tradingPair, Settings settings, String exitReason) {
         log.info("🚪 Найдена причина для выхода из позиции: {} для пары {}", exitReason, tradingPair.getPairName());
 
         final ArbitragePairTradeInfo closeResult = tradingIntegrationServiceImpl.closeArbitragePair(tradingPair);
@@ -348,7 +348,7 @@ public class UpdateTradeProcessor {
         return tradingPair;
     }
 
-    private TradingPair handleTradeError(TradingPair tradingPair, UpdateTradeErrorType errorType) {
+    private Pair handleTradeError(Pair tradingPair, UpdateTradeErrorType errorType) {
         log.error("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
 
         tradingPair.setStatus(TradeStatus.ERROR);

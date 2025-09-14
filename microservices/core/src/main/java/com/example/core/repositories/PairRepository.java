@@ -204,9 +204,25 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Object[]> countPairsByTypeAndStatus();
 
     /**
-     * Найти пары с лучшей производительностью за период (базовая версия по дате входа)
+     * Найти пары с лучшей производительностью за период
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.entryTime >= :fromDate " +
-           "ORDER BY p.entryTime DESC LIMIT :limit")
+           "ORDER BY p.profitPercentChanges DESC NULLS LAST LIMIT :limit")
     List<Pair> findTopPerformingPairs(@Param("fromDate") LocalDateTime fromDate, @Param("limit") int limit);
+
+    // ======== ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ДЛЯ TRADINGPAIR СОВМЕСТИМОСТИ ========
+    
+    /**
+     * Найти торговые пары по статусу и времени входа после указанной даты
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.status = :status AND p.entryTime >= :afterDate " +
+           "ORDER BY p.entryTime DESC")
+    List<Pair> findTradingPairsByStatusAndEntryTimeAfter(@Param("status") TradeStatus status, 
+                                                        @Param("afterDate") LocalDateTime afterDate);
+                                                        
+    /**
+     * Найти все торговые пары по статусу (для совместимости с TradingPairRepository)
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.status = :status ORDER BY p.updatedTime DESC")
+    List<Pair> findTradingPairsByStatusOrderByUpdatedTime(@Param("status") TradeStatus status);
 }

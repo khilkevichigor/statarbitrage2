@@ -10,7 +10,7 @@ import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Settings;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import com.example.shared.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ public class FetchPairsProcessor {
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
 
-    public List<TradingPair> fetchPairs(FetchPairsRequest request) {
+    public List<Pair> fetchPairs(FetchPairsRequest request) {
         //todo здесь делать вызов в cointegration ms или брать из бд coint_pair либо
         // получать пары от cointegration через receiveEventService и класть их в coint_pair таблицу а уже здесь брать их из этой таблицы проверяя на свежесть
 
@@ -59,7 +59,7 @@ public class FetchPairsProcessor {
 
         logZScoreResults(zScoreDataList);
 
-        List<TradingPair> pairs = createPairs(zScoreDataList, candlesMap);
+        List<Pair> pairs = createPairs(zScoreDataList, candlesMap);
 
         log.debug("✅ Создано {} пар", pairs.size());
         pairs.forEach(p -> log.debug("📈 {}", p.getPairName()));
@@ -69,9 +69,9 @@ public class FetchPairsProcessor {
     }
 
     private List<String> getUsedTickers() {
-        List<TradingPair> activePairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> activePairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
-        for (TradingPair pair : activePairs) {
+        for (Pair pair : activePairs) {
             tickers.add(pair.getLongTicker());
             tickers.add(pair.getShortTicker());
         }
@@ -142,7 +142,7 @@ public class FetchPairsProcessor {
         }
     }
 
-    private List<TradingPair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+    private List<Pair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
             return tradingPairService.createPairDataList(zScoreDataList, candlesMap);
         } catch (Exception e) {

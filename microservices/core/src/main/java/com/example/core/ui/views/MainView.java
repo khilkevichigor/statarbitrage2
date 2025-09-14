@@ -10,7 +10,7 @@ import com.example.core.ui.services.UIUpdateService;
 import com.example.core.ui.services.UIUpdateable;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
@@ -128,7 +128,7 @@ public class MainView extends VerticalLayout implements UIUpdateable {
                 // Выполняем операции с базой данных в background потоке
                 int deleteAllByStatus = tradingPairService.deleteAllByStatus(TradeStatus.SELECTED);
                 log.debug("Deleted all {} pairs from database", deleteAllByStatus);
-                List<TradingPair> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
+                List<Pair> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 
                 // Обновляем UI в UI потоке
                 getUI().ifPresent(ui -> ui.access(() -> {
