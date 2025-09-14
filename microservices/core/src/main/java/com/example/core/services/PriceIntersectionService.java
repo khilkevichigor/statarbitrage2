@@ -1,7 +1,7 @@
 package com.example.core.services;
 
 import com.example.shared.dto.Candle;
-import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,7 +31,7 @@ public class PriceIntersectionService {
      * @param cointPair пара для анализа
      * @return результат с количеством пересечений и нормализованными ценами
      */
-    public IntersectionResult calculateIntersectionsWithData(CointPair cointPair) {
+    public IntersectionResult calculateIntersectionsWithData(Pair cointPair) {
         List<Candle> longCandles = cointPair.getLongTickerCandles();
         List<Candle> shortCandles = cointPair.getShortTickerCandles();
 
@@ -77,7 +77,7 @@ public class PriceIntersectionService {
      * @param cointPair пара для анализа
      * @return количество пересечений
      */
-    public int calculateIntersections(CointPair cointPair) {
+    public int calculateIntersections(Pair cointPair) {
         List<Candle> longCandles = cointPair.getLongTickerCandles();
         List<Candle> shortCandles = cointPair.getShortTickerCandles();
 
@@ -197,7 +197,7 @@ public class PriceIntersectionService {
      * @param createChart флаг создания чарта (можно использовать для отключения)
      * @return количество пересечений
      */
-    public int calculateIntersectionsWithChart(CointPair cointPair, boolean createChart) {
+    public int calculateIntersectionsWithChart(Pair cointPair, boolean createChart) {
         List<Candle> longCandles = cointPair.getLongTickerCandles();
         List<Candle> shortCandles = cointPair.getShortTickerCandles();
 
@@ -253,7 +253,7 @@ public class PriceIntersectionService {
      * @param cointPair пара для анализа
      * @return массив байт чарта в формате PNG или пустой массив в случае ошибки
      */
-    public byte[] getIntersectionChartAsBytes(CointPair cointPair) {
+    public byte[] getIntersectionChartAsBytes(Pair cointPair) {
         List<Candle> longCandles = cointPair.getLongTickerCandles();
         List<Candle> shortCandles = cointPair.getShortTickerCandles();
 

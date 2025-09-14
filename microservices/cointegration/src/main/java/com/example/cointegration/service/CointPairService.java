@@ -1,10 +1,11 @@
 package com.example.cointegration.service;
 
-import com.example.cointegration.repositories.CointPairRepository;
+import com.example.cointegration.repositories.PairRepository;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
+import com.example.shared.enums.PairType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class CointPairService {
-    private final CointPairRepository cointPairRepository;
+    private final PairRepository cointPairRepository;
     //    private final CalculateChangesService calculateChangesServiceImpl;
 //    private final EntryPointService entryPointService;
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
@@ -30,17 +31,17 @@ public class CointPairService {
 //    private final PortfolioService portfolioServiceImpl;
 //    private final UpdateSettingsParamService updateSettingsParamService;
 
-    public List<CointPair> createCointPairList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
-        List<CointPair> pairs = createCointPairService.createCointPairs(top, candlesMap);
+    public List<Pair> createCointPairList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
+        List<Pair> pairs = createCointPairService.createCointPairs(top, candlesMap);
         // Сохраняем с обработкой конфликтов
-        List<CointPair> savedPairs = new ArrayList<>();
-        for (CointPair pair : pairs) {
+        List<Pair> savedPairs = new ArrayList<>();
+        for (Pair pair : pairs) {
             try {
                 save(pair);
                 savedPairs.add(pair);
             } catch (RuntimeException e) {
                 log.warn("⚠️ Не удалось сохранить пару {}/{}: {} - пропускаем",
-                        pair.getLongTicker(), pair.getShortTicker(), e.getMessage());
+                        pair.getTickerA(), pair.getTickerB(), e.getMessage());
                 // Продолжаем обработку остальных пар
             }
         }
@@ -50,53 +51,55 @@ public class CointPairService {
         return pairs;
     }
 
-    public void updateZScoreDataCurrent(CointPair cointPair, ZScoreData zScoreData) {
+    public void updateZScoreDataCurrent(Pair cointPair, ZScoreData zScoreData) {
         updateZScoreDataCurrentService.updateCurrent(cointPair, zScoreData);
     }
 
-    public void save(CointPair cointPair) {
-        cointPair.setUpdatedTime(System.currentTimeMillis()); //перед сохранением обновляем время
+    public void save(Pair cointPair) {
+        cointPair.setUpdatedTime(java.time.LocalDateTime.now()); // перед сохранением обновляем время
         cointPairRepository.save(cointPair);
     }
 
-    public void saveAll(List<CointPair> cointPairList) {
-        cointPairList.forEach(v -> v.setUpdatedTime(System.currentTimeMillis()));
+    public void saveAll(List<Pair> cointPairList) {
+        cointPairList.forEach(v -> v.setUpdatedTime(java.time.LocalDateTime.now()));
         cointPairRepository.saveAll(cointPairList);
     }
 
-    public CointPair findById(Long id) {
+    public Pair findById(Long id) {
         return cointPairRepository.findById(id).orElse(null);
     }
 
-    public List<CointPair> findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus status) {
+    public List<Pair> findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus status) {
         long startOfDay = LocalDate.now()
                 .atStartOfDay(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli();
-        return cointPairRepository.findAllByStatusOrderByEntryTimeTodayDesc(status, startOfDay);
+        return cointPairRepository.findByTypeAndStatusOrderByCreatedAtDesc(PairType.COINTEGRATED, status);
     }
 
-    public List<CointPair> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
-        return cointPairRepository.findAllByStatusOrderByEntryTimeDesc(status);
+    public List<Pair> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
+        return cointPairRepository.findByTypeAndStatusOrderByCreatedAtDesc(PairType.COINTEGRATED, status);
     }
 
-    public List<CointPair> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
-        return cointPairRepository.findAllByStatusOrderByUpdatedTimeDesc(status);
+    public List<Pair> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
+        return cointPairRepository.findByTypeAndStatusOrderByCreatedAtDesc(PairType.COINTEGRATED, status);
     }
 
-    public List<CointPair> findAllByStatusIn(List<TradeStatus> statuses) {
-        return cointPairRepository.findAllByStatusIn(statuses);
+    public List<Pair> findAllByStatusIn(List<TradeStatus> statuses) {
+        return cointPairRepository.findByTypeOrderByCreatedAtDesc(PairType.COINTEGRATED).stream()
+                .filter(p -> statuses.contains(p.getStatus()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
-    public List<CointPair> findByTickers(String longTicker, String shortTicker) {
-        return cointPairRepository.findByLongTickerAndShortTicker(longTicker, shortTicker);
+    public List<Pair> findByTickers(String longTicker, String shortTicker) {
+        return cointPairRepository.findByTickerAAndTickerB(longTicker, shortTicker);
     }
 
     public int deleteAllByStatus(TradeStatus status) {
-        return cointPairRepository.deleteAllByStatus(status);
+        return cointPairRepository.deleteByTypeAndStatus(PairType.COINTEGRATED, status);
     }
 
-    public void delete(CointPair cointPair) {
+    public void delete(Pair cointPair) {
         cointPairRepository.delete(cointPair);
     }
 

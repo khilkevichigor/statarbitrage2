@@ -10,7 +10,8 @@ import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
+import com.example.shared.enums.PairType;
 import com.example.shared.models.Settings;
 import com.example.shared.models.TradingPair;
 import com.example.shared.utils.NumberFormatter;
@@ -34,7 +35,7 @@ public class FetchCointPairsProcessor {
     private final SettingsService settingsService;
     private final SendEventService sendEventService;
 
-    public List<CointPair> fetchCointPairs() {
+    public List<Pair> fetchCointPairs() {
         long start = System.currentTimeMillis();
         log.info("");
         log.info("🔎 Начало поиска пар...");
@@ -56,7 +57,7 @@ public class FetchCointPairsProcessor {
 
         logZScoreResults(zScoreDataList);
 
-        List<CointPair> pairs = createCointPairs(zScoreDataList, candlesMap);
+        List<Pair> pairs = createCointPairs(zScoreDataList, candlesMap);
 
         log.info("✅ Создано {} пар", pairs.size());
         pairs.forEach(p -> log.debug("📈 {}", p.getPairName()));
@@ -108,7 +109,7 @@ public class FetchCointPairsProcessor {
         }
     }
 
-    private List<CointPair> createCointPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+    private List<Pair> createCointPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
             cointPairService.deleteAllByStatus(TradeStatus.SELECTED);
             return cointPairService.createCointPairList(zScoreDataList, candlesMap);

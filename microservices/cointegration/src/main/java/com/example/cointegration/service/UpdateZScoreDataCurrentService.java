@@ -2,7 +2,8 @@ package com.example.cointegration.service;
 
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.dto.ZScoreParam;
-import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,21 +12,21 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UpdateZScoreDataCurrentService {
-    public void updateCurrent(CointPair cointPair, ZScoreData zScoreData) {
+    public void updateCurrent(Pair cointPair, ZScoreData zScoreData) {
         if (zScoreData.getZScoreHistory() == null || zScoreData.getZScoreHistory().isEmpty()) {
             log.error("Z-score history is empty for pair {}", cointPair.getPairName());
             return;
         }
         ZScoreParam latestParam = zScoreData.getZScoreHistory().get(zScoreData.getZScoreHistory().size() - 1);
-        cointPair.setZScoreCurrent(latestParam.getZscore());
-        cointPair.setCorrelationCurrent(latestParam.getCorrelation());
-        cointPair.setAdfPvalueCurrent(latestParam.getAdfpvalue());
-        cointPair.setPValueCurrent(latestParam.getPvalue());
-        cointPair.setMeanCurrent(latestParam.getMean());
-        cointPair.setStdCurrent(latestParam.getStd());
-        cointPair.setSpreadCurrent(latestParam.getSpread());
-        cointPair.setAlphaCurrent(latestParam.getAlpha());
-        cointPair.setBetaCurrent(latestParam.getBeta());
+        cointPair.setZScoreCurrent(BigDecimal.valueOf(latestParam.getZscore()));
+        cointPair.setCorrelationCurrent(BigDecimal.valueOf(latestParam.getCorrelation()));
+        cointPair.setAdfPvalueCurrent(BigDecimal.valueOf(latestParam.getAdfpvalue()));
+        cointPair.setPValueCurrent(BigDecimal.valueOf(latestParam.getPvalue()));
+        cointPair.setMeanCurrent(BigDecimal.valueOf(latestParam.getMean()));
+        cointPair.setStdCurrent(BigDecimal.valueOf(latestParam.getStd()));
+        cointPair.setSpreadCurrent(BigDecimal.valueOf(latestParam.getSpread()));
+        cointPair.setAlphaCurrent(BigDecimal.valueOf(latestParam.getAlpha()));
+        cointPair.setBetaCurrent(BigDecimal.valueOf(latestParam.getBeta()));
 
         // Добавляем новые точки в историю Z-Score при каждом обновлении
         if (zScoreData.getZScoreHistory() != null && !zScoreData.getZScoreHistory().isEmpty()) {

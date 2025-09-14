@@ -3,8 +3,7 @@ package com.example.cointegration.service;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ZScoreParam;
-import com.example.shared.models.CointPair;
-import com.example.shared.models.TradingPair;
+import com.example.shared.models.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +16,7 @@ public class PixelSpreadService {
     /**
      * Вычисляет пиксельный спред для пары, если он еще не вычислен
      */
-    public void calculatePixelSpreadIfNeeded(CointPair cointPair) {
+    public void calculatePixelSpreadIfNeeded(Pair cointPair) {
         if (cointPair.getPixelSpreadHistory().isEmpty()) {
             log.debug("🔢 Пиксельный спред не вычислен, вычисляем для пары {}", cointPair.getPairName());
             calculatePixelSpreadForPair(cointPair);
@@ -27,16 +26,18 @@ public class PixelSpreadService {
     /**
      * Принудительно пересчитывает пиксельный спред для пары
      */
-    public void recalculatePixelSpread(CointPair cointPair) {
+    public void recalculatePixelSpread(Pair cointPair) {
         log.debug("🔢 Пересчитываем пиксельный спред для пары {}", cointPair.getPairName());
-        cointPair.clearPixelSpreadHistory(); // Очищаем существующую историю
+        if (cointPair.getPixelSpreadHistory() != null) {
+            cointPair.getPixelSpreadHistory().clear(); // Очищаем существующую историю
+        }
         calculatePixelSpreadForPair(cointPair);
     }
 
     /**
      * Вычисляет пиксельный спред для пары
      */
-    private void calculatePixelSpreadForPair(CointPair cointPair) {
+    private void calculatePixelSpreadForPair(Pair cointPair) {
         List<Candle> longCandles = cointPair.getLongTickerCandles();
         List<Candle> shortCandles = cointPair.getShortTickerCandles();
         List<ZScoreParam> history = cointPair.getZScoreHistory();
@@ -119,7 +120,7 @@ public class PixelSpreadService {
     /**
      * Вычисляет пиксельное расстояние между графиками Long и Short цен и сохраняет в историю
      */
-    private void calculateAndSavePixelSpread(CointPair cointPair, List<Date> timeLong, List<Double> scaledLongPrices,
+    private void calculateAndSavePixelSpread(Pair cointPair, List<Date> timeLong, List<Double> scaledLongPrices,
                                              List<Date> timeShort, List<Double> scaledShortPrices) {
         log.debug("🔢 Начинаем вычисление пиксельного спреда для пары {}", cointPair.getPairName());
 
@@ -211,7 +212,7 @@ public class PixelSpreadService {
     /**
      * Получает среднее значение пиксельного спреда для пары
      */
-    public double getAveragePixelSpread(CointPair cointPair) {
+    public double getAveragePixelSpread(Pair cointPair) {
         List<PixelSpreadHistoryItem> history = cointPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
@@ -226,7 +227,7 @@ public class PixelSpreadService {
     /**
      * Получает максимальное значение пиксельного спреда для пары
      */
-    public double getMaxPixelSpread(CointPair cointPair) {
+    public double getMaxPixelSpread(Pair cointPair) {
         List<PixelSpreadHistoryItem> history = cointPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
@@ -241,7 +242,7 @@ public class PixelSpreadService {
     /**
      * Получает минимальное значение пиксельного спреда для пары
      */
-    public double getMinPixelSpread(TradingPair tradingPair) {
+    public double getMinPixelSpread(Pair tradingPair) {
         List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
@@ -256,7 +257,7 @@ public class PixelSpreadService {
     /**
      * Получает текущее значение пиксельного спреда для пары (последнее по времени)
      */
-    public double getCurrentPixelSpread(CointPair cointPair) {
+    public double getCurrentPixelSpread(Pair cointPair) {
         List<PixelSpreadHistoryItem> history = cointPair.getPixelSpreadHistory();
         if (history.isEmpty()) {
             return 0.0;
@@ -272,7 +273,7 @@ public class PixelSpreadService {
     /**
      * Получает стандартное отклонение пиксельного спреда для пары
      */
-    public double getPixelSpreadStandardDeviation(CointPair cointPair) {
+    public double getPixelSpreadStandardDeviation(Pair cointPair) {
         List<PixelSpreadHistoryItem> history = cointPair.getPixelSpreadHistory();
         if (history.size() < 2) {
             return 0.0;
@@ -293,7 +294,7 @@ public class PixelSpreadService {
     /**
      * Добавляет новую точку пиксельного спреда для текущего времени
      */
-    public void addCurrentPixelSpreadPoint(TradingPair tradingPair) {
+    public void addCurrentPixelSpreadPoint(Pair tradingPair) {
         List<Candle> longCandles = tradingPair.getLongTickerCandles();
         List<Candle> shortCandles = tradingPair.getShortTickerCandles();
         List<ZScoreParam> history = tradingPair.getZScoreHistory();

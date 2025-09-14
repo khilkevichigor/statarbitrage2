@@ -4,7 +4,7 @@ import com.example.cointegration.messaging.SendEventService;
 import com.example.cointegration.processors.FetchCointPairsProcessor;
 import com.example.cointegration.service.SettingsService;
 import com.example.shared.events.rabbit.CointegrationEvent;
-import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class FindCointPairsScheduler {
         }
 
         log.info("🆕 Начинаем отбор...");
-        List<CointPair> cointPairs = fetchCointPairsProcessor.fetchCointPairs();
+        List<Pair> cointPairs = fetchCointPairsProcessor.fetchCointPairs();
         if (cointPairs.isEmpty()) {
             log.warn("⚠️ Отобрано 0 пар!");
             return;

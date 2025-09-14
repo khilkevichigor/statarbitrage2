@@ -3,7 +3,8 @@ package com.example.cointegration.service;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.CointPair;
+import com.example.shared.models.Pair;
+import com.example.shared.enums.PairType;
 import com.example.shared.utils.CandlesUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,12 +25,12 @@ public class CreateCointPairService {
     /**
      * Создаёт список торговых пар PairData на основе списка Z-оценок и данных свечей
      */
-    public List<CointPair> createCointPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
-        List<CointPair> result = new ArrayList<>();
+    public List<Pair> createCointPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+        List<Pair> result = new ArrayList<>();
 
         for (ZScoreData zScoreData : zScoreDataList) {
             try {
-                CointPair cointPair = buildCointPair(zScoreData, candlesMap);
+                Pair cointPair = buildCointPair(zScoreData, candlesMap);
                 result.add(cointPair);
             } catch (IllegalArgumentException e) {
                 log.warn("⚠️ Пропущена пара {}/{}: {}",
@@ -50,7 +51,7 @@ public class CreateCointPairService {
     /**
      * Строит одну пару на основе Z-данных и свечей
      */
-    private CointPair buildCointPair(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    private Pair buildCointPair(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         String undervalued = zScoreData.getUnderValuedTicker();
         String overvalued = zScoreData.getOverValuedTicker();
 
@@ -61,13 +62,20 @@ public class CreateCointPairService {
             throw new IllegalArgumentException("Недостаточно данных по свечам");
         }
 
-        CointPair cointPair = new CointPair(undervalued, overvalued);
-        cointPair.setStatus(TradeStatus.SELECTED);
-        cointPair.setLongTickerCurrentPrice(CandlesUtil.getLastClose(undervaluedCandles));
-        cointPair.setShortTickerCurrentPrice(CandlesUtil.getLastClose(overvaluedCandles));
-        cointPair.setLongTickerCandles(undervaluedCandles);
-        cointPair.setShortTickerCandles(overvaluedCandles);
-        cointPair.setTimestamp(System.currentTimeMillis()); //создание и обноаление
+        Pair cointPair = Pair.builder()
+                .type(PairType.COINTEGRATED)
+                .tickerA(undervalued)
+                .tickerB(overvalued)
+                .pairName(undervalued + "/" + overvalued)
+                .status(TradeStatus.SELECTED)
+                .longTickerCurrentPrice(java.math.BigDecimal.valueOf(CandlesUtil.getLastClose(undervaluedCandles)))
+                .shortTickerCurrentPrice(java.math.BigDecimal.valueOf(CandlesUtil.getLastClose(overvaluedCandles)))
+                .longTickerCandles(undervaluedCandles)
+                .shortTickerCandles(overvaluedCandles)
+                .timestamp(System.currentTimeMillis())
+                .createdAt(java.time.LocalDateTime.now())
+                .updatedTime(java.time.LocalDateTime.now())
+                .build();
 
         updateZScoreDataCurrentService.updateCurrent(cointPair, zScoreData);
 
