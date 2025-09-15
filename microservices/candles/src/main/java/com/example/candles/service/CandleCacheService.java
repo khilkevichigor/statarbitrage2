@@ -189,8 +189,8 @@ public class CandleCacheService {
         log.info("📈 Предзагрузка {} свечей типа {} для {} тикеров",
                 candleLimit, timeframe, tickers.size());
 
-        // Обрабатываем тикеры батчами по 20 штук
-        int batchSize = 20;
+        // Динамический размер батча в зависимости от объема данных
+        int batchSize = getBatchSizeForTimeframe(timeframe, candleLimit);
         for (int i = 0; i < tickers.size(); i += batchSize) {
             List<String> batch = tickers.subList(i, Math.min(i + batchSize, tickers.size()));
 
@@ -279,21 +279,34 @@ public class CandleCacheService {
     private void saveCandlesToCache(String ticker, String timeframe, String exchange,
                                     List<Candle> candles) {
         try {
-            List<CachedCandle> cachedCandles = candles.stream()
-                    .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
-                    .collect(Collectors.toList());
-
             // Удаляем существующие свечи для этого тикера/таймфрейма
             cachedCandleRepository.deleteByTickerTimeframeExchange(ticker, timeframe, exchange);
 
-            // Сохраняем новые
-            cachedCandleRepository.saveAll(cachedCandles);
+            // Сохраняем порциями для экономии памяти
+            int batchSize = 1000;
+            int totalSaved = 0;
+            
+            for (int i = 0; i < candles.size(); i += batchSize) {
+                List<Candle> batch = candles.subList(i, Math.min(i + batchSize, candles.size()));
+                
+                List<CachedCandle> cachedCandles = batch.stream()
+                        .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
+                        .collect(Collectors.toList());
 
-            log.debug("💾 Сохранено {} свечей для {}/{}/{}",
-                    cachedCandles.size(), ticker, timeframe, exchange);
+                cachedCandleRepository.saveAll(cachedCandles);
+                totalSaved += cachedCandles.size();
+                
+                // Принудительно очищаем память после каждого батча
+                if (i % 5000 == 0) { // Каждые 5K свечей
+                    System.gc();
+                }
+            }
+
+            log.debug("💾 Сохранено {} свечей для {}/{}/{} (батчами по {})",
+                    totalSaved, ticker, timeframe, exchange, batchSize);
 
         } catch (Exception e) {
-            log.error("❌ Ошибка сохранения свечей в кэш для {}: {}", ticker, e.getMessage());
+            log.error("❌ Ошибка сохранения свечей в кэш для {}: {}", ticker, e.getMessage(), e);
         }
     }
 
@@ -380,6 +393,28 @@ public class CandleCacheService {
             case "1M" -> 2592000; // примерно 30 дней
             default -> 3600;
         };
+    }
+    
+    /**
+     * Определяет размер батча в зависимости от таймфрейма и объема данных
+     */
+    private int getBatchSizeForTimeframe(String timeframe, int candleLimit) {
+        // Для очень больших объемов данных уменьшаем размер батча
+        if (candleLimit > 100000) { // > 100K свечей
+            return switch (timeframe) {
+                case "1m" -> 1;  // По одному тикеру для минутных свечей
+                case "5m", "15m" -> 2;  // По 2 тикера
+                default -> 5;
+            };
+        } else if (candleLimit > 10000) { // > 10K свечей
+            return switch (timeframe) {
+                case "1m", "5m" -> 3;
+                case "15m", "1H" -> 5;
+                default -> 10;
+            };
+        } else {
+            return 20; // Стандартный размер батча для небольших объемов
+        }
     }
 
     /**

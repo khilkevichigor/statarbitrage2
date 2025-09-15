@@ -3,10 +3,23 @@ server:
   servlet:
     session:
       timeout: 30m
+  tomcat:
+    max-http-form-post-size: 10MB
+    max-swallow-size: 10MB
+    threads:
+      max: 50
 
 spring:
   application:
     name: candles-service
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
 
   profiles:
     active: default
