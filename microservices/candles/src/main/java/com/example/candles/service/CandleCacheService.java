@@ -29,8 +29,8 @@ public class CandleCacheService {
     @Value("${app.candle-cache.default-exchange:OKX}")
     private String defaultExchange;
     
-    // Пул потоков для параллельной загрузки
-    private final ExecutorService executorService = Executors.newFixedThreadPool(8);
+    // Пул потоков для параллельной загрузки (уменьшено до 5)
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     private final Map<String, Integer> defaultCachePeriods = Map.of(
             "1m", 365,    // 1 год для мелких таймфреймов
@@ -191,7 +191,7 @@ public class CandleCacheService {
         long currentTimestamp = System.currentTimeMillis() / 1000;
         int candleLimit = calculateCandleLimit(timeframe, periodDays);
 
-        log.info("📈 МНОГОПОТОЧНАЯ предзагрузка {} свечей типа {} для {} тикеров",
+        log.info("📈 МНОГОПОТОЧНАЯ предзагрузка {} свечей типа {} для {} тикеров (5 потоков)",
                 candleLimit, timeframe, tickers.size());
 
         // Уменьшаем размер батча для многопоточности
@@ -234,7 +234,7 @@ public class CandleCacheService {
         // Ждем завершения всех потоков
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
-            log.info("🏁 ВСЕ ПОТОКИ: Завершена многопоточная обработка {} тикеров", tickers.size());
+            log.info("🏁 ВСЕ 5 ПОТОКОВ: Завершена многопоточная обработка {} тикеров", tickers.size());
         } catch (Exception e) {
             log.error("❌ ВСЕ ПОТОКИ: Ошибка при ожидании завершения потоков: {}", e.getMessage(), e);
         }
