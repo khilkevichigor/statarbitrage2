@@ -80,3 +80,12 @@ management:
 logging:
   level:
     com.example.candles: INFO
+
+# Настройки кэша свечей
+app:
+  candle-cache:
+    enabled: true
+    default-exchange: OKX
+    preload-enabled: true
+    daily-update-enabled: true
+    startup-check: true

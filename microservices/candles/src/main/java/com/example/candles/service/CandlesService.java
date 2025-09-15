@@ -1,11 +1,13 @@
 package com.example.candles.service;
 
 import com.example.candles.client.OkxFeignClient;
+import com.example.candles.service.CandleCacheService;
 import com.example.shared.dto.Candle;
 import com.example.shared.models.Settings;
 import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +21,13 @@ import java.util.Map;
 public class CandlesService {
 
     private final OkxFeignClient okxFeignClient;
+    private final CandleCacheService candleCacheService;
+    
+    @Value("${app.candle-cache.enabled:true}")
+    private boolean cacheEnabled;
+    
+    @Value("${app.candle-cache.default-exchange:OKX}")
+    private String defaultExchange;
 
     public Map<String, List<Candle>> getApplicableCandlesMap(Pair tradingPair, Settings settings) {
         List<String> tickers = List.of(tradingPair.getTickerA(), tradingPair.getTickerB());
@@ -81,140 +90,204 @@ public class CandlesService {
     }
 
     /**
-     * Расширенный метод для получения большого количества свечей с пагинацией
-     * Собирает данные через несколько запросов к OKX API для обхода лимита в 300 свечей
+     * Расширенный метод для получения большого количества свечей с умным кэшированием
+     * ПРИОРИТЕТ КЭША: Сначала пытается получить данные из кэша, при необходимости дополняет из API
      */
     public Map<String, List<Candle>> getCandlesExtended(Settings settings, List<String> swapTickers, int totalLimit) {
-        log.info("📊 Расширенный запрос {} свечей для {} тикеров (таймфрейм: {})",
-                totalLimit, swapTickers.size(), settings.getTimeframe());
-
-        if (totalLimit <= 300) {
-            // Если лимит 300 или меньше, используем стандартный метод
-            return getCandles(settings, swapTickers, true);
-        }
+        long requestStartTime = System.currentTimeMillis();
+        
+        log.info("🎯 АК-47 ЗАПРОС: {} свечей, {} тикеров, таймфрейм '{}', кэш={}", 
+                totalLimit, swapTickers.size(), settings.getTimeframe(), cacheEnabled ? "ВКЛ" : "ВЫКЛ");
 
         Map<String, List<Candle>> result = new HashMap<>();
-        int batchSize = 300; // Максимум для OKX API
-        int remainingCandles = totalLimit;
-
+        
         try {
-            // Создаем настройки для первой пачки (максимум 300 свечей)
+            if (cacheEnabled) {
+                log.info("💾 КЭШИРОВАНИЕ: Получаем свечи из кэша для {} тикеров", swapTickers.size());
+                
+                // Получаем данные из кэша (с автоматической догрузкой недостающих)
+                result = candleCacheService.getCachedCandles(swapTickers, settings.getTimeframe(), 
+                        totalLimit, defaultExchange);
+                
+                // Подробная статистика по кэшу
+                long cacheHits = result.size();
+                int totalCandlesFromCache = result.values().stream().mapToInt(List::size).sum();
+                
+                log.info("🎯 КЭША РЕЗУЛЬТАТ: {} из {} тикеров найдено в кэше, всего свечей: {}", 
+                        cacheHits, swapTickers.size(), totalCandlesFromCache);
+                
+                // Проверяем качество данных из кэша
+                validateCacheResults(result, totalLimit, settings.getTimeframe());
+                
+            } else {
+                log.info("⚠️ КЭШИРОВАНИЕ ОТКЛЮЧЕНО: Используем прямое обращение к API");
+                result = getCandlesDirectFromAPI(settings, swapTickers, totalLimit);
+            }
+            
+            // Финальная валидация и логирование
+            long requestDuration = System.currentTimeMillis() - requestStartTime;
+            logFinalResults(result, totalLimit, requestDuration, cacheEnabled);
+            
+        } catch (Exception e) {
+            log.error("💥 КРИТИЧЕСКАЯ ОШИБКА в getCandlesExtended: {}", e.getMessage(), e);
+            
+            // FALLBACK: Пытаемся получить хотя бы базовые данные
+            log.warn("🛡️ АВАРИЙНЫЙ РЕЖИМ: Fallback к прямому API без кэша");
+            result = getCandlesDirectFromAPI(settings, swapTickers, Math.min(300, totalLimit));
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Получение свечей напрямую из API (fallback метод)
+     */
+    private Map<String, List<Candle>> getCandlesDirectFromAPI(Settings settings, List<String> swapTickers, int totalLimit) {
+        log.info("📡 ПРЯМОЙ API ЗАПРОС: {} свечей для {} тикеров", totalLimit, swapTickers.size());
+        
+        if (totalLimit <= 300) {
+            return getCandles(settings, swapTickers, true);
+        }
+        
+        // Для больших лимитов - старая логика пагинации
+        return getCandlesWithPagination(settings, swapTickers, totalLimit);
+    }
+    
+    /**
+     * Валидация результатов кэша
+     */
+    private void validateCacheResults(Map<String, List<Candle>> cacheResults, int expectedCandleCount, String timeframe) {
+        if (cacheResults.isEmpty()) {
+            log.warn("⚠️ КЭША ПУСТОЙ: Не получено ни одного тикера из кэша");
+            return;
+        }
+        
+        // Проверяем качество данных
+        int tickersWithGoodData = 0;
+        int tickersWithPartialData = 0;
+        int tickersWithBadData = 0;
+        
+        for (Map.Entry<String, List<Candle>> entry : cacheResults.entrySet()) {
+            String ticker = entry.getKey();
+            List<Candle> candles = entry.getValue();
+            
+            double completeness = (double) candles.size() / expectedCandleCount;
+            
+            if (completeness >= 0.95) {
+                tickersWithGoodData++;
+                log.debug("✅ {}: отличные данные ({}% = {}/{})", ticker, 
+                        String.format("%.1f", completeness * 100), candles.size(), expectedCandleCount);
+            } else if (completeness >= 0.80) {
+                tickersWithPartialData++;
+                log.debug("⚠️ {}: частичные данные ({}% = {}/{})", ticker, 
+                        String.format("%.1f", completeness * 100), candles.size(), expectedCandleCount);
+            } else {
+                tickersWithBadData++;
+                log.warn("❌ {}: плохие данные ({}% = {}/{})", ticker, 
+                        String.format("%.1f", completeness * 100), candles.size(), expectedCandleCount);
+            }
+        }
+        
+        log.info("📊 КАЧЕСТВО КЭША: ✅{}(отлично) ⚠️{}(частично) ❌{}(плохо) из {} тикеров",
+                tickersWithGoodData, tickersWithPartialData, tickersWithBadData, cacheResults.size());
+    }
+    
+    /**
+     * Логирование финальных результатов
+     */
+    private void logFinalResults(Map<String, List<Candle>> result, int expectedCandleCount, 
+                               long requestDuration, boolean usedCache) {
+        if (result.isEmpty()) {
+            log.error("💥 ПРОВАЛ: Не получено ни одного тикера с данными!");
+            return;
+        }
+        
+        int totalCandles = result.values().stream().mapToInt(List::size).sum();
+        int avgCandles = totalCandles / result.size();
+        double avgCompleteness = (double) avgCandles / expectedCandleCount * 100;
+        
+        String cacheStatus = usedCache ? "💾КЭША" : "📡API";
+        
+        log.info("🏁 АК-47 РЕЗУЛЬТАТ [{}]: {} тикеров, {} свечей (сред.{}, {}%), за {} мс",
+                cacheStatus, result.size(), totalCandles, avgCandles, 
+                String.format("%.1f", avgCompleteness), requestDuration);
+        
+        // Показываем примеры тикеров для отладки
+        if (result.size() <= 10) {
+            log.info("🔍 ТИКЕРЫ: {}", String.join(", ", result.keySet()));
+        } else {
+            String firstFew = result.keySet().stream().limit(5).reduce((a, b) -> a + ", " + b).orElse("");
+            log.info("🔍 ПЕРВЫЕ ТИКЕРЫ: {}... (всего {})", firstFew, result.size());
+        }
+    }
+    
+    /**
+     * Старая логика пагинации (fallback для прямых API запросов)
+     */
+    private Map<String, List<Candle>> getCandlesWithPagination(Settings settings, List<String> swapTickers, int totalLimit) {
+        log.info("📡 ПАГИНАЦИЯ API: {} свечей для {} тикеров", totalLimit, swapTickers.size());
+        
+        Map<String, List<Candle>> result = new HashMap<>();
+        int batchSize = 300; // Максимум для OKX API
+        
+        try {
+            // Получаем первую пачку
             Settings initialSettings = new Settings();
             initialSettings.copyFrom(settings);
-            initialSettings.setCandleLimit(Math.min(batchSize, remainingCandles));
-
-            log.debug("🔄 Получаем первую пачку из {} свечей для тикеров: {}",
-                    initialSettings.getCandleLimit(), swapTickers);
+            initialSettings.setCandleLimit(Math.min(batchSize, totalLimit));
+            
             Map<String, List<Candle>> initialBatch = getCandles(initialSettings, swapTickers, true);
-
+            
             if (initialBatch.isEmpty()) {
-                log.warn("⚠️ Не удалось получить начальные данные для тикеров: {} (таймфрейм: {}, лимит: {})",
-                        swapTickers, settings.getTimeframe(), initialSettings.getCandleLimit());
+                log.warn("⚠️ ПАГИНАЦИЯ: Не удалось получить начальные данные");
                 return result;
             }
-
-            log.debug("✅ Получена первая пачка: {} тикеров с данными", initialBatch.size());
-
-            // Для каждого тикера собираем дополнительные исторические данные
+            
+            // Для каждого тикера собираем дополнительные данные
             for (Map.Entry<String, List<Candle>> entry : initialBatch.entrySet()) {
                 String ticker = entry.getKey();
                 List<Candle> allCandles = new ArrayList<>(entry.getValue());
-
-                if (allCandles.isEmpty()) {
-                    continue;
-                }
-
-                remainingCandles = totalLimit - allCandles.size();
-
-                // Получаем дополнительные исторические данные пачками
+                
+                if (allCandles.isEmpty()) continue;
+                
+                int remainingCandles = totalLimit - allCandles.size();
+                
+                // Добавляем исторические данные
                 while (remainingCandles > 0 && allCandles.size() < totalLimit) {
                     try {
-                        // ИСПРАВЛЕНО: Получаем timestamp самой старой свечи для пагинации
-                        // OKX возвращает свечи в хронологическом порядке (старые->новые после reverse)
-                        // Для пагинации нужно взять самую ПЕРВУЮ (старую) свечу
                         long oldestTimestamp = allCandles.get(0).getTimestamp();
-                        log.info("🔍 {}: получаем {} доп.свечей до timestamp {} ({}) (уже собрано: {})",
-                                ticker, Math.min(batchSize, remainingCandles), oldestTimestamp,
-                                new java.util.Date(oldestTimestamp), allCandles.size());
-
-                        // DEBUG: показать диапазон уже собранных свечей
-                        log.warn("🔍 DEBUG: Диапазон allCandles для {}: {} ({}) - {} ({})", ticker,
-                                allCandles.get(0).getTimestamp(), new java.util.Date(allCandles.get(0).getTimestamp()),
-                                allCandles.get(allCandles.size() - 1).getTimestamp(), new java.util.Date(allCandles.get(allCandles.size() - 1).getTimestamp()));
-
-                        // Запрашиваем историческую пачку
                         int batchLimit = Math.min(batchSize, remainingCandles);
-                        List<Candle> historicalBatch = getCandlesPaginated(ticker, settings.getTimeframe(),
+                        
+                        List<Candle> historicalBatch = getCandlesPaginated(ticker, settings.getTimeframe(), 
                                 batchLimit, oldestTimestamp);
-
+                        
                         if (historicalBatch.isEmpty()) {
-                            log.debug("📉 Нет больше исторических данных для {}", ticker);
                             break;
                         }
-
-                        log.info("📊 {}: получено {} исторических свечей. Временной диапазон: {} ({}) - {} ({})",
-                                ticker, historicalBatch.size(),
-                                historicalBatch.isEmpty() ? "пусто" : historicalBatch.get(0).getTimestamp(),
-                                historicalBatch.isEmpty() ? "пусто" : new java.util.Date(historicalBatch.get(0).getTimestamp()),
-                                historicalBatch.isEmpty() ? "пусто" : historicalBatch.get(historicalBatch.size() - 1).getTimestamp(),
-                                historicalBatch.isEmpty() ? "пусто" : new java.util.Date(historicalBatch.get(historicalBatch.size() - 1).getTimestamp()));
-
-                        // Проверяем правильность временного порядка перед добавлением
-                        if (!historicalBatch.isEmpty() && !allCandles.isEmpty()) {
-                            long lastHistorical = historicalBatch.get(historicalBatch.size() - 1).getTimestamp();
-                            long firstCurrent = allCandles.get(0).getTimestamp();
-                            if (lastHistorical >= firstCurrent) {
-                                log.warn("⚠️ {}: нарушение хронологии! Последняя историческая свеча ({}) >= первой текущей ({})",
-                                        ticker, new java.util.Date(lastHistorical), new java.util.Date(firstCurrent));
-                            }
-                        }
-
-                        // ПРАВИЛЬНО: добавляем исторические свечи в НАЧАЛО списка 
-                        // (так как они более старые по времени)
+                        
                         allCandles.addAll(0, historicalBatch);
                         remainingCandles -= historicalBatch.size();
-
-                        log.info("✅ {}: теперь всего свечей: {}, осталось получить: {}",
-                                ticker, allCandles.size(), remainingCandles);
-
-                        // Небольшая задержка между запросами
-                        Thread.sleep(150);
-
+                        
+                        Thread.sleep(150); // Пауза между запросами
+                        
                     } catch (Exception e) {
-                        log.warn("⚠️ Ошибка при получении исторических данных для {}: {}",
-                                ticker, e.getMessage());
+                        log.warn("⚠️ ПАГИНАЦИЯ: Ошибка для {}: {}", ticker, e.getMessage());
                         break;
                     }
                 }
-
-                // Обрезаем до нужного размера (берём самые свежие)
+                
+                // Обрезаем до нужного размера
                 if (allCandles.size() > totalLimit) {
-                    int originalSize = allCandles.size();
                     allCandles = allCandles.subList(allCandles.size() - totalLimit, allCandles.size());
-                    log.info("✂️ {}: обрезали с {} до {} свечей (берем самые свежие)",
-                            ticker, originalSize, allCandles.size());
                 }
-
-                // Проверяем итоговый хронологический порядок
-                validateCandlesTimeOrder(ticker, allCandles);
-
+                
                 result.put(ticker, allCandles);
             }
-
-            log.info("✅ Расширенный запрос завершен. Получено {} тикеров со средним количеством {} свечей",
-                    result.size(),
-                    result.values().stream().mapToInt(List::size).average().orElse(0));
-
+            
         } catch (Exception e) {
-            log.error("❌ Ошибка в расширенном запросе свечей: {}", e.getMessage(), e);
-            // Fallback к стандартному методу с ограничением в 300 свечей
-            log.warn("🔄 Используем fallback к стандартному методу с ограничением 300 свечей");
-            Settings fallbackSettings = new Settings();
-            fallbackSettings.copyFrom(settings);
-            fallbackSettings.setCandleLimit(300);
-            return getCandles(fallbackSettings, swapTickers, true);
+            log.error("❌ ПАГИНАЦИЯ: Ошибка {}", e.getMessage(), e);
         }
-
+        
         return result;
     }
 
