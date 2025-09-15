@@ -116,7 +116,7 @@ public class PairService {
             throw new IllegalArgumentException("Только стабильные пары можно добавлять в мониторинг");
         }
 
-        pair.setIsInMonitoring(true);
+        pair.setInMonitoring(true);
         pairRepository.save(pair);
 
         log.info("➕ Пара {}/{} добавлена в мониторинг", pair.getTickerA(), pair.getTickerB());
@@ -134,7 +134,7 @@ public class PairService {
             throw new IllegalArgumentException("Только стабильные пары можно удалять из мониторинга");
         }
 
-        pair.setIsInMonitoring(false);
+        pair.setInMonitoring(false);
         pairRepository.save(pair);
 
         log.info("➖ Пара {}/{} удалена из мониторинга", pair.getTickerA(), pair.getTickerB());
@@ -148,7 +148,7 @@ public class PairService {
         Pair pair = pairRepository.findById(pairId)
                 .orElseThrow(() -> new RuntimeException("Пара не найдена: " + pairId));
 
-        if (pair.getType().isStable() && pair.getIsInMonitoring()) {
+        if (pair.getType().isStable() && pair.isInMonitoring()) {
             throw new IllegalArgumentException("Нельзя удалить пару, находящуюся в мониторинге");
         }
 
@@ -166,7 +166,7 @@ public class PairService {
             return;
         }
         
-        if (pair.getType() != null && pair.getType().isStable() && Boolean.TRUE.equals(pair.getIsInMonitoring())) {
+        if (pair.getType() != null && pair.getType().isStable() && pair.isInMonitoring()) {
             throw new IllegalArgumentException("Нельзя удалить пару, находящуюся в мониторинге");
         }
 

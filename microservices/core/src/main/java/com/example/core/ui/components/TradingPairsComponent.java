@@ -555,7 +555,7 @@ public class TradingPairsComponent extends VerticalLayout {
     }
 
     private Checkbox createCloseAtBreakevenCheckbox(Pair tradingPair) {
-        Checkbox checkbox = new Checkbox(tradingPair.getCloseAtBreakeven() != null ? tradingPair.getCloseAtBreakeven() : false);
+        Checkbox checkbox = new Checkbox(tradingPair.isCloseAtBreakeven());
         checkbox.addValueChangeListener(event -> {
             tradingPair.setCloseAtBreakeven(event.getValue());
             tradingPairService.save(tradingPair);

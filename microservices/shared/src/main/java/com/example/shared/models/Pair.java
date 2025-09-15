@@ -131,7 +131,7 @@ public class Pair {
      */
     @CsvExportable(order = 12)
     @Column(name = "is_tradeable")
-    private Boolean isTradeable;
+    private boolean isTradeable = false;
 
     /**
      * Количество точек данных для анализа
@@ -187,7 +187,7 @@ public class Pair {
      */
     @CsvExportable(order = 20)
     @Column(name = "is_in_monitoring", nullable = false)
-    private Boolean isInMonitoring = false;
+    private boolean isInMonitoring = false;
 
     /**
      * Настройки поиска в JSON формате
@@ -458,7 +458,7 @@ public class Pair {
 
     @CsvExportable(order = 73)
     @Column(name = "close_at_breakeven")
-    private Boolean closeAtBreakeven;
+    private boolean closeAtBreakeven = false;
 
     // Торговые настройки
     @CsvExportable(order = 74)
@@ -719,7 +719,7 @@ public class Pair {
             java.lang.reflect.Field isTradeableField = dtoClass.getDeclaredField("isTradeable");
             isTradeableField.setAccessible(true);
             Boolean isTradeable = (Boolean) isTradeableField.get(stabilityResult);
-            pair.setIsTradeable(isTradeable);
+            pair.setTradeable(isTradeable != null ? isTradeable : false);
 
             java.lang.reflect.Field dataPointsField = dtoClass.getDeclaredField("dataPoints");
             dataPointsField.setAccessible(true);

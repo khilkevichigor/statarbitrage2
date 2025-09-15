@@ -98,7 +98,7 @@ public class ExitStrategyService {
         if (!settings.isUseExitBreakEvenPercent()) {
             return false;
         }
-        return Boolean.TRUE.equals(tradingPair.getCloseAtBreakeven()) && tradingPair.getProfitPercentChanges().doubleValue() >= settings.getExitBreakEvenPercent(); //1% чтобы гарантировать БУ
+        return tradingPair.isCloseAtBreakeven() && tradingPair.getProfitPercentChanges().doubleValue() >= settings.getExitBreakEvenPercent(); //1% чтобы гарантировать БУ
     }
 
     /**

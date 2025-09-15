@@ -286,7 +286,7 @@ public class StablePairsView extends VerticalLayout {
         grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-")).setHeader("Скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Pair::getStabilityRating).setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(new TextRenderer<>(pair -> pair.getIsTradeable() != null && pair.getIsTradeable() ? "Да" : "Нет")).setHeader("Торгуемая").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new TextRenderer<>(pair -> pair.isTradeable() ? "Да" : "Нет")).setHeader("Торгуемая").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getDataPoints() != null ? pair.getDataPoints().toString() : "-")).setHeader("Точки").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Pair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
