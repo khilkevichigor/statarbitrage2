@@ -205,7 +205,7 @@ public class CandleCacheService {
                     saveCandlesToCache(ticker, timeframe, exchange, candles);
                 }
 
-                log.debug("✅ Обработан батч {}-{} из {} тикеров", i + 1,
+                log.info("✅ Обработан батч {}-{} из {} тикеров", i + 1,
                         Math.min(i + batchSize, tickers.size()), tickers.size());
 
                 // Пауза между батчами
@@ -275,8 +275,7 @@ public class CandleCacheService {
         return result;
     }
 
-    @Transactional
-    protected void saveCandlesToCache(String ticker, String timeframe, String exchange,
+    private void saveCandlesToCache(String ticker, String timeframe, String exchange,
                                     List<Candle> candles) {
         try {
             // Удаляем существующие свечи для этого тикера/таймфрейма
@@ -302,7 +301,7 @@ public class CandleCacheService {
                 }
             }
 
-            log.debug("💾 Сохранено {} свечей для {}/{}/{} (батчами по {})",
+            log.info("💾 Сохранено {} свечей для {}/{}/{} (батчами по {})",
                     totalSaved, ticker, timeframe, exchange, batchSize);
 
         } catch (Exception e) {
@@ -310,8 +309,7 @@ public class CandleCacheService {
         }
     }
 
-    @Transactional
-    protected void updateCandlesInCache(String ticker, String timeframe, String exchange,
+    private void updateCandlesInCache(String ticker, String timeframe, String exchange,
                                       List<Candle> candles, long fromTimestamp) {
         try {
             // Удаляем только свечи начиная с fromTimestamp
@@ -351,7 +349,7 @@ public class CandleCacheService {
                 String timeframe = entry.getKey();
                 int periodDays = entry.getValue();
 
-                long cutoffTimestamp = System.currentTimeMillis() / 1000 - (periodDays * 24 * 3600);
+                long cutoffTimestamp = System.currentTimeMillis() / 1000 - ((long) periodDays * 24 * 3600);
                 cachedCandleRepository.deleteOldCandlesByExchangeTimeframe(exchange, timeframe, cutoffTimestamp);
 
                 log.debug("🗑️ Удалены старые свечи {} старше {} дней", timeframe, periodDays);
@@ -364,7 +362,7 @@ public class CandleCacheService {
 
     private long calculateFromTimestamp(long currentTimestamp, String timeframe, int candleLimit) {
         int timeframeSeconds = getTimeframeInSeconds(timeframe);
-        return currentTimestamp - (candleLimit * timeframeSeconds);
+        return currentTimestamp - ((long) candleLimit * timeframeSeconds);
     }
 
     private int calculateCandleLimit(String timeframe, int periodDays) {
@@ -391,7 +389,7 @@ public class CandleCacheService {
             case "1D" -> 86400;
             case "1W" -> 604800;
             case "1M" -> 2592000; // примерно 30 дней
-            default -> 3600;
+            default -> 3600; // По умолчанию как 1H
         };
     }
     
