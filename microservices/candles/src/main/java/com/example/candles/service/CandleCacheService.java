@@ -276,7 +276,7 @@ public class CandleCacheService {
     }
 
     @Transactional
-    private void saveCandlesToCache(String ticker, String timeframe, String exchange,
+    protected void saveCandlesToCache(String ticker, String timeframe, String exchange,
                                     List<Candle> candles) {
         try {
             // Удаляем существующие свечи для этого тикера/таймфрейма
@@ -311,7 +311,7 @@ public class CandleCacheService {
     }
 
     @Transactional
-    private void updateCandlesInCache(String ticker, String timeframe, String exchange,
+    protected void updateCandlesInCache(String ticker, String timeframe, String exchange,
                                       List<Candle> candles, long fromTimestamp) {
         try {
             // Удаляем только свечи начиная с fromTimestamp
