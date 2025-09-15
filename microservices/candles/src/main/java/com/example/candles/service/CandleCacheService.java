@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +20,7 @@ public class CandleCacheService {
 
     private final CachedCandleRepository cachedCandleRepository;
     private final OkxFeignClient okxFeignClient;
+    private final CandleTransactionService candleTransactionService;
 
     @Value("${app.candle-cache.default-exchange:OKX}")
     private String defaultExchange;
@@ -83,7 +83,6 @@ public class CandleCacheService {
         return result;
     }
 
-    @Transactional
     public void preloadAllCandles(String exchange) {
         log.info("🚀 Запуск полной предзагрузки свечей для биржи {}", exchange);
 
@@ -113,7 +112,6 @@ public class CandleCacheService {
         }
     }
 
-    @Transactional
     public void dailyCandlesUpdate(String exchange) {
         log.info("🔄 Запуск ежедневного обновления свечей для биржи {}", exchange);
 
@@ -202,7 +200,7 @@ public class CandleCacheService {
                     String ticker = entry.getKey();
                     List<Candle> candles = entry.getValue();
 
-                    saveCandlesToCache(ticker, timeframe, exchange, candles);
+                    candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, candles);
                 }
 
                 log.info("✅ Обработан батч {}-{} из {} тикеров", i + 1,
@@ -235,7 +233,7 @@ public class CandleCacheService {
                     String ticker = entry.getKey();
                     List<Candle> candles = entry.getValue();
 
-                    updateCandlesInCache(ticker, timeframe, exchange, candles, fromTimestamp);
+                    candleTransactionService.updateCandlesInCache(ticker, timeframe, exchange, candles, fromTimestamp);
                 }
 
                 Thread.sleep(100);
@@ -263,7 +261,7 @@ public class CandleCacheService {
                 List<Candle> candles = entry.getValue();
 
                 // Сохраняем в кэш
-                saveCandlesToCache(ticker, timeframe, exchange, candles);
+                candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, candles);
 
                 result.put(ticker, candles);
             }
@@ -275,71 +273,6 @@ public class CandleCacheService {
         return result;
     }
 
-    private void saveCandlesToCache(String ticker, String timeframe, String exchange,
-                                    List<Candle> candles) {
-        try {
-            // Удаляем существующие свечи для этого тикера/таймфрейма
-            cachedCandleRepository.deleteByTickerTimeframeExchange(ticker, timeframe, exchange);
-
-            // Сохраняем порциями для экономии памяти
-            int batchSize = 1000;
-            int totalSaved = 0;
-            
-            for (int i = 0; i < candles.size(); i += batchSize) {
-                List<Candle> batch = candles.subList(i, Math.min(i + batchSize, candles.size()));
-                
-                List<CachedCandle> cachedCandles = batch.stream()
-                        .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
-                        .collect(Collectors.toList());
-
-                cachedCandleRepository.saveAll(cachedCandles);
-                totalSaved += cachedCandles.size();
-                
-                // Принудительно очищаем память после каждого батча
-                if (i % 5000 == 0) { // Каждые 5K свечей
-                    System.gc();
-                }
-            }
-
-            log.info("💾 Сохранено {} свечей для {}/{}/{} (батчами по {})",
-                    totalSaved, ticker, timeframe, exchange, batchSize);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка сохранения свечей в кэш для {}: {}", ticker, e.getMessage(), e);
-        }
-    }
-
-    private void updateCandlesInCache(String ticker, String timeframe, String exchange,
-                                      List<Candle> candles, long fromTimestamp) {
-        try {
-            // Удаляем только свечи начиная с fromTimestamp
-            List<CachedCandle> existingCandles = cachedCandleRepository
-                    .findByTickerAndTimeframeAndExchangeOrderByTimestampAsc(ticker, timeframe, exchange);
-
-            List<CachedCandle> toDelete = existingCandles.stream()
-                    .filter(cc -> cc.getTimestamp() >= fromTimestamp)
-                    .collect(Collectors.toList());
-
-            if (!toDelete.isEmpty()) {
-                cachedCandleRepository.deleteAll(toDelete);
-            }
-
-            // Добавляем новые свечи
-            List<CachedCandle> newCandles = candles.stream()
-                    .filter(candle -> candle.getTimestamp() >= fromTimestamp)
-                    .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
-                    .collect(Collectors.toList());
-
-            if (!newCandles.isEmpty()) {
-                cachedCandleRepository.saveAll(newCandles);
-            }
-
-            log.debug("🔄 Обновлено {} свечей для {}/{}", newCandles.size(), ticker, timeframe);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка обновления свечей в кэше для {}: {}", ticker, e.getMessage());
-        }
-    }
 
     private void cleanupOldCandles(String exchange) {
         log.info("🧹 Очистка старых свечей для биржи {}", exchange);
@@ -392,7 +325,7 @@ public class CandleCacheService {
             default -> 3600; // По умолчанию как 1H
         };
     }
-    
+
     /**
      * Определяет размер батча в зависимости от таймфрейма и объема данных
      */

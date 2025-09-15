@@ -70,7 +70,7 @@ public class CandleCacheScheduler {
     /**
      * Ежедневное обновление кэша в 3:00 утра по местному времени
      */
-    @Scheduled(cron = "0 30 10 * * ?")
+    @Scheduled(cron = "0 50 11 * * ?")
     public void scheduledCacheUpdate() {
         String currentTime = LocalDateTime.now().format(formatter);
         log.info("⏰ Запуск шедуллера обновления кэша в {}", currentTime);
