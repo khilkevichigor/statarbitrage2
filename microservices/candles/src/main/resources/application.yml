@@ -11,10 +11,29 @@ spring:
   profiles:
     active: default
 
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  # Database configuration for candle caching (PostgreSQL)
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/statarbitrage}
+    username: ${DB_USERNAME:statuser}
+    password: ${DB_PASSWORD:statpass123}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
 
   jackson:
     time-zone: UTC
