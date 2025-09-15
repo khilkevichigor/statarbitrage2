@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -32,7 +33,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value = "SELECT COUNT(*) " +
             "FROM trade_history t " +
-            "WHERE to_timestamp(t.entry_time / 1000)::date = current_date",
+            "WHERE to_timestamp(t.entry_time / 1000.0)::date = current_date",
             nativeQuery = true)
     Long getTradesToday();
 
@@ -42,8 +43,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value = "SELECT SUM(t.current_profit_usdt) " +
             "FROM trade_history t " +
-            "WHERE t.entry_time >= extract(epoch from current_date) * 1000 " +
-            "AND t.entry_time < extract(epoch from current_date + interval '1 day') * 1000 " +
+            "WHERE to_timestamp(t.entry_time / 1000.0)::date = current_date " +
             "AND t.exit_reason IS NOT NULL",
             nativeQuery = true
     )
@@ -56,8 +56,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value = "SELECT SUM(t.current_profit_percent) " +
             "FROM trade_history t " +
-            "WHERE t.entry_time >= extract(epoch from current_date) * 1000 " +
-            "AND t.entry_time < extract(epoch from current_date + interval '1 day') * 1000 " +
+            "WHERE to_timestamp(t.entry_time / 1000.0)::date = current_date " +
             "AND t.exit_reason IS NOT NULL",
             nativeQuery = true
     )
@@ -70,7 +69,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value = "SELECT AVG(t.current_profit_usdt) " +
             "FROM trade_history t " +
-            "WHERE DATE(TO_TIMESTAMP(t.entry_time / 1000)) = CURRENT_DATE " +
+            "WHERE DATE(TO_TIMESTAMP(t.entry_time / 1000.0)) = CURRENT_DATE " +
             "AND t.exit_reason IS NOT NULL", nativeQuery = true)
     BigDecimal getAvgProfitUSDTToday();
 
@@ -81,8 +80,8 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query(value = "SELECT AVG(t.current_profit_percent) " +
             "FROM trade_history t " +
-            "WHERE to_timestamp(t.entry_time / 1000) >= CURRENT_DATE " +
-            "  AND to_timestamp(t.entry_time / 1000) < CURRENT_DATE + INTERVAL '1 day' " +
+            "WHERE to_timestamp(t.entry_time / 1000.0) >= CURRENT_DATE " +
+            "  AND to_timestamp(t.entry_time / 1000.0) < CURRENT_DATE + INTERVAL '1 day' " +
             "  AND t.exit_reason IS NOT NULL", nativeQuery = true)
     BigDecimal getAvgProfitPercentToday();
 
@@ -94,7 +93,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     @Query(value = "SELECT COUNT(*) " +
             "FROM pairs p " +
             "WHERE p.status = :status " +
-            "AND to_timestamp(p.entry_time / 1000)::date = current_date",
+            "AND p.entry_time::date = current_date",
             nativeQuery = true)
     Long getByStatusForToday(@Param("status") String status);
 
@@ -106,8 +105,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     @Query(value = "SELECT COUNT(*) " +
             "FROM pairs tp " +
             "WHERE tp.exit_reason = :reason " +
-            "AND tp.entry_time >= extract(epoch from current_date) * 1000 " +
-            "AND tp.entry_time < extract(epoch from current_date + interval '1 day') * 1000",
+            "AND tp.entry_time::date = current_date",
             nativeQuery = true)
     Long getByExitReasonForToday(@Param("reason") String reason);
 
@@ -120,7 +118,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "FROM Pair p " +
             "WHERE p.status = 'CLOSED' " +
             "AND p.entryTime >= :startOfDay")
-    BigDecimal getSumRealizedProfitUSDTToday(@Param("startOfDay") Long startOfDay);
+    BigDecimal getSumRealizedProfitUSDTToday(@Param("startOfDay") LocalDateTime startOfDay);
 
     @Query("SELECT SUM(p.profitUSDTChanges) " +
             "FROM Pair p " +
@@ -131,7 +129,7 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "FROM Pair p " +
             "WHERE p.status = 'CLOSED' " +
             "AND p.entryTime >= :startOfDay")
-    BigDecimal getSumRealizedProfitPercentToday(@Param("startOfDay") Long startOfDay);
+    BigDecimal getSumRealizedProfitPercentToday(@Param("startOfDay") LocalDateTime startOfDay);
 
 
     @Query("SELECT SUM(p.profitPercentChanges) " +

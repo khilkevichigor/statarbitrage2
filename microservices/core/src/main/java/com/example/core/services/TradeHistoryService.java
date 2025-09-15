@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -88,10 +89,7 @@ public class TradeHistoryService {
     }
 
     public BigDecimal getSumRealizedProfitUSDTToday() {
-        long startOfDay = LocalDate.now()
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli();
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         return tradeHistoryRepository.getSumRealizedProfitUSDTToday(startOfDay);
     }
 
@@ -100,10 +98,7 @@ public class TradeHistoryService {
     }
 
     public BigDecimal getSumRealizedProfitPercentToday() {
-        long startOfDay = LocalDate.now()
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli();
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         return tradeHistoryRepository.getSumRealizedProfitPercentToday(startOfDay);
     }
 
