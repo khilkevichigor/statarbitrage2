@@ -10,6 +10,12 @@ public class NotificationApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(NotificationApplication.class, args);
+        try {
+            //ждем чтобы не мешать логи и было по красоте
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         log.info("");
         log.info("🚀 Notification готов к работе!");
     }

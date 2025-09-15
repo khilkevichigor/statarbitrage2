@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -33,8 +34,8 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT COUNT(*) " +
             "FROM TradeHistory t " +
-            "WHERE DATE(t.entryTime) = DATE('now', 'localtime')")
-    Long getTradesToday();
+            "WHERE t.entryTime >= :startOfDay AND t.entryTime < :startOfNextDay")
+    Long getTradesToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT COUNT(*) " +
             "FROM TradeHistory t")
@@ -42,9 +43,9 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT SUM(t.currentProfitUSDT) " +
             "FROM TradeHistory t " +
-            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "WHERE t.entryTime >= :startOfDay AND t.entryTime < :startOfNextDay " +
             "AND t.exitReason IS NOT NULL")
-    BigDecimal getSumProfitUSDTToday();
+    BigDecimal getSumProfitUSDTToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT SUM(t.currentProfitUSDT) " +
             "FROM TradeHistory t " +
@@ -53,9 +54,9 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT SUM(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
-            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "WHERE t.entryTime >= :startOfDay AND t.entryTime < :startOfNextDay " +
             "AND t.exitReason IS NOT NULL")
-    BigDecimal getSumProfitPercentToday();
+    BigDecimal getSumProfitPercentToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT SUM(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
@@ -64,9 +65,9 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT AVG(t.currentProfitUSDT) " +
             "FROM TradeHistory t " +
-            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "WHERE t.entryTime >= :startOfDay AND t.entryTime < :startOfNextDay " +
             "AND t.exitReason IS NOT NULL")
-    BigDecimal getAvgProfitUSDTToday();
+    BigDecimal getAvgProfitUSDTToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT AVG(t.currentProfitUSDT) " +
             "FROM TradeHistory t " +
@@ -75,9 +76,9 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
 
     @Query("SELECT AVG(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
-            "WHERE DATE(t.entryTime) = DATE('now', 'localtime') " +
+            "WHERE t.entryTime >= :startOfDay AND t.entryTime < :startOfNextDay " +
             "AND t.exitReason IS NOT NULL")
-    BigDecimal getAvgProfitPercentToday();
+    BigDecimal getAvgProfitPercentToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT AVG(t.currentProfitPercent) " +
             "FROM TradeHistory t " +
@@ -87,8 +88,8 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     @Query("SELECT COUNT(*) " +
             "FROM Pair p " +
             "WHERE p.type = 'TRADING' AND p.status = :status " +
-            "AND DATE(p.entryTime) = CURRENT_DATE")
-    Long getByStatusForToday(@Param("status") TradeStatus status);
+            "AND p.entryTime >= :startOfDay AND p.entryTime < :startOfNextDay")
+    Long getByStatusForToday(@Param("status") TradeStatus status, @Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT COUNT(*) " +
             "FROM Pair p " +
@@ -98,8 +99,8 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     @Query("SELECT COUNT(*) " +
             "FROM Pair p " +
             "WHERE p.type = 'TRADING' AND p.exitReason = :reason " +
-            "AND DATE(p.entryTime) = CURRENT_DATE")
-    Long getByExitReasonForToday(@Param("reason") String reason);
+            "AND p.entryTime >= :startOfDay AND p.entryTime < :startOfNextDay")
+    Long getByExitReasonForToday(@Param("reason") String reason, @Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     @Query("SELECT COUNT(*) " +
             "FROM Pair p " +
@@ -128,4 +129,47 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
             "FROM Pair p " +
             "WHERE p.type = 'TRADING' AND p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfitPercentTotal();
+
+    // Методы-обёртки для обратной совместимости
+    default Long getTradesToday() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getTradesToday(startOfDay, startOfNextDay);
+    }
+
+    default BigDecimal getSumProfitUSDTToday() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getSumProfitUSDTToday(startOfDay, startOfNextDay);
+    }
+
+    default BigDecimal getSumProfitPercentToday() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getSumProfitPercentToday(startOfDay, startOfNextDay);
+    }
+
+    default BigDecimal getAvgProfitUSDTToday() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getAvgProfitUSDTToday(startOfDay, startOfNextDay);
+    }
+
+    default BigDecimal getAvgProfitPercentToday() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getAvgProfitPercentToday(startOfDay, startOfNextDay);
+    }
+
+    default Long getByStatusForToday(TradeStatus status) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getByStatusForToday(status, startOfDay, startOfNextDay);
+    }
+
+    default Long getByExitReasonForToday(String reason) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return getByExitReasonForToday(reason, startOfDay, startOfNextDay);
+    }
 }
