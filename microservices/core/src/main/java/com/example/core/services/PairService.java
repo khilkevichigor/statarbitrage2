@@ -41,7 +41,7 @@ public class PairService {
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
     private final TradingPairService tradingPairService;
-    private final ZScoreService zScoreService;
+    private final PythonAnalysisService pythonAnalysisService; // Заменили ZScoreService на PythonAnalysisService
     private final ChartService chartService;
 
     // ======== МЕТОДЫ ДЛЯ ПОИСКА СТАБИЛЬНЫХ ПАР ========
@@ -300,7 +300,7 @@ public class PairService {
             tradingPair.setShortTickerCandles(shortCandles);
             
             // Рассчитываем Z-Score данные
-            ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+            ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
             
             if (zScoreData != null) {
                 // Обновляем Z-Score данные в TradingPair

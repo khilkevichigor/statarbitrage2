@@ -1,5 +1,5 @@
 -- Создание унифицированной таблицы pairs для замены StablePair, CointPair, TradingPair
-CREATE TABLE pairs (
+CREATE TABLE IF NOT EXISTS pairs (
     -- Основные поля
     id BIGSERIAL PRIMARY KEY,
     uuid UUID NOT NULL UNIQUE,
@@ -70,15 +70,15 @@ CREATE TABLE pairs (
 );
 
 -- Создание индексов для производительности
-CREATE INDEX idx_pair_uuid ON pairs(uuid);
-CREATE INDEX idx_pair_type ON pairs(type);
-CREATE INDEX idx_pair_tickers ON pairs(ticker_a, ticker_b);
-CREATE INDEX idx_pair_monitoring ON pairs(is_in_monitoring);
-CREATE INDEX idx_pair_search_date ON pairs(search_date);
-CREATE INDEX idx_pair_status ON pairs(status);
-CREATE INDEX idx_pair_type_status ON pairs(type, status);
-CREATE INDEX idx_pair_tradeable ON pairs(is_tradeable);
-CREATE INDEX idx_pair_stability_rating ON pairs(stability_rating);
+CREATE INDEX IF NOT EXISTS idx_pair_uuid ON pairs(uuid);
+CREATE INDEX IF NOT EXISTS idx_pair_type ON pairs(type);
+CREATE INDEX IF NOT EXISTS idx_pair_tickers ON pairs(ticker_a, ticker_b);
+CREATE INDEX IF NOT EXISTS idx_pair_monitoring ON pairs(is_in_monitoring);
+CREATE INDEX IF NOT EXISTS idx_pair_search_date ON pairs(search_date);
+CREATE INDEX IF NOT EXISTS idx_pair_status ON pairs(status);
+CREATE INDEX IF NOT EXISTS idx_pair_type_status ON pairs(type, status);
+CREATE INDEX IF NOT EXISTS idx_pair_tradeable ON pairs(is_tradeable);
+CREATE INDEX IF NOT EXISTS idx_pair_stability_rating ON pairs(stability_rating);
 
 -- Комментарии к таблице
 COMMENT ON TABLE pairs IS 'Унифицированная таблица торговых пар, объединяющая функциональность StablePair, CointPair и TradingPair';

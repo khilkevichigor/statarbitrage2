@@ -1,6 +1,5 @@
 package com.example.core.services;
 
-import com.example.core.client_python.PythonRestClient;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.dto.ZScoreParam;
@@ -18,7 +17,7 @@ import java.util.*;
 public class ZScoreService {
 
     private final PairService tradingPairService;
-    private final PythonRestClient pythonRestClient;
+    private final PythonAnalysisService pythonAnalysisService;
     private final ObtainTopZScoreDataBeforeCreateNewPairService obtainTopZScoreDataBeforeCreateNewPairService;
     private final FilterZScoreDataForExistingPairBeforeNewTradeService filterZScoreDataForExistingPairBeforeNewTradeService;
 
@@ -174,14 +173,7 @@ public class ZScoreService {
     }
 
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
-        // Получаем результат из Python
-        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
-        if (zScoreData == null) {
-            log.warn("⚠️ Обновление трейда - zScoreData is null");
-            throw new IllegalStateException("⚠️ Обновление трейда - zScoreData is null");
-        }
-
-        return zScoreData;
+        return pythonAnalysisService.calculateZScoreData(settings, candlesMap);
     }
 
     /**
@@ -190,7 +182,7 @@ public class ZScoreService {
     private List<ZScoreData> calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap, boolean excludeExistingPairs) {
 
         // Получение коинтеграции
-        List<ZScoreData> rawZScoreDataList = pythonRestClient.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
+        List<ZScoreData> rawZScoreDataList = pythonAnalysisService.fetchZScoreData(settings, candlesMap); //ZScoreParams is null
 
         if (rawZScoreDataList == null || rawZScoreDataList.isEmpty()) {
             log.warn("⚠️ ZScoreService: получен пустой список от Python");
@@ -204,7 +196,7 @@ public class ZScoreService {
     }
 
     public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
-        ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
+        ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
             throw new IllegalStateException("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
@@ -357,7 +349,7 @@ public class ZScoreService {
         log.debug("📊 Отфильтрованная мапа свечей содержит тикеров: {{}} {}", filteredCandlesMap.size(), filteredCandlesMap.keySet());
 
         // Передаём отфильтрованные данные в Python
-        ZScoreData zScoreData = pythonRestClient.analyzePair(filteredCandlesMap, settings, true);
+        ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, filteredCandlesMap);
 
         if (zScoreData.getLatestZScore() < 0) {
             String message = String.format("❌ Последний Z-скор {%.2f} < 0 после \"/analyze-pair\" для получения детальной инфы о паре %s - %s!!!", zScoreData.getLatestZScore(), undervalued, overvalued);

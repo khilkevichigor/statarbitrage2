@@ -92,19 +92,19 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     BigDecimal getAvgProfitPercentTotal();
 
     @Query(value = "SELECT COUNT(*) " +
-            "FROM trading_pair p " +
+            "FROM pairs p " +
             "WHERE p.status = :status " +
             "AND to_timestamp(p.entry_time / 1000)::date = current_date",
             nativeQuery = true)
     Long getByStatusForToday(@Param("status") String status);
 
     @Query("SELECT COUNT(*) " +
-            "FROM TradingPair p " +
+            "FROM Pair p " +
             "WHERE p.status = :status")
     Long getByStatusTotal(@Param("status") TradeStatus status);
 
     @Query(value = "SELECT COUNT(*) " +
-            "FROM trading_pair tp " +
+            "FROM pairs tp " +
             "WHERE tp.exit_reason = :reason " +
             "AND tp.entry_time >= extract(epoch from current_date) * 1000 " +
             "AND tp.entry_time < extract(epoch from current_date + interval '1 day') * 1000",
@@ -112,30 +112,30 @@ public interface TradeHistoryRepository extends JpaRepository<TradeHistory, Long
     Long getByExitReasonForToday(@Param("reason") String reason);
 
     @Query("SELECT COUNT(*) " +
-            "FROM TradingPair p " +
+            "FROM Pair p " +
             "WHERE p.exitReason = :reason")
     Long getAllByExitReason(@Param("reason") String reason);
 
     @Query("SELECT SUM(p.profitUSDTChanges) " +
-            "FROM TradingPair p " +
+            "FROM Pair p " +
             "WHERE p.status = 'CLOSED' " +
             "AND p.entryTime >= :startOfDay")
     BigDecimal getSumRealizedProfitUSDTToday(@Param("startOfDay") Long startOfDay);
 
     @Query("SELECT SUM(p.profitUSDTChanges) " +
-            "FROM TradingPair p " +
+            "FROM Pair p " +
             "WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfitUSDTTotal();
 
     @Query("SELECT SUM(p.profitPercentChanges) " +
-            "FROM TradingPair p " +
+            "FROM Pair p " +
             "WHERE p.status = 'CLOSED' " +
             "AND p.entryTime >= :startOfDay")
     BigDecimal getSumRealizedProfitPercentToday(@Param("startOfDay") Long startOfDay);
 
 
     @Query("SELECT SUM(p.profitPercentChanges) " +
-            "FROM TradingPair p " +
+            "FROM Pair p " +
             "WHERE p.status = 'CLOSED'")
     BigDecimal getSumRealizedProfitPercentTotal();
 }
