@@ -86,6 +86,16 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
 
     // УДАЛЕНО: deleteByTickerTimeframeExchange - больше не нужно удаление
     // УДАЛЕНО: deleteOldCandlesByExchangeTimeframe - оставляем все исторические данные
+    
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO cached_candles (ticker, timeframe, exchange, timestamp, open_price, " +
+            "high_price, low_price, close_price, volume, is_valid, created_at, updated_at) " +
+            "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NOW(), NOW()) ON CONFLICT DO NOTHING", 
+            nativeQuery = true)
+    void insertIgnoreDuplicates(String ticker, String timeframe, String exchange, Long timestamp,
+                               Double openPrice, Double highPrice, Double lowPrice, 
+                               Double closePrice, Double volume, Boolean isValid);
 
     @Modifying
     @Transactional

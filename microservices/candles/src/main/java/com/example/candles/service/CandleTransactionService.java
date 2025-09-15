@@ -46,17 +46,25 @@ public class CandleTransactionService {
                         .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
                         .collect(Collectors.toList());
 
-                try {
-                    cachedCandleRepository.saveAll(cachedCandles);
-                    totalSaved += cachedCandles.size();
-                } catch (Exception e) {
-                    // Игнорируем ошибки дубликатов - это нормально с уникальным индексом
-                    if (e.getMessage().contains("duplicate") || e.getMessage().contains("unique")) {
-                        log.info("⚠️ ДУБЛИ: Проигнорировано {} дублированных свечей в батче", cachedCandles.size());
-                        // Считаем как сохраненные для статистики (они уже есть в БД)
-                        totalSaved += cachedCandles.size(); 
-                    } else {
-                        throw e; // Другие ошибки перебрасываем
+                // ИСПРАВЛЕНО: Используем INSERT ... ON CONFLICT DO NOTHING для быстрого игнорирования дубликатов
+                for (CachedCandle cachedCandle : cachedCandles) {
+                    try {
+                        cachedCandleRepository.insertIgnoreDuplicates(
+                                cachedCandle.getTicker(),
+                                cachedCandle.getTimeframe(), 
+                                cachedCandle.getExchange(),
+                                cachedCandle.getTimestamp(),
+                                cachedCandle.getOpenPrice(),
+                                cachedCandle.getHighPrice(),
+                                cachedCandle.getLowPrice(),
+                                cachedCandle.getClosePrice(),
+                                cachedCandle.getVolume(),
+                                cachedCandle.getIsValid()
+                        );
+                        totalSaved++;
+                    } catch (Exception e) {
+                        log.warn("❌ ОШИБКА: Не удалось сохранить свечу для {}: {}", ticker, e.getMessage());
+                        // Продолжаем со следующей свечей без прерывания транзакции
                     }
                 }
 
@@ -95,17 +103,24 @@ public class CandleTransactionService {
             if (!newCandles.isEmpty()) {
                 // Сохраняем батчами для больших объемов
                 int batchSize = 1000;
-                for (int i = 0; i < newCandles.size(); i += batchSize) {
-                    List<CachedCandle> batch = newCandles.subList(i, Math.min(i + batchSize, newCandles.size()));
+                // ИСПРАВЛЕНО: Используем INSERT ... ON CONFLICT DO NOTHING для быстрого обновления
+                for (CachedCandle cachedCandle : newCandles) {
                     try {
-                        cachedCandleRepository.saveAll(batch);
+                        cachedCandleRepository.insertIgnoreDuplicates(
+                                cachedCandle.getTicker(),
+                                cachedCandle.getTimeframe(), 
+                                cachedCandle.getExchange(),
+                                cachedCandle.getTimestamp(),
+                                cachedCandle.getOpenPrice(),
+                                cachedCandle.getHighPrice(),
+                                cachedCandle.getLowPrice(),
+                                cachedCandle.getClosePrice(),
+                                cachedCandle.getVolume(),
+                                cachedCandle.getIsValid()
+                        );
                     } catch (Exception e) {
-                        // Игнорируем ошибки дубликатов - это нормально
-                        if (e.getMessage().contains("duplicate") || e.getMessage().contains("unique")) {
-                            log.info("⚠️ ДУБЛИ: Проигнорировано {} дублированных свечей в батче", batch.size());
-                        } else {
-                            throw e; // Другие ошибки перебрасываем
-                        }
+                        log.warn("❌ ОШИБКА: Не удалось обновить свечу для {}: {}", ticker, e.getMessage());
+                        // Продолжаем со следующей свечей
                     }
                 }
                 log.info("💾 ТРАНЗАКЦИЯ: Попытка добавить {} новых свечей", newCandles.size());
