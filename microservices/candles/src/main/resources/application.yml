@@ -12,18 +12,6 @@ server:
 spring:
   application:
     name: candles-service
-  jpa:
-    properties:
-      hibernate:
-        jdbc:
-          batch_size: 100
-        order_inserts: true
-        order_updates: true
-        batch_versioned_data: true
-
-  profiles:
-    active: default
-
   # Database configuration for candle caching (PostgreSQL)
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -46,7 +34,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
     show-sql: false
+
+  profiles:
+    active: default
 
   jackson:
     time-zone: UTC
