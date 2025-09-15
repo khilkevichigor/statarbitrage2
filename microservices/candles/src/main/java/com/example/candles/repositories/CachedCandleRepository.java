@@ -84,23 +84,8 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
             @Param("exchange") String exchange,
             @Param("timeframe") String timeframe);
 
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM CachedCandle cc WHERE cc.ticker = :ticker " +
-            "AND cc.timeframe = :timeframe AND cc.exchange = :exchange")
-    void deleteByTickerTimeframeExchange(
-            @Param("ticker") String ticker,
-            @Param("timeframe") String timeframe,
-            @Param("exchange") String exchange);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM CachedCandle cc WHERE cc.exchange = :exchange " +
-            "AND cc.timeframe = :timeframe AND cc.timestamp < :beforeTimestamp")
-    void deleteOldCandlesByExchangeTimeframe(
-            @Param("exchange") String exchange,
-            @Param("timeframe") String timeframe,
-            @Param("beforeTimestamp") Long beforeTimestamp);
+    // УДАЛЕНО: deleteByTickerTimeframeExchange - больше не нужно удаление
+    // УДАЛЕНО: deleteOldCandlesByExchangeTimeframe - оставляем все исторические данные
 
     @Modifying
     @Transactional

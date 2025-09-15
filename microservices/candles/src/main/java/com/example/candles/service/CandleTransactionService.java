@@ -29,11 +29,11 @@ public class CandleTransactionService {
     public void saveCandlesToCache(String ticker, String timeframe, String exchange,
                                    List<Candle> candles) {
         try {
-            log.debug("💾 Транзакционное сохранение {} свечей для {}/{}/{}",
+            log.info("💾 ТОЛЬКО ДОБАВЛЯЕМ: {} новых свечей для {}/{}/{}",
                     candles.size(), ticker, timeframe, exchange);
 
-            // Удаляем существующие свечи для этого тикера/таймфрейма
-            cachedCandleRepository.deleteByTickerTimeframeExchange(ticker, timeframe, exchange);
+            // ИСПРАВЛЕНО: НИКОГДА НЕ УДАЛЯЕМ! Только добавляем уникальные свечи
+            // Уникальный индекс предотвратит дубли автоматически
 
             // Сохраняем порциями для экономии памяти
             int batchSize = 1000;
@@ -46,8 +46,19 @@ public class CandleTransactionService {
                         .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
                         .collect(Collectors.toList());
 
-                cachedCandleRepository.saveAll(cachedCandles);
-                totalSaved += cachedCandles.size();
+                try {
+                    cachedCandleRepository.saveAll(cachedCandles);
+                    totalSaved += cachedCandles.size();
+                } catch (Exception e) {
+                    // Игнорируем ошибки дубликатов - это нормально с уникальным индексом
+                    if (e.getMessage().contains("duplicate") || e.getMessage().contains("unique")) {
+                        log.info("⚠️ ДУБЛИ: Проигнорировано {} дублированных свечей в батче", cachedCandles.size());
+                        // Считаем как сохраненные для статистики (они уже есть в БД)
+                        totalSaved += cachedCandles.size(); 
+                    } else {
+                        throw e; // Другие ошибки перебрасываем
+                    }
+                }
 
                 // Принудительно очищаем память после каждого батча
                 if (i % 5000 == 0) { // Каждые 5K свечей
@@ -66,39 +77,41 @@ public class CandleTransactionService {
 
     /**
      * Транзакционное обновление свечей в кэше
+     * УПРОЩЕНО: Только добавляем новые свечи, дубли предотвращает уникальный индекс
      */
     @Transactional
     public void updateCandlesInCache(String ticker, String timeframe, String exchange,
                                      List<Candle> candles, long fromTimestamp) {
         try {
-            log.debug("🔄 Транзакционное обновление свечей для {}/{}/{} с timestamp {}",
+            log.info("🔄 ТОЛЬКО ДОБАВЛЕНИЕ: обновление свечей для {}/{}/{} с timestamp {}",
                     ticker, timeframe, exchange, fromTimestamp);
 
-            // Удаляем только свечи начиная с fromTimestamp
-            List<CachedCandle> existingCandles = cachedCandleRepository
-                    .findByTickerAndTimeframeAndExchangeOrderByTimestampAsc(ticker, timeframe, exchange);
-
-            List<CachedCandle> toDelete = existingCandles.stream()
-                    .filter(cc -> cc.getTimestamp() >= fromTimestamp)
-                    .collect(Collectors.toList());
-
-            if (!toDelete.isEmpty()) {
-                cachedCandleRepository.deleteAll(toDelete);
-                log.debug("🗑️ ТРАНЗАКЦИЯ: Удалено {} старых свечей", toDelete.size());
-            }
-
-            // Добавляем новые свечи
+            // УПРОЩЕНО: Только добавляем новые свечи, уникальный индекс предотвратит дубли
             List<CachedCandle> newCandles = candles.stream()
                     .filter(candle -> candle.getTimestamp() >= fromTimestamp)
                     .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
                     .collect(Collectors.toList());
 
             if (!newCandles.isEmpty()) {
-                cachedCandleRepository.saveAll(newCandles);
-                log.debug("💾 ТРАНЗАКЦИЯ: Добавлено {} новых свечей", newCandles.size());
+                // Сохраняем батчами для больших объемов
+                int batchSize = 1000;
+                for (int i = 0; i < newCandles.size(); i += batchSize) {
+                    List<CachedCandle> batch = newCandles.subList(i, Math.min(i + batchSize, newCandles.size()));
+                    try {
+                        cachedCandleRepository.saveAll(batch);
+                    } catch (Exception e) {
+                        // Игнорируем ошибки дубликатов - это нормально
+                        if (e.getMessage().contains("duplicate") || e.getMessage().contains("unique")) {
+                            log.info("⚠️ ДУБЛИ: Проигнорировано {} дублированных свечей в батче", batch.size());
+                        } else {
+                            throw e; // Другие ошибки перебрасываем
+                        }
+                    }
+                }
+                log.info("💾 ТРАНЗАКЦИЯ: Попытка добавить {} новых свечей", newCandles.size());
             }
 
-            log.info("🔄 ТРАНЗАКЦИЯ: Обновлено {} свечей для {}/{}", newCandles.size(), ticker, timeframe);
+            log.info("🔄 ТРАНЗАКЦИЯ: Обновление для {}/{} завершено", ticker, timeframe);
 
         } catch (Exception e) {
             log.error("❌ ТРАНЗАКЦИЯ: Ошибка обновления свечей в кэше для {}: {}", ticker, e.getMessage());

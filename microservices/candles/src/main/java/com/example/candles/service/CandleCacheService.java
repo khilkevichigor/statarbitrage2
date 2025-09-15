@@ -11,7 +11,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,9 @@ public class CandleCacheService {
 
     @Value("${app.candle-cache.default-exchange:OKX}")
     private String defaultExchange;
+    
+    // Пул потоков для параллельной загрузки
+    private final ExecutorService executorService = Executors.newFixedThreadPool(8);
 
     private final Map<String, Integer> defaultCachePeriods = Map.of(
             "1m", 365,    // 1 год для мелких таймфреймов
@@ -131,8 +138,8 @@ public class CandleCacheService {
                 Thread.sleep(500);
             }
 
-            // Очистка старых свечей
-            cleanupOldCandles(exchange);
+            // ИСПРАВЛЕНО: НЕ удаляем старые свечи - держим все данные под рукой
+            log.info("📚 Все исторические данные сохранены для быстрого доступа");
 
             log.info("✅ Ежедневное обновление завершено для биржи {}", exchange);
 
@@ -184,35 +191,52 @@ public class CandleCacheService {
         long currentTimestamp = System.currentTimeMillis() / 1000;
         int candleLimit = calculateCandleLimit(timeframe, periodDays);
 
-        log.info("📈 Предзагрузка {} свечей типа {} для {} тикеров",
+        log.info("📈 МНОГОПОТОЧНАЯ предзагрузка {} свечей типа {} для {} тикеров",
                 candleLimit, timeframe, tickers.size());
 
-        // Динамический размер батча в зависимости от объема данных
-        int batchSize = getBatchSizeForTimeframe(timeframe, candleLimit);
+        // Уменьшаем размер батча для многопоточности
+        int batchSize = Math.max(1, getBatchSizeForTimeframe(timeframe, candleLimit) / 2);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        
         for (int i = 0; i < tickers.size(); i += batchSize) {
-            List<String> batch = tickers.subList(i, Math.min(i + batchSize, tickers.size()));
+            final int batchIndex = i;
+            final List<String> batch = tickers.subList(i, Math.min(i + batchSize, tickers.size()));
 
-            try {
-                Map<String, List<Candle>> candlesMap = loadCandlesForBatch(batch, timeframe, candleLimit);
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                try {
+                    log.info("🚀 ПОТОК: Обрабатываем батч {}-{}", batchIndex + 1,
+                            Math.min(batchIndex + batchSize, tickers.size()));
+                    
+                    Map<String, List<Candle>> candlesMap = loadCandlesForBatch(batch, timeframe, candleLimit);
 
-                // Сохраняем в кэш
-                for (Map.Entry<String, List<Candle>> entry : candlesMap.entrySet()) {
-                    String ticker = entry.getKey();
-                    List<Candle> candles = entry.getValue();
+                    // Сохраняем в кэш каждый тикер отдельно
+                    for (Map.Entry<String, List<Candle>> entry : candlesMap.entrySet()) {
+                        String ticker = entry.getKey();
+                        List<Candle> candles = entry.getValue();
 
-                    candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, candles);
+                        candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, candles);
+                        
+                        log.info("✅ ПОТОК: Сохранен {} с {} свечами", ticker, candles.size());
+                    }
+
+                    log.info("✅ ПОТОК: Обработан батч {}-{} из {} тикеров", batchIndex + 1,
+                            Math.min(batchIndex + batchSize, tickers.size()), tickers.size());
+
+                } catch (Exception e) {
+                    log.error("❌ ПОТОК: Ошибка обработки батча {}-{}: {}", batchIndex + 1,
+                            Math.min(batchIndex + batchSize, tickers.size()), e.getMessage(), e);
                 }
-
-                log.info("✅ Обработан батч {}-{} из {} тикеров", i + 1,
-                        Math.min(i + batchSize, tickers.size()), tickers.size());
-
-                // Пауза между батчами
-                Thread.sleep(200);
-
-            } catch (Exception e) {
-                log.warn("⚠️ Ошибка обработки батча {}-{}: {}", i + 1,
-                        Math.min(i + batchSize, tickers.size()), e.getMessage());
-            }
+            }, executorService);
+            
+            futures.add(future);
+        }
+        
+        // Ждем завершения всех потоков
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+            log.info("🏁 ВСЕ ПОТОКИ: Завершена многопоточная обработка {} тикеров", tickers.size());
+        } catch (Exception e) {
+            log.error("❌ ВСЕ ПОТОКИ: Ошибка при ожидании завершения потоков: {}", e.getMessage(), e);
         }
     }
 
@@ -274,24 +298,6 @@ public class CandleCacheService {
     }
 
 
-    private void cleanupOldCandles(String exchange) {
-        log.info("🧹 Очистка старых свечей для биржи {}", exchange);
-
-        try {
-            for (Map.Entry<String, Integer> entry : defaultCachePeriods.entrySet()) {
-                String timeframe = entry.getKey();
-                int periodDays = entry.getValue();
-
-                long cutoffTimestamp = System.currentTimeMillis() / 1000 - ((long) periodDays * 24 * 3600);
-                cachedCandleRepository.deleteOldCandlesByExchangeTimeframe(exchange, timeframe, cutoffTimestamp);
-
-                log.debug("🗑️ Удалены старые свечи {} старше {} дней", timeframe, periodDays);
-            }
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка очистки старых свечей: {}", e.getMessage(), e);
-        }
-    }
 
     private long calculateFromTimestamp(long currentTimestamp, String timeframe, int candleLimit) {
         int timeframeSeconds = getTimeframeInSeconds(timeframe);

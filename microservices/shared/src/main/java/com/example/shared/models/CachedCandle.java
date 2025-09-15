@@ -9,16 +9,22 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "cached_candles", indexes = {
-        @Index(name = "idx_cached_candles_ticker_timeframe_exchange",
-                columnList = "ticker, timeframe, exchange"),
-        @Index(name = "idx_cached_candles_timestamp",
-                columnList = "timestamp"),
-        @Index(name = "idx_cached_candles_ticker_timeframe_timestamp",
-                columnList = "ticker, timeframe, timestamp"),
-        @Index(name = "idx_cached_candles_exchange",
-                columnList = "exchange")
-})
+@Table(name = "cached_candles", 
+        indexes = {
+            @Index(name = "idx_cached_candles_ticker_timeframe_exchange",
+                    columnList = "ticker, timeframe, exchange"),
+            @Index(name = "idx_cached_candles_timestamp",
+                    columnList = "timestamp"),
+            @Index(name = "idx_cached_candles_ticker_timeframe_timestamp",
+                    columnList = "ticker, timeframe, timestamp"),
+            @Index(name = "idx_cached_candles_exchange",
+                    columnList = "exchange")
+        },
+        uniqueConstraints = {
+            @UniqueConstraint(name = "uk_cached_candles_ticker_timeframe_exchange_timestamp",
+                    columnNames = {"ticker", "timeframe", "exchange", "timestamp"})
+        }
+)
 @Data
 @Builder
 @AllArgsConstructor
