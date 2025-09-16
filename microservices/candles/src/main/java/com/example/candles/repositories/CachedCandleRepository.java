@@ -30,6 +30,14 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
             @Param("fromTimestamp") Long fromTimestamp);
 
     @Query("SELECT cc FROM CachedCandle cc WHERE cc.ticker = :ticker AND cc.timeframe = :timeframe " +
+            "AND cc.exchange = :exchange ORDER BY cc.timestamp DESC LIMIT :limit")
+    List<CachedCandle> findLatestByTickerTimeframeExchange(
+            @Param("ticker") String ticker,
+            @Param("timeframe") String timeframe,
+            @Param("exchange") String exchange,
+            @Param("limit") int limit);
+
+    @Query("SELECT cc FROM CachedCandle cc WHERE cc.ticker = :ticker AND cc.timeframe = :timeframe " +
             "AND cc.exchange = :exchange AND cc.timestamp <= :toTimestamp ORDER BY cc.timestamp DESC")
     List<CachedCandle> findByTickerTimeframeExchangeToTimestamp(
             @Param("ticker") String ticker,

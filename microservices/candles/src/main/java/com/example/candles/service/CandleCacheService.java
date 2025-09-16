@@ -60,13 +60,19 @@ public class CandleCacheService {
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
 
         // ЧЕТКАЯ ЛОГИКА: Проверяем что есть в кэше, если меньше чем запрошено - догружаем
+        log.info("🔍 DEBUG: Ищем свечи с timestamp >= {} ({}) для {} тикеров", 
+                requiredFromTimestamp, new java.util.Date(requiredFromTimestamp * 1000), tickers.size());
+        
         for (String ticker : tickers) {
-            List<CachedCandle> cachedCandles = cachedCandleRepository
-                    .findByTickerTimeframeExchangeFromTimestamp(ticker, timeframe, exchange, requiredFromTimestamp);
+            // ИСПРАВЛЕНО: Сначала проверяем последние N свечей для этого тикера
+            List<CachedCandle> latestCandles = cachedCandleRepository
+                    .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, candleLimit);
 
-            if (!cachedCandles.isEmpty()) {
+            log.debug("🔍 DEBUG: Для {} найдено {} последних свечей в кэше", ticker, latestCandles.size());
+
+            if (!latestCandles.isEmpty()) {
                 // Есть данные в кэше - всегда их берем
-                List<Candle> candlesList = cachedCandles.stream()
+                List<Candle> candlesList = latestCandles.stream()
                         .map(CachedCandle::toCandle)
                         .sorted(Comparator.comparing(Candle::getTimestamp))
                         .collect(Collectors.toList());
@@ -74,13 +80,13 @@ public class CandleCacheService {
                 result.put(ticker, candlesList);
                 
                 // ЧЕТКО: Если данных меньше запрошенного количества - догружаем недостающие
-                if (cachedCandles.size() < candleLimit) {
-                    int missing = candleLimit - cachedCandles.size();
+                if (latestCandles.size() < candleLimit) {
+                    int missing = candleLimit - latestCandles.size();
                     missingCandlesCount.put(ticker, missing);
                     log.debug("🔄 Кэш PARTIAL: {} - есть {}, нужно {}, догрузим {}", 
-                            ticker, cachedCandles.size(), candleLimit, missing);
+                            ticker, latestCandles.size(), candleLimit, missing);
                 } else {
-                    log.debug("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, cachedCandles.size());
+                    log.debug("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, latestCandles.size());
                 }
             } else {
                 // Нет данных в кэше - загружаем полное количество
