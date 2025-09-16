@@ -30,12 +30,12 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
             @Param("fromTimestamp") Long fromTimestamp);
 
     @Query("SELECT cc FROM CachedCandle cc WHERE cc.ticker = :ticker AND cc.timeframe = :timeframe " +
-            "AND cc.exchange = :exchange ORDER BY cc.timestamp DESC LIMIT :limit")
+            "AND cc.exchange = :exchange ORDER BY cc.timestamp DESC")
     List<CachedCandle> findLatestByTickerTimeframeExchange(
             @Param("ticker") String ticker,
             @Param("timeframe") String timeframe,
             @Param("exchange") String exchange,
-            @Param("limit") int limit);
+            org.springframework.data.domain.Pageable pageable);
 
     @Query("SELECT cc FROM CachedCandle cc WHERE cc.ticker = :ticker AND cc.timeframe = :timeframe " +
             "AND cc.exchange = :exchange AND cc.timestamp <= :toTimestamp ORDER BY cc.timestamp DESC")
@@ -91,6 +91,14 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
     List<Object[]> getCandleCountByTickerForTimeframe(
             @Param("exchange") String exchange,
             @Param("timeframe") String timeframe);
+
+    // Простой подсчет записей для отладки
+    @Query("SELECT COUNT(cc) FROM CachedCandle cc WHERE cc.ticker = :ticker " +
+            "AND cc.timeframe = :timeframe AND cc.exchange = :exchange")
+    Long countByTickerTimeframeExchangeSimple(
+            @Param("ticker") String ticker,
+            @Param("timeframe") String timeframe,
+            @Param("exchange") String exchange);
 
     // УДАЛЕНО: deleteByTickerTimeframeExchange - больше не нужно удаление
     // УДАЛЕНО: deleteOldCandlesByExchangeTimeframe - оставляем все исторические данные

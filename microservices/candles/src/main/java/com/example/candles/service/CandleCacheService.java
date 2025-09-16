@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.Comparator;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -60,15 +61,15 @@ public class CandleCacheService {
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
 
         // ЧЕТКАЯ ЛОГИКА: Проверяем что есть в кэше, если меньше чем запрошено - догружаем
-        log.info("🔍 DEBUG: Ищем свечи с timestamp >= {} ({}) для {} тикеров", 
-                requiredFromTimestamp, new java.util.Date(requiredFromTimestamp * 1000), tickers.size());
         
         for (String ticker : tickers) {
-            // ИСПРАВЛЕНО: Сначала проверяем последние N свечей для этого тикера
+            // ИСПРАВЛЕНО: Проверяем последние N свечей для этого тикера
             List<CachedCandle> latestCandles = cachedCandleRepository
-                    .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, candleLimit);
+                    .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
+                            PageRequest.of(0, candleLimit));
 
-            log.debug("🔍 DEBUG: Для {} найдено {} последних свечей в кэше", ticker, latestCandles.size());
+            log.debug("🔍 DEBUG: Для {} найдено {} последних свечей в кэше (запрошено {})", 
+                    ticker, latestCandles.size(), candleLimit);
 
             if (!latestCandles.isEmpty()) {
                 // Есть данные в кэше - всегда их берем
