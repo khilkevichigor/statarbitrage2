@@ -121,7 +121,16 @@ public class CandlesService {
                 
             } else {
                 log.info("⚠️ КЭШИРОВАНИЕ ОТКЛЮЧЕНО: Используем прямое обращение к API");
-                result = getCandlesDirectFromAPI(settings, swapTickers, totalLimit);
+                // При отключенном кэше используем только базовый метод (ограничение 300 свечей)
+                if (totalLimit <= 300) {
+                    result = getCandles(settings, swapTickers, true);
+                } else {
+                    log.warn("❌ ОГРАНИЧЕНИЕ: При отключенном кэше максимум 300 свечей. Запрошено: {}", totalLimit);
+                    Settings limitedSettings = new Settings();
+                    limitedSettings.copyFrom(settings);
+                    limitedSettings.setCandleLimit(300);
+                    result = getCandles(limitedSettings, swapTickers, true);
+                }
             }
             
             // Финальная валидация и логирование
@@ -130,28 +139,13 @@ public class CandlesService {
             
         } catch (Exception e) {
             log.error("💥 КРИТИЧЕСКАЯ ОШИБКА в getCandlesExtended: {}", e.getMessage(), e);
-            
-            // FALLBACK: Пытаемся получить хотя бы базовые данные
-            log.warn("🛡️ АВАРИЙНЫЙ РЕЖИМ: Fallback к прямому API без кэша");
-            result = getCandlesDirectFromAPI(settings, swapTickers, Math.min(300, totalLimit));
+            // Возвращаем пустой результат при ошибке
+            result = new HashMap<>();
         }
         
         return result;
     }
     
-    /**
-     * Получение свечей напрямую из API (fallback метод)
-     */
-    private Map<String, List<Candle>> getCandlesDirectFromAPI(Settings settings, List<String> swapTickers, int totalLimit) {
-        log.info("📡 ПРЯМОЙ API ЗАПРОС: {} свечей для {} тикеров", totalLimit, swapTickers.size());
-        
-        if (totalLimit <= 300) {
-            return getCandles(settings, swapTickers, true);
-        }
-        
-        // Для больших лимитов - старая логика пагинации
-        return getCandlesWithPagination(settings, swapTickers, totalLimit);
-    }
     
     /**
      * Валидация результатов кэша
@@ -221,75 +215,6 @@ public class CandlesService {
         }
     }
     
-    /**
-     * Старая логика пагинации (fallback для прямых API запросов)
-     */
-    private Map<String, List<Candle>> getCandlesWithPagination(Settings settings, List<String> swapTickers, int totalLimit) {
-        log.info("📡 ПАГИНАЦИЯ API: {} свечей для {} тикеров", totalLimit, swapTickers.size());
-        
-        Map<String, List<Candle>> result = new HashMap<>();
-        int batchSize = 300; // Максимум для OKX API
-        
-        try {
-            // Получаем первую пачку
-            Settings initialSettings = new Settings();
-            initialSettings.copyFrom(settings);
-            initialSettings.setCandleLimit(Math.min(batchSize, totalLimit));
-            
-            Map<String, List<Candle>> initialBatch = getCandles(initialSettings, swapTickers, true);
-            
-            if (initialBatch.isEmpty()) {
-                log.warn("⚠️ ПАГИНАЦИЯ: Не удалось получить начальные данные");
-                return result;
-            }
-            
-            // Для каждого тикера собираем дополнительные данные
-            for (Map.Entry<String, List<Candle>> entry : initialBatch.entrySet()) {
-                String ticker = entry.getKey();
-                List<Candle> allCandles = new ArrayList<>(entry.getValue());
-                
-                if (allCandles.isEmpty()) continue;
-                
-                int remainingCandles = totalLimit - allCandles.size();
-                
-                // Добавляем исторические данные
-                while (remainingCandles > 0 && allCandles.size() < totalLimit) {
-                    try {
-                        long oldestTimestamp = allCandles.get(0).getTimestamp();
-                        int batchLimit = Math.min(batchSize, remainingCandles);
-                        
-                        List<Candle> historicalBatch = getCandlesPaginated(ticker, settings.getTimeframe(), 
-                                batchLimit, oldestTimestamp);
-                        
-                        if (historicalBatch.isEmpty()) {
-                            break;
-                        }
-                        
-                        allCandles.addAll(0, historicalBatch);
-                        remainingCandles -= historicalBatch.size();
-                        
-                        Thread.sleep(150); // Пауза между запросами
-                        
-                    } catch (Exception e) {
-                        log.warn("⚠️ ПАГИНАЦИЯ: Ошибка для {}: {}", ticker, e.getMessage());
-                        break;
-                    }
-                }
-                
-                // Обрезаем до нужного размера
-                if (allCandles.size() > totalLimit) {
-                    allCandles = allCandles.subList(allCandles.size() - totalLimit, allCandles.size());
-                }
-                
-                result.put(ticker, allCandles);
-            }
-            
-        } catch (Exception e) {
-            log.error("❌ ПАГИНАЦИЯ: Ошибка {}", e.getMessage(), e);
-        }
-        
-        return result;
-    }
 
     /**
      * Получение исторических свечей с использованием параметра before для пагинации

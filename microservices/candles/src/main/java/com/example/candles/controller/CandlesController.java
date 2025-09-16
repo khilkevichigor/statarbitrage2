@@ -2,6 +2,7 @@ package com.example.candles.controller;
 
 import com.example.candles.client.OkxFeignClient;
 import com.example.candles.service.CandlesService;
+import com.example.candles.service.CandleCacheService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.ExtendedCandlesRequest;
@@ -23,6 +24,7 @@ import java.util.Map;
 public class CandlesController {
 
     private final CandlesService candlesService;
+    private final CandleCacheService candleCacheService;
     private final OkxFeignClient okxFeignClient;
 
     @PostMapping("/applicable-map")
@@ -78,18 +80,15 @@ public class CandlesController {
     }
 
     /**
-     * Расширенный эндпоинт для получения большого количества свечей с пагинацией
-     * Поддерживает получение более 300 свечей через несколько запросов к OKX API
+     * ИСПРАВЛЕНО: Быстрый эндпоинт получения свечей ИЗ КЭША - АК-47 подход! 
+     * Больше никаких медленных запросов к OKX API - только из локальной базы
      */
     @PostMapping("/all-extended")
     public Map<String, List<Candle>> getAllCandlesExtended(@RequestBody ExtendedCandlesRequest request) {
-        log.info("🔍 Расширенный запрос {} свечей для таймфрейма {}...",
+        log.info("⚡ АК-47: Быстрый запрос {} свечей для таймфрейма {} ИЗ КЭША",
                 request.getCandleLimit(), request.getTimeframe());
 
         long startTime = System.currentTimeMillis();
-
-        // Конвертируем ExtendedCandlesRequest в Settings
-        Settings settings = convertToSettings(request);
 
         // Получаем тикеры: используем переданный список или все доступные
         List<String> swapTickers;
@@ -110,18 +109,23 @@ public class CandlesController {
             }
         }
 
-        // Используем расширенный сервис для получения большого количества свечей
-        Map<String, List<Candle>> result = candlesService.getCandlesExtended(settings, swapTickers, request.getCandleLimit());
+        // ИСПРАВЛЕНО: Используем ТОЛЬКО кэш - АК-47 подход!
+        Map<String, List<Candle>> result = candleCacheService.getCachedCandles(
+                swapTickers, 
+                request.getTimeframe(), 
+                request.getCandleLimit(), 
+                "OKX"
+        );
 
         long elapsed = System.currentTimeMillis() - startTime;
 
         if (result != null && !result.isEmpty()) {
             int totalCandles = result.values().stream().mapToInt(List::size).sum();
             int avgCandles = totalCandles / result.size();
-            log.info("✅ Расширенный запрос завершен за {} сек. Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
-                    String.format("%.2f", elapsed / 1000.0), result.size(), avgCandles, totalCandles);
+            log.info("⚡ АК-47: Запрос ИЗ КЭША завершен за {} мс! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
+                    elapsed, result.size(), avgCandles, totalCandles);
         } else {
-            log.warn("⚠️ Расширенный запрос не вернул данных");
+            log.warn("⚠️ АК-47: Кэш не содержит данных - проверьте работу предзагрузки!");
         }
 
         return result != null ? result : Map.of();
