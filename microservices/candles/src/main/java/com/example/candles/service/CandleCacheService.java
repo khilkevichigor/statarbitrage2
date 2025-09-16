@@ -323,15 +323,18 @@ public class CandleCacheService {
                         // Если есть данные в кэше - определяем самую старую дату и загружаем данные до неё
                         List<Candle> loadedCandles;
                         if (!existingCandles.isEmpty()) {
-                            // Есть данные - загружаем только старые недостающие
+                            // Есть данные - загружаем только старые недостающие ДО самой старой записи
                             long oldestTimestamp = existingCandles.stream()
                                     .mapToLong(CachedCandle::getTimestamp)
                                     .min().orElse(System.currentTimeMillis() / 1000);
                             
-                            log.debug("🔄 ПОТОК: Для {} загружаем данные до {}", ticker, new java.util.Date(oldestTimestamp * 1000));
-                            loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
+                            log.debug("🔄 ПОТОК: Для {} загружаем {} исторических свечей до {}", 
+                                    ticker, missingCount, new java.util.Date(oldestTimestamp * 1000));
+                            
+                            // ИСПРАВЛЕНО: Загружаем исторические данные ДО oldestTimestamp
+                            loadedCandles = loadCandlesBeforeTimestamp(ticker, timeframe, missingCount, oldestTimestamp);
                         } else {
-                            // Нет данных - загружаем полное количество
+                            // Нет данных - загружаем полное количество (последние свечи)
                             log.debug("🔄 ПОТОК: Для {} загружаем полное количество {} свечей", ticker, missingCount);
                             loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
                         }
@@ -527,6 +530,65 @@ public class CandleCacheService {
 
         } catch (Exception e) {
             log.error("❌ Ошибка пагинации свечей для {}: {}", ticker, e.getMessage(), e);
+        }
+
+        return allCandles;
+    }
+
+    /**
+     * Загружает исторические свечи ДО указанного timestamp (исправляет циклическую загрузку)
+     */
+    private List<Candle> loadCandlesBeforeTimestamp(String ticker, String timeframe, int totalLimit, long beforeTimestamp) {
+        List<Candle> allCandles = new ArrayList<>();
+        int batchSize = 300; // Максимум для OKX API
+        Long currentBeforeTimestamp = beforeTimestamp;
+
+        try {
+            log.info("🔍 ИСТОРИЧЕСКИЕ: Загружаем {} свечей для {} ДО {}", 
+                    totalLimit, ticker, new java.util.Date(beforeTimestamp * 1000));
+
+            while (allCandles.size() < totalLimit) {
+                int remainingCandles = totalLimit - allCandles.size();
+                int currentBatchSize = Math.min(batchSize, remainingCandles);
+
+                // ИСПРАВЛЕНО: Всегда загружаем исторические данные ДО указанного timestamp
+                List<Candle> batchCandles = okxFeignClient.getCandlesBefore(ticker, timeframe, currentBatchSize, currentBeforeTimestamp);
+
+                if (batchCandles == null || batchCandles.isEmpty()) {
+                    log.debug("📥 ИСТОРИЧЕСКИЕ: Нет больше данных до {}", new java.util.Date(currentBeforeTimestamp * 1000));
+                    break; // Больше нет исторических данных
+                }
+
+                // Фильтруем свечи которые действительно старше нашего порога
+                List<Candle> filteredCandles = batchCandles.stream()
+                        .filter(candle -> candle.getTimestamp() < beforeTimestamp)
+                        .collect(Collectors.toList());
+
+                if (filteredCandles.isEmpty()) {
+                    log.debug("📥 ИСТОРИЧЕСКИЕ: Все полученные свечи новее порога {}", new java.util.Date(beforeTimestamp * 1000));
+                    break;
+                }
+
+                allCandles.addAll(filteredCandles);
+
+                // Устанавливаем timestamp для следующего запроса (самая старая из полученных)
+                currentBeforeTimestamp = filteredCandles.get(filteredCandles.size() - 1).getTimestamp();
+
+                // Пауза между запросами для соблюдения rate limit
+                Thread.sleep(120);
+
+                log.debug("📥 ИСТОРИЧЕСКИЕ: Загружено {} исторических свечей для {} (всего: {})",
+                        filteredCandles.size(), ticker, allCandles.size());
+            }
+
+            // Сортируем по времени (от старых к новым)
+            allCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+            log.info("✅ ИСТОРИЧЕСКИЕ: Загружено {} исторических свечей для {} до {}", 
+                    allCandles.size(), ticker, new java.util.Date(beforeTimestamp * 1000));
+
+        } catch (Exception e) {
+            log.error("❌ ИСТОРИЧЕСКИЕ: Ошибка загрузки исторических свечей для {}: {}", ticker, e.getMessage(), e);
         }
 
         return allCandles;
