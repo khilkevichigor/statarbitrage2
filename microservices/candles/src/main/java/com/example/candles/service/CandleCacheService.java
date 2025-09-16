@@ -56,6 +56,7 @@ public class CandleCacheService {
 
         Map<String, List<Candle>> result = new ConcurrentHashMap<>();
         Map<String, Integer> missingCandlesCount = new ConcurrentHashMap<>();
+        int cacheHits = 0; // Счетчик тикеров полученных из кэша
 
         long currentTimestamp = System.currentTimeMillis() / 1000;
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
@@ -79,6 +80,7 @@ public class CandleCacheService {
                         .collect(Collectors.toList());
                         
                 result.put(ticker, candlesList);
+                cacheHits++; // Увеличиваем счетчик кэш-хитов
                 
                 // ЧЕТКО: Если данных меньше запрошенного количества - догружаем недостающие
                 if (latestCandles.size() < candleLimit) {
@@ -104,8 +106,8 @@ public class CandleCacheService {
             result.putAll(missingCandles);
         }
 
-        log.info("✅ Возвращаем свечи: {} тикеров (кэш: {}, загружено: {})",
-                result.size(), tickers.size() - missingCandlesCount.size(), missingCandlesCount.size());
+        log.info("✅ Возвращаем свечи: {} тикеров (кэш: {}, догружено: {})",
+                result.size(), cacheHits, missingCandlesCount.size());
 
         return result;
     }
