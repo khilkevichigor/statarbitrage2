@@ -63,7 +63,9 @@ public class CandleCacheService {
 
         // ЧЕТКАЯ ЛОГИКА: Проверяем что есть в кэше, если меньше чем запрошено - догружаем
         
+        int debugCount = 0; // Для отладки - покажем первые 5 тикеров
         for (String ticker : tickers) {
+            if (debugCount < 5) debugCount++;
             // ИСПРАВЛЕНО: Проверяем последние N свечей для этого тикера
             List<CachedCandle> latestCandles = cachedCandleRepository
                     .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
@@ -86,10 +88,14 @@ public class CandleCacheService {
                 if (latestCandles.size() < candleLimit) {
                     int missing = candleLimit - latestCandles.size();
                     missingCandlesCount.put(ticker, missing);
-                    log.debug("🔄 Кэш PARTIAL: {} - есть {}, нужно {}, догрузим {}", 
-                            ticker, latestCandles.size(), candleLimit, missing);
+                    if (debugCount <= 5) {
+                        log.info("🔄 Кэш PARTIAL: {} - есть {}, нужно {}, догрузим {}", 
+                                ticker, latestCandles.size(), candleLimit, missing);
+                    }
                 } else {
-                    log.debug("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, latestCandles.size());
+                    if (debugCount <= 5) {
+                        log.info("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, latestCandles.size());
+                    }
                 }
             } else {
                 // Нет данных в кэше - загружаем полное количество
@@ -331,13 +337,27 @@ public class CandleCacheService {
                         }
 
                         if (!loadedCandles.isEmpty()) {
+                            // ДИАГНОСТИКА: Проверяем количество ДО сохранения (только для первого тикера)
+                            if (ticker.equals("1INCH-USDT-SWAP")) {
+                                Long countBefore = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
+                                log.info("🔍 ДИАГНОСТИКА: {} - ДО сохранения: {} записей, загружаем: {} свечей", 
+                                        ticker, countBefore, loadedCandles.size());
+                            }
+                            
                             // Сохраняем в кэш - БД сама отклонит дубликаты через уникальный индекс
                             candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, loadedCandles);
+
+                            // ДИАГНОСТИКА: Проверяем количество ПОСЛЕ сохранения (только для первого тикера)
+                            if (ticker.equals("1INCH-USDT-SWAP")) {
+                                Long countAfter = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
+                                log.info("🔍 ДИАГНОСТИКА: {} - ПОСЛЕ сохранения: {} записей", ticker, countAfter);
+                            }
 
                             // ПОЛУЧАЕМ АКТУАЛЬНЫЕ ДАННЫЕ ИЗ КЭША ПОСЛЕ СОХРАНЕНИЯ
                             // БД сама обеспечивает уникальность, дубликатов не будет
                             List<CachedCandle> updatedCachedCandles = cachedCandleRepository
-                                    .findByTickerTimeframeExchangeFromTimestamp(ticker, timeframe, exchange, requiredFromTimestamp);
+                                    .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
+                                            PageRequest.of(0, missingCount + existingCandles.size()));
 
                             List<Candle> finalCandles = updatedCachedCandles.stream()
                                     .map(CachedCandle::toCandle)
