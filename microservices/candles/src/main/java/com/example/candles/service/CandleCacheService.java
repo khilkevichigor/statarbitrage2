@@ -284,59 +284,76 @@ public class CandleCacheService {
     private Map<String, List<Candle>> loadMissingCandles(Map<String, Integer> missingCandlesCount,
                                                          String timeframe, String exchange,
                                                          long requiredFromTimestamp) {
-        Map<String, List<Candle>> result = new HashMap<>();
+        Map<String, List<Candle>> result = new ConcurrentHashMap<>();
 
         try {
-            // ИСПРАВЛЕНО: Загружаем только недостающие данные для каждого тикера индивидуально
+            log.info("🚀 МНОГОПОТОЧНАЯ догрузка недостающих свечей в 5 потоков для {} тикеров", 
+                    missingCandlesCount.size());
+
+            // ИСПРАВЛЕНО: Многопоточная загрузка недостающих данных в 5 потоков
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            
             for (Map.Entry<String, Integer> entry : missingCandlesCount.entrySet()) {
-                String ticker = entry.getKey();
-                int missingCount = entry.getValue();
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    String ticker = entry.getKey();
+                    int missingCount = entry.getValue();
 
-                try {
-                    log.debug("🔄 Загружаем {} недостающих свечей для {}", missingCount, ticker);
+                    try {
+                        log.debug("🔄 ПОТОК: Загружаем {} недостающих свечей для {}", missingCount, ticker);
 
-                    // Определяем какие именно свечи отсутствуют
-                    List<CachedCandle> existingCandles = cachedCandleRepository
-                            .findByTickerTimeframeExchangeFromTimestamp(ticker, timeframe, exchange, requiredFromTimestamp);
-
-                    // Если есть данные в кэше - определяем самую старую дату и загружаем данные до неё
-                    List<Candle> loadedCandles;
-                    if (!existingCandles.isEmpty()) {
-                        // Есть данные - загружаем только старые недостающие
-                        long oldestTimestamp = existingCandles.stream()
-                                .mapToLong(CachedCandle::getTimestamp)
-                                .min().orElse(System.currentTimeMillis() / 1000);
-                        
-                        log.debug("🔄 Для {} загружаем данные до {}", ticker, new java.util.Date(oldestTimestamp * 1000));
-                        loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
-                    } else {
-                        // Нет данных - загружаем полное количество
-                        log.debug("🔄 Для {} загружаем полное количество {} свечей", ticker, missingCount);
-                        loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
-                    }
-
-                    if (!loadedCandles.isEmpty()) {
-                        // Сохраняем в кэш - БД сама отклонит дубликаты через уникальный индекс
-                        candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, loadedCandles);
-
-                        // ПОЛУЧАЕМ АКТУАЛЬНЫЕ ДАННЫЕ ИЗ КЭША ПОСЛЕ СОХРАНЕНИЯ
-                        // БД сама обеспечивает уникальность, дубликатов не будет
-                        List<CachedCandle> updatedCachedCandles = cachedCandleRepository
+                        // Определяем какие именно свечи отсутствуют
+                        List<CachedCandle> existingCandles = cachedCandleRepository
                                 .findByTickerTimeframeExchangeFromTimestamp(ticker, timeframe, exchange, requiredFromTimestamp);
 
-                        List<Candle> finalCandles = updatedCachedCandles.stream()
-                                .map(CachedCandle::toCandle)
-                                .sorted(Comparator.comparing(Candle::getTimestamp))
-                                .collect(Collectors.toList());
+                        // Если есть данные в кэше - определяем самую старую дату и загружаем данные до неё
+                        List<Candle> loadedCandles;
+                        if (!existingCandles.isEmpty()) {
+                            // Есть данные - загружаем только старые недостающие
+                            long oldestTimestamp = existingCandles.stream()
+                                    .mapToLong(CachedCandle::getTimestamp)
+                                    .min().orElse(System.currentTimeMillis() / 1000);
+                            
+                            log.debug("🔄 ПОТОК: Для {} загружаем данные до {}", ticker, new java.util.Date(oldestTimestamp * 1000));
+                            loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
+                        } else {
+                            // Нет данных - загружаем полное количество
+                            log.debug("🔄 ПОТОК: Для {} загружаем полное количество {} свечей", ticker, missingCount);
+                            loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
+                        }
 
-                        result.put(ticker, finalCandles);
-                        log.debug("✅ Для {} получено {} свечей из кэша (после догрузки)",
-                                ticker, finalCandles.size());
+                        if (!loadedCandles.isEmpty()) {
+                            // Сохраняем в кэш - БД сама отклонит дубликаты через уникальный индекс
+                            candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, loadedCandles);
+
+                            // ПОЛУЧАЕМ АКТУАЛЬНЫЕ ДАННЫЕ ИЗ КЭША ПОСЛЕ СОХРАНЕНИЯ
+                            // БД сама обеспечивает уникальность, дубликатов не будет
+                            List<CachedCandle> updatedCachedCandles = cachedCandleRepository
+                                    .findByTickerTimeframeExchangeFromTimestamp(ticker, timeframe, exchange, requiredFromTimestamp);
+
+                            List<Candle> finalCandles = updatedCachedCandles.stream()
+                                    .map(CachedCandle::toCandle)
+                                    .sorted(Comparator.comparing(Candle::getTimestamp))
+                                    .collect(Collectors.toList());
+
+                            result.put(ticker, finalCandles);
+                            log.debug("✅ ПОТОК: Для {} получено {} свечей из кэша (после догрузки)",
+                                    ticker, finalCandles.size());
+                        }
+
+                    } catch (Exception e) {
+                        log.error("❌ ПОТОК: Ошибка загрузки для тикера {}: {}", ticker, e.getMessage());
                     }
+                }, executorService);
+                
+                futures.add(future);
+            }
 
-                } catch (Exception e) {
-                    log.error("❌ Ошибка загрузки для тикера {}: {}", ticker, e.getMessage());
-                }
+            // Ждем завершения всех потоков
+            try {
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+                log.info("🏁 ВСЕ 5 ПОТОКОВ: Завершена многопоточная догрузка {} тикеров", missingCandlesCount.size());
+            } catch (Exception e) {
+                log.error("❌ ВСЕ ПОТОКИ: Ошибка при ожидании завершения потоков догрузки: {}", e.getMessage(), e);
             }
 
         } catch (Exception e) {
