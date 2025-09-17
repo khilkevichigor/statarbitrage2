@@ -225,6 +225,46 @@ public class CandleCacheService {
         return stats;
     }
 
+    public void forceLoadCandlesCustom(String exchange, java.util.Set<String> timeframes, 
+                                      List<String> tickers, Integer threadCount, Integer periodDays) {
+        log.info("🎯 ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА: биржа={}, таймфреймы={}, тикеров={}, потоки={}, период={} дней", 
+                exchange, timeframes, tickers != null ? tickers.size() : 0, threadCount, periodDays);
+        
+        try {
+            // Определяем список тикеров для загрузки
+            List<String> targetTickers = tickers;
+            if (targetTickers == null || targetTickers.isEmpty()) {
+                // Загружаем все SWAP тикеры если не указаны конкретные
+                targetTickers = okxFeignClient.getAllSwapTickers(true);
+                log.info("📊 Загружаем все доступные {} SWAP тикеров", targetTickers.size());
+            } else {
+                log.info("📊 Загружаем указанные {} тикеров", targetTickers.size());
+            }
+            
+            // Загружаем по каждому таймфрейму
+            int totalCandlesAdded = 0;
+            for (String timeframe : timeframes) {
+                log.info("⏰ Принудительная загрузка таймфрейма {} для {} тикеров", 
+                        timeframe, targetTickers.size());
+                
+                int candleLimit = calculateCandleLimit(timeframe, periodDays != null ? periodDays : 365);
+                int addedForTimeframe = preloadTimeframeForTickers(targetTickers, timeframe, exchange, periodDays != null ? periodDays : 365);
+                totalCandlesAdded += addedForTimeframe;
+                
+                log.info("📊 Таймфрейм {} завершен: добавлено {} свечей в БД", timeframe, addedForTimeframe);
+                
+                // Пауза между таймфреймами
+                Thread.sleep(1000);
+            }
+            
+            log.info("✅ ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА завершена для биржи {} - добавлено {} свечей в БД", 
+                    exchange, totalCandlesAdded);
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при принудительной загрузке: {}", e.getMessage(), e);
+        }
+    }
+
     private int preloadTimeframeForTickers(List<String> tickers, String timeframe,
                                             String exchange, int periodDays) {
         int candleLimit = calculateCandleLimit(timeframe, periodDays);

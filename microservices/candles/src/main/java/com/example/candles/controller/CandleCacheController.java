@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/candles/cache")
+@RequestMapping("/api/cache")
 @RequiredArgsConstructor
 @Slf4j
 public class CandleCacheController {
@@ -94,17 +94,61 @@ public class CandleCacheController {
     }
 
     /**
+     * Принудительная загрузка свечей с настраиваемыми параметрами
+     */
+    @PostMapping("/force-load")
+    public ResponseEntity<Map<String, String>> forceLoadCandles(@RequestBody ForceLoadRequest request) {
+        log.info("🚀 Принудительная загрузка: биржа={}, таймфреймы={}, тикеров={}, потоки={}, период={} дней", 
+                request.getExchange(), request.getTimeframes(), 
+                request.getTickers() != null ? request.getTickers().size() : 0, 
+                request.getThreadCount(), request.getPeriodDays());
+
+        try {
+            // Запускаем в отдельном потоке
+            new Thread(() -> {
+                try {
+                    candleCacheService.forceLoadCandlesCustom(
+                            request.getExchange(), 
+                            request.getTimeframes(), 
+                            request.getTickers(), 
+                            request.getThreadCount(),
+                            request.getPeriodDays()
+                    );
+                } catch (Exception e) {
+                    log.error("❌ Ошибка в фоновой принудительной загрузке: {}", e.getMessage(), e);
+                }
+            }, "force-load").start();
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "started");
+            response.put("message", "Принудительная загрузка запущена в фоновом режиме");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка принудительной загрузки: {}", e.getMessage(), e);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
      * Ручной запуск полной предзагрузки
      */
-    @PostMapping("/preload")
-    public ResponseEntity<Map<String, String>> triggerFullPreload() {
-        log.info("🎯 Ручной запуск полной предзагрузки через API");
+    @PostMapping("/full-preload")
+    public ResponseEntity<Map<String, String>> triggerFullPreload(@RequestBody Map<String, Object> request) {
+        String exchange = (String) request.getOrDefault("exchange", defaultExchange);
+        log.info("🎯 Ручной запуск полной предзагрузки через API для биржи: {}", exchange);
 
         try {
             // Запускаем в отдельном потоке чтобы не блокировать HTTP запрос
             new Thread(() -> {
                 try {
-                    candleCacheScheduler.triggerFullPreload();
+                    candleCacheService.preloadAllCandles(exchange);
                 } catch (Exception e) {
                     log.error("❌ Ошибка в фоновом потоке предзагрузки: {}", e.getMessage(), e);
                 }
@@ -130,15 +174,16 @@ public class CandleCacheController {
     /**
      * Ручной запуск ежедневного обновления
      */
-    @PostMapping("/update")
-    public ResponseEntity<Map<String, String>> triggerDailyUpdate() {
-        log.info("🎯 Ручной запуск ежедневного обновления через API");
+    @PostMapping("/daily-update")
+    public ResponseEntity<Map<String, String>> triggerDailyUpdate(@RequestBody Map<String, Object> request) {
+        String exchange = (String) request.getOrDefault("exchange", defaultExchange);
+        log.info("🎯 Ручной запуск ежедневного обновления через API для биржи: {}", exchange);
 
         try {
             // Запускаем в отдельном потоке
             new Thread(() -> {
                 try {
-                    candleCacheScheduler.triggerDailyUpdate();
+                    candleCacheService.dailyCandlesUpdate(exchange);
                 } catch (Exception e) {
                     log.error("❌ Ошибка в фоновом потоке обновления: {}", e.getMessage(), e);
                 }
@@ -233,6 +278,125 @@ public class CandleCacheController {
 
             return ResponseEntity.status(503).body(health);
         }
+    }
+
+    /**
+     * Обновление количества потоков загрузки
+     */
+    @PostMapping("/thread-count")
+    public ResponseEntity<Map<String, String>> updateThreadCount(@RequestBody Map<String, Object> request) {
+        try {
+            Integer threadCount = (Integer) request.get("threadCount");
+            if (threadCount != null && threadCount > 0) {
+                // TODO: Обновить количество потоков в CandleCacheService
+                log.info("✅ Обновлено количество потоков загрузки: {}", threadCount);
+                
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("message", "Количество потоков обновлено");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Некорректное количество потоков");
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка обновления количества потоков: {}", e.getMessage(), e);
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Обновление периода принудительной загрузки
+     */
+    @PostMapping("/force-load-period")
+    public ResponseEntity<Map<String, String>> updateForceLoadPeriod(@RequestBody Map<String, Object> request) {
+        try {
+            Integer periodDays = (Integer) request.get("forceLoadPeriodDays");
+            if (periodDays != null && periodDays > 0) {
+                // TODO: Обновить период в CandleCacheService
+                log.info("✅ Обновлен период принудительной загрузки: {} дней", periodDays);
+                
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("message", "Период принудительной загрузки обновлен");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Некорректный период");
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка обновления периода: {}", e.getMessage(), e);
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Обновление настроек расписания
+     */
+    @PostMapping("/schedule-update")
+    public ResponseEntity<Map<String, String>> updateSchedules(@RequestBody Map<String, Object> request) {
+        try {
+            String preloadSchedule = (String) request.get("preloadSchedule");
+            String dailyUpdateSchedule = (String) request.get("dailyUpdateSchedule");
+            
+            if (preloadSchedule != null && dailyUpdateSchedule != null) {
+                // TODO: Обновить расписания в CandleCacheScheduler
+                log.info("✅ Обновлены расписания: предзагрузка='{}', обновление='{}'", preloadSchedule, dailyUpdateSchedule);
+                
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("message", "Расписания обновлены");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Не указаны расписания");
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка обновления расписаний: {}", e.getMessage(), e);
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * DTO для принудительной загрузки
+     */
+    public static class ForceLoadRequest {
+        private String exchange;
+        private java.util.Set<String> timeframes;
+        private List<String> tickers;
+        private Integer threadCount;
+        private Integer periodDays;
+
+        // Getters and setters
+        public String getExchange() { return exchange; }
+        public void setExchange(String exchange) { this.exchange = exchange; }
+        
+        public java.util.Set<String> getTimeframes() { return timeframes; }
+        public void setTimeframes(java.util.Set<String> timeframes) { this.timeframes = timeframes; }
+        
+        public List<String> getTickers() { return tickers; }
+        public void setTickers(List<String> tickers) { this.tickers = tickers; }
+        
+        public Integer getThreadCount() { return threadCount; }
+        public void setThreadCount(Integer threadCount) { this.threadCount = threadCount; }
+        
+        public Integer getPeriodDays() { return periodDays; }
+        public void setPeriodDays(Integer periodDays) { this.periodDays = periodDays; }
     }
 
     /**

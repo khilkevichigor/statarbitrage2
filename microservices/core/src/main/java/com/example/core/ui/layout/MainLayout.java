@@ -49,6 +49,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Закрытые пары", ClosedPairsView.class, VaadinIcon.STOP.create()));
         nav.addItem(new SideNavItem("Пары с ошибками", ErrorPairsView.class, VaadinIcon.ERASER.create()));
         nav.addItem(new SideNavItem("Статистика", StatisticsView.class, VaadinIcon.CHART.create()));
+        nav.addItem(new SideNavItem("Кэш свечей", CandleCacheView.class, VaadinIcon.DATABASE.create()));
 
         // Стилизуем меню
         nav.getElement().getStyle()
@@ -77,6 +78,7 @@ public class MainLayout extends AppLayout {
             case "ClosedPairsView" -> "Закрытые пары";
             case "ErrorPairsView" -> "Пары с ошибками";
             case "StatisticsView" -> "Статистика";
+            case "CandleCacheView" -> "Кэш свечей";
             default -> "StatArbitrage";
         };
     }

@@ -245,6 +245,35 @@ public class Settings {
     @Column(name = "use_min_intersections")
     private boolean useMinIntersections = false;
 
+    // ===== Настройки кэша свечей =====
+    @Builder.Default
+    @Column(name = "candle_cache_enabled")
+    private boolean candleCacheEnabled = true;
+
+    @Builder.Default
+    @Column(name = "candle_cache_default_exchange")
+    private String candleCacheDefaultExchange = "OKX";
+
+    @Builder.Default
+    @Column(name = "candle_cache_thread_count")
+    private int candleCacheThreadCount = 5;
+
+    @Builder.Default
+    @Column(name = "candle_cache_active_timeframes")
+    private String candleCacheActiveTimeframes = "1m,5m,15m,1H,4H,1D";
+
+    @Builder.Default
+    @Column(name = "candle_cache_preload_schedule")
+    private String candleCachePreloadSchedule = "0 0 2 * * SUN";
+
+    @Builder.Default
+    @Column(name = "candle_cache_daily_update_schedule")
+    private String candleCacheDailyUpdateSchedule = "0 */30 * * * *";
+
+    @Builder.Default
+    @Column(name = "candle_cache_force_load_period_days")
+    private int candleCacheForceLoadPeriodDays = 365;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
@@ -332,5 +361,14 @@ public class Settings {
         // Фильтр по пересечениям
         this.minIntersections = other.minIntersections;
         this.useMinIntersections = other.useMinIntersections;
+        
+        // Настройки кэша свечей
+        this.candleCacheEnabled = other.candleCacheEnabled;
+        this.candleCacheDefaultExchange = other.candleCacheDefaultExchange;
+        this.candleCacheThreadCount = other.candleCacheThreadCount;
+        this.candleCacheActiveTimeframes = other.candleCacheActiveTimeframes;
+        this.candleCachePreloadSchedule = other.candleCachePreloadSchedule;
+        this.candleCacheDailyUpdateSchedule = other.candleCacheDailyUpdateSchedule;
+        this.candleCacheForceLoadPeriodDays = other.candleCacheForceLoadPeriodDays;
     }
 }

@@ -3,6 +3,7 @@ package com.example.core.config;
 import feign.Request;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,5 +22,13 @@ public class FeignConfig {
                 1800, TimeUnit.SECONDS, // readTimeout - таймаут чтения 3 минуты
                 true // followRedirects
         );
+    }
+
+    /**
+     * Конфигурация RestTemplate для HTTP запросов к микросервисам
+     */
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
