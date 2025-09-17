@@ -71,7 +71,7 @@ public class CandleCacheService {
                     .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
                             PageRequest.of(0, candleLimit));
 
-            log.debug("🔍 DEBUG: Для {} найдено {} последних свечей в кэше (запрошено {})", 
+            log.info("🔍 DEBUG: Для {} найдено {} последних свечей в кэше (запрошено {})",
                     ticker, latestCandles.size(), candleLimit);
 
             if (!latestCandles.isEmpty()) {
@@ -100,7 +100,7 @@ public class CandleCacheService {
             } else {
                 // Нет данных в кэше - загружаем полное количество
                 missingCandlesCount.put(ticker, candleLimit);
-                log.debug("❌ Кэш MISS: {} - нет данных, загрузим {} свечей", ticker, candleLimit);
+                log.info("❌ Кэш MISS: {} - нет данных, загрузим {} свечей", ticker, candleLimit);
             }
         }
 
@@ -314,7 +314,7 @@ public class CandleCacheService {
                     int missingCount = entry.getValue();
 
                     try {
-                        log.debug("🔄 ПОТОК: Загружаем {} недостающих свечей для {}", missingCount, ticker);
+                        log.info("🔄 ПОТОК: Загружаем {} недостающих свечей для {}", missingCount, ticker);
 
                         // Определяем какие именно свечи отсутствуют
                         List<CachedCandle> existingCandles = cachedCandleRepository
@@ -328,14 +328,14 @@ public class CandleCacheService {
                                     .mapToLong(CachedCandle::getTimestamp)
                                     .min().orElse(System.currentTimeMillis() / 1000);
                             
-                            log.debug("🔄 ПОТОК: Для {} загружаем {} исторических свечей до {}", 
+                            log.info("🔄 ПОТОК: Для {} загружаем {} исторических свечей до {}",
                                     ticker, missingCount, new java.util.Date(oldestTimestamp * 1000));
                             
                             // ИСПРАВЛЕНО: Загружаем исторические данные ДО oldestTimestamp
                             loadedCandles = loadCandlesBeforeTimestamp(ticker, timeframe, missingCount, oldestTimestamp);
                         } else {
                             // Нет данных - загружаем полное количество (последние свечи)
-                            log.debug("🔄 ПОТОК: Для {} загружаем полное количество {} свечей", ticker, missingCount);
+                            log.info("🔄 ПОТОК: Для {} загружаем полное количество {} свечей", ticker, missingCount);
                             loadedCandles = loadCandlesWithPagination(ticker, timeframe, missingCount);
                         }
 
@@ -368,7 +368,7 @@ public class CandleCacheService {
                                     .collect(Collectors.toList());
 
                             result.put(ticker, finalCandles);
-                            log.debug("✅ ПОТОК: Для {} получено {} свечей из кэша (после догрузки)",
+                            log.info("✅ ПОТОК: Для {} получено {} свечей из кэша (после догрузки)",
                                     ticker, finalCandles.size());
                         }
 
@@ -521,7 +521,7 @@ public class CandleCacheService {
                 // Пауза между запросами для соблюдения rate limit
                 Thread.sleep(120);
 
-                log.debug("📥 Загружено {} свечей для {} (всего: {})",
+                log.info("📥 Загружено {} свечей для {} (всего: {})",
                         batchCandles.size(), ticker, allCandles.size());
             }
 
@@ -555,7 +555,7 @@ public class CandleCacheService {
                 List<Candle> batchCandles = okxFeignClient.getCandlesBefore(ticker, timeframe, currentBatchSize, currentBeforeTimestamp);
 
                 if (batchCandles == null || batchCandles.isEmpty()) {
-                    log.debug("📥 ИСТОРИЧЕСКИЕ: Нет больше данных до {}", new java.util.Date(currentBeforeTimestamp * 1000));
+                    log.info("📥 ИСТОРИЧЕСКИЕ: Нет больше данных до {}", new java.util.Date(currentBeforeTimestamp * 1000));
                     break; // Больше нет исторических данных
                 }
 
@@ -565,7 +565,7 @@ public class CandleCacheService {
                         .collect(Collectors.toList());
 
                 if (filteredCandles.isEmpty()) {
-                    log.debug("📥 ИСТОРИЧЕСКИЕ: Все полученные свечи новее порога {}", new java.util.Date(beforeTimestamp * 1000));
+                    log.info("📥 ИСТОРИЧЕСКИЕ: Все полученные свечи новее порога {}", new java.util.Date(beforeTimestamp * 1000));
                     break;
                 }
 
@@ -577,7 +577,7 @@ public class CandleCacheService {
                 // Пауза между запросами для соблюдения rate limit
                 Thread.sleep(120);
 
-                log.debug("📥 ИСТОРИЧЕСКИЕ: Загружено {} исторических свечей для {} (всего: {})",
+                log.info("📥 ИСТОРИЧЕСКИЕ: Загружено {} исторических свечей для {} (всего: {})",
                         filteredCandles.size(), ticker, allCandles.size());
             }
 
