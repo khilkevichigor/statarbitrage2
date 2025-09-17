@@ -24,20 +24,20 @@ public class CandleTransactionService {
 
     /**
      * Транзакционное сохранение свечей в кэш
+     * @return количество реально добавленных свечей в БД
      */
     @Transactional
-    public void saveCandlesToCache(String ticker, String timeframe, String exchange,
+    public int saveCandlesToCache(String ticker, String timeframe, String exchange,
                                    List<Candle> candles) {
         try {
-            log.info("💾 ТОЛЬКО ДОБАВЛЯЕМ: {} новых свечей для {}/{}/{}",
+            log.debug("💾 ДОБАВЛЯЕМ: {} свечей для {}/{}/{}",
                     candles.size(), ticker, timeframe, exchange);
 
-            // ИСПРАВЛЕНО: НИКОГДА НЕ УДАЛЯЕМ! Только добавляем уникальные свечи
-            // Уникальный индекс предотвратит дубли автоматически
+            // Получаем количество записей до операции
+            long countBefore = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
 
             // Сохраняем порциями для экономии памяти
             int batchSize = 1000;
-            int totalSaved = 0;
 
             for (int i = 0; i < candles.size(); i += batchSize) {
                 List<Candle> batch = candles.subList(i, Math.min(i + batchSize, candles.size()));
@@ -46,7 +46,7 @@ public class CandleTransactionService {
                         .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
                         .collect(Collectors.toList());
 
-                // ИСПРАВЛЕНО: Используем INSERT ... ON CONFLICT DO NOTHING для быстрого игнорирования дубликатов
+                // Используем INSERT ... ON CONFLICT DO NOTHING для игнорирования дубликатов
                 for (CachedCandle cachedCandle : cachedCandles) {
                     try {
                         cachedCandleRepository.insertIgnoreDuplicates(
@@ -61,7 +61,6 @@ public class CandleTransactionService {
                                 cachedCandle.getVolume(),
                                 cachedCandle.getIsValid()
                         );
-                        totalSaved++;
                     } catch (Exception e) {
                         log.warn("❌ ОШИБКА: Не удалось сохранить свечу для {}: {}", ticker, e.getMessage());
                         // Продолжаем со следующей свечей без прерывания транзакции
@@ -74,8 +73,15 @@ public class CandleTransactionService {
                 }
             }
 
-            log.info("💾 ТРАНЗАКЦИЯ: Сохранено {} свечей для {}/{}/{} (батчами по {})",
-                    totalSaved, ticker, timeframe, exchange, batchSize);
+            // Получаем количество записей после операции
+            long countAfter = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
+            int reallyAdded = (int)(countAfter - countBefore);
+
+            if (reallyAdded > 0) {
+                log.debug("💾 ДОБАВЛЕНО: {} новых свечей для {}/{}/{}", reallyAdded, ticker, timeframe, exchange);
+            }
+
+            return reallyAdded;
 
         } catch (Exception e) {
             log.error("❌ ТРАНЗАКЦИЯ: Ошибка сохранения свечей в кэш для {}: {}", ticker, e.getMessage(), e);
@@ -85,25 +91,26 @@ public class CandleTransactionService {
 
     /**
      * Транзакционное обновление свечей в кэше
-     * УПРОЩЕНО: Только добавляем новые свечи, дубли предотвращает уникальный индекс
+     * @return количество реально добавленных свечей в БД
      */
     @Transactional
-    public void updateCandlesInCache(String ticker, String timeframe, String exchange,
+    public int updateCandlesInCache(String ticker, String timeframe, String exchange,
                                      List<Candle> candles, long fromTimestamp) {
         try {
-            log.info("🔄 ТОЛЬКО ДОБАВЛЕНИЕ: обновление свечей для {}/{}/{} с timestamp {}",
-                    ticker, timeframe, exchange, fromTimestamp);
+            log.debug("🔄 ОБНОВЛЕНИЕ: {} свечей для {}/{}/{} с timestamp {}",
+                    candles.size(), ticker, timeframe, exchange, fromTimestamp);
 
-            // УПРОЩЕНО: Только добавляем новые свечи, уникальный индекс предотвратит дубли
+            // Получаем количество записей до операции
+            long countBefore = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
+
+            // Только добавляем новые свечи, уникальный индекс предотвратит дубли
             List<CachedCandle> newCandles = candles.stream()
                     .filter(candle -> candle.getTimestamp() >= fromTimestamp)
                     .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
                     .collect(Collectors.toList());
 
             if (!newCandles.isEmpty()) {
-                // Сохраняем батчами для больших объемов
-                int batchSize = 1000;
-                // ИСПРАВЛЕНО: Используем INSERT ... ON CONFLICT DO NOTHING для быстрого обновления
+                // Используем INSERT ... ON CONFLICT DO NOTHING для быстрого обновления
                 for (CachedCandle cachedCandle : newCandles) {
                     try {
                         cachedCandleRepository.insertIgnoreDuplicates(
@@ -123,10 +130,17 @@ public class CandleTransactionService {
                         // Продолжаем со следующей свечей
                     }
                 }
-                log.info("💾 ТРАНЗАКЦИЯ: Попытка добавить {} новых свечей", newCandles.size());
             }
 
-            log.info("🔄 ТРАНЗАКЦИЯ: Обновление для {}/{} завершено", ticker, timeframe);
+            // Получаем количество записей после операции
+            long countAfter = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
+            int reallyAdded = (int)(countAfter - countBefore);
+
+            if (reallyAdded > 0) {
+                log.debug("💾 ДОБАВЛЕНО: {} новых свечей при обновлении {}/{}/{}", reallyAdded, ticker, timeframe, exchange);
+            }
+
+            return reallyAdded;
 
         } catch (Exception e) {
             log.error("❌ ТРАНЗАКЦИЯ: Ошибка обновления свечей в кэше для {}: {}", ticker, e.getMessage());

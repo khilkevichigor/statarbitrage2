@@ -57,6 +57,7 @@ public class CandleCacheService {
         Map<String, List<Candle>> result = new ConcurrentHashMap<>();
         Map<String, Integer> missingCandlesCount = new ConcurrentHashMap<>();
         int cacheHits = 0; // Счетчик тикеров полученных из кэша
+        int totalCandlesAdded = 0; // Счетчик реально добавленных свечей в БД
 
         long currentTimestamp = System.currentTimeMillis() / 1000;
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
@@ -107,19 +108,23 @@ public class CandleCacheService {
         // Загружаем недостающие свечи
         if (!missingCandlesCount.isEmpty()) {
             log.info("🔄 Догружаем {} тикеров с недостающими свечами", missingCandlesCount.size());
-            Map<String, List<Candle>> missingCandles = loadMissingCandles(missingCandlesCount,
+            Map<String, Object> loadingResult = loadMissingCandles(missingCandlesCount,
                     timeframe, exchange, requiredFromTimestamp);
+            @SuppressWarnings("unchecked")
+            Map<String, List<Candle>> missingCandles = (Map<String, List<Candle>>) loadingResult.get("candles");
+            totalCandlesAdded = (Integer) loadingResult.get("addedCount");
             result.putAll(missingCandles);
         }
 
-        log.info("✅ Возвращаем свечи: {} тикеров (кэш: {}, догружено: {})",
-                result.size(), cacheHits, missingCandlesCount.size());
+        log.info("✅ ИТОГО: {} тикеров (кэш: {}, догружено: {}, добавлено в БД: {} свечей)",
+                result.size(), cacheHits, missingCandlesCount.size(), totalCandlesAdded);
 
         return result;
     }
 
     public void preloadAllCandles(String exchange) {
         log.info("🚀 Запуск полной предзагрузки свечей для биржи {}", exchange);
+        int totalCandlesAdded = 0;
 
         try {
             // Получаем все SWAP тикеры
@@ -134,13 +139,17 @@ public class CandleCacheService {
                 log.info("⏰ Предзагрузка таймфрейма {} ({} дней) для {} тикеров",
                         timeframe, periodDays, allTickers.size());
 
-                preloadTimeframeForTickers(allTickers, timeframe, exchange, periodDays);
+                int addedForTimeframe = preloadTimeframeForTickers(allTickers, timeframe, exchange, periodDays);
+                totalCandlesAdded += addedForTimeframe;
+                
+                log.info("📊 Таймфрейм {} завершен: добавлено {} свечей в БД", timeframe, addedForTimeframe);
 
                 // Небольшая пауза между таймфреймами
                 Thread.sleep(1000);
             }
 
-            log.info("✅ Полная предзагрузка завершена для биржи {}", exchange);
+            log.info("✅ ШЕДУЛЛЕР: Полная предзагрузка завершена для биржи {} - добавлено {} свечей в БД", 
+                    exchange, totalCandlesAdded);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при полной предзагрузке: {}", e.getMessage(), e);
@@ -149,6 +158,7 @@ public class CandleCacheService {
 
     public void dailyCandlesUpdate(String exchange) {
         log.info("🔄 Запуск ежедневного обновления свечей для биржи {}", exchange);
+        int totalCandlesAdded = 0;
 
         try {
             List<String> cachedTickers = cachedCandleRepository.findDistinctTickersByExchange(exchange);
@@ -161,15 +171,16 @@ public class CandleCacheService {
             for (String timeframe : defaultCachePeriods.keySet()) {
                 log.info("⏰ Обновление таймфрейма {} для {} тикеров", timeframe, cachedTickers.size());
 
-                updateCandlesForTickers(cachedTickers, timeframe, exchange, updateFromTimestamp);
+                int addedForTimeframe = updateCandlesForTickers(cachedTickers, timeframe, exchange, updateFromTimestamp);
+                totalCandlesAdded += addedForTimeframe;
+                
+                log.info("📊 Таймфрейм {} обновлен: добавлено {} свечей в БД", timeframe, addedForTimeframe);
 
                 Thread.sleep(500);
             }
 
-            // ИСПРАВЛЕНО: НЕ удаляем старые свечи - держим все данные под рукой
-            log.info("📚 Все исторические данные сохранены для быстрого доступа");
-
-            log.info("✅ Ежедневное обновление завершено для биржи {}", exchange);
+            log.info("✅ ШЕДУЛЛЕР: Ежедневное обновление завершено для биржи {} - добавлено {} свечей в БД", 
+                    exchange, totalCandlesAdded);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при ежедневном обновлении: {}", e.getMessage(), e);
@@ -214,10 +225,10 @@ public class CandleCacheService {
         return stats;
     }
 
-    private void preloadTimeframeForTickers(List<String> tickers, String timeframe,
+    private int preloadTimeframeForTickers(List<String> tickers, String timeframe,
                                             String exchange, int periodDays) {
-        long currentTimestamp = System.currentTimeMillis() / 1000;
         int candleLimit = calculateCandleLimit(timeframe, periodDays);
+        final int[] totalAddedCount = {0}; // Используем массив для thread-safe изменения
 
         log.info("📈 МНОГОПОТОЧНАЯ предзагрузка {} свечей типа {} для {} тикеров (5 потоков)",
                 candleLimit, timeframe, tickers.size());
@@ -236,19 +247,27 @@ public class CandleCacheService {
                             Math.min(batchIndex + batchSize, tickers.size()));
                     
                     Map<String, List<Candle>> candlesMap = loadCandlesForBatch(batch, timeframe, candleLimit);
+                    int batchAddedCount = 0;
 
                     // Сохраняем в кэш каждый тикер отдельно
                     for (Map.Entry<String, List<Candle>> entry : candlesMap.entrySet()) {
                         String ticker = entry.getKey();
                         List<Candle> candles = entry.getValue();
 
-                        candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, candles);
+                        int addedCount = candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, candles);
+                        batchAddedCount += addedCount;
                         
-                        log.info("✅ ПОТОК: Сохранен {} с {} свечами", ticker, candles.size());
+                        if (addedCount > 0) {
+                            log.info("✅ ПОТОК: {} - добавлено {} свечей в БД", ticker, addedCount);
+                        }
                     }
 
-                    log.info("✅ ПОТОК: Обработан батч {}-{} из {} тикеров", batchIndex + 1,
-                            Math.min(batchIndex + batchSize, tickers.size()), tickers.size());
+                    synchronized (totalAddedCount) {
+                        totalAddedCount[0] += batchAddedCount;
+                    }
+
+                    log.info("✅ ПОТОК: Батч {}-{} завершен, добавлено {} свечей в БД",
+                            batchIndex + 1, Math.min(batchIndex + batchSize, tickers.size()), batchAddedCount);
 
                 } catch (Exception e) {
                     log.error("❌ ПОТОК: Ошибка обработки батча {}-{}: {}", batchIndex + 1,
@@ -266,12 +285,16 @@ public class CandleCacheService {
         } catch (Exception e) {
             log.error("❌ ВСЕ ПОТОКИ: Ошибка при ожидании завершения потоков: {}", e.getMessage(), e);
         }
+
+        return totalAddedCount[0];
     }
 
-    private void updateCandlesForTickers(List<String> tickers, String timeframe,
+    private int updateCandlesForTickers(List<String> tickers, String timeframe,
                                          String exchange, long fromTimestamp) {
         // Аналогично preloadTimeframeForTickers, но только для недавних свечей
         int batchSize = 20;
+        int totalAddedCount = 0;
+        
         for (int i = 0; i < tickers.size(); i += batchSize) {
             List<String> batch = tickers.subList(i, Math.min(i + batchSize, tickers.size()));
 
@@ -285,7 +308,12 @@ public class CandleCacheService {
                     String ticker = entry.getKey();
                     List<Candle> candles = entry.getValue();
 
-                    candleTransactionService.updateCandlesInCache(ticker, timeframe, exchange, candles, fromTimestamp);
+                    int addedCount = candleTransactionService.updateCandlesInCache(ticker, timeframe, exchange, candles, fromTimestamp);
+                    totalAddedCount += addedCount;
+                    
+                    if (addedCount > 0) {
+                        log.info("✅ ОБНОВЛЕНИЕ: {} - добавлено {} свечей в БД", ticker, addedCount);
+                    }
                 }
 
                 Thread.sleep(100);
@@ -294,12 +322,15 @@ public class CandleCacheService {
                 log.warn("⚠️ Ошибка обновления батча: {}", e.getMessage());
             }
         }
+        
+        return totalAddedCount;
     }
 
-    private Map<String, List<Candle>> loadMissingCandles(Map<String, Integer> missingCandlesCount,
+    private Map<String, Object> loadMissingCandles(Map<String, Integer> missingCandlesCount,
                                                          String timeframe, String exchange,
                                                          long requiredFromTimestamp) {
         Map<String, List<Candle>> result = new ConcurrentHashMap<>();
+        final int[] totalAddedCount = {0}; // Используем массив для thread-safe изменения
 
         try {
             log.info("🚀 МНОГОПОТОЧНАЯ догрузка недостающих свечей в 5 потоков для {} тикеров", 
@@ -340,24 +371,14 @@ public class CandleCacheService {
                         }
 
                         if (!loadedCandles.isEmpty()) {
-                            // ДИАГНОСТИКА: Проверяем количество ДО сохранения (только для первого тикера)
-                            if (ticker.equals("1INCH-USDT-SWAP")) {
-                                Long countBefore = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
-                                log.info("🔍 ДИАГНОСТИКА: {} - ДО сохранения: {} записей, загружаем: {} свечей", 
-                                        ticker, countBefore, loadedCandles.size());
-                            }
+                            // Сохраняем в кэш и получаем количество реально добавленных свечей
+                            int addedCount = candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, loadedCandles);
                             
-                            // Сохраняем в кэш - БД сама отклонит дубликаты через уникальный индекс
-                            candleTransactionService.saveCandlesToCache(ticker, timeframe, exchange, loadedCandles);
-
-                            // ДИАГНОСТИКА: Проверяем количество ПОСЛЕ сохранения (только для первого тикера)
-                            if (ticker.equals("1INCH-USDT-SWAP")) {
-                                Long countAfter = cachedCandleRepository.countByTickerTimeframeExchangeSimple(ticker, timeframe, exchange);
-                                log.info("🔍 ДИАГНОСТИКА: {} - ПОСЛЕ сохранения: {} записей", ticker, countAfter);
+                            synchronized (totalAddedCount) {
+                                totalAddedCount[0] += addedCount;
                             }
 
                             // ПОЛУЧАЕМ АКТУАЛЬНЫЕ ДАННЫЕ ИЗ КЭША ПОСЛЕ СОХРАНЕНИЯ
-                            // БД сама обеспечивает уникальность, дубликатов не будет
                             List<CachedCandle> updatedCachedCandles = cachedCandleRepository
                                     .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
                                             PageRequest.of(0, missingCount + existingCandles.size()));
@@ -368,8 +389,11 @@ public class CandleCacheService {
                                     .collect(Collectors.toList());
 
                             result.put(ticker, finalCandles);
-                            log.info("✅ ПОТОК: Для {} получено {} свечей из кэша (после догрузки)",
-                                    ticker, finalCandles.size());
+                            
+                            if (addedCount > 0) {
+                                log.info("✅ ПОТОК: Для {} добавлено {} свечей в БД, получено {} из кэша",
+                                        ticker, addedCount, finalCandles.size());
+                            }
                         }
 
                     } catch (Exception e) {
@@ -392,7 +416,12 @@ public class CandleCacheService {
             log.error("❌ Ошибка загрузки недостающих свечей: {}", e.getMessage(), e);
         }
 
-        return result;
+        // Возвращаем и результаты и счетчик
+        Map<String, Object> finalResult = new HashMap<>();
+        finalResult.put("candles", result);
+        finalResult.put("addedCount", totalAddedCount[0]);
+        
+        return finalResult;
     }
 
 
