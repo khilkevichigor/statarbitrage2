@@ -1,13 +1,10 @@
 package com.example.core.services;
 
+import com.example.core.client.CandlesFeignClient;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.client.RestClientException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,10 +21,7 @@ import java.util.concurrent.Executors;
 public class CandleCacheManagementService {
 
     private final SettingsService settingsService;
-    private final RestTemplate restTemplate;
-    
-    @Value("${candles.service.url:http://localhost:8083}")
-    private String candlesServiceUrl;
+    private final CandlesFeignClient candlesFeignClient;
     
     private final ExecutorService executorService = Executors.newFixedThreadPool(3);
 
@@ -38,15 +32,9 @@ public class CandleCacheManagementService {
         try {
             log.info("📊 Запрос статистики кэша для биржи: {}", exchange);
             
-            String url = candlesServiceUrl + "/api/cache/statistics";
-            if (exchange != null && !exchange.isEmpty()) {
-                url += "?exchange=" + exchange;
-            }
+            Map<String, Object> statistics = candlesFeignClient.getCacheStatistics(exchange);
             
-            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map<String, Object> statistics = response.getBody();
+            if (statistics != null && !statistics.isEmpty()) {
                 log.info("✅ Получена статистика кэша: {} записей", statistics.size());
                 return statistics;
             } else {
@@ -54,7 +42,7 @@ public class CandleCacheManagementService {
                 return generateEmptyStatistics();
             }
             
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             log.error("❌ Ошибка при получении статистики кэша: {}", e.getMessage());
             return generateErrorStatistics(e.getMessage());
         }
@@ -90,14 +78,12 @@ public class CandleCacheManagementService {
                     requestData.put("tickers", tickers);
                 }
                 
-                String url = candlesServiceUrl + "/api/cache/force-load";
+                Map<String, String> response = candlesFeignClient.forceLoadCandles(requestData);
                 
-                ResponseEntity<Map> response = restTemplate.postForEntity(url, requestData, Map.class);
-                
-                if (response.getStatusCode().is2xxSuccessful()) {
+                if ("started".equals(response.get("status"))) {
                     log.info("✅ Принудительная загрузка запущена успешно");
                 } else {
-                    log.error("❌ Ошибка запуска принудительной загрузки: {}", response.getStatusCode());
+                    log.error("❌ Ошибка запуска принудительной загрузки: {}", response.get("message"));
                 }
                 
             } catch (Exception e) {
@@ -208,14 +194,12 @@ public class CandleCacheManagementService {
                 Map<String, Object> requestData = new HashMap<>();
                 requestData.put("exchange", exchange);
                 
-                String url = candlesServiceUrl + "/api/cache/full-preload";
+                Map<String, String> response = candlesFeignClient.startFullPreload(requestData);
                 
-                ResponseEntity<Map> response = restTemplate.postForEntity(url, requestData, Map.class);
-                
-                if (response.getStatusCode().is2xxSuccessful()) {
+                if ("started".equals(response.get("status"))) {
                     log.info("✅ Полная предзагрузка запущена для биржи: {}", exchange);
                 } else {
-                    log.error("❌ Ошибка запуска полной предзагрузки: {}", response.getStatusCode());
+                    log.error("❌ Ошибка запуска полной предзагрузки: {}", response.get("message"));
                 }
                 
             } catch (Exception e) {
@@ -235,14 +219,12 @@ public class CandleCacheManagementService {
                 Map<String, Object> requestData = new HashMap<>();
                 requestData.put("exchange", exchange);
                 
-                String url = candlesServiceUrl + "/api/cache/daily-update";
+                Map<String, String> response = candlesFeignClient.startDailyUpdate(requestData);
                 
-                ResponseEntity<Map> response = restTemplate.postForEntity(url, requestData, Map.class);
-                
-                if (response.getStatusCode().is2xxSuccessful()) {
+                if ("started".equals(response.get("status"))) {
                     log.info("✅ Ежедневное обновление запущено для биржи: {}", exchange);
                 } else {
-                    log.error("❌ Ошибка запуска ежедневного обновления: {}", response.getStatusCode());
+                    log.error("❌ Ошибка запуска ежедневного обновления: {}", response.get("message"));
                 }
                 
             } catch (Exception e) {
@@ -259,8 +241,7 @@ public class CandleCacheManagementService {
             Map<String, Object> requestData = new HashMap<>();
             requestData.put("threadCount", threadCount);
             
-            String url = candlesServiceUrl + "/api/cache/thread-count";
-            restTemplate.postForEntity(url, requestData, Map.class);
+            candlesFeignClient.updateThreadCount(requestData);
             
             log.info("✅ Количество потоков загрузки обновлено: {}", threadCount);
             
@@ -278,8 +259,7 @@ public class CandleCacheManagementService {
             requestData.put("preloadSchedule", preloadSchedule);
             requestData.put("dailyUpdateSchedule", dailyUpdateSchedule);
             
-            String url = candlesServiceUrl + "/api/cache/schedule-update";
-            restTemplate.postForEntity(url, requestData, Map.class);
+            candlesFeignClient.updateSchedules(requestData);
             
             log.info("✅ Candles сервис уведомлен о новых настройках расписания");
             
@@ -300,8 +280,7 @@ public class CandleCacheManagementService {
             Map<String, Object> requestData = new HashMap<>();
             requestData.put("forceLoadPeriodDays", periodDays);
             
-            String url = candlesServiceUrl + "/api/cache/force-load-period";
-            restTemplate.postForEntity(url, requestData, Map.class);
+            candlesFeignClient.updateForceLoadPeriod(requestData);
             
             log.info("✅ Период принудительной загрузки обновлен: {} дней", periodDays);
             

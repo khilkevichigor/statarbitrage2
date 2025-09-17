@@ -348,25 +348,32 @@ public class CandleCacheView extends VerticalLayout {
         List<TimeframeStats> result = new ArrayList<>();
         
         try {
-            // Пытаемся получить статистику по таймфреймам
-            Object timeframeStatsObj = stats.get("timeframeStats");
-            if (timeframeStatsObj instanceof Map) {
-                Map<String, Object> timeframeStatsMap = (Map<String, Object>) timeframeStatsObj;
+            // Получаем данные из byExchange -> OKX (или выбранной биржи)
+            Object byExchangeObj = stats.get("byExchange");
+            if (byExchangeObj instanceof Map) {
+                Map<String, Object> byExchangeMap = (Map<String, Object>) byExchangeObj;
+                String selectedExchange = exchangeSelect.getValue();
+                if (selectedExchange == null) selectedExchange = "OKX";
                 
-                for (Map.Entry<String, Object> entry : timeframeStatsMap.entrySet()) {
-                    String timeframe = entry.getKey();
-                    Object countObj = entry.getValue();
+                Object exchangeDataObj = byExchangeMap.get(selectedExchange);
+                if (exchangeDataObj instanceof Map) {
+                    Map<String, Object> exchangeData = (Map<String, Object>) exchangeDataObj;
                     
-                    long totalCandles = 0;
-                    if (countObj instanceof Number) {
-                        totalCandles = ((Number) countObj).longValue();
+                    for (Map.Entry<String, Object> entry : exchangeData.entrySet()) {
+                        String timeframe = entry.getKey();
+                        Object countObj = entry.getValue();
+                        
+                        long totalCandles = 0;
+                        if (countObj instanceof Number) {
+                            totalCandles = ((Number) countObj).longValue();
+                        }
+                        
+                        // Используем mock данные для todayAdded и avgCandles
+                        long todayAdded = Math.max(0, (long) (totalCandles * 0.01)); // 1% от общего
+                        long avgCandles = totalCandles > 0 ? totalCandles / Math.max(1, getEstimatedTickerCount()) : 0;
+                        
+                        result.add(new TimeframeStats(timeframe, totalCandles, todayAdded, avgCandles, getCurrentTime()));
                     }
-                    
-                    // Пока используем mock данные для todayAdded и avgCandles
-                    long todayAdded = Math.max(0, (long) (totalCandles * 0.01)); // 1% от общего
-                    long avgCandles = totalCandles > 0 ? totalCandles / Math.max(1, getEstimatedTickerCount()) : 0;
-                    
-                    result.add(new TimeframeStats(timeframe, totalCandles, todayAdded, avgCandles, getCurrentTime()));
                 }
             }
             

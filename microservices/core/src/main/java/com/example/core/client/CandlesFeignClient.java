@@ -5,8 +5,7 @@ import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Settings;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -31,4 +30,54 @@ public interface CandlesFeignClient {
      */
     @PostMapping("/api/candles/all-extended")
     Map<String, List<Candle>> getAllCandlesExtended(@RequestBody ExtendedCandlesRequest request);
+
+    // ============= МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ КЭШЕМ СВЕЧЕЙ =============
+
+    /**
+     * Получить статистику кэша свечей
+     */
+    @GetMapping("/api/cache/statistics")
+    Map<String, Object> getCacheStatistics(@RequestParam(required = false) String exchange);
+
+    /**
+     * Принудительная загрузка свечей
+     */
+    @PostMapping("/api/cache/force-load")
+    Map<String, String> forceLoadCandles(@RequestBody Map<String, Object> request);
+
+    /**
+     * Запуск полной предзагрузки
+     */
+    @PostMapping("/api/cache/full-preload")
+    Map<String, String> startFullPreload(@RequestBody Map<String, Object> request);
+
+    /**
+     * Запуск ежедневного обновления
+     */
+    @PostMapping("/api/cache/daily-update")
+    Map<String, String> startDailyUpdate(@RequestBody Map<String, Object> request);
+
+    /**
+     * Обновление количества потоков
+     */
+    @PostMapping("/api/cache/thread-count")
+    Map<String, String> updateThreadCount(@RequestBody Map<String, Object> request);
+
+    /**
+     * Обновление периода принудительной загрузки
+     */
+    @PostMapping("/api/cache/force-load-period")
+    Map<String, String> updateForceLoadPeriod(@RequestBody Map<String, Object> request);
+
+    /**
+     * Обновление настроек расписания
+     */
+    @PostMapping("/api/cache/schedule-update")
+    Map<String, String> updateSchedules(@RequestBody Map<String, Object> request);
+
+    /**
+     * Health check кэша
+     */
+    @GetMapping("/api/cache/health")
+    Map<String, Object> getCacheHealth();
 }
