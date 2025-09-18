@@ -17,6 +17,8 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.Comparator;
 import org.springframework.data.domain.PageRequest;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 @Service
 @RequiredArgsConstructor
@@ -30,8 +32,11 @@ public class CandleCacheService {
     @Value("${app.candle-cache.default-exchange:OKX}")
     private String defaultExchange;
     
-    // Пул потоков для параллельной загрузки (уменьшено до 5)
-    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+    @Value("${app.candle-cache.thread-pool-size:5}")
+    private int threadPoolSize;
+    
+    // Пул потоков для параллельной загрузки (настраивается через properties)
+    private ExecutorService executorService;
 
     private final Map<String, Integer> defaultCachePeriods = Map.of(
             "1m", 365,    // 1 год для мелких таймфреймов
@@ -43,6 +48,55 @@ public class CandleCacheService {
             "1W", 1825,
             "1M", 1825
     );
+
+    @PostConstruct
+    public void initializeExecutorService() {
+        this.executorService = Executors.newFixedThreadPool(threadPoolSize);
+        log.info("🔧 Инициализирован ExecutorService с {} потоками", threadPoolSize);
+    }
+
+    @PreDestroy
+    public void shutdownExecutorService() {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+            log.info("🛑 ExecutorService остановлен");
+        }
+    }
+
+    /**
+     * Обновить количество потоков в пуле
+     */
+    public synchronized void updateThreadPoolSize(int newThreadPoolSize) {
+        if (newThreadPoolSize <= 0 || newThreadPoolSize > 20) {
+            log.warn("❌ Некорректное количество потоков: {}. Используйте от 1 до 20.", newThreadPoolSize);
+            return;
+        }
+
+        if (newThreadPoolSize == this.threadPoolSize) {
+            log.info("ℹ️ Количество потоков уже равно {}, обновление не требуется", newThreadPoolSize);
+            return;
+        }
+
+        log.info("🔄 Обновляем пул потоков с {} на {} потоков", this.threadPoolSize, newThreadPoolSize);
+        
+        // Останавливаем старый пул
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
+        
+        // Создаем новый пул
+        this.threadPoolSize = newThreadPoolSize;
+        this.executorService = Executors.newFixedThreadPool(threadPoolSize);
+        
+        log.info("✅ Пул потоков обновлен до {} потоков", threadPoolSize);
+    }
+
+    /**
+     * Получить текущее количество потоков
+     */
+    public int getCurrentThreadPoolSize() {
+        return threadPoolSize;
+    }
 
     public Map<String, List<Candle>> getCachedCandles(List<String> tickers, String timeframe,
                                                       int candleLimit) {
@@ -270,8 +324,8 @@ public class CandleCacheService {
         int candleLimit = calculateCandleLimit(timeframe, periodDays);
         final int[] totalAddedCount = {0}; // Используем массив для thread-safe изменения
 
-        log.info("📈 МНОГОПОТОЧНАЯ предзагрузка {} свечей типа {} для {} тикеров (5 потоков)",
-                candleLimit, timeframe, tickers.size());
+        log.info("📈 МНОГОПОТОЧНАЯ предзагрузка {} свечей типа {} для {} тикеров ({} потоков)",
+                candleLimit, timeframe, tickers.size(), threadPoolSize);
 
         // Уменьшаем размер батча для многопоточности
         int batchSize = Math.max(1, getBatchSizeForTimeframe(timeframe, candleLimit) / 2);

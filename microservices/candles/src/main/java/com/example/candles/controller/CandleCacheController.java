@@ -288,12 +288,13 @@ public class CandleCacheController {
         try {
             Integer threadCount = (Integer) request.get("threadCount");
             if (threadCount != null && threadCount > 0) {
-                // TODO: Обновить количество потоков в CandleCacheService
+                candleCacheService.updateThreadPoolSize(threadCount);
                 log.info("✅ Обновлено количество потоков загрузки: {}", threadCount);
                 
                 Map<String, String> response = new HashMap<>();
                 response.put("status", "success");
-                response.put("message", "Количество потоков обновлено");
+                response.put("message", "Количество потоков обновлено до " + threadCount);
+                response.put("currentThreads", String.valueOf(candleCacheService.getCurrentThreadPoolSize()));
                 return ResponseEntity.ok(response);
             } else {
                 Map<String, String> response = new HashMap<>();
