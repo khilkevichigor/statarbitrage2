@@ -100,14 +100,17 @@ public class CandleCacheService {
 
     /**
      * 🔍 ВАЛИДАЦИЯ СВЕЧЕЙ для коинтеграции
+     * Используем BTC-USDT-SWAP как эталон для проверки консистентности данных
      * Проверяем что у всех тикеров одинаковое количество свечей 
      * и одинаковые таймштампы первой и последней свечи
+     * 
+     * @return Map<String, List<Candle>> отфильтрованная карта только с валидными тикерами
      */
-    private void validateCandlesConsistency(Map<String, List<Candle>> candlesMap, 
-                                           String timeframe, int expectedLimit) {
+    private Map<String, List<Candle>> validateAndFilterCandlesConsistency(
+            Map<String, List<Candle>> candlesMap, String timeframe, int expectedLimit) {
         if (candlesMap.isEmpty()) {
             log.warn("⚠️ ВАЛИДАЦИЯ: Пустая карта свечей для валидации");
-            return;
+            return new ConcurrentHashMap<>();
         }
 
         log.info("🔍 ВАЛИДАЦИЯ: Проверяем консистентность {} тикеров (таймфрейм: {}, лимит: {})",
@@ -119,10 +122,29 @@ public class CandleCacheService {
         Map<Long, Integer> lastTimestampDistribution = new HashMap<>();
         List<String> validTickers = new ArrayList<>();
         List<String> invalidTickers = new ArrayList<>();
+        Map<String, List<Candle>> validCandlesMap = new ConcurrentHashMap<>();
 
         long expectedFirstTimestamp = -1;
         long expectedLastTimestamp = -1;
         int expectedCandleCount = -1;
+
+        // 🎯 ИСПОЛЬЗУЕМ BTC-USDT-SWAP КАК ЭТАЛОН
+        final String btcTicker = "BTC-USDT-SWAP";
+        List<Candle> btcCandles = candlesMap.get(btcTicker);
+        
+        if (btcCandles != null && !btcCandles.isEmpty()) {
+            btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
+            expectedCandleCount = btcCandles.size();
+            expectedFirstTimestamp = btcCandles.get(0).getTimestamp();
+            expectedLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+            
+            log.info("🎯 ЭТАЛОН: Используем BTC-USDT-SWAP - {} свечей, {} - {}", 
+                    expectedCandleCount, 
+                    formatTimestamp(expectedFirstTimestamp),
+                    formatTimestamp(expectedLastTimestamp));
+        } else {
+            log.warn("⚠️ ЭТАЛОН: BTC-USDT-SWAP не найден в данных, используем первый доступный тикер");
+        }
 
         // Проходим по всем тикерам и собираем статистику
         for (Map.Entry<String, List<Candle>> entry : candlesMap.entrySet()) {
@@ -146,11 +168,12 @@ public class CandleCacheService {
             firstTimestampDistribution.merge(firstTimestamp, 1, Integer::sum);
             lastTimestampDistribution.merge(lastTimestamp, 1, Integer::sum);
 
-            // Устанавливаем эталонные значения с первого тикера
+            // Если BTC не найден, устанавливаем эталон с первого тикера
             if (expectedFirstTimestamp == -1) {
                 expectedFirstTimestamp = firstTimestamp;
                 expectedLastTimestamp = lastTimestamp;
                 expectedCandleCount = candleCount;
+                log.warn("⚠️ РЕЗЕРВНЫЙ ЭТАЛОН: Используем {} как эталон", ticker);
             }
 
             // Проверяем соответствие эталону
@@ -160,35 +183,19 @@ public class CandleCacheService {
 
             if (isValid) {
                 validTickers.add(ticker);
+                validCandlesMap.put(ticker, candles); // ✅ Добавляем только валидные тикеры
             } else {
-                String reason = String.format("(свечей:%d≠%d, начало:%d≠%d, конец:%d≠%d)", 
+                String reason = String.format("(свечей:%d≠%d, начало:%s≠%s, конец:%s≠%s)", 
                     candleCount, expectedCandleCount, 
-                    firstTimestamp, expectedFirstTimestamp,
-                    lastTimestamp, expectedLastTimestamp);
+                    formatTimestamp(firstTimestamp), formatTimestamp(expectedFirstTimestamp),
+                    formatTimestamp(lastTimestamp), formatTimestamp(expectedLastTimestamp));
                 invalidTickers.add(ticker + reason);
             }
         }
 
         // Форматируем временные метки для лучшей читаемости
-        String firstTimeStr = "неизвестно";
-        String lastTimeStr = "неизвестно";
-        
-        if (expectedFirstTimestamp > 0) {
-            // Проверяем формат timestamp: если слишком большой, то в миллисекундах, иначе в секундах
-            if (expectedFirstTimestamp > 9999999999L) { // больше чем 2001 год в секундах
-                firstTimeStr = java.time.Instant.ofEpochMilli(expectedFirstTimestamp).toString();
-            } else {
-                firstTimeStr = java.time.Instant.ofEpochSecond(expectedFirstTimestamp).toString();
-            }
-        }
-        
-        if (expectedLastTimestamp > 0) {
-            if (expectedLastTimestamp > 9999999999L) {
-                lastTimeStr = java.time.Instant.ofEpochMilli(expectedLastTimestamp).toString();
-            } else {
-                lastTimeStr = java.time.Instant.ofEpochSecond(expectedLastTimestamp).toString();
-            }
-        }
+        String firstTimeStr = formatTimestamp(expectedFirstTimestamp);
+        String lastTimeStr = formatTimestamp(expectedLastTimestamp);
 
         // 📊 ДЕТАЛЬНЫЙ ОТЧЕТ О ВАЛИДАЦИИ
         log.info("📊 ВАЛИДАЦИЯ РЕЗУЛЬТАТ:");
@@ -227,7 +234,225 @@ public class CandleCacheService {
         } else if (consistencyRate >= 0.80) {
             log.warn("❌ ВАЛИДАЦИЯ: Средняя консистентность данных ({})", percentStr);
         } else {
-            log.error("💥 ВАЛИДАЦИЯ: ПЛОХАЯ консистентность данных ({}) - НЕ РЕКОМЕНДУЕТСЯ для коинтеграции!", percentStr);
+            log.error("💥 ВАЛИДАЦИЯ: ПЛОХАЯ консистентность данных ({}) - исключаем невалидные тикеры!", percentStr);
+        }
+        
+        log.info("🔄 ФИЛЬТРАЦИЯ: Возвращаем {} валидных тикеров из {} исходных",
+                validCandlesMap.size(), candlesMap.size());
+        
+        if (!invalidTickers.isEmpty()) {
+            log.warn("🗑️ ИСКЛЮЧЕНЫ: {} тикеров - {}", 
+                    invalidTickers.size(), 
+                    invalidTickers.size() <= 5 ? 
+                    String.join(", ", invalidTickers) : 
+                    String.join(", ", invalidTickers.subList(0, 5)) + "...");
+        }
+        
+        return validCandlesMap; // ✅ Возвращаем только валидные данные
+    }
+    
+    /**
+     * 🔄 ВАЛИДАЦИЯ С ПОВТОРНОЙ ПОПЫТКОЙ ДОГРУЗКИ
+     * Проверяет данные, догружает недостающие свечи для невалидных тикеров,
+     * затем повторно валидирует и исключает окончательно невалидные тикеры
+     */
+    private Map<String, List<Candle>> validateAndFilterCandlesWithRetry(
+            Map<String, List<Candle>> candlesMap, String timeframe, int candleLimit, 
+            List<String> originalTickers, String exchange) {
+        
+        log.info("🔍 ПЕРВИЧНАЯ ВАЛИДАЦИЯ: Проверяем {} тикеров перед возможной догрузкой", 
+                candlesMap.size());
+        
+        // Первичная валидация
+        Map<String, List<Candle>> validCandlesMap = validateAndFilterCandlesConsistency(
+                candlesMap, timeframe, candleLimit);
+        
+        int validCount = validCandlesMap.size();
+        int invalidCount = candlesMap.size() - validCount;
+        
+        if (invalidCount == 0) {
+            log.info("✨ ВСЕ ТИКЕРЫ ВАЛИДНЫ: Догрузка не требуется, возвращаем {} тикеров", validCount);
+            return validCandlesMap;
+        }
+        
+        log.warn("⚠️ НАЙДЕНЫ НЕВАЛИДНЫЕ ТИКЕРЫ: {} из {} требуют догрузки", invalidCount, candlesMap.size());
+        
+        // Определяем эталонные параметры из BTC-USDT-SWAP
+        String btcTicker = "BTC-USDT-SWAP";
+        List<Candle> btcCandles = candlesMap.get(btcTicker);
+        
+        if (btcCandles == null || btcCandles.isEmpty()) {
+            log.error("❌ BTC-USDT-SWAP не найден для определения эталона, возвращаем только валидные тикеры");
+            return validCandlesMap;
+        }
+        
+        btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
+        int expectedCount = btcCandles.size();
+        long expectedFirstTimestamp = btcCandles.get(0).getTimestamp();
+        long expectedLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+        
+        log.info("🎯 ЭТАЛОН ДОГРУЗКИ: {} свечей, {} - {}", 
+                expectedCount, 
+                formatTimestamp(expectedFirstTimestamp), 
+                formatTimestamp(expectedLastTimestamp));
+        
+        // Собираем список тикеров для догрузки
+        List<String> tickersToReload = new ArrayList<>();
+        for (String ticker : originalTickers) {
+            if (!validCandlesMap.containsKey(ticker)) {
+                tickersToReload.add(ticker);
+            }
+        }
+        
+        if (tickersToReload.isEmpty()) {
+            log.warn("⚠️ НЕТ ТИКЕРОВ ДЛЯ ДОГРУЗКИ: Возвращаем {} валидных тикеров", validCount);
+            return validCandlesMap;
+        }
+        
+        log.info("🔄 ДОГРУЗКА НАЧАТА: Пытаемся догрузить {} невалидных тикеров", tickersToReload.size());
+        
+        try {
+            // Принудительная догрузка с точными параметрами эталона
+            Map<String, Object> reloadResult = loadMissingCandlesForTickers(
+                    tickersToReload, timeframe, candleLimit, exchange, 
+                    expectedFirstTimestamp, expectedLastTimestamp);
+            
+            @SuppressWarnings("unchecked")
+            Map<String, List<Candle>> reloadedCandles = 
+                    (Map<String, List<Candle>>) reloadResult.get("candlesMap");
+            Integer addedCount = (Integer) reloadResult.get("addedCount");
+            
+            log.info("📥 ДОГРУЗКА ЗАВЕРШЕНА: Получено {} тикеров, добавлено {} свечей в БД", 
+                    reloadedCandles.size(), addedCount);
+            
+            // Объединяем изначально валидные данные с догруженными
+            Map<String, List<Candle>> combinedMap = new ConcurrentHashMap<>(validCandlesMap);
+            combinedMap.putAll(reloadedCandles);
+            
+            log.info("🔍 ПОВТОРНАЯ ВАЛИДАЦИЯ: Проверяем {} тикеров после догрузки", 
+                    combinedMap.size());
+            
+            // Повторная финальная валидация
+            Map<String, List<Candle>> finalValidMap = validateAndFilterCandlesConsistency(
+                    combinedMap, timeframe, candleLimit);
+            
+            int finalValidCount = finalValidMap.size();
+            int finalInvalidCount = combinedMap.size() - finalValidCount;
+            
+            if (finalInvalidCount > 0) {
+                log.warn("🗑️ ФИНАЛЬНОЕ ИСКЛЮЧЕНИЕ: {} тикеров остались невалидными после догрузки", 
+                        finalInvalidCount);
+            }
+            
+            log.info("✅ ФИНАЛЬНЫЙ РЕЗУЛЬТАТ: {} валидных тикеров из {} исходных", 
+                    finalValidCount, originalTickers.size());
+            
+            return finalValidMap;
+            
+        } catch (Exception e) {
+            log.error("💥 ОШИБКА ДОГРУЗКИ: {}, возвращаем только изначально валидные {} тикеров", 
+                    e.getMessage(), validCount);
+            return validCandlesMap;
+        }
+    }
+    
+    /**
+     * 📥 ДОГРУЗКА КОНКРЕТНЫХ ТИКЕРОВ с точными временными параметрами
+     * Специализированный метод для догрузки тикеров с заданными timestamp'ами
+     */
+    private Map<String, Object> loadMissingCandlesForTickers(
+            List<String> tickers, String timeframe, int candleLimit, String exchange,
+            long expectedFirstTimestamp, long expectedLastTimestamp) {
+        
+        Map<String, List<Candle>> result = new ConcurrentHashMap<>();
+        final int[] totalAddedCount = {0};
+        
+        log.info("🎯 СПЕЦИАЛЬНАЯ ДОГРУЗКА: {} тикеров с точными параметрами {}-{}", 
+                tickers.size(), formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
+        
+        try {
+            // Многопоточная догрузка в 5 потоков
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            
+            for (String ticker : tickers) {
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        log.info("🔄 ПОТОК: Специальная догрузка {} с точными параметрами", ticker);
+                        
+                        // Загружаем точное количество свечей с заданным временем
+                        List<Candle> freshCandles = okxFeignClient.getCandles(
+                                ticker, timeframe, candleLimit);
+                        
+                        if (freshCandles != null && !freshCandles.isEmpty()) {
+                            // Фильтруем свечи по точному временному диапазону
+                            freshCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
+                            
+                            List<Candle> filteredCandles = freshCandles.stream()
+                                    .filter(candle -> candle.getTimestamp() >= expectedFirstTimestamp && 
+                                                    candle.getTimestamp() <= expectedLastTimestamp)
+                                    .collect(Collectors.toList());
+                            
+                            log.info("📥 ПОТОК: {} - получено {} свечей, отфильтровано {} под эталон", 
+                                    ticker, freshCandles.size(), filteredCandles.size());
+                            
+                            if (!filteredCandles.isEmpty()) {
+                                result.put(ticker, filteredCandles);
+                                
+                                // Сохраняем в БД
+                                int savedCount = candleTransactionService.saveCandlesToCache(
+                                        ticker, timeframe, exchange, filteredCandles);
+                                synchronized (totalAddedCount) {
+                                    totalAddedCount[0] += savedCount;
+                                }
+                                
+                                log.info("💾 ПОТОК: {} - сохранено {} свечей в БД", ticker, savedCount);
+                            } else {
+                                log.warn("⚠️ ПОТОК: {} - нет свечей в требуемом диапазоне", ticker);
+                            }
+                        } else {
+                            log.warn("⚠️ ПОТОК: {} - не удалось получить свечи", ticker);
+                        }
+                        
+                    } catch (Exception e) {
+                        log.error("💥 ПОТОК: Ошибка специальной догрузки {}: {}", ticker, e.getMessage());
+                    }
+                }, executorService);
+                
+                futures.add(future);
+            }
+            
+            // Ждем завершения всех потоков
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            
+            log.info("🏁 СПЕЦИАЛЬНАЯ ДОГРУЗКА: Завершена для {} тикеров, добавлено {} свечей в БД",
+                    tickers.size(), totalAddedCount[0]);
+            
+        } catch (Exception e) {
+            log.error("💥 ОШИБКА СПЕЦИАЛЬНОЙ ДОГРУЗКИ: {}", e.getMessage());
+        }
+        
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("candlesMap", result);
+        resultMap.put("addedCount", totalAddedCount[0]);
+        
+        return resultMap;
+    }
+    
+    /**
+     * Форматирует timestamp для лучшей читаемости в логах
+     */
+    private String formatTimestamp(long timestamp) {
+        if (timestamp <= 0) return "неизвестно";
+        
+        try {
+            // Проверяем формат timestamp: если слишком большой, то в миллисекундах, иначе в секундах
+            if (timestamp > 9999999999L) { // больше чем 2001 год в секундах
+                return java.time.Instant.ofEpochMilli(timestamp).toString();
+            } else {
+                return java.time.Instant.ofEpochSecond(timestamp).toString();
+            }
+        } catch (Exception e) {
+            return "ошибка_формата";
         }
     }
 
@@ -306,10 +531,8 @@ public class CandleCacheService {
         log.info("✅ ИТОГО: {} тикеров (кэш: {}, догружено: {}, добавлено в БД: {} свечей)",
                 result.size(), cacheHits, missingCandlesCount.size(), totalCandlesAdded);
 
-        // 🔍 ВАЛИДАЦИЯ СВЕЧЕЙ для коинтеграции
-        validateCandlesConsistency(result, timeframe, candleLimit);
-
-        return result;
+        // 🔍 ВАЛИДАЦИЯ И ФИЛЬТРАЦИЯ СВЕЧЕЙ для коинтеграции
+        return validateAndFilterCandlesWithRetry(result, timeframe, candleLimit, tickers, exchange);
     }
 
     public void preloadAllCandles(String exchange) {
