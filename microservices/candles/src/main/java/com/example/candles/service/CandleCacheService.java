@@ -73,7 +73,7 @@ public class CandleCacheService {
         }
 
         if (newThreadPoolSize == this.threadPoolSize) {
-            log.info("ℹ️ Количество потоков уже равно {}, обновление не требуется", newThreadPoolSize);
+            log.info("i️ Количество потоков уже равно {}, обновление не требуется", newThreadPoolSize);
             return;
         }
 
@@ -235,6 +235,52 @@ public class CandleCacheService {
             log.warn("❌ ВАЛИДАЦИЯ: Средняя консистентность данных ({})", percentStr);
         } else {
             log.error("💥 ВАЛИДАЦИЯ: ПЛОХАЯ консистентность данных ({}) - исключаем невалидные тикеры!", percentStr);
+        }
+        
+        // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Убеждаемся что все валидные тикеры действительно консистентны между собой
+        if (validCandlesMap.size() > 1) {
+            log.info("🔍 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Проверяем взаимную консистентность {} валидных тикеров", validCandlesMap.size());
+            
+            // Собираем все размеры и временные диапазоны валидных тикеров
+            Map<String, String> tickerStats = new HashMap<>();
+            for (Map.Entry<String, List<Candle>> entry : validCandlesMap.entrySet()) {
+                String ticker = entry.getKey();
+                List<Candle> candles = entry.getValue();
+                String stats = String.format("%d свечей (%s-%s)", 
+                        candles.size(),
+                        formatTimestamp(candles.get(0).getTimestamp()),
+                        formatTimestamp(candles.get(candles.size() - 1).getTimestamp()));
+                tickerStats.put(ticker, stats);
+            }
+            
+            // Логируем статистику каждого валидного тикера
+            log.info("📊 СТАТИСТИКА ВАЛИДНЫХ ТИКЕРОВ:");
+            for (Map.Entry<String, String> entry : tickerStats.entrySet()) {
+                log.info("   ✅ {}: {}", entry.getKey(), entry.getValue());
+            }
+            
+            // Проверяем есть ли различия между валидными тикерами
+            Set<Integer> candleCounts = validCandlesMap.values().stream()
+                    .mapToInt(List::size)
+                    .boxed()
+                    .collect(Collectors.toSet());
+                    
+            if (candleCounts.size() > 1) {
+                log.error("💥 КРИТИЧЕСКАЯ ОШИБКА ВАЛИДАЦИИ: Валидные тикеры имеют РАЗНОЕ количество свечей: {}", candleCounts);
+                log.error("💥 ЭТО НЕ ДОЛЖНО ПРОИСХОДИТЬ! Все валидные тикеры должны иметь одинаковые параметры!");
+                
+                // Детальная диагностика проблемных тикеров
+                Map<Integer, List<String>> sizeGroups = new HashMap<>();
+                for (Map.Entry<String, List<Candle>> entry : validCandlesMap.entrySet()) {
+                    int size = entry.getValue().size();
+                    sizeGroups.computeIfAbsent(size, k -> new ArrayList<>()).add(entry.getKey());
+                }
+                
+                log.error("💥 ГРУППИРОВКА ПО РАЗМЕРАМ:");
+                for (Map.Entry<Integer, List<String>> group : sizeGroups.entrySet()) {
+                    log.error("   {} свечей: {}", group.getKey(), String.join(", ", group.getValue()));
+                }
+            }
         }
         
         log.info("🔄 ФИЛЬТРАЦИЯ: Возвращаем {} валидных тикеров из {} исходных",
@@ -459,6 +505,39 @@ public class CandleCacheService {
     public Map<String, List<Candle>> getCachedCandles(List<String> tickers, String timeframe,
                                                       int candleLimit) {
         return getCachedCandles(tickers, timeframe, candleLimit, defaultExchange);
+    }
+
+    /**
+     * ПРОСТОЙ запрос свечей БЕЗ ВАЛИДАЦИИ - возвращает данные как есть
+     * Используется для конкретных пар когда не нужна фильтрация
+     */
+    public Map<String, List<Candle>> getCachedCandlesSimple(List<String> tickers, String timeframe,
+                                                            int candleLimit, String exchange) {
+        log.info("🚫 ПРОСТОЙ запрос свечей БЕЗ ВАЛИДАЦИИ: {} тикеров, таймфрейм {}, лимит {}",
+                tickers.size(), timeframe, candleLimit);
+
+        Map<String, List<Candle>> result = new ConcurrentHashMap<>();
+
+        for (String ticker : tickers) {
+            List<CachedCandle> latestCandles = cachedCandleRepository
+                    .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
+                            PageRequest.of(0, candleLimit));
+
+            if (!latestCandles.isEmpty()) {
+                List<Candle> candlesList = latestCandles.stream()
+                        .map(CachedCandle::toCandle)
+                        .sorted(Comparator.comparing(Candle::getTimestamp))
+                        .collect(Collectors.toList());
+                        
+                result.put(ticker, candlesList);
+                log.debug("✅ ПРОСТОЙ: {} - получено {} свечей", ticker, candlesList.size());
+            } else {
+                log.warn("⚠️ ПРОСТОЙ: {} - нет данных в кэше", ticker);
+            }
+        }
+        
+        log.info("✅ ПРОСТОЙ запрос завершен: получено {} тикеров из {}", result.size(), tickers.size());
+        return result;
     }
 
     public Map<String, List<Candle>> getCachedCandles(List<String> tickers, String timeframe,

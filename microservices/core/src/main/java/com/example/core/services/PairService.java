@@ -277,6 +277,7 @@ public class PairService {
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB()))
                     .excludeTickers(null)
+                    .skipValidation(true) // Пропускаем валидацию для конкретных пар
                     .build();
             
             // Получаем свечи для пары
@@ -285,6 +286,16 @@ public class PairService {
             if (candlesMap == null || candlesMap.isEmpty()) {
                 log.warn("⚠️ Не удалось получить данные свечей для пары {}", stablePair.getPairName());
                 return null;
+            }
+            
+            // КРИТИЧЕСКАЯ ПРОВЕРКА: Для конкретной пары должны быть ОБА тикера!
+            if (candlesMap.size() != 2) {
+                log.error("❌ CANDLES ФИЛЬТРАЦИЯ: Candles-сервис вернул {} тикеров вместо 2 для пары {} - один тикер отфильтрован!", 
+                        candlesMap.size(), stablePair.getPairName());
+                log.error("❌ ДОСТУПНЫЕ ТИКЕРЫ: {}", candlesMap.keySet());
+                throw new IllegalStateException(String.format(
+                    "Не удалось получить данные для обоих тикеров пары %s. Candles-сервис вернул только %d из 2 тикеров: %s", 
+                    stablePair.getPairName(), candlesMap.size(), candlesMap.keySet()));
             }
             
             // Проверяем наличие свечей для обоих тикеров

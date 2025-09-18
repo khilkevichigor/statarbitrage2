@@ -111,12 +111,26 @@ public class CandlesController {
         }
 
         // ИСПРАВЛЕНО: Используем ТОЛЬКО кэш - АК-47 подход!
-        Map<String, List<Candle>> result = candleCacheService.getCachedCandles(
-                swapTickers, 
-                request.getTimeframe(), 
-                request.getCandleLimit(), 
-                "OKX"
-        );
+        Map<String, List<Candle>> result;
+        
+        if (request.isSkipValidation()) {
+            log.info("🚫 ВАЛИДАЦИЯ ОТКЛЮЧЕНА: Возвращаем данные как есть без фильтрации");
+            // Получаем данные без валидации - простой запрос из кэша
+            result = candleCacheService.getCachedCandlesSimple(
+                    swapTickers, 
+                    request.getTimeframe(), 
+                    request.getCandleLimit(), 
+                    "OKX"
+            );
+        } else {
+            log.info("✅ ВАЛИДАЦИЯ ВКЛЮЧЕНА: Применяем стандартную валидацию консистентности");
+            result = candleCacheService.getCachedCandles(
+                    swapTickers, 
+                    request.getTimeframe(), 
+                    request.getCandleLimit(), 
+                    "OKX"
+            );
+        }
 
         long elapsed = System.currentTimeMillis() - startTime;
 
