@@ -64,11 +64,22 @@ public class PairService {
                 throw new RuntimeException("Не удалось получить данные свечей");
             }
 
+            // КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: Проверяем консистентность свечей ДО анализа стабильности
+            Map<String, List<Candle>> validatedCandlesMap = validateCandlesConsistency(candlesMap, timeframe);
+            
+            if (validatedCandlesMap.isEmpty()) {
+                log.warn("⚠️ После валидации не осталось валидных свечей для анализа");
+                throw new RuntimeException("Все данные свечей не прошли валидацию консистентности");
+            }
+            
+            log.info("✅ ВАЛИДАЦИЯ: Из {} тикеров {} прошли валидацию консистентности", 
+                    candlesMap.size(), validatedCandlesMap.size());
+
             // Применяем настройки поиска к параметрам анализа
             Map<String, Object> analysisSettings = buildAnalysisSettings(searchSettings);
 
-            // Создаем запрос для Python API
-            StabilityRequestDto request = new StabilityRequestDto(candlesMap, analysisSettings);
+            // Создаем запрос для Python API с валидированными данными
+            StabilityRequestDto request = new StabilityRequestDto(validatedCandlesMap, analysisSettings);
 
             // Выполняем анализ стабильности
             StabilityResponseDto response = stabilityAnalysisService.analyzeStability(request);
@@ -432,6 +443,95 @@ public class PairService {
         return Stream.of(ticker1, ticker2)
                 .sorted()
                 .collect(Collectors.joining("-"));
+    }
+
+    // ======== ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ СВЕЧЕЙ ========
+    
+    /**
+     * Валидирует консистентность свечей перед отправкой в Python API
+     * Убирает тикеры с разным количеством свечей, разными таймштампами начала/конца
+     */
+    private Map<String, List<Candle>> validateCandlesConsistency(Map<String, List<Candle>> candlesMap, String timeframe) {
+        if (candlesMap == null || candlesMap.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        log.info("🔍 ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Проверяем {} тикеров (таймфрейм: {})", 
+                candlesMap.size(), timeframe);
+        
+        // Определяем эталонный тикер (BTC-USDT-SWAP или первый доступный)
+        String referenceTicker = candlesMap.containsKey("BTC-USDT-SWAP") ? 
+                "BTC-USDT-SWAP" : candlesMap.keySet().iterator().next();
+        
+        List<Candle> referenceCandles = candlesMap.get(referenceTicker);
+        int referenceCount = referenceCandles.size();
+        long referenceStart = referenceCandles.get(0).getTimestamp();
+        long referenceEnd = referenceCandles.get(referenceCandles.size() - 1).getTimestamp();
+        
+        log.info("🎯 ЭТАЛОН: {} - {} свечей, {}-{}", 
+                referenceTicker, referenceCount, 
+                formatTimestamp(referenceStart), formatTimestamp(referenceEnd));
+        
+        Map<String, List<Candle>> validatedCandles = new HashMap<>();
+        List<String> invalidTickers = new ArrayList<>();
+        
+        // Проверяем каждый тикер на соответствие эталону
+        for (Map.Entry<String, List<Candle>> entry : candlesMap.entrySet()) {
+            String ticker = entry.getKey();
+            List<Candle> candles = entry.getValue();
+            
+            if (candles.size() == referenceCount &&
+                candles.get(0).getTimestamp() == referenceStart &&
+                candles.get(candles.size() - 1).getTimestamp() == referenceEnd) {
+                
+                validatedCandles.put(ticker, candles);
+            } else {
+                invalidTickers.add(String.format("%s(свечей:%d≠%d, начало:%s≠%s, конец:%s≠%s)", 
+                        ticker, candles.size(), referenceCount,
+                        formatTimestamp(candles.get(0).getTimestamp()), formatTimestamp(referenceStart),
+                        formatTimestamp(candles.get(candles.size() - 1).getTimestamp()), formatTimestamp(referenceEnd)));
+            }
+        }
+        
+        int validCount = validatedCandles.size();
+        double validPercent = (double) validCount / candlesMap.size() * 100;
+        
+        log.info("📊 ВАЛИДАЦИЯ РЕЗУЛЬТАТ:");
+        log.info("   ✅ Валидные тикеры: {} из {} ({}%)", validCount, candlesMap.size(), String.format("%.1f", validPercent));
+        
+        if (!invalidTickers.isEmpty()) {
+            log.warn("   ❌ Невалидные тикеры ({}): {}", invalidTickers.size(), String.join(", ", invalidTickers));
+        }
+        
+        // Если валидных тикеров менее 100%, это критическая ошибка
+        if (validPercent < 100.0) {
+            log.error("💥 КРИТИЧЕСКАЯ ОШИБКА: Только {}% тикеров валидны - недостаточно для анализа стабильности!", validPercent);
+            return new HashMap<>(); // Возвращаем пустую карту
+        }
+        
+        if (validCount < candlesMap.size()) {
+            log.warn("🗑️ ИСКЛЮЧЕНЫ: {} тикеров - {}", invalidTickers.size(), String.join(", ", invalidTickers));
+        }
+        
+        return validatedCandles;
+    }
+    
+    /**
+     * Форматирует timestamp для лучшей читаемости в логах
+     */
+    private String formatTimestamp(long timestamp) {
+        if (timestamp <= 0) return "неизвестно";
+        
+        try {
+            // Проверяем формат timestamp: если слишком большой, то в миллисекундах, иначе в секундах
+            if (timestamp > 9999999999L) { // больше чем 2001 год в секундах
+                return java.time.Instant.ofEpochMilli(timestamp).toString();
+            } else {
+                return java.time.Instant.ofEpochSecond(timestamp).toString();
+            }
+        } catch (Exception e) {
+            return "ошибка_формата";
+        }
     }
 
     // ======== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ========
