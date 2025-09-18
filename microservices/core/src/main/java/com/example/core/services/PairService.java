@@ -264,9 +264,14 @@ public class PairService {
             // Получаем настройки системы
             Settings settings = settingsService.getSettings();
             
-            // Используем таймфрейм и период из найденной стабильной пары
+            // ИСПРАВЛЕНИЕ: Используем таймфрейм и период из найденной стабильной пары
+            // Для Z-Score используем тот же лимит свечей что и при поиске стабильных пар
             String timeframe = stablePair.getTimeframe() != null ? stablePair.getTimeframe() : settings.getTimeframe();
-            int candleLimit = (int) settings.getCandleLimit();
+            String period = stablePair.getPeriod() != null ? stablePair.getPeriod() : "1 год";
+            int candleLimit = calculateCandleLimit(timeframe, period); // Тот же расчет что и при поиске пар
+            
+            log.info("🔧 ИСПРАВЛЕНИЕ: Используем согласованные параметры - timeframe: {}, period: {}, candleLimit: {}", 
+                    timeframe, period, candleLimit);
             
             // Создаем запрос для получения свечей конкретной пары
             ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
