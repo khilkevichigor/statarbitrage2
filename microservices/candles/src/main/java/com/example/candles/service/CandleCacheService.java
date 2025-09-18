@@ -98,6 +98,139 @@ public class CandleCacheService {
         return threadPoolSize;
     }
 
+    /**
+     * 🔍 ВАЛИДАЦИЯ СВЕЧЕЙ для коинтеграции
+     * Проверяем что у всех тикеров одинаковое количество свечей 
+     * и одинаковые таймштампы первой и последней свечи
+     */
+    private void validateCandlesConsistency(Map<String, List<Candle>> candlesMap, 
+                                           String timeframe, int expectedLimit) {
+        if (candlesMap.isEmpty()) {
+            log.warn("⚠️ ВАЛИДАЦИЯ: Пустая карта свечей для валидации");
+            return;
+        }
+
+        log.info("🔍 ВАЛИДАЦИЯ: Проверяем консистентность {} тикеров (таймфрейм: {}, лимит: {})",
+                candlesMap.size(), timeframe, expectedLimit);
+
+        // Статистика для валидации
+        Map<Integer, Integer> candleCountDistribution = new HashMap<>();
+        Map<Long, Integer> firstTimestampDistribution = new HashMap<>(); 
+        Map<Long, Integer> lastTimestampDistribution = new HashMap<>();
+        List<String> validTickers = new ArrayList<>();
+        List<String> invalidTickers = new ArrayList<>();
+
+        long expectedFirstTimestamp = -1;
+        long expectedLastTimestamp = -1;
+        int expectedCandleCount = -1;
+
+        // Проходим по всем тикерам и собираем статистику
+        for (Map.Entry<String, List<Candle>> entry : candlesMap.entrySet()) {
+            String ticker = entry.getKey();
+            List<Candle> candles = entry.getValue();
+
+            if (candles == null || candles.isEmpty()) {
+                invalidTickers.add(ticker + "(пустой)");
+                continue;
+            }
+
+            // Сортируем свечи по timestamp для корректной валидации
+            candles.sort(Comparator.comparingLong(Candle::getTimestamp));
+
+            int candleCount = candles.size();
+            long firstTimestamp = candles.get(0).getTimestamp();
+            long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+
+            // Собираем статистику распределения
+            candleCountDistribution.merge(candleCount, 1, Integer::sum);
+            firstTimestampDistribution.merge(firstTimestamp, 1, Integer::sum);
+            lastTimestampDistribution.merge(lastTimestamp, 1, Integer::sum);
+
+            // Устанавливаем эталонные значения с первого тикера
+            if (expectedFirstTimestamp == -1) {
+                expectedFirstTimestamp = firstTimestamp;
+                expectedLastTimestamp = lastTimestamp;
+                expectedCandleCount = candleCount;
+            }
+
+            // Проверяем соответствие эталону
+            boolean isValid = (candleCount == expectedCandleCount && 
+                             firstTimestamp == expectedFirstTimestamp &&
+                             lastTimestamp == expectedLastTimestamp);
+
+            if (isValid) {
+                validTickers.add(ticker);
+            } else {
+                String reason = String.format("(свечей:%d≠%d, начало:%d≠%d, конец:%d≠%d)", 
+                    candleCount, expectedCandleCount, 
+                    firstTimestamp, expectedFirstTimestamp,
+                    lastTimestamp, expectedLastTimestamp);
+                invalidTickers.add(ticker + reason);
+            }
+        }
+
+        // Форматируем временные метки для лучшей читаемости
+        String firstTimeStr = "неизвестно";
+        String lastTimeStr = "неизвестно";
+        
+        if (expectedFirstTimestamp > 0) {
+            // Проверяем формат timestamp: если слишком большой, то в миллисекундах, иначе в секундах
+            if (expectedFirstTimestamp > 9999999999L) { // больше чем 2001 год в секундах
+                firstTimeStr = java.time.Instant.ofEpochMilli(expectedFirstTimestamp).toString();
+            } else {
+                firstTimeStr = java.time.Instant.ofEpochSecond(expectedFirstTimestamp).toString();
+            }
+        }
+        
+        if (expectedLastTimestamp > 0) {
+            if (expectedLastTimestamp > 9999999999L) {
+                lastTimeStr = java.time.Instant.ofEpochMilli(expectedLastTimestamp).toString();
+            } else {
+                lastTimeStr = java.time.Instant.ofEpochSecond(expectedLastTimestamp).toString();
+            }
+        }
+
+        // 📊 ДЕТАЛЬНЫЙ ОТЧЕТ О ВАЛИДАЦИИ
+        log.info("📊 ВАЛИДАЦИЯ РЕЗУЛЬТАТ:");
+        log.info("   🎯 Эталонные значения: {} свечей, {} - {}", 
+                expectedCandleCount, firstTimeStr, lastTimeStr);
+        log.info("   ✅ Валидные тикеры: {} из {} ({}%)", 
+                validTickers.size(), candlesMap.size(), 
+                Math.round(100.0 * validTickers.size() / candlesMap.size()));
+
+        if (!invalidTickers.isEmpty()) {
+            log.warn("   ❌ Невалидные тикеры ({}): {}", 
+                    invalidTickers.size(), invalidTickers.size() <= 10 ? 
+                    String.join(", ", invalidTickers) : 
+                    String.join(", ", invalidTickers.subList(0, 10)) + "...");
+        }
+
+        // Статистика распределений
+        log.info("   📈 Распределение по количеству свечей: {}", candleCountDistribution);
+        
+        if (firstTimestampDistribution.size() > 1) {
+            log.warn("   ⚠️ Разные начальные таймштампы: {} вариантов", firstTimestampDistribution.size());
+        }
+        
+        if (lastTimestampDistribution.size() > 1) {
+            log.warn("   ⚠️ Разные конечные таймштампы: {} вариантов", lastTimestampDistribution.size());
+        }
+
+        // Финальная оценка качества данных
+        double consistencyRate = (double) validTickers.size() / candlesMap.size();
+        String percentStr = String.format("%.1f%%", consistencyRate * 100);
+        
+        if (consistencyRate >= 0.95) {
+            log.info("🎉 ВАЛИДАЦИЯ: Отличная консистентность данных ({})", percentStr);
+        } else if (consistencyRate >= 0.90) {
+            log.warn("⚠️ ВАЛИДАЦИЯ: Хорошая консистентность данных ({})", percentStr);
+        } else if (consistencyRate >= 0.80) {
+            log.warn("❌ ВАЛИДАЦИЯ: Средняя консистентность данных ({})", percentStr);
+        } else {
+            log.error("💥 ВАЛИДАЦИЯ: ПЛОХАЯ консистентность данных ({}) - НЕ РЕКОМЕНДУЕТСЯ для коинтеграции!", percentStr);
+        }
+    }
+
     public Map<String, List<Candle>> getCachedCandles(List<String> tickers, String timeframe,
                                                       int candleLimit) {
         return getCachedCandles(tickers, timeframe, candleLimit, defaultExchange);
@@ -172,6 +305,9 @@ public class CandleCacheService {
 
         log.info("✅ ИТОГО: {} тикеров (кэш: {}, догружено: {}, добавлено в БД: {} свечей)",
                 result.size(), cacheHits, missingCandlesCount.size(), totalCandlesAdded);
+
+        // 🔍 ВАЛИДАЦИЯ СВЕЧЕЙ для коинтеграции
+        validateCandlesConsistency(result, timeframe, candleLimit);
 
         return result;
     }

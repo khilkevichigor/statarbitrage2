@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/candles")
@@ -104,7 +105,7 @@ public class CandlesController {
                 log.info("❌ Исключаем {} тикеров из результата", request.getExcludeTickers().size());
                 swapTickers = swapTickers.stream()
                         .filter(ticker -> !request.getExcludeTickers().contains(ticker))
-                        .collect(java.util.stream.Collectors.toList());
+                        .toList();
                 log.info("✅ После исключения осталось {} тикеров", swapTickers.size());
             }
         }
