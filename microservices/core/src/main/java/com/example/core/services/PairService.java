@@ -289,6 +289,18 @@ public class PairService {
                 return null;
             }
             
+            // КРИТИЧЕСКАЯ ПРОВЕРКА: Количество свечей должно быть одинаковым!
+            if (longCandles.size() != shortCandles.size()) {
+                log.error("❌ НЕСООТВЕТСТВИЕ СВЕЧЕЙ: Пара {} имеет разное количество свечей: {} vs {} - БЛОКИРУЕМ расчет Z-Score!", 
+                        stablePair.getPairName(), longCandles.size(), shortCandles.size());
+                throw new IllegalStateException(String.format(
+                    "Не удалось рассчитать Z-Score для пары %s: разное количество свечей (%d vs %d)", 
+                    stablePair.getPairName(), longCandles.size(), shortCandles.size()));
+            }
+            
+            log.info("✅ ВАЛИДАЦИЯ СВЕЧЕЙ: Пара {} имеет одинаковое количество свечей: {}", 
+                    stablePair.getPairName(), longCandles.size());
+            
             // Создаем временную Pair для расчетов
             Pair tradingPair = new Pair();
             tradingPair.setType(PairType.TRADING);
