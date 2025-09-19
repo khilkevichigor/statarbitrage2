@@ -99,7 +99,7 @@ public class ZScoreChartDialog extends Dialog {
         // Чарт пересечений
         intersectionsChartImage = new Image();
         intersectionsChartImage.setWidth("100%");
-        intersectionsChartImage.setHeight("400px");
+        intersectionsChartImage.setHeight("600px");
         intersectionsChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
         intersectionsChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
         intersectionsChartImage.getStyle().set("margin-top", "1rem");

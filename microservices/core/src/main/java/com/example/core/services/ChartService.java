@@ -31,6 +31,24 @@ import java.util.stream.Collectors;
 public class ChartService {
 
     private final PixelSpreadService pixelSpreadService;
+    
+    // Константы для унифицированного стиля чартов
+    private static final int CHART_WIDTH = 1920;
+    private static final int CHART_HEIGHT = 720;
+    private static final int MAX_TIME_TICKS = 10;
+    
+    /**
+     * Применяет унифицированный стиль ко всем чартам
+     */
+    private void applyUnifiedChartStyle(XYChart chart, List<Date> timeAxis) {
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
+        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / MAX_TIME_TICKS));
+        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        chart.getStyler().setYAxisTicksVisible(false);
+        chart.getStyler().setYAxisTitleVisible(false);
+        chart.getStyler().setXAxisTitleVisible(false); // Убираем все подписи "Time"
+    }
 
     public BufferedImage createZScoreChart(Pair tradingPair, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
         log.debug("Создание расширенного Z-Score графика для пары: {} (EMA: {}, период: {}, StochRSI: {}, Profit: {}, CombinedPrice: {}, PixelSpread: {}, EntryPoint: {})",
@@ -116,17 +134,12 @@ public class ChartService {
         List<Date> timeAxis = timestamps.stream().map(Date::new).collect(Collectors.toList());
 
         XYChart chart = new XYChartBuilder()
-                .width(1920).height(720)
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
                 .title("Z-Score LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
-                .xAxisTitle("Time").yAxisTitle("Z-Score")
+                .xAxisTitle("").yAxisTitle("")
                 .build();
 
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
-        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
-        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-        chart.getStyler().setYAxisTicksVisible(false);
-        chart.getStyler().setYAxisTitleVisible(false);
+        applyUnifiedChartStyle(chart, timeAxis);
 
         XYSeries zSeries = chart.addSeries("Z-Score", timeAxis, zScores);
         zSeries.setLineColor(Color.MAGENTA);
@@ -505,37 +518,29 @@ public class ChartService {
 
         // График 1: первая монета (long)
         XYChart topChart = new XYChartBuilder()
-                .width(1920).height(720)
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
                 .title("Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
-                .xAxisTitle("Time").yAxisTitle("Price")
+                .xAxisTitle("").yAxisTitle("")
                 .build();
-        topChart.getStyler().setLegendVisible(false);
+        
+        applyUnifiedChartStyle(topChart, timeLong);
 
         XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + tradingPair.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
         longSeries.setLineColor(Color.GREEN);
         longSeries.setMarker(new None());
 
-        topChart.getStyler().setYAxisTicksVisible(false);
-        topChart.getStyler().setYAxisTitleVisible(false);
-
-        topChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
-
         // График 2: вторая монета (short)
         XYChart bottomChart = new XYChartBuilder()
-                .width(1920).height(720)
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
                 .title("Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
-                .xAxisTitle("Time").yAxisTitle("Price")
+                .xAxisTitle("").yAxisTitle("")
                 .build();
-        bottomChart.getStyler().setLegendVisible(false);
+        
+        applyUnifiedChartStyle(bottomChart, timeShort);
 
         XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + tradingPair.getShortTickerCurrentPrice() + ")", timeShort, shortPrices);
         shortSeries.setLineColor(Color.RED);
         shortSeries.setMarker(new None());
-
-        bottomChart.getStyler().setYAxisTicksVisible(false);
-        bottomChart.getStyler().setYAxisTitleVisible(false);
-
-        bottomChart.getStyler().setXAxisTitleVisible(false);      // скрыть заголовок оси X
 
         // Добавляем пиксельный спред если нужно
         if (showPixelSpread) {
@@ -559,7 +564,7 @@ public class ChartService {
         BufferedImage topImage = BitmapEncoder.getBufferedImage(topChart);
         BufferedImage bottomImage = BitmapEncoder.getBufferedImage(bottomChart);
 
-        BufferedImage combinedImage = new BufferedImage(1920, 720, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage combinedImage = new BufferedImage(CHART_WIDTH, CHART_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = combinedImage.createGraphics();
 
         // Нарисовать верхний график (long) полностью
@@ -826,17 +831,12 @@ public class ChartService {
 
         // Создаем чарт
         XYChart chart = new XYChartBuilder()
-                .width(1920).height(720)
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
                 .title("Synchronized Z-Score LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
-                .xAxisTitle("Time").yAxisTitle("Z-Score")
+                .xAxisTitle("").yAxisTitle("")
                 .build();
 
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
-        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
-        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-        chart.getStyler().setYAxisTicksVisible(false);
-        chart.getStyler().setYAxisTitleVisible(false);
+        applyUnifiedChartStyle(chart, timeAxis);
 
         // Добавляем Z-Score линию
         XYSeries zSeries = chart.addSeries("Z-Score (Synchronized)", timeAxis, extendedZScores);
@@ -1322,17 +1322,12 @@ public class ChartService {
         List<Date> timeAxis = timestamps.stream().map(Date::new).collect(Collectors.toList());
 
         XYChart chart = new XYChartBuilder()
-                .width(1920).height(720)
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
                 .title("Combined Chart: LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
-                .xAxisTitle("Time").yAxisTitle("Values")
+                .xAxisTitle("").yAxisTitle("")
                 .build();
 
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
-        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
-        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-        chart.getStyler().setYAxisTicksVisible(false);
-        chart.getStyler().setYAxisTitleVisible(false);
+        applyUnifiedChartStyle(chart, timeAxis);
 
         // Добавляем точку входа если есть
         long entryTimestamp = tradingPair.getEntryTime() != null ?
@@ -1396,17 +1391,12 @@ public class ChartService {
                 .collect(Collectors.toList());
 
         XYChart chart = new XYChartBuilder()
-                .width(1920).height(720)
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
                 .title("Pixel Spread Chart: LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
-                .xAxisTitle("Time").yAxisTitle("Pixel Distance")
+                .xAxisTitle("").yAxisTitle("")
                 .build();
 
-        chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
-        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
-        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-        chart.getStyler().setYAxisTicksVisible(false);
-        chart.getStyler().setYAxisTitleVisible(false);
+        applyUnifiedChartStyle(chart, timeAxis);
 
         XYSeries pixelSeries = chart.addSeries("Pixel Distance", timeAxis, pixelDistances);
         pixelSeries.setLineColor(Color.BLUE);
@@ -1467,19 +1457,13 @@ public class ChartService {
 
             // Создаем чарт
             XYChart chart = new XYChartBuilder()
-                    .width(1920).height(720)
+                    .width(CHART_WIDTH).height(CHART_HEIGHT)
                     .title(String.format("Нормализованные цены: %s (Пересечений: %d из %d точек)",
                             pairName, intersectionsCount, minSize))
                     .xAxisTitle("").yAxisTitle("") // Убираем подписи осей
                     .build();
 
-            chart.getStyler().setLegendVisible(false);
-            chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
-            chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
-            chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-            chart.getStyler().setYAxisTicksVisible(false);
-            chart.getStyler().setYAxisTitleVisible(false);
-            chart.getStyler().setXAxisTitleVisible(false); // Убираем подпись оси X
+            applyUnifiedChartStyle(chart, timeAxis);
 
             // Добавляем серии данных
             List<Double> longPricesList = Arrays.stream(normalizedLongPrices).boxed().collect(Collectors.toList());
