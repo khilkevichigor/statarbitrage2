@@ -1237,7 +1237,7 @@ public class ChartService {
                     .xAxisTitle("Время").yAxisTitle("Нормализованная цена")
                     .build();
 
-            chart.getStyler().setLegendVisible(true);
+            chart.getStyler().setLegendVisible(false);
             chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
             chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
             chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);

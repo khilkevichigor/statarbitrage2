@@ -700,38 +700,50 @@ public class ZScoreChartDialog extends Dialog {
             titleSpan.getStyle().set("margin-bottom", "0.5rem");
             titleSpan.getStyle().set("display", "block");
 
-            // Получаем настройки для ТФ
-            Settings settings = settingsService.getSettings();
-            String timeframe = settings != null ? settings.getTimeframe() : "N/A";
-            String period = settings != null ? formatPeriod(settings.getCandleLimit(), timeframe) : "N/A";
-
-            // Информация о Long тикере
-            String longInfo = formatTickerInfo(
-                    tradingPair.getLongTicker(),
-                    tradingPair.getLongTickerCandles(),
-                    timeframe,
-                    period
+            // Информация о Long тикере (используем реальные данные свечей)
+            String longInfo = formatRealTickerInfo(
+                tradingPair.getLongTicker(),
+                tradingPair.getLongTickerCandles()
             );
 
-            // Информация о Short тикере
-            String shortInfo = formatTickerInfo(
-                    tradingPair.getShortTicker(),
-                    tradingPair.getShortTickerCandles(),
-                    timeframe,
-                    period
+            // Информация о Short тикере (используем реальные данные свечей)
+            String shortInfo = formatRealTickerInfo(
+                tradingPair.getShortTicker(),
+                tradingPair.getShortTickerCandles()
             );
+
+            // Подсчитываем пересечения
+            int intersectionsCount = calculateIntersections(tradingPair.getLongTickerCandles(), tradingPair.getShortTickerCandles());
+            int totalPoints = Math.min(
+                tradingPair.getLongTickerCandles() != null ? tradingPair.getLongTickerCandles().size() : 0,
+                tradingPair.getShortTickerCandles() != null ? tradingPair.getShortTickerCandles().size() : 0
+            );
+            
+            double intersectionPercent = totalPoints > 0 ? (double) intersectionsCount / totalPoints * 100 : 0;
+            String intersectionInfo = String.format("Пересечений: %.1f%% (%d)", 
+                intersectionPercent, intersectionsCount);
 
             // Создаем текстовые элементы
             Span longSpan = new Span(longInfo);
             longSpan.getStyle().set("display", "block");
             longSpan.getStyle().set("margin-bottom", "0.3rem");
             longSpan.getStyle().set("color", "#4CAF50"); // Зеленый для LONG
+            longSpan.getStyle().set("font-family", "monospace");
 
             Span shortSpan = new Span(shortInfo);
             shortSpan.getStyle().set("display", "block");
+            shortSpan.getStyle().set("margin-bottom", "0.5rem"); // Больший отступ перед пересечениями
             shortSpan.getStyle().set("color", "#F44336"); // Красный для SHORT
+            shortSpan.getStyle().set("font-family", "monospace");
 
-            infoLayout.add(titleSpan, longSpan, shortSpan);
+            // Информация о пересечениях
+            Span intersectionSpan = new Span(intersectionInfo);
+            intersectionSpan.getStyle().set("display", "block");
+            intersectionSpan.getStyle().set("color", "#2196F3"); // Синий для пересечений
+            intersectionSpan.getStyle().set("font-weight", "bold");
+            intersectionSpan.getStyle().set("font-family", "monospace");
+
+            infoLayout.add(titleSpan, longSpan, shortSpan, intersectionSpan);
             dataInfoPanel.add(infoLayout);
 
             log.debug("✅ Информационная панель обновлена");
@@ -744,8 +756,109 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
-     * Форматирует информацию о тикере
+     * Форматирует реальную информацию о тикере на основе фактических данных свечей
      */
+    private String formatRealTickerInfo(String ticker, java.util.List<com.example.shared.dto.Candle> candles) {
+        if (candles == null || candles.isEmpty()) {
+            return String.format("%-17s: Нет данных", ticker);
+        }
+
+        try {
+            // Сортируем свечи по времени
+            var sortedCandles = candles.stream()
+                .sorted(java.util.Comparator.comparing(com.example.shared.dto.Candle::getTimestamp))
+                .toList();
+
+            int totalCandles = sortedCandles.size();
+            long firstCandleTime = sortedCandles.get(0).getTimestamp();
+            long lastCandleTime = sortedCandles.get(totalCandles - 1).getTimestamp();
+
+            // Определяем реальный ТФ на основе разности времени между свечами
+            String realTimeframe = "N/A";
+            String realPeriod = "N/A";
+            
+            if (totalCandles >= 2) {
+                long timeDiffMs = sortedCandles.get(1).getTimestamp() - sortedCandles.get(0).getTimestamp();
+                realTimeframe = determineTimeframeFromDiff(timeDiffMs);
+                realPeriod = calculateRealPeriod(firstCandleTime, lastCandleTime);
+            }
+
+            // Форматируем даты
+            String datePattern = getRealDatePattern(realTimeframe);
+            java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat(datePattern);
+            formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+
+            String firstDate = formatter.format(new java.util.Date(firstCandleTime));
+            String lastDate = formatter.format(new java.util.Date(lastCandleTime));
+
+            return String.format("%-17s: %s, %s, %d точек, с %s по %s",
+                ticker, realTimeframe, realPeriod, totalCandles, firstDate, lastDate);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при форматировании реальной информации о тикере {}: {}", ticker, e.getMessage());
+            return String.format("%-17s: Ошибка обработки (%d свечей)", ticker, candles.size());
+        }
+    }
+
+    /**
+     * Определяет таймфрейм на основе разности времени между свечами
+     */
+    private String determineTimeframeFromDiff(long timeDiffMs) {
+        long minutes = timeDiffMs / (1000 * 60);
+        
+        if (minutes == 1) return "1m";
+        else if (minutes == 5) return "5m";
+        else if (minutes == 15) return "15m";
+        else if (minutes == 30) return "30m";
+        else if (minutes == 60) return "1H";
+        else if (minutes == 240) return "4H";
+        else if (minutes == 1440) return "1D";
+        else return minutes + "m";
+    }
+
+    /**
+     * Вычисляет реальный период на основе временного диапазона
+     */
+    private String calculateRealPeriod(long startTime, long endTime) {
+        long durationMs = endTime - startTime;
+        long days = durationMs / (1000 * 60 * 60 * 24);
+        
+        if (days >= 365) {
+            int years = (int) (days / 365);
+            int remainingDays = (int) (days % 365);
+            if (remainingDays == 0) {
+                return years == 1 ? "1 год" : years + " лет";
+            } else {
+                return String.format("%d %s %d дн.", years, years == 1 ? "год" : "лет", remainingDays);
+            }
+        } else if (days >= 30) {
+            int months = (int) (days / 30);
+            int remainingDays = (int) (days % 30);
+            if (remainingDays == 0) {
+                return months == 1 ? "1 месяц" : months + " мес.";
+            } else {
+                return String.format("%d мес. %d дн.", months, remainingDays);
+            }
+        } else {
+            return days == 1 ? "1 день" : days + " дней";
+        }
+    }
+
+    /**
+     * Определяет паттерн даты для реального таймфрейма
+     */
+    private String getRealDatePattern(String timeframe) {
+        return switch (timeframe) {
+            case "1m", "5m", "15m", "30m", "1H", "4H" -> "dd.MM.yyyy HH:mm";
+            case "1D" -> "dd.MM.yyyy";
+            default -> "dd.MM.yyyy HH:mm";
+        };
+    }
+
+    /**
+     * Форматирует информацию о тикере (устаревший метод)
+     */
+    @Deprecated
     private String formatTickerInfo(String ticker, java.util.List<com.example.shared.dto.Candle> candles,
                                     String timeframe, String period) {
         if (candles == null || candles.isEmpty()) {
@@ -780,8 +893,9 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
-     * Возвращает паттерн форматирования даты в зависимости от ТФ
+     * Возвращает паттерн форматирования даты в зависимости от ТФ (устаревший метод)
      */
+    @Deprecated
     private String getDatePattern(String timeframe) {
         return switch (timeframe) {
             case "1m", "5m", "15m", "30m" -> "dd.MM.yyyy HH:mm";
