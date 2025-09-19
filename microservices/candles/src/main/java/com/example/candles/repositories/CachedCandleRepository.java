@@ -125,4 +125,10 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
             "FROM CachedCandle cc WHERE cc.isValid = true " +
             "GROUP BY cc.exchange, cc.timeframe ORDER BY cc.exchange, cc.timeframe")
     List<Object[]> getCacheStatistics();
+
+    @Query("SELECT cc.exchange, cc.timeframe, COUNT(cc) as todayCount " +
+            "FROM CachedCandle cc WHERE cc.isValid = true " +
+            "AND DATE(cc.createdAt) = CURRENT_DATE " +
+            "GROUP BY cc.exchange, cc.timeframe ORDER BY cc.exchange, cc.timeframe")
+    List<Object[]> getTodayCacheStatistics();
 }

@@ -684,8 +684,12 @@ public class CandleCacheService {
 
         try {
             List<Object[]> rawStats = cachedCandleRepository.getCacheStatistics();
+            List<Object[]> todayStats = cachedCandleRepository.getTodayCacheStatistics();
+            
             Map<String, Map<String, Long>> exchangeStats = new HashMap<>();
+            Map<String, Map<String, Long>> exchangeTodayStats = new HashMap<>();
 
+            // Обрабатываем общую статистику
             for (Object[] row : rawStats) {
                 String ex = (String) row[0];
                 String tf = (String) row[1];
@@ -694,7 +698,17 @@ public class CandleCacheService {
                 exchangeStats.computeIfAbsent(ex, k -> new HashMap<>()).put(tf, count);
             }
 
+            // Обрабатываем статистику за сегодня
+            for (Object[] row : todayStats) {
+                String ex = (String) row[0];
+                String tf = (String) row[1];
+                Long todayCount = (Long) row[2];
+
+                exchangeTodayStats.computeIfAbsent(ex, k -> new HashMap<>()).put(tf, todayCount);
+            }
+
             stats.put("byExchange", exchangeStats);
+            stats.put("todayByExchange", exchangeTodayStats);
 
             // Дополнительная статистика для конкретной биржи
             if (exchange != null) {

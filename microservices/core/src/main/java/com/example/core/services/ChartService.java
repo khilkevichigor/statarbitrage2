@@ -418,28 +418,62 @@ public class ChartService {
             return;
         }
 
-        long entryTimestamp = tradingPair.getEntryTime() != null ?
-                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
-                (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
+        List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
+        if (zScoreHistory == null || zScoreHistory.isEmpty()) {
+            log.debug("📊 История Z-Score пуста - используем все данные профита без синхронизации");
+            // Fallback к старой логике с фильтрацией по времени входа
+            long entryTimestamp = tradingPair.getEntryTime() != null ?
+                    tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                    (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
 
-        List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
-                .filter(item -> item.getTimestamp() >= entryTimestamp)
-                .collect(Collectors.toList());
+            List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
+                    .filter(item -> item.getTimestamp() >= entryTimestamp)
+                    .collect(Collectors.toList());
 
-        if (filteredProfitHistory.isEmpty()) {
-            log.debug("📊 Нет данных профита с момента входа для пары {}, используя все данные", tradingPair.getPairName());
-            filteredProfitHistory = profitHistory;
-        }
+            if (filteredProfitHistory.isEmpty()) {
+                log.debug("📊 Нет данных профита с момента входа для пары {}, используя все данные", tradingPair.getPairName());
+                filteredProfitHistory = profitHistory;
+            }
 
-        if (filteredProfitHistory.isEmpty()) {
-            log.debug("📊 История профита все еще пуста после всех проверок для пары {}", tradingPair.getPairName());
+            if (filteredProfitHistory.isEmpty()) {
+                log.debug("📊 История профита все еще пуста после всех проверок для пары {}", tradingPair.getPairName());
+                return;
+            }
+            
+            addProfitSeriesToChart(chart, filteredProfitHistory);
             return;
         }
 
-        List<Date> profitTimeAxis = filteredProfitHistory.stream()
+        // Синхронизируем профит с Z-Score периодом
+        long zScoreStartTime = zScoreHistory.get(0).getTimestamp();
+        long zScoreEndTime = zScoreHistory.get(zScoreHistory.size() - 1).getTimestamp();
+        
+        log.debug("📊 Синхронизируем профит с Z-Score периодом: {} - {} ({} записей Z-Score)",
+                new Date(zScoreStartTime), new Date(zScoreEndTime), zScoreHistory.size());
+
+        List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
+                .filter(item -> item.getTimestamp() >= zScoreStartTime && item.getTimestamp() <= zScoreEndTime)
+                .collect(Collectors.toList());
+
+        if (filteredProfitHistory.isEmpty()) {
+            log.debug("📊 Нет данных профита в периоде Z-Score для пары {}", tradingPair.getPairName());
+            return;
+        }
+
+        log.debug("✅ Синхронизированный профит: {} точек (было: {} в полной истории)",
+                filteredProfitHistory.size(), profitHistory.size());
+
+        addProfitSeriesToChart(chart, filteredProfitHistory);
+    }
+
+    /**
+     * Добавляет серии профита на чарт
+     */
+    private void addProfitSeriesToChart(XYChart chart, List<ProfitHistoryItem> profitHistory) {
+        List<Date> profitTimeAxis = profitHistory.stream()
                 .map(p -> new Date(p.getTimestamp()))
                 .collect(Collectors.toList());
-        List<Double> profitValues = filteredProfitHistory.stream()
+        List<Double> profitValues = profitHistory.stream()
                 .map(ProfitHistoryItem::getProfitPercent)
                 .collect(Collectors.toList());
 
@@ -474,6 +508,130 @@ public class ChartService {
 
     public BufferedImage createPriceChart(Pair tradingPair, boolean showPixelSpread) {
         return createPriceChartInternal(tradingPair, showPixelSpread, false, false);
+    }
+
+    /**
+     * Создает Price чарт синхронизированный с Z-Score периодом
+     */
+    public BufferedImage createSynchronizedPriceChart(Pair tradingPair, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
+
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("Не найдены свечи для тикеров {} или {}", longTicker, shortTicker);
+            return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        }
+
+        if (history == null || history.isEmpty()) {
+            log.warn("⚠️ История Z-Score пуста - невозможно синхронизировать Price чарт");
+            // Fallback к обычному Price чарту
+            return createPriceChartInternal(tradingPair, showPixelSpread, showProfit, showEntryPoint);
+        }
+
+        log.info("📊 Создание синхронизированного Price чарта для пары {}/{}. LONG: {} свечей, SHORT: {} свечей, Z-Score история: {} записей",
+                longTicker, shortTicker, longCandles.size(), shortCandles.size(), history.size());
+
+        // Сортировка по времени
+        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        // Получаем временной диапазон Z-Score истории
+        long zScoreStartTime = history.get(0).getTimestamp();
+        long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
+
+        log.info("📊 Синхронизируем Price чарт с Z-Score периодом: {} - {} ({} записей Z-Score)",
+                new Date(zScoreStartTime), new Date(zScoreEndTime), history.size());
+
+        // Фильтруем свечи по временному диапазону Z-Score истории
+        List<Candle> filteredLongCandles = longCandles.stream()
+                .filter(c -> c.getTimestamp() >= zScoreStartTime && c.getTimestamp() <= zScoreEndTime)
+                .collect(Collectors.toList());
+        
+        List<Candle> filteredShortCandles = shortCandles.stream()
+                .filter(c -> c.getTimestamp() >= zScoreStartTime && c.getTimestamp() <= zScoreEndTime)
+                .collect(Collectors.toList());
+
+        if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
+            log.warn("⚠️ Нет свечей в периоде Z-Score истории для синхронизированного Price чарта");
+            // Fallback к обычному Price чарту
+            return createPriceChartInternal(tradingPair, showPixelSpread, showProfit, showEntryPoint);
+        }
+
+        log.info("📊 Синхронизированный Price чарт: LONG {} свечей, SHORT {} свечей (было: {} и {})",
+                filteredLongCandles.size(), filteredShortCandles.size(), longCandles.size(), shortCandles.size());
+
+        // Дата и цены (используем только синхронизированные свечи)
+        List<Date> timeLong = filteredLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = filteredLongCandles.stream().map(Candle::getClose).toList();
+
+        List<Date> timeShort = filteredShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = filteredShortCandles.stream().map(Candle::getClose).toList();
+
+        // График 1: первая монета (long)
+        XYChart topChart = new XYChartBuilder()
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
+                .title("Synchronized Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
+                .xAxisTitle("").yAxisTitle("")
+                .build();
+        
+        applyUnifiedChartStyle(topChart, timeLong);
+
+        XYSeries longSeries = topChart.addSeries("LONG: " + longTicker + " (current " + tradingPair.getLongTickerCurrentPrice() + ")", timeLong, longPrices);
+        longSeries.setLineColor(Color.GREEN);
+        longSeries.setMarker(new None());
+
+        // График 2: вторая монета (short)
+        XYChart bottomChart = new XYChartBuilder()
+                .width(CHART_WIDTH).height(CHART_HEIGHT)
+                .title("Synchronized Price Chart: LONG (" + longTicker + ") - SHORT (" + shortTicker + ")")
+                .xAxisTitle("").yAxisTitle("")
+                .build();
+        
+        applyUnifiedChartStyle(bottomChart, timeShort);
+
+        XYSeries shortSeries = bottomChart.addSeries("SHORT: " + shortTicker + " (current " + tradingPair.getShortTickerCurrentPrice() + ")", timeShort, shortPrices);
+        shortSeries.setLineColor(Color.RED);
+        shortSeries.setMarker(new None());
+
+        // Добавляем пиксельный спред если нужно
+        if (showPixelSpread) {
+            addPixelSpreadToPriceChart(topChart, tradingPair, timeLong, longPrices);
+            addPixelSpreadToPriceChart(bottomChart, tradingPair, timeShort, shortPrices);
+        }
+
+        // Добавляем профит если нужно
+        if (showProfit) {
+            addProfitToChart(topChart, tradingPair);
+            addProfitToChart(bottomChart, tradingPair);
+        }
+
+        // Добавляем точку входа если нужно
+        if (showEntryPoint) {
+            addEntryPointToPriceChart(topChart, tradingPair, timeLong, longPrices);
+            addEntryPointToPriceChart(bottomChart, tradingPair, timeShort, shortPrices);
+        }
+
+        // Объединение 2 графиков
+        BufferedImage topImage = BitmapEncoder.getBufferedImage(topChart);
+        BufferedImage bottomImage = BitmapEncoder.getBufferedImage(bottomChart);
+
+        BufferedImage combinedImage = new BufferedImage(CHART_WIDTH, CHART_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = combinedImage.createGraphics();
+
+        // Нарисовать верхний график (long) полностью
+        g2.drawImage(topImage, 0, 0, null);
+
+        // Установить прозрачность 50% и наложить нижний график (short)
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+        g2.drawImage(bottomImage, 0, 0, null);
+
+        g2.dispose();
+
+        return combinedImage;
     }
 
     private BufferedImage createPriceChartInternal(Pair tradingPair, boolean showPixelSpread, boolean showProfit, boolean showEntryPoint) {
@@ -1172,9 +1330,14 @@ public class ChartService {
         if (showZScore && !showCombinedPrice && !showPixelSpread) {
             return createZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
         } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
-            return createPriceChartInternal(tradingPair, false, false, showEntryPoint);
+            return createSynchronizedPriceChart(tradingPair, false, showProfit, showEntryPoint);
         } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
             return createPixelSpreadChartInternal(tradingPair, false, showEntryPoint);
+        }
+        
+        // Специальный случай: Z-Score + Combined Price (без других компонентов)
+        if (showZScore && showCombinedPrice && !showPixelSpread && !showEma && !showStochRsi && !showProfit) {
+            return createZScoreChart(tradingPair, false, emaPeriod, false, false, true, false, showEntryPoint);
         }
 
         // Для комбинированного чарта используем Z-Score как базу
@@ -1182,13 +1345,8 @@ public class ChartService {
 
         if (showZScore) {
             // Если Z-Score выбран, используем его как основу
-            // Создаем Z-Score чарт без синхронизации наложенных цен
-            chart = buildEnhancedZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, false, showPixelSpread, showEntryPoint);
-            
-            // Добавляем наложенные цены синхронизированно с Z-Score периодом
-            if (showCombinedPrice) {
-                addSynchronizedPricesToChart(chart, tradingPair);
-            }
+            // Создаем Z-Score чарт с правильными параметрами (включая синхронизированные цены если нужно)
+            chart = buildEnhancedZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
         } else {
             // Если Z-Score не выбран, создаем базовый чарт для других компонентов
             chart = createBaseCombinedChart(tradingPair);
@@ -1619,9 +1777,9 @@ public class ChartService {
 
             // Рисуем фон для текста (белый прямоугольник с черной рамкой)
             g2d.setColor(Color.WHITE);
-            g2d.fillRect(x - 10, y - textHeight + 5, textWidth + 20, textHeight + 10);
+            g2d.fillRect(x - 10, y - textHeight + 4, textWidth + 20, textHeight + 10);
             g2d.setColor(Color.BLACK);
-            g2d.drawRect(x - 10, y - textHeight + 5, textWidth + 20, textHeight + 10);
+            g2d.drawRect(x - 10, y - textHeight + 4, textWidth + 20, textHeight + 10);
 
             // Рисуем текст
             g2d.setColor(Color.RED);  // Красный цвет для выделения
