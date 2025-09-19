@@ -491,34 +491,11 @@ public class ChartService {
                 longCandles.get(0).getTimestamp(), longCandles.get(longCandles.size() - 1).getTimestamp(),
                 shortCandles.get(0).getTimestamp(), shortCandles.get(shortCandles.size() - 1).getTimestamp());
 
-        // Синхронизация с Z-Score историей, если она доступна
-        if (history != null && !history.isEmpty()) {
-            long zScoreStartTime = history.get(0).getTimestamp();
-            long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
-            long bufferTime = 300000; // 5 минут буфер
+        // Не синхронизируем Price чарт с Z-Score историей - показываем все доступные свечи
+        log.info("📊 Price чарт будет отображать все доступные свечи: LONG {} свечей, SHORT {} свечей",
+                longCandles.size(), shortCandles.size());
 
-            log.info("📊 Синхронизируем Price чарт с Z-Score диапазоном: {} - {}",
-                    new Date(zScoreStartTime), new Date(zScoreEndTime));
-
-            // Фильтруем свечи по временному диапазону Z-Score
-            longCandles = longCandles.stream()
-                    .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
-                    .toList();
-
-            shortCandles = shortCandles.stream()
-                    .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
-                    .toList();
-
-            log.info("📊 Отфильтрованные свечи для Price чарта: LONG {}, SHORT {}",
-                    longCandles.size(), shortCandles.size());
-
-            if (longCandles.isEmpty() || shortCandles.isEmpty()) {
-                log.warn("⚠️ Нет свечей в Z-Score временном диапазоне для Price чарта");
-                return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
-            }
-        }
-
-        // Дата и цены (используем отфильтрованные свечи)
+        // Дата и цены (используем все доступные свечи)
         List<Date> timeLong = longCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
         List<Double> longPrices = longCandles.stream().map(Candle::getClose).toList();
 
@@ -1241,8 +1218,8 @@ public class ChartService {
             chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
             chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
             chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-            chart.getStyler().setYAxisTicksVisible(true);
-            chart.getStyler().setYAxisTitleVisible(true);
+            chart.getStyler().setYAxisTicksVisible(false);
+            chart.getStyler().setYAxisTitleVisible(false);
 
             // Добавляем серии данных
             List<Double> longPricesList = Arrays.stream(normalizedLongPrices).boxed().collect(Collectors.toList());
@@ -1261,10 +1238,7 @@ public class ChartService {
             // Добавляем точки пересечений
             addIntersectionPoints(chart, timeAxis, normalizedLongPrices, normalizedShortPrices);
 
-            // Добавляем горизонтальные линии для ориентации
-            addHorizontalLine(chart, timeAxis, 1.0, Color.GRAY);  // Максимум
-            addHorizontalLine(chart, timeAxis, 0.5, Color.BLACK); // Средняя линия
-            addHorizontalLine(chart, timeAxis, 0.0, Color.GRAY);  // Минимум
+            // Горизонтальные линии убраны для чистоты чарта
 
             BufferedImage chartImage = BitmapEncoder.getBufferedImage(chart);
 

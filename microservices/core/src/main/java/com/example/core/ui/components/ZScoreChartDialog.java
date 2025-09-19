@@ -760,7 +760,7 @@ public class ZScoreChartDialog extends Dialog {
      */
     private String formatRealTickerInfo(String ticker, java.util.List<com.example.shared.dto.Candle> candles) {
         if (candles == null || candles.isEmpty()) {
-            return String.format("%-17s: Нет данных", ticker);
+            return String.format("%17s: Нет данных", ticker);
         }
 
         try {
@@ -791,12 +791,12 @@ public class ZScoreChartDialog extends Dialog {
             String firstDate = formatter.format(new java.util.Date(firstCandleTime));
             String lastDate = formatter.format(new java.util.Date(lastCandleTime));
 
-            return String.format("%-17s: %s, %s, %d точек, с %s по %s",
+            return String.format("%17s: %s, %s, %d точек, с %s по %s",
                 ticker, realTimeframe, realPeriod, totalCandles, firstDate, lastDate);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при форматировании реальной информации о тикере {}: {}", ticker, e.getMessage());
-            return String.format("%-17s: Ошибка обработки (%d свечей)", ticker, candles.size());
+            return String.format("%17s: Ошибка обработки (%d свечей)", ticker, candles.size());
         }
     }
 
