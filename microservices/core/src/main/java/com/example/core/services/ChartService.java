@@ -42,6 +42,7 @@ public class ChartService {
     }
 
     private XYChart buildEnhancedZScoreChart(Pair tradingPair, boolean showEma, int emaPeriod, boolean showStochRsi, boolean showProfit, boolean showCombinedPrice, boolean showPixelSpread, boolean showEntryPoint) {
+        // Всегда используем базовый Z-Score чарт (история Z-Score определяет период)
         XYChart chart = buildBasicZScoreChart(tradingPair, showEntryPoint);
 
         List<ZScoreParam> history = tradingPair.getZScoreHistory();
@@ -72,7 +73,7 @@ public class ChartService {
         }
 
         if (showCombinedPrice) {
-            addCombinedPricesToChart(chart, tradingPair);
+            addSynchronizedPricesToChart(chart, tradingPair);
         }
 
         if (showPixelSpread) {
@@ -673,6 +674,258 @@ public class ChartService {
     }
 
     /**
+     * Добавляет наложенные цены на чарт синхронизированно с Z-Score периодом
+     */
+    private void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair) {
+        String longTicker = tradingPair.getLongTicker();
+        String shortTicker = tradingPair.getShortTicker();
+
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Не найдены данные для синхронизированных цен на чарт: longCandles={}, shortCandles={}",
+                    longCandles != null ? longCandles.size() : "null",
+                    shortCandles != null ? shortCandles.size() : "null");
+            return;
+        }
+
+        if (history == null || history.isEmpty()) {
+            log.warn("⚠️ История Z-Score пуста - невозможно синхронизировать цены");
+            return;
+        }
+
+        // Сортировка по времени
+        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        // Получаем временной диапазон Z-Score истории
+        long zScoreStartTime = history.get(0).getTimestamp();
+        long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
+
+        log.info("📊 Синхронизируем цены с Z-Score периодом: {} - {} ({} записей Z-Score)",
+                new Date(zScoreStartTime), new Date(zScoreEndTime), history.size());
+
+        // Фильтруем свечи по временному диапазону Z-Score истории
+        List<Candle> filteredLongCandles = longCandles.stream()
+                .filter(c -> c.getTimestamp() >= zScoreStartTime && c.getTimestamp() <= zScoreEndTime)
+                .collect(Collectors.toList());
+        
+        List<Candle> filteredShortCandles = shortCandles.stream()
+                .filter(c -> c.getTimestamp() >= zScoreStartTime && c.getTimestamp() <= zScoreEndTime)
+                .collect(Collectors.toList());
+
+        if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
+            log.warn("⚠️ Нет свечей в периоде Z-Score истории для синхронизации");
+            return;
+        }
+
+        // Получение времени и цен для синхронизированного периода
+        List<Date> timeLong = filteredLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> longPrices = filteredLongCandles.stream().map(Candle::getClose).toList();
+
+        List<Date> timeShort = filteredShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
+        List<Double> shortPrices = filteredShortCandles.stream().map(Candle::getClose).toList();
+
+        // Найти диапазон Z-Score для масштабирования цен
+        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
+        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
+        double zRange = maxZScore - minZScore;
+
+        // Найти диапазон цен для нормализации (только для синхронизированного периода)
+        double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
+        double longPriceRange = maxLongPrice - minLongPrice;
+
+        double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
+        double shortPriceRange = maxShortPrice - minShortPrice;
+
+        // Нормализация long цен в диапазон Z-Score
+        List<Double> scaledLongPrices = longPrices.stream()
+                .map(price -> longPriceRange != 0 ?
+                        minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
+                .toList();
+
+        // Нормализация short цен в диапазон Z-Score
+        List<Double> scaledShortPrices = shortPrices.stream()
+                .map(price -> shortPriceRange != 0 ?
+                        minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
+                .toList();
+
+        log.info("✅ Добавляем синхронизированные цены на Z-Score чарт: LONG {} точек, SHORT {} точек",
+                scaledLongPrices.size(), scaledShortPrices.size());
+
+        // Добавляем long цены как полупрозрачную зеленую линию
+        XYSeries longPriceSeries = chart.addSeries("LONG Price (sync): " + longTicker, timeLong, scaledLongPrices);
+        longPriceSeries.setLineColor(new Color(0, 255, 0, 120)); // Полупрозрачный зеленый
+        longPriceSeries.setMarker(new None());
+        longPriceSeries.setLineStyle(new BasicStroke(1.5f));
+
+        // Добавляем short цены как полупрозрачную красную линию
+        XYSeries shortPriceSeries = chart.addSeries("SHORT Price (sync): " + shortTicker, timeShort, scaledShortPrices);
+        shortPriceSeries.setLineColor(new Color(255, 0, 0, 120)); // Полупрозрачный красный
+        shortPriceSeries.setMarker(new None());
+        shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
+
+        log.debug("✅ Синхронизированные цены успешно добавлены на Z-Score чарт!");
+    }
+
+    /**
+     * Создает Z-Score чарт синхронизированный с полным периодом свечей для наложенных цен
+     */
+    private XYChart buildSynchronizedZScoreChart(Pair tradingPair, boolean showEntryPoint) {
+        List<Candle> longCandles = tradingPair.getLongTickerCandles();
+        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
+        List<ZScoreParam> originalHistory = tradingPair.getZScoreHistory();
+
+        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+            log.warn("⚠️ Нет свечей для синхронизации Z-Score с наложенными ценами");
+            return buildBasicZScoreChart(tradingPair, showEntryPoint);
+        }
+
+        // Сортируем свечи
+        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
+        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
+
+        // Находим общие временные точки
+        int minSize = Math.min(longCandles.size(), shortCandles.size());
+        
+        List<Long> extendedTimestamps = new ArrayList<>();
+        List<Double> extendedZScores = new ArrayList<>();
+        
+        log.info("🔄 Создаем синхронизированный Z-Score для {} свечей (Long: {}, Short: {})", 
+                minSize, longCandles.size(), shortCandles.size());
+
+        // Вычисляем Z-Score для всех доступных свечей
+        for (int i = 0; i < minSize; i++) {
+            long timestamp = longCandles.get(i).getTimestamp();
+            double longPrice = longCandles.get(i).getClose();
+            double shortPrice = shortCandles.get(i).getClose();
+            
+            // Простое вычисление Z-Score как нормализованной разности цен
+            double spread = longPrice - shortPrice;
+            
+            // Нормализуем в диапазон [-3, 3] для совместимости
+            double normalizedZScore = Math.max(-3.0, Math.min(3.0, spread / Math.max(longPrice, shortPrice) * 100));
+            
+            extendedTimestamps.add(timestamp);
+            extendedZScores.add(normalizedZScore);
+        }
+
+        if (extendedTimestamps.isEmpty()) {
+            log.warn("⚠️ Не удалось вычислить синхронизированные Z-Score данные");
+            return buildBasicZScoreChart(tradingPair, showEntryPoint);
+        }
+
+        List<Date> timeAxis = extendedTimestamps.stream().map(Date::new).collect(Collectors.toList());
+
+        log.info("✅ Синхронизированный Z-Score: {} точек, диапазон: {} - {}",
+                extendedZScores.size(), timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+
+        // Создаем чарт
+        XYChart chart = new XYChartBuilder()
+                .width(1920).height(720)
+                .title("Synchronized Z-Score LONG (" + tradingPair.getLongTicker() + ") - SHORT (" + tradingPair.getShortTicker() + ")")
+                .xAxisTitle("Time").yAxisTitle("Z-Score")
+                .build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
+        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
+        chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        chart.getStyler().setYAxisTicksVisible(false);
+        chart.getStyler().setYAxisTitleVisible(false);
+
+        // Добавляем Z-Score линию
+        XYSeries zSeries = chart.addSeries("Z-Score (Synchronized)", timeAxis, extendedZScores);
+        zSeries.setLineColor(Color.MAGENTA);
+        zSeries.setMarker(new None());
+
+        // Добавляем горизонтальные линии
+        addHorizontalLine(chart, timeAxis, 3.0, Color.BLUE);
+        addHorizontalLine(chart, timeAxis, 2.0, Color.RED);
+        addHorizontalLine(chart, timeAxis, 1.0, Color.GRAY);
+        addHorizontalLine(chart, timeAxis, 0.0, Color.BLACK);
+        addHorizontalLine(chart, timeAxis, -1.0, Color.GRAY);
+        addHorizontalLine(chart, timeAxis, -2.0, Color.RED);
+        addHorizontalLine(chart, timeAxis, -3.0, Color.BLUE);
+
+        // Добавляем точку входа если нужно
+        if (showEntryPoint) {
+            addEntryPointToSynchronizedChart(chart, tradingPair, timeAxis, extendedZScores);
+        }
+
+        return chart;
+    }
+
+    /**
+     * Добавляет точку входа на синхронизированный Z-Score чарт
+     */
+    private void addEntryPointToSynchronizedChart(XYChart chart, Pair tradingPair, List<Date> timeAxis, List<Double> zScores) {
+        long entryTimestamp = tradingPair.getEntryTime() != null ? 
+            tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
+            (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
+
+        if (entryTimestamp <= 0 || timeAxis.isEmpty() || zScores.isEmpty()) {
+            log.debug("⚠️ Недостаточно данных для отображения точки входа на синхронизированном Z-Score чарте");
+            return;
+        }
+
+        long historyStart = timeAxis.get(0).getTime();
+        long historyEnd = timeAxis.get(timeAxis.size() - 1).getTime();
+        
+        Date entryDate;
+        Color lineColor;
+        String seriesName;
+        
+        boolean inRange = entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+        if (inRange) {
+            entryDate = new Date(entryTimestamp);
+            lineColor = Color.BLUE;
+            seriesName = "Entry Point (Sync)";
+            log.debug("🎯 Точка входа попадает в синхронизированный диапазон Z-Score");
+        } else if (entryTimestamp < historyStart) {
+            entryDate = new Date(historyStart);
+            lineColor = Color.ORANGE;
+            seriesName = "Entry Point (Sync, Start)";
+            log.debug("🎯 Точка входа до начала синхронизированного диапазона");
+        } else {
+            entryDate = new Date(historyEnd);
+            lineColor = Color.ORANGE;
+            seriesName = "Entry Point (Sync, End)";
+            log.debug("🎯 Точка входа после окончания синхронизированного диапазона");
+        }
+
+        // Вертикальная линия входа
+        double minY = zScores.stream().min(Double::compareTo).orElse(-3.0);
+        double maxY = zScores.stream().max(Double::compareTo).orElse(3.0);
+        
+        List<Date> verticalLineX = Arrays.asList(entryDate, entryDate);
+        List<Double> verticalLineY = Arrays.asList(minY, maxY);
+
+        XYSeries entryVerticalLine = chart.addSeries(seriesName, verticalLineX, verticalLineY);
+        entryVerticalLine.setLineColor(lineColor);
+        entryVerticalLine.setMarker(new None());
+        entryVerticalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+
+        // Горизонтальная линия Z-Score входа
+        if (tradingPair.getZScoreEntry() != null) {
+            double entryZScore = tradingPair.getZScoreEntry().doubleValue();
+            List<Date> horizontalLineX = Arrays.asList(timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+            List<Double> horizontalLineY = Arrays.asList(entryZScore, entryZScore);
+
+            XYSeries entryHorizontalLine = chart.addSeries(seriesName + " Z-Level", horizontalLineX, horizontalLineY);
+            entryHorizontalLine.setLineColor(lineColor);
+            entryHorizontalLine.setMarker(new None());
+            entryHorizontalLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6f, 4f}, 0));
+        }
+
+        log.debug("✅ Точка входа добавлена на синхронизированный Z-Score чарт");
+    }
+
+    /**
      * Добавляет пиксельный спред на Z-Score чарт
      */
     private void addPixelSpreadToZScoreChart(XYChart chart, Pair tradingPair) {
@@ -1027,7 +1280,13 @@ public class ChartService {
 
         if (showZScore) {
             // Если Z-Score выбран, используем его как основу
-            chart = buildEnhancedZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, showCombinedPrice, showPixelSpread, showEntryPoint);
+            // Создаем Z-Score чарт без синхронизации наложенных цен
+            chart = buildEnhancedZScoreChart(tradingPair, showEma, emaPeriod, showStochRsi, showProfit, false, showPixelSpread, showEntryPoint);
+            
+            // Добавляем наложенные цены синхронизированно с Z-Score периодом
+            if (showCombinedPrice) {
+                addSynchronizedPricesToChart(chart, tradingPair);
+            }
         } else {
             // Если Z-Score не выбран, создаем базовый чарт для других компонентов
             chart = createBaseCombinedChart(tradingPair);
@@ -1211,7 +1470,7 @@ public class ChartService {
                     .width(1920).height(720)
                     .title(String.format("Нормализованные цены: %s (Пересечений: %d из %d точек)",
                             pairName, intersectionsCount, minSize))
-                    .xAxisTitle("Время").yAxisTitle("Нормализованная цена")
+                    .xAxisTitle("").yAxisTitle("") // Убираем подписи осей
                     .build();
 
             chart.getStyler().setLegendVisible(false);
@@ -1220,6 +1479,7 @@ public class ChartService {
             chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
             chart.getStyler().setYAxisTicksVisible(false);
             chart.getStyler().setYAxisTitleVisible(false);
+            chart.getStyler().setXAxisTitleVisible(false); // Убираем подпись оси X
 
             // Добавляем серии данных
             List<Double> longPricesList = Arrays.stream(normalizedLongPrices).boxed().collect(Collectors.toList());
