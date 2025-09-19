@@ -121,7 +121,8 @@ public class ChartService {
                 .build();
 
         chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern("HH:mm");
+        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
+        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
         chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
         chart.getStyler().setYAxisTicksVisible(false);
         chart.getStyler().setYAxisTitleVisible(false);
@@ -140,9 +141,9 @@ public class ChartService {
 
         // Отображаем точку входа только если включен соответствующий чекбокс
         if (showEntryPoint) {
-            long entryTimestamp = tradingPair.getEntryTime() != null ? 
-                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
-                (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
+            long entryTimestamp = tradingPair.getEntryTime() != null ?
+                    tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                    (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
             long historyStart = timestamps.get(0);
             long historyEnd = timestamps.get(timestamps.size() - 1);
 
@@ -403,9 +404,9 @@ public class ChartService {
             return;
         }
 
-        long entryTimestamp = tradingPair.getEntryTime() != null ? 
-            tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
-            (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
+        long entryTimestamp = tradingPair.getEntryTime() != null ?
+                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
 
         List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
                 .filter(item -> item.getTimestamp() >= entryTimestamp)
@@ -475,7 +476,7 @@ public class ChartService {
         }
 
         log.info("📊 Создание графика для пары {}/{}. LONG: {} свечей, SHORT: {} свечей, Z-Score история: {} записей",
-                longTicker, shortTicker, longCandles.size(), shortCandles.size(), 
+                longTicker, shortTicker, longCandles.size(), shortCandles.size(),
                 history != null ? history.size() : 0);
 
         // Проверяем исходный порядок свечей
@@ -487,8 +488,8 @@ public class ChartService {
         shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
 
         log.info("📈 После сортировки - LONG диапазон: {} - {}, SHORT диапазон: {} - {}",
-                longCandles.get(0).getTimestamp(), longCandles.get(longCandles.size()-1).getTimestamp(),
-                shortCandles.get(0).getTimestamp(), shortCandles.get(shortCandles.size()-1).getTimestamp());
+                longCandles.get(0).getTimestamp(), longCandles.get(longCandles.size() - 1).getTimestamp(),
+                shortCandles.get(0).getTimestamp(), shortCandles.get(shortCandles.size() - 1).getTimestamp());
 
         // Синхронизация с Z-Score историей, если она доступна
         if (history != null && !history.isEmpty()) {
@@ -793,9 +794,9 @@ public class ChartService {
      * Добавляет точку входа на Price чарт
      */
     private void addEntryPointToPriceChart(XYChart chart, Pair tradingPair, List<Date> timeAxis, List<Double> prices) {
-        long entryTimestamp = tradingPair.getEntryTime() != null ? 
-            tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
-            (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
+        long entryTimestamp = tradingPair.getEntryTime() != null ?
+                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
 
         if (entryTimestamp <= 0 || timeAxis.isEmpty() || prices.isEmpty()) {
             log.debug("⚠️ Недостаточно данных для отображения точки входа на Price чарт");
@@ -1091,15 +1092,16 @@ public class ChartService {
                 .build();
 
         chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern("HH:mm");
+        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
+        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
         chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
         chart.getStyler().setYAxisTicksVisible(false);
         chart.getStyler().setYAxisTitleVisible(false);
 
         // Добавляем точку входа если есть
-        long entryTimestamp = tradingPair.getEntryTime() != null ? 
-            tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
-            (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
+        long entryTimestamp = tradingPair.getEntryTime() != null ?
+                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
         long historyStart = timestamps.get(0);
         long historyEnd = timestamps.get(timestamps.size() - 1);
 
@@ -1164,7 +1166,8 @@ public class ChartService {
                 .build();
 
         chart.getStyler().setLegendVisible(false);
-        chart.getStyler().setDatePattern("HH:mm");
+        chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
+        chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
         chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
         chart.getStyler().setYAxisTicksVisible(false);
         chart.getStyler().setYAxisTitleVisible(false);
@@ -1235,7 +1238,8 @@ public class ChartService {
                     .build();
 
             chart.getStyler().setLegendVisible(true);
-            chart.getStyler().setDatePattern("HH:mm");
+            chart.getStyler().setDatePattern(getOptimalDatePattern(timeAxis));
+            chart.getStyler().setXAxisTickMarkSpacingHint(Math.max(50, timeAxis.size() / 10));
             chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
             chart.getStyler().setYAxisTicksVisible(true);
             chart.getStyler().setYAxisTitleVisible(true);
@@ -1263,7 +1267,7 @@ public class ChartService {
             addHorizontalLine(chart, timeAxis, 0.0, Color.GRAY);  // Минимум
 
             BufferedImage chartImage = BitmapEncoder.getBufferedImage(chart);
-            
+
             // Добавляем текст с количеством пересечений на изображение
             addIntersectionTextToImage(chartImage, intersectionsCount);
 
@@ -1404,7 +1408,7 @@ public class ChartService {
 
         boolean hasTimeOrderIssues = false;
         long prevTimestamp = candles.get(0).getTimestamp();
-        
+
         for (int i = 1; i < candles.size(); i++) {
             long currentTimestamp = candles.get(i).getTimestamp();
             if (currentTimestamp <= prevTimestamp) {
@@ -1412,19 +1416,61 @@ public class ChartService {
                     log.warn("❌ {}: нарушение хронологического порядка свечей в ChartService!", ticker);
                     hasTimeOrderIssues = true;
                 }
-                log.warn("❌ {}: свеча {} (timestamp={}) <= предыдущей {} (timestamp={})", 
-                        ticker, i, new Date(currentTimestamp), i-1, new Date(prevTimestamp));
+                log.warn("❌ {}: свеча {} (timestamp={}) <= предыдущей {} (timestamp={})",
+                        ticker, i, new Date(currentTimestamp), i - 1, new Date(prevTimestamp));
             }
             prevTimestamp = currentTimestamp;
         }
-        
+
         if (!hasTimeOrderIssues) {
             log.info("✅ {}: ChartService - хронологический порядок {} свечей корректен. Диапазон: {} - {}",
-                    ticker, candles.size(), 
-                    new Date(candles.get(0).getTimestamp()), 
-                    new Date(candles.get(candles.size()-1).getTimestamp()));
+                    ticker, candles.size(),
+                    new Date(candles.get(0).getTimestamp()),
+                    new Date(candles.get(candles.size() - 1).getTimestamp()));
         } else {
             log.error("❌ {}: КРИТИЧЕСКАЯ ОШИБКА в ChartService - нарушен хронологический порядок свечей! Это приведет к неверным графикам!", ticker);
+        }
+    }
+
+    /**
+     * Определяет оптимальный паттерн даты для оси X в зависимости от временного диапазона
+     */
+    private String getOptimalDatePattern(List<Date> timeAxis) {
+        if (timeAxis == null || timeAxis.size() < 2) {
+            return "dd.MM HH:mm";
+        }
+
+        try {
+            long startTime = timeAxis.get(0).getTime();
+            long endTime = timeAxis.get(timeAxis.size() - 1).getTime();
+            long durationMs = endTime - startTime;
+
+            // Конвертируем в часы для удобства
+            long durationHours = durationMs / (1000 * 60 * 60);
+
+            log.debug("📅 Анализ временного диапазона: {} часов ({} - {})",
+                    durationHours, timeAxis.get(0), timeAxis.get(timeAxis.size() - 1));
+
+            // Выбираем паттерн в зависимости от продолжительности
+            if (durationHours <= 24) {
+                // Меньше суток - показываем часы и минуты
+                return "HH:mm";
+            } else if (durationHours <= 24 * 7) {
+                // Неделя - показываем день и время
+                return "dd.MM HH:mm";
+            } else if (durationHours <= 24 * 30) {
+                // Месяц - показываем день и месяц
+                return "dd.MM";
+            } else if (durationHours <= 24 * 365) {
+                // Год - показываем день и месяц
+                return "dd.MM";
+            } else {
+                // Больше года - показываем месяц и год
+                return "MM.yyyy";
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при определении паттерна даты: {}", e.getMessage(), e);
+            return "dd.MM HH:mm"; // Паттерн по умолчанию
         }
     }
 

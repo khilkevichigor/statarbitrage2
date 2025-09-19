@@ -5,8 +5,8 @@ import com.example.core.services.ChartSettingsService;
 import com.example.core.services.PixelSpreadService;
 import com.example.core.services.SettingsService;
 import com.example.shared.models.ChartSettings;
-import com.example.shared.models.Settings;
 import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -45,6 +45,8 @@ public class ZScoreChartDialog extends Dialog {
 
     private VerticalLayout content;
     private Image mainChartImage; // Единая область для чартов
+    private Image intersectionsChartImage; // Чарт пересечений
+    private Div dataInfoPanel; // Панель с информацией о данных
     private H3 pairTitle;
     private Div detailsPanel;
     // Чекбоксы для выбора типов чартов
@@ -93,6 +95,23 @@ public class ZScoreChartDialog extends Dialog {
         mainChartImage.setHeight("600px");
         mainChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
         mainChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+
+        // Чарт пересечений
+        intersectionsChartImage = new Image();
+        intersectionsChartImage.setWidth("100%");
+        intersectionsChartImage.setHeight("400px");
+        intersectionsChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        intersectionsChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        intersectionsChartImage.getStyle().set("margin-top", "1rem");
+
+        // Панель с информацией о данных
+        dataInfoPanel = new Div();
+        dataInfoPanel.getStyle().set("padding", "1rem");
+        dataInfoPanel.getStyle().set("background", "var(--lumo-primary-color-10pct)");
+        dataInfoPanel.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        dataInfoPanel.getStyle().set("margin-top", "1rem");
+        dataInfoPanel.getStyle().set("font-family", "monospace");
+        dataInfoPanel.getStyle().set("font-size", "0.9rem");
 
         detailsPanel = new Div();
         detailsPanel.getStyle().set("padding", "1rem");
@@ -319,7 +338,12 @@ public class ZScoreChartDialog extends Dialog {
 
         chartSelectionPanel.add(chartsLabel, mainChartsRow, indicatorsRow);
 
-        content.add(header, chartSelectionPanel, mainChartImage, detailsPanel);
+        // Заголовок для чарта пересечений
+        H3 intersectionsTitle = new H3("📈 Чарт пересечений цен");
+        intersectionsTitle.getStyle().set("margin", "1rem 0 0.5rem 0");
+        intersectionsTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
+
+        content.add(header, dataInfoPanel, chartSelectionPanel, mainChartImage, intersectionsTitle, intersectionsChartImage, detailsPanel);
         add(content);
     }
 
@@ -367,6 +391,12 @@ public class ZScoreChartDialog extends Dialog {
 
             // Генерируем и показываем чарт согласно выбранным чекбоксам
             refreshMainChart();
+
+            // Генерируем чарт пересечений
+            refreshIntersectionsChart();
+
+            // Обновляем информацию о данных
+            updateDataInfoPanel(tradingPair);
 
             // Заполняем детальную информацию
             updateDetailsPanel(tradingPair);
@@ -540,6 +570,274 @@ public class ZScoreChartDialog extends Dialog {
      */
     private String getProfitColor(double profit) {
         return profit >= 0 ? "#4CAF50" : "#F44336";
+    }
+
+    /**
+     * Обновляет чарт пересечений
+     */
+    private void refreshIntersectionsChart() {
+        if (currentPair == null) return;
+
+        try {
+            log.info("📊 Создание чарта пересечений для пары: {}", currentPair.getPairName());
+
+            // Получаем данные свечей
+            var longCandles = currentPair.getLongTickerCandles();
+            var shortCandles = currentPair.getShortTickerCandles();
+
+            if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
+                log.warn("⚠️ Нет данных свечей для создания чарта пересечений");
+                intersectionsChartImage.setSrc("");
+                intersectionsChartImage.setAlt("Нет данных для чарта пересечений");
+                return;
+            }
+
+            // Подсчитываем пересечения (простой алгоритм)
+            int intersectionsCount = calculateIntersections(longCandles, shortCandles);
+
+            log.info("📊 Найдено {} пересечений цен для пары {}", intersectionsCount, currentPair.getPairName());
+
+            // Создаем чарт пересечений
+            BufferedImage intersectionsChart = chartService.createNormalizedPriceIntersectionsChart(
+                    longCandles, shortCandles, currentPair.getPairName(), intersectionsCount, false);
+
+            if (intersectionsChart != null) {
+                StreamResource intersectionsResource = createStreamResource(intersectionsChart, "intersections-chart.png");
+                intersectionsChartImage.setSrc(intersectionsResource);
+                intersectionsChartImage.setAlt("Intersections Chart for " + currentPair.getPairName());
+                log.debug("✅ Чарт пересечений успешно создан");
+            } else {
+                intersectionsChartImage.setSrc("");
+                intersectionsChartImage.setAlt("Failed to generate intersections chart");
+                log.warn("⚠️ Не удалось создать чарт пересечений");
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании чарта пересечений", e);
+            intersectionsChartImage.setSrc("");
+            intersectionsChartImage.setAlt("Chart generation error");
+        }
+    }
+
+    /**
+     * Подсчитывает количество пересечений между нормализованными ценами
+     */
+    private int calculateIntersections(java.util.List<com.example.shared.dto.Candle> longCandles,
+                                       java.util.List<com.example.shared.dto.Candle> shortCandles) {
+        try {
+            int minSize = Math.min(longCandles.size(), shortCandles.size());
+            if (minSize < 2) return 0;
+
+            // Нормализуем цены
+            double[] normalizedLongPrices = normalizePrices(longCandles, minSize);
+            double[] normalizedShortPrices = normalizePrices(shortCandles, minSize);
+
+            // Подсчитываем пересечения
+            int intersections = 0;
+            boolean firstAboveSecond = normalizedLongPrices[0] > normalizedShortPrices[0];
+
+            for (int i = 1; i < minSize; i++) {
+                boolean currentFirstAboveSecond = normalizedLongPrices[i] > normalizedShortPrices[i];
+                if (currentFirstAboveSecond != firstAboveSecond) {
+                    intersections++;
+                    firstAboveSecond = currentFirstAboveSecond;
+                }
+            }
+
+            return intersections;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при подсчете пересечений: {}", e.getMessage(), e);
+            return 0;
+        }
+    }
+
+    /**
+     * Нормализует цены в диапазон [0, 1]
+     */
+    private double[] normalizePrices(java.util.List<com.example.shared.dto.Candle> candles, int size) {
+        double[] prices = new double[size];
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+
+        // Извлекаем цены закрытия и находим min/max
+        for (int i = 0; i < size; i++) {
+            prices[i] = candles.get(i).getClose();
+            min = Math.min(min, prices[i]);
+            max = Math.max(max, prices[i]);
+        }
+
+        // Нормализуем
+        double range = max - min;
+        if (range == 0) {
+            return new double[size]; // Все цены одинаковые
+        }
+
+        for (int i = 0; i < size; i++) {
+            prices[i] = (prices[i] - min) / range;
+        }
+
+        return prices;
+    }
+
+    /**
+     * Обновляет панель с информацией о данных
+     */
+    private void updateDataInfoPanel(Pair tradingPair) {
+        dataInfoPanel.removeAll();
+
+        try {
+            log.debug("📊 Обновление информационной панели для пары: {}", tradingPair.getPairName());
+
+            VerticalLayout infoLayout = new VerticalLayout();
+            infoLayout.setSpacing(false);
+            infoLayout.setPadding(false);
+
+            // Заголовок
+            Span titleSpan = new Span("📊 Информация о данных");
+            titleSpan.getStyle().set("font-weight", "bold");
+            titleSpan.getStyle().set("font-size", "1.1rem");
+            titleSpan.getStyle().set("color", "var(--lumo-primary-text-color)");
+            titleSpan.getStyle().set("margin-bottom", "0.5rem");
+            titleSpan.getStyle().set("display", "block");
+
+            // Получаем настройки для ТФ
+            Settings settings = settingsService.getSettings();
+            String timeframe = settings != null ? settings.getTimeframe() : "N/A";
+            String period = settings != null ? formatPeriod(settings.getCandleLimit(), timeframe) : "N/A";
+
+            // Информация о Long тикере
+            String longInfo = formatTickerInfo(
+                    tradingPair.getLongTicker(),
+                    tradingPair.getLongTickerCandles(),
+                    timeframe,
+                    period
+            );
+
+            // Информация о Short тикере
+            String shortInfo = formatTickerInfo(
+                    tradingPair.getShortTicker(),
+                    tradingPair.getShortTickerCandles(),
+                    timeframe,
+                    period
+            );
+
+            // Создаем текстовые элементы
+            Span longSpan = new Span(longInfo);
+            longSpan.getStyle().set("display", "block");
+            longSpan.getStyle().set("margin-bottom", "0.3rem");
+            longSpan.getStyle().set("color", "#4CAF50"); // Зеленый для LONG
+
+            Span shortSpan = new Span(shortInfo);
+            shortSpan.getStyle().set("display", "block");
+            shortSpan.getStyle().set("color", "#F44336"); // Красный для SHORT
+
+            infoLayout.add(titleSpan, longSpan, shortSpan);
+            dataInfoPanel.add(infoLayout);
+
+            log.debug("✅ Информационная панель обновлена");
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении информационной панели", e);
+            Span errorSpan = new Span("Ошибка загрузки информации о данных");
+            errorSpan.getStyle().set("color", "var(--lumo-error-text-color)");
+            dataInfoPanel.add(errorSpan);
+        }
+    }
+
+    /**
+     * Форматирует информацию о тикере
+     */
+    private String formatTickerInfo(String ticker, java.util.List<com.example.shared.dto.Candle> candles,
+                                    String timeframe, String period) {
+        if (candles == null || candles.isEmpty()) {
+            return String.format("%s: Нет данных", ticker);
+        }
+
+        try {
+            // Сортируем свечи по времени для корректной работы с датами
+            var sortedCandles = candles.stream()
+                    .sorted(java.util.Comparator.comparing(com.example.shared.dto.Candle::getTimestamp))
+                    .toList();
+
+            int totalCandles = sortedCandles.size();
+            long firstCandleTime = sortedCandles.get(0).getTimestamp();
+            long lastCandleTime = sortedCandles.get(totalCandles - 1).getTimestamp();
+
+            // Форматируем даты с учетом ТФ
+            String datePattern = getDatePattern(timeframe);
+            java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat(datePattern);
+            formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+
+            String firstDate = formatter.format(new java.util.Date(firstCandleTime));
+            String lastDate = formatter.format(new java.util.Date(lastCandleTime));
+
+            return String.format("%s: %s, %s, %d точек, с %s по %s",
+                    ticker, timeframe, period, totalCandles, firstDate, lastDate);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при форматировании информации о тикере {}: {}", ticker, e.getMessage());
+            return String.format("%s: Ошибка обработки данных (%d свечей)", ticker, candles.size());
+        }
+    }
+
+    /**
+     * Возвращает паттерн форматирования даты в зависимости от ТФ
+     */
+    private String getDatePattern(String timeframe) {
+        return switch (timeframe) {
+            case "1m", "5m", "15m", "30m" -> "dd.MM.yyyy HH:mm";
+            case "1H", "4H" -> "dd.MM.yyyy HH:mm";
+            case "1d", "1D" -> "dd.MM.yyyy";
+            default -> "dd.MM.yyyy HH:mm";
+        };
+    }
+
+    /**
+     * Форматирует период в читабельный вид на основе candleLimit и timeframe
+     */
+    private String formatPeriod(double candleLimit, String timeframe) {
+        if (candleLimit <= 0 || timeframe == null) {
+            return "N/A";
+        }
+
+        try {
+            // Преобразуем candleLimit в количество дней в зависимости от timeframe
+            double totalDays = switch (timeframe.toLowerCase()) {
+                case "1m" -> candleLimit / (24 * 60);           // 1 минута = 1440 свечей в день
+                case "5m" -> candleLimit / (24 * 12);           // 5 минут = 288 свечей в день
+                case "15m" -> candleLimit / (24 * 4);           // 15 минут = 96 свечей в день
+                case "30m" -> candleLimit / (24 * 2);           // 30 минут = 48 свечей в день
+                case "1h" -> candleLimit / 24;                  // 1 час = 24 свечи в день
+                case "4h" -> candleLimit / 6;                   // 4 часа = 6 свечей в день
+                case "1d" -> candleLimit;                      // 1 день = 1 свеча в день
+                default -> candleLimit;                         // По умолчанию как дни
+            };
+
+            int days = (int) Math.round(totalDays);
+
+            if (days >= 365) {
+                int years = days / 365;
+                int remainingDays = days % 365;
+                if (remainingDays == 0) {
+                    return years == 1 ? "1 год" : years + " лет";
+                } else {
+                    return String.format("%d %s %d дн.", years, years == 1 ? "год" : "лет", remainingDays);
+                }
+            } else if (days >= 30) {
+                int months = days / 30;
+                int remainingDays = days % 30;
+                if (remainingDays == 0) {
+                    return months == 1 ? "1 месяц" : months + " мес.";
+                } else {
+                    return String.format("%d мес. %d дн.", months, remainingDays);
+                }
+            } else {
+                return days == 1 ? "1 день" : days + " дней";
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при форматировании периода: {}", e.getMessage(), e);
+            return String.format("%.0f свечей", candleLimit);
+        }
     }
 
 }
