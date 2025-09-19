@@ -579,104 +579,6 @@ public class ChartService {
         return combinedImage;
     }
 
-    private void addCombinedPricesToChart(XYChart chart, Pair tradingPair) {
-        String longTicker = tradingPair.getLongTicker();
-        String shortTicker = tradingPair.getShortTicker();
-
-        List<Candle> longCandles = tradingPair.getLongTickerCandles();
-        List<Candle> shortCandles = tradingPair.getShortTickerCandles();
-        List<ZScoreParam> history = tradingPair.getZScoreHistory();
-
-        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty() || history.isEmpty()) {
-            log.warn("⚠️ Не найдены данные для наложения цен на Z-Score чарт: longCandles={}, shortCandles={}, history={}",
-                    longCandles != null ? longCandles.size() : "null",
-                    shortCandles != null ? shortCandles.size() : "null",
-                    history.size());
-            return;
-        }
-
-        // Получаем временной диапазон Z-Score истории как основной
-        long zScoreStartTime = history.get(0).getTimestamp();
-        long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
-
-        log.debug("📊 Z-Score временной диапазон: {} - {}", new Date(zScoreStartTime), new Date(zScoreEndTime));
-
-        // Сортировка по времени
-        longCandles.sort(Comparator.comparing(Candle::getTimestamp));
-        shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
-
-        // Фильтруем свечи по временному диапазону Z-Score с небольшим буфером
-        long bufferTime = 300000; // 5 минут буфер
-        List<Candle> filteredLongCandles = longCandles.stream()
-                .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
-                .toList();
-
-        List<Candle> filteredShortCandles = shortCandles.stream()
-                .filter(c -> c.getTimestamp() >= (zScoreStartTime - bufferTime) && c.getTimestamp() <= (zScoreEndTime + bufferTime))
-                .toList();
-
-        if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
-            log.warn("⚠️ Нет свечей в временном диапазоне Z-Score: LONG filtered={}, SHORT filtered={}",
-                    filteredLongCandles.size(), filteredShortCandles.size());
-            return;
-        }
-
-        log.debug("📊 Отфильтрованные свечи: LONG {} -> {}, SHORT {} -> {}",
-                longCandles.size(), filteredLongCandles.size(),
-                shortCandles.size(), filteredShortCandles.size());
-
-        // Получение времени и цен для отфильтрованных свечей
-        List<Date> timeLong = filteredLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> longPrices = filteredLongCandles.stream().map(Candle::getClose).toList();
-
-        List<Date> timeShort = filteredShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> shortPrices = filteredShortCandles.stream().map(Candle::getClose).toList();
-
-        // Найти диапазон Z-Score для масштабирования цен
-        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
-        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
-        double zRange = maxZScore - minZScore;
-
-        // Найти диапазон цен для нормализации (используем только отфильтрованные цены)
-        double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
-        double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
-        double longPriceRange = maxLongPrice - minLongPrice;
-
-        double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
-        double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
-        double shortPriceRange = maxShortPrice - minShortPrice;
-
-        // Нормализация long цен в диапазон Z-Score
-        List<Double> scaledLongPrices = longPrices.stream()
-                .map(price -> longPriceRange != 0 ?
-                        minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
-                .toList();
-
-        // Нормализация short цен в диапазон Z-Score
-        List<Double> scaledShortPrices = shortPrices.stream()
-                .map(price -> shortPriceRange != 0 ?
-                        minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
-                .toList();
-
-        log.debug("✅ Добавляем синхронизированные цены на Z-Score чарт: LONG {} точек (диапазон: {}-{}), SHORT {} точек (диапазон: {}-{})",
-                scaledLongPrices.size(), minLongPrice, maxLongPrice,
-                scaledShortPrices.size(), minShortPrice, maxShortPrice);
-
-        // Добавляем long цены как полупрозрачную зеленую линию
-        XYSeries longPriceSeries = chart.addSeries("LONG Price (scaled): " + longTicker, timeLong, scaledLongPrices);
-        longPriceSeries.setLineColor(new Color(0, 255, 0, 120)); // Полупрозрачный зеленый
-        longPriceSeries.setMarker(new None());
-        longPriceSeries.setLineStyle(new BasicStroke(1.5f));
-
-        // Добавляем short цены как полупрозрачную красную линию
-        XYSeries shortPriceSeries = chart.addSeries("SHORT Price (scaled): " + shortTicker, timeShort, scaledShortPrices);
-        shortPriceSeries.setLineColor(new Color(255, 0, 0, 120)); // Полупрозрачный красный
-        shortPriceSeries.setMarker(new None());
-        shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
-
-        // Используем PixelSpreadService для расчёта пиксельного спреда
-        pixelSpreadService.calculatePixelSpreadIfNeeded(tradingPair);
-    }
 
     /**
      * Добавляет наложенные цены на чарт синхронизированно с Z-Score периодом
@@ -1292,7 +1194,7 @@ public class ChartService {
             chart = createBaseCombinedChart(tradingPair);
 
             if (showCombinedPrice) {
-                addCombinedPricesToChart(chart, tradingPair);
+                addSynchronizedPricesToChart(chart, tradingPair);
             }
 
             if (showPixelSpread) {

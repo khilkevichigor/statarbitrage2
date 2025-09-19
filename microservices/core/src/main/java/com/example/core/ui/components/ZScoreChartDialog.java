@@ -712,6 +712,13 @@ public class ZScoreChartDialog extends Dialog {
                 tradingPair.getShortTickerCandles()
             );
 
+            // Выравниваем тикеры по двоеточию
+            java.util.List<String> alignedTickerInfos = alignTickersByColon(
+                java.util.List.of(longInfo, shortInfo)
+            );
+            String alignedLongInfo = alignedTickerInfos.get(0);
+            String alignedShortInfo = alignedTickerInfos.get(1);
+
             // Подсчитываем пересечения
             int intersectionsCount = calculateIntersections(tradingPair.getLongTickerCandles(), tradingPair.getShortTickerCandles());
             int totalPoints = Math.min(
@@ -724,13 +731,13 @@ public class ZScoreChartDialog extends Dialog {
                 intersectionPercent, intersectionsCount);
 
             // Создаем текстовые элементы
-            Span longSpan = new Span(longInfo);
+            Span longSpan = new Span(alignedLongInfo);
             longSpan.getStyle().set("display", "block");
             longSpan.getStyle().set("margin-bottom", "0.3rem");
             longSpan.getStyle().set("color", "#4CAF50"); // Зеленый для LONG
             longSpan.getStyle().set("font-family", "monospace");
 
-            Span shortSpan = new Span(shortInfo);
+            Span shortSpan = new Span(alignedShortInfo);
             shortSpan.getStyle().set("display", "block");
             shortSpan.getStyle().set("margin-bottom", "0.5rem"); // Больший отступ перед пересечениями
             shortSpan.getStyle().set("color", "#F44336"); // Красный для SHORT
@@ -756,11 +763,48 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
+     * Выравнивает тикеры по двоеточию, добавляя пробелы перед двоеточием
+     */
+    private java.util.List<String> alignTickersByColon(java.util.List<String> tickers) {
+        if (tickers == null || tickers.isEmpty()) {
+            return tickers;
+        }
+        
+        // Находим максимальную длину тикера (до двоеточия)
+        int maxTickerLength = tickers.stream()
+            .mapToInt(info -> {
+                int colonIndex = info.indexOf(':');
+                return colonIndex > 0 ? colonIndex : info.length();
+            })
+            .max()
+            .orElse(0);
+        
+        // Выравниваем каждую строку
+        return tickers.stream()
+            .map(info -> {
+                int colonIndex = info.indexOf(':');
+                if (colonIndex > 0) {
+                    String tickerPart = info.substring(0, colonIndex);
+                    String restPart = info.substring(colonIndex);
+                    
+                    // Добавляем пробелы для выравнивания
+                    int spacesToAdd = maxTickerLength - tickerPart.length();
+                    String padding = " ".repeat(Math.max(0, spacesToAdd));
+                    
+                    return tickerPart + padding + restPart;
+                } else {
+                    return info; // Если нет двоеточия, возвращаем как есть
+                }
+            })
+            .toList();
+    }
+
+    /**
      * Форматирует реальную информацию о тикере на основе фактических данных свечей
      */
     private String formatRealTickerInfo(String ticker, java.util.List<com.example.shared.dto.Candle> candles) {
         if (candles == null || candles.isEmpty()) {
-            return String.format("%17s: Нет данных", ticker);
+            return String.format("%s: Нет данных", ticker);
         }
 
         try {
@@ -791,12 +835,12 @@ public class ZScoreChartDialog extends Dialog {
             String firstDate = formatter.format(new java.util.Date(firstCandleTime));
             String lastDate = formatter.format(new java.util.Date(lastCandleTime));
 
-            return String.format("%17s: %s, %s, %d точек, с %s по %s",
+            return String.format("%s: %s, %s, %d точек, с %s по %s",
                 ticker, realTimeframe, realPeriod, totalCandles, firstDate, lastDate);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при форматировании реальной информации о тикере {}: {}", ticker, e.getMessage());
-            return String.format("%17s: Ошибка обработки (%d свечей)", ticker, candles.size());
+            return String.format("%s: Ошибка обработки (%d свечей)", ticker, candles.size());
         }
     }
 
