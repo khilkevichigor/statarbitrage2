@@ -684,7 +684,12 @@ public class CandleCacheService {
 
         try {
             List<Object[]> rawStats = cachedCandleRepository.getCacheStatistics();
-            List<Object[]> todayStats = cachedCandleRepository.getTodayCacheStatistics();
+            
+            // Вычисляем начало и конец текущего дня
+            java.time.LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
+            java.time.LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+            
+            List<Object[]> todayStats = cachedCandleRepository.getTodayCacheStatistics(startOfDay, startOfNextDay);
             
             Map<String, Map<String, Long>> exchangeStats = new HashMap<>();
             Map<String, Map<String, Long>> exchangeTodayStats = new HashMap<>();
