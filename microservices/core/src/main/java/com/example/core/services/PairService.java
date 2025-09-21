@@ -16,6 +16,7 @@ import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -710,7 +711,6 @@ public class PairService {
         return settings;
     }
 
-    @Transactional
     public void saveSearchResults(StabilityResponseDto response, String timeframe,
                                   String period, Map<String, Object> searchSettings) {
         if (response.getResults() == null || response.getResults().isEmpty()) {
@@ -721,37 +721,49 @@ public class PairService {
         int skippedCount = 0;
 
         for (StabilityResultDto result : response.getResults()) {
-            try {
-                // Проверяем, нет ли уже похожих результатов
-                LocalDateTime cutoffTime = LocalDateTime.now().minusHours(1);
-                List<Pair> existing = pairRepository.findSimilarStablePairs(
-                        result.getTickerA(), result.getTickerB(), timeframe, period, cutoffTime);
-
-                if (existing.isEmpty()) {
-                    Pair pair = Pair.fromStabilityResult(result, timeframe, period, searchSettings);
-                    pairRepository.save(pair); // Сохраняем по одной для лучшего контроля ошибок
-                    savedCount++;
-                } else {
-                    skippedCount++;
-                    log.debug("🔄 Пара {}-{} [{}][{}] уже существует, пропускаем", 
-                             result.getTickerA(), result.getTickerB(), timeframe, period);
-                }
-            } catch (Exception e) {
-                // Обрабатываем нарушения уникальных ограничений и другие ошибки
-                if (e.getMessage() != null && e.getMessage().contains("unique constraint")) {
-                    skippedCount++;
-                    log.debug("🔄 Пара {}-{} [{}][{}] нарушает уникальное ограничение, пропускаем дубликат", 
-                             result.getTickerA(), result.getTickerB(), timeframe, period);
-                } else {
-                    log.error("💥 Ошибка при сохранении пары {}-{} [{}][{}]: {}", 
-                             result.getTickerA(), result.getTickerB(), timeframe, period, e.getMessage());
-                }
+            if (saveSinglePair(result, timeframe, period, searchSettings)) {
+                savedCount++;
+            } else {
+                skippedCount++;
             }
         }
 
         if (savedCount > 0 || skippedCount > 0) {
             log.info("💾 Результаты сохранения [{}][{}]: {} новых пар, {} пропущено дубликатов", 
                     timeframe, period, savedCount, skippedCount);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean saveSinglePair(StabilityResultDto result, String timeframe, 
+                                  String period, Map<String, Object> searchSettings) {
+        try {
+            // Проверяем, нет ли уже похожих результатов
+            LocalDateTime cutoffTime = LocalDateTime.now().minusHours(1);
+            List<Pair> existing = pairRepository.findSimilarStablePairs(
+                    result.getTickerA(), result.getTickerB(), timeframe, period, cutoffTime);
+
+            if (existing.isEmpty()) {
+                Pair pair = Pair.fromStabilityResult(result, timeframe, period, searchSettings);
+                pairRepository.save(pair);
+                return true;
+            } else {
+                log.debug("🔄 Пара {}-{} [{}][{}] уже существует, пропускаем", 
+                         result.getTickerA(), result.getTickerB(), timeframe, period);
+                return false;
+            }
+        } catch (Exception e) {
+            // Обрабатываем нарушения уникальных ограничений и другие ошибки
+            if (e.getMessage() != null && (e.getMessage().contains("unique constraint") || 
+                                          e.getMessage().contains("duplicate key"))) {
+                log.debug("🔄 Пара {}-{} [{}][{}] нарушает уникальное ограничение, пропускаем дубликат", 
+                         result.getTickerA(), result.getTickerB(), timeframe, period);
+                return false;
+            } else {
+                log.error("💥 Ошибка при сохранении пары {}-{} [{}][{}]: {}", 
+                         result.getTickerA(), result.getTickerB(), timeframe, period, e.getMessage());
+                return false;
+            }
         }
     }
 
