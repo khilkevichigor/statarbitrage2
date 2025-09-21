@@ -2,14 +2,17 @@ package com.example.core.ui.views;
 
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.services.PairService;
+import com.example.core.services.StablePairsScreenerSettingsService;
 import com.example.core.ui.components.ZScoreChartDialog;
 import com.example.core.ui.layout.MainLayout;
 import com.example.shared.models.Pair;
+import com.example.shared.models.StablePairsScreenerSettings;
 import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
@@ -32,6 +35,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * Скриннер стабильных коинтегрированных пар
@@ -43,10 +49,19 @@ public class StablePairsView extends VerticalLayout {
 
     private final PairService pairService;
     private final ZScoreChartDialog zScoreChartDialog;
+    private final StablePairsScreenerSettingsService settingsService;
 
-    // Элементы формы поиска
-    private ComboBox<String> timeframeComboBox;
-    private ComboBox<String> periodComboBox;
+    // Элементы формы поиска - мульти-селекты
+    private MultiSelectComboBox<String> timeframeMultiSelect;
+    private MultiSelectComboBox<String> periodMultiSelect;
+    
+    // Доступные варианты
+    private final List<String> availableTimeframes = Arrays.asList(
+            "1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M"
+    );
+    private final List<String> availablePeriods = Arrays.asList(
+            "день", "неделя", "месяц", "6 месяцев", "1 год", "2 года", "3 года"
+    );
     private Checkbox minCorrelationEnabled;
     private NumberField minCorrelationField;
     private Checkbox minWindowSizeEnabled;
@@ -61,6 +76,12 @@ public class StablePairsView extends VerticalLayout {
     private Button searchButton;
     private Button clearAllButton;
     private ProgressBar progressBar;
+    
+    // Новые элементы для настроек
+    private Checkbox runOnScheduleCheckbox;
+    private Button saveSettingsButton;
+    private Button loadSettingsButton;
+    private ComboBox<StablePairsScreenerSettings> savedSettingsCombo;
 
     // Таблицы
     private Grid<Pair> foundPairsGrid;
@@ -69,9 +90,11 @@ public class StablePairsView extends VerticalLayout {
     // Статистика
     private Span statsLabel;
 
-    public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog) {
+    public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog, 
+                           StablePairsScreenerSettingsService settingsService) {
         this.pairService = pairService;
         this.zScoreChartDialog = zScoreChartDialog;
+        this.settingsService = settingsService;
 
         initializeLayout();
         loadData();
@@ -113,21 +136,24 @@ public class StablePairsView extends VerticalLayout {
         row1.setAlignItems(FlexComponent.Alignment.END);
         row1.setWidthFull();
 
-        timeframeComboBox = new ComboBox<>("Таймфрейм");
-        timeframeComboBox.setItems("1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M");
-        timeframeComboBox.setValue("1D");
-        timeframeComboBox.setWidth("150px");
+        timeframeMultiSelect = new MultiSelectComboBox<>("Таймфрейм");
+        timeframeMultiSelect.setItems(availableTimeframes);
+        timeframeMultiSelect.setValue(new HashSet<>(Arrays.asList("1D")));
+        timeframeMultiSelect.setWidth("250px");
 
-        periodComboBox = new ComboBox<>("Период");
-        periodComboBox.setItems("день", "неделя", "месяц", "1 год", "2 года", "3 года");
-        periodComboBox.setValue("месяц");
-        periodComboBox.setWidth("150px");
+        periodMultiSelect = new MultiSelectComboBox<>("Период");
+        periodMultiSelect.setItems(availablePeriods);
+        periodMultiSelect.setValue(new HashSet<>(Arrays.asList("месяц")));
+        periodMultiSelect.setWidth("250px");
 
-        row1.add(timeframeComboBox, periodComboBox);
+        row1.add(timeframeMultiSelect, periodMultiSelect);
 
         // Вторая строка: Настройки фильтров
         HorizontalLayout row2 = createFilterRow1();
         HorizontalLayout row3 = createFilterRow2();
+
+        // Третья строка: Настройки автоматизации
+        HorizontalLayout row4 = createAutomationRow();
 
         // Кнопки
         HorizontalLayout buttonRow = new HorizontalLayout();
@@ -143,9 +169,17 @@ public class StablePairsView extends VerticalLayout {
         clearAllButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_CONTRAST);
         clearAllButton.addClickListener(e -> clearAllResults());
 
-        buttonRow.add(searchButton, clearAllButton);
+        saveSettingsButton = new Button("Сохранить настройки", VaadinIcon.DOWNLOAD.create());
+        saveSettingsButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
+        saveSettingsButton.addClickListener(e -> saveCurrentSettings());
 
-        formLayout.add(formTitle, row1, row2, row3, buttonRow);
+        loadSettingsButton = new Button("Загрузить настройки", VaadinIcon.UPLOAD.create());
+        loadSettingsButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
+        loadSettingsButton.addClickListener(e -> loadSelectedSettings());
+
+        buttonRow.add(searchButton, clearAllButton, saveSettingsButton, loadSettingsButton);
+
+        formLayout.add(formTitle, row1, row2, row3, row4, buttonRow);
         return formLayout;
     }
 
@@ -225,6 +259,26 @@ public class StablePairsView extends VerticalLayout {
         pValueGroup.setAlignItems(FlexComponent.Alignment.END);
 
         row.add(rSquaredGroup, pValueGroup);
+        return row;
+    }
+
+    private HorizontalLayout createAutomationRow() {
+        HorizontalLayout row = new HorizontalLayout();
+        row.setAlignItems(FlexComponent.Alignment.END);
+        row.setWidthFull();
+
+        runOnScheduleCheckbox = new Checkbox("Запускать по расписанию");
+        runOnScheduleCheckbox.setValue(false);
+        runOnScheduleCheckbox.getElement().setAttribute("title", "Включить автоматический поиск каждую ночь в 2:00");
+
+        savedSettingsCombo = new ComboBox<>("Сохранённые настройки");
+        savedSettingsCombo.setItemLabelGenerator(StablePairsScreenerSettings::getName);
+        savedSettingsCombo.setWidth("300px");
+        
+        // Загружаем существующие настройки при инициализации
+        loadAvailableSettings();
+
+        row.add(runOnScheduleCheckbox, savedSettingsCombo);
         return row;
     }
 
@@ -380,18 +434,31 @@ public class StablePairsView extends VerticalLayout {
         progressBar.setVisible(true);
 
         try {
-            String timeframe = timeframeComboBox.getValue();
-            String period = periodComboBox.getValue();
+            Set<String> timeframes = timeframeMultiSelect.getValue();
+            Set<String> periods = periodMultiSelect.getValue();
+            
+            if (timeframes.isEmpty()) {
+                Notification.show("❌ Выберите хотя бы один таймфрейм", 3000, Notification.Position.TOP_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            
+            if (periods.isEmpty()) {
+                Notification.show("❌ Выберите хотя бы один период", 3000, Notification.Position.TOP_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            
             Map<String, Object> searchSettings = buildSearchSettings();
 
-            log.info("🔍 Запуск поиска стабильных пар: TF={}, Period={}", timeframe, period);
+            log.info("🔍 Запуск поиска стабильных пар: TF={}, Period={}", timeframes, periods);
 
             // Выполняем поиск в фоновом потоке
             getUI().ifPresent(ui -> {
                 Thread searchThread = new Thread(() -> {
                     try {
                         StabilityResponseDto response = pairService.searchStablePairs(
-                                timeframe, period, searchSettings);
+                                timeframes, periods, searchSettings);
 
                         ui.access(() -> {
                             progressBar.setVisible(false);
@@ -629,6 +696,163 @@ public class StablePairsView extends VerticalLayout {
         } catch (Exception e) {
             log.error("Ошибка при обновлении статистики: {}", e.getMessage(), e);
             statsLabel.setText("📊 Статистика недоступна");
+        }
+    }
+
+    // ======== МЕТОДЫ ДЛЯ РАБОТЫ С НАСТРОЙКАМИ СКРИННЕРА ========
+
+    private void loadAvailableSettings() {
+        try {
+            List<StablePairsScreenerSettings> allSettings = settingsService.getAllSettings();
+            savedSettingsCombo.setItems(allSettings);
+            
+            // Автоматически выбираем настройки по умолчанию, если они есть
+            allSettings.stream()
+                    .filter(StablePairsScreenerSettings::isDefault)
+                    .findFirst()
+                    .ifPresent(defaultSettings -> {
+                        savedSettingsCombo.setValue(defaultSettings);
+                        loadSettingsIntoUI(defaultSettings);
+                    });
+            
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке доступных настроек: {}", e.getMessage(), e);
+            Notification.show("❌ Ошибка при загрузке настроек", 3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    private void loadSettingsIntoUI(StablePairsScreenerSettings settings) {
+        try {
+            log.debug("🔄 Загрузка настроек в UI: {}", settings.getName());
+            
+            // Загружаем таймфреймы и периоды
+            timeframeMultiSelect.setValue(settings.getSelectedTimeframesSet());
+            periodMultiSelect.setValue(settings.getSelectedPeriodsSet());
+            
+            // Загружаем настройки фильтров
+            minCorrelationEnabled.setValue(settings.isMinCorrelationEnabled());
+            minCorrelationField.setValue(settings.getMinCorrelationValue());
+            minCorrelationField.setEnabled(settings.isMinCorrelationEnabled());
+            
+            minWindowSizeEnabled.setValue(settings.isMinWindowSizeEnabled());
+            minWindowSizeField.setValue(settings.getMinWindowSizeValue());
+            minWindowSizeField.setEnabled(settings.isMinWindowSizeEnabled());
+            
+            maxAdfValueEnabled.setValue(settings.isMaxAdfValueEnabled());
+            maxAdfValueField.setValue(settings.getMaxAdfValue());
+            maxAdfValueField.setEnabled(settings.isMaxAdfValueEnabled());
+            
+            minRSquaredEnabled.setValue(settings.isMinRSquaredEnabled());
+            minRSquaredField.setValue(settings.getMinRSquaredValue());
+            minRSquaredField.setEnabled(settings.isMinRSquaredEnabled());
+            
+            maxPValueEnabled.setValue(settings.isMaxPValueEnabled());
+            maxPValueField.setValue(settings.getMaxPValue());
+            maxPValueField.setEnabled(settings.isMaxPValueEnabled());
+            
+            // Загружаем настройки автоматизации
+            runOnScheduleCheckbox.setValue(settings.isRunOnSchedule());
+            
+            log.info("✅ Настройки '{}' загружены в UI", settings.getName());
+            
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке настроек в UI: {}", e.getMessage(), e);
+            Notification.show("❌ Ошибка при загрузке настроек: " + e.getMessage(), 
+                            3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    private void saveCurrentSettings() {
+        try {
+            // Запрашиваем название у пользователя
+            com.vaadin.flow.component.textfield.TextField nameField = new com.vaadin.flow.component.textfield.TextField("Название настроек");
+            nameField.setValue("Настройки " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+            nameField.setWidth("300px");
+            
+            com.vaadin.flow.component.orderedlayout.VerticalLayout dialogContent = new com.vaadin.flow.component.orderedlayout.VerticalLayout(nameField);
+            
+            com.vaadin.flow.component.confirmdialog.ConfirmDialog dialog = new com.vaadin.flow.component.confirmdialog.ConfirmDialog();
+            dialog.setHeader("Сохранение настроек");
+            dialog.add(dialogContent);
+            dialog.setConfirmText("Сохранить");
+            dialog.setCancelText("Отмена");
+            dialog.addConfirmListener(event -> {
+                try {
+                    String settingsName = nameField.getValue();
+                    if (settingsName == null || settingsName.trim().isEmpty()) {
+                        Notification.show("❌ Название не может быть пустым", 3000, Notification.Position.TOP_CENTER)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                        return;
+                    }
+                    
+                    // Создаем настройки из текущего состояния UI
+                    StablePairsScreenerSettings settings = settingsService.createFromUIParams(
+                            settingsName.trim(),
+                            timeframeMultiSelect.getValue(),
+                            periodMultiSelect.getValue(),
+                            minCorrelationEnabled.getValue(), minCorrelationField.getValue(),
+                            minWindowSizeEnabled.getValue(), minWindowSizeField.getValue(),
+                            maxAdfValueEnabled.getValue(), maxAdfValueField.getValue(),
+                            minRSquaredEnabled.getValue(), minRSquaredField.getValue(),
+                            maxPValueEnabled.getValue(), maxPValueField.getValue(),
+                            runOnScheduleCheckbox.getValue()
+                    );
+                    
+                    // Сохраняем
+                    StablePairsScreenerSettings saved = settingsService.saveSettings(settings);
+                    
+                    Notification.show(
+                            String.format("💾 Настройки '%s' сохранены", saved.getName()),
+                            3000, Notification.Position.BOTTOM_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    
+                    // Обновляем список доступных настроек
+                    loadAvailableSettings();
+                    savedSettingsCombo.setValue(saved);
+                    
+                } catch (Exception e) {
+                    log.error("Ошибка при сохранении настроек: {}", e.getMessage(), e);
+                    Notification.show("❌ Ошибка при сохранении: " + e.getMessage(),
+                                    3000, Notification.Position.TOP_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                }
+            });
+            
+            dialog.open();
+            
+        } catch (Exception e) {
+            log.error("Ошибка при инициации сохранения настроек: {}", e.getMessage(), e);
+            Notification.show("❌ Ошибка: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    private void loadSelectedSettings() {
+        try {
+            StablePairsScreenerSettings selected = savedSettingsCombo.getValue();
+            if (selected == null) {
+                Notification.show("❌ Выберите настройки для загрузки", 3000, Notification.Position.TOP_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            
+            loadSettingsIntoUI(selected);
+            
+            // Отмечаем настройки как использованные
+            settingsService.markAsUsed(selected.getId());
+            
+            Notification.show(
+                    String.format("📁 Настройки '%s' загружены", selected.getName()),
+                    3000, Notification.Position.BOTTOM_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке выбранных настроек: {}", e.getMessage(), e);
+            Notification.show("❌ Ошибка при загрузке: " + e.getMessage(),
+                            3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 }

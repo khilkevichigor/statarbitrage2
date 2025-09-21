@@ -32,14 +32,27 @@ import java.util.UUID;
  * - TradingPair (активно торгуемые пары)
  */
 @Entity
-@Table(name = "pairs", indexes = {
+@Table(name = "pairs", 
+       indexes = {
         @Index(name = "idx_pair_uuid", columnList = "uuid", unique = true),
         @Index(name = "idx_pair_type", columnList = "type"),
         @Index(name = "idx_pair_tickers", columnList = "ticker_a, ticker_b"),
         @Index(name = "idx_pair_monitoring", columnList = "is_in_monitoring"),
         @Index(name = "idx_pair_search_date", columnList = "search_date"),
         @Index(name = "idx_pair_status", columnList = "status")
-})
+       },
+       uniqueConstraints = {
+        // Уникальность стабильных пар по тикерам + таймфрейм + период + тип
+        @UniqueConstraint(
+                name = "uk_stable_pairs_unique", 
+                columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type"}
+        ),
+        // Уникальность пар в мониторинге по тикерам + таймфрейм + период + тип
+        @UniqueConstraint(
+                name = "uk_monitoring_pairs_unique", 
+                columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type", "is_in_monitoring"}
+        )
+       })
 @Data
 @Builder
 @AllArgsConstructor

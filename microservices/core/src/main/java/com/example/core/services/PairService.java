@@ -47,51 +47,103 @@ public class PairService {
     // ======== МЕТОДЫ ДЛЯ ПОИСКА СТАБИЛЬНЫХ ПАР ========
 
     /**
-     * Поиск стабильных пар с заданными параметрами
+     * Поиск стабильных пар с заданными параметрами (legacy метод)
      */
     @Transactional
     public StabilityResponseDto searchStablePairs(String timeframe, String period,
                                                   Map<String, Object> searchSettings) {
-        log.info("🔍 Начало поиска стабильных пар: timeframe={}, period={}", timeframe, period);
+        // Конвертируем в Set для вызова нового метода
+        return searchStablePairs(Set.of(timeframe), Set.of(period), searchSettings);
+    }
+
+    /**
+     * Поиск стабильных пар с множественными таймфреймами и периодами
+     */
+    @Transactional
+    public StabilityResponseDto searchStablePairs(Set<String> timeframes, Set<String> periods,
+                                                  Map<String, Object> searchSettings) {
+        log.info("🔍 Начало поиска стабильных пар: timeframes={}, periods={}", timeframes, periods);
 
         try {
-            // Получаем все свечи для анализа
-            Settings settings = settingsService.getSettings();
-            Map<String, List<Candle>> candlesMap = getCandlesForAnalysis(settings, timeframe, period);
-
-            if (candlesMap.isEmpty()) {
-                log.warn("⚠️ Не удалось получить данные свечей для анализа");
-                throw new RuntimeException("Не удалось получить данные свечей");
-            }
-
-            // КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: Проверяем консистентность свечей ДО анализа стабильности
-            Map<String, List<Candle>> validatedCandlesMap = validateCandlesConsistency(candlesMap, timeframe);
-            
-            if (validatedCandlesMap.isEmpty()) {
-                log.warn("⚠️ После валидации не осталось валидных свечей для анализа");
-                throw new RuntimeException("Все данные свечей не прошли валидацию консистентности");
-            }
-            
-            log.info("✅ ВАЛИДАЦИЯ: Из {} тикеров {} прошли валидацию консистентности", 
-                    candlesMap.size(), validatedCandlesMap.size());
-
-            // Применяем настройки поиска к параметрам анализа
+            // Применяем настройки поиска к параметрам анализа один раз
             Map<String, Object> analysisSettings = buildAnalysisSettings(searchSettings);
+            Settings settings = settingsService.getSettings();
+            
+            // Результаты для аккумуляции
+            StabilityResponseDto aggregatedResponse = new StabilityResponseDto();
+            aggregatedResponse.setSuccess(true);
+            aggregatedResponse.setResults(new ArrayList<>());
+            int totalPairsFound = 0;
+            int totalPairsAnalyzed = 0;
+            
+            // Выполняем поиск для каждой комбинации timeframe + period
+            for (String timeframe : timeframes) {
+                for (String period : periods) {
+                    log.info("🔍 Поиск для комбинации: timeframe={}, period={}", timeframe, period);
+                    
+                    try {
+                        // Получаем свечи для конкретной комбинации
+                        Map<String, List<Candle>> candlesMap = getCandlesForAnalysis(settings, timeframe, period);
 
-            // Создаем запрос для Python API с валидированными данными
-            StabilityRequestDto request = new StabilityRequestDto(validatedCandlesMap, analysisSettings);
+                        if (candlesMap.isEmpty()) {
+                            log.warn("⚠️ Не удалось получить данные свечей для timeframe={}, period={}", timeframe, period);
+                            continue;
+                        }
 
-            // Выполняем анализ стабильности
-            StabilityResponseDto response = stabilityAnalysisService.analyzeStability(request);
+                        // КРИТИЧЕСКАЯ ВАЛИДАЦИЯ
+                        Map<String, List<Candle>> validatedCandlesMap = validateCandlesConsistency(candlesMap, timeframe);
+                        
+                        if (validatedCandlesMap.isEmpty()) {
+                            log.warn("⚠️ После валидации не осталось валидных свечей для timeframe={}, period={}", timeframe, period);
+                            continue;
+                        }
+                        
+                        log.info("✅ ВАЛИДАЦИЯ: Из {} тикеров {} прошли валидацию для timeframe={}, period={}", 
+                                candlesMap.size(), validatedCandlesMap.size(), timeframe, period);
 
-            if (response.getSuccess() && response.getResults() != null) {
-                // Сохраняем результаты в базу данных
-                saveSearchResults(response, timeframe, period, searchSettings);
-                log.info("✅ Поиск завершен. Найдено {} торгуемых пар из {}",
-                        response.getTradeablePairsFound(), response.getTotalPairsAnalyzed());
+                        // Создаем запрос для Python API
+                        StabilityRequestDto request = new StabilityRequestDto(validatedCandlesMap, analysisSettings);
+
+                        // Выполняем анализ стабильности
+                        StabilityResponseDto response = stabilityAnalysisService.analyzeStability(request);
+
+                        if (response.getSuccess() && response.getResults() != null) {
+                            // Сохраняем результаты в базу данных
+                            saveSearchResults(response, timeframe, period, searchSettings);
+                            
+                            // Аккумулируем результаты
+                            aggregatedResponse.getResults().addAll(response.getResults());
+                            totalPairsFound += response.getTradeablePairsFound();
+                            totalPairsAnalyzed += response.getTotalPairsAnalyzed();
+                            
+                            log.info("✅ Поиск для timeframe={}, period={} завершен. Найдено {} торгуемых пар из {}",
+                                    timeframe, period, response.getTradeablePairsFound(), response.getTotalPairsAnalyzed());
+                        } else {
+                            log.warn("⚠️ Поиск для timeframe={}, period={} завершился неуспешно", 
+                                    timeframe, period);
+                        }
+                        
+                    } catch (Exception e) {
+                        log.error("❌ Ошибка при поиске для timeframe={}, period={}: {}", 
+                                timeframe, period, e.getMessage(), e);
+                        // Продолжаем обработку других комбинаций
+                    }
+                }
+            }
+            
+            // Устанавливаем итоговые результаты
+            aggregatedResponse.setTradeablePairsFound(totalPairsFound);
+            aggregatedResponse.setTotalPairsAnalyzed(totalPairsAnalyzed);
+            
+            if (totalPairsAnalyzed > 0) {
+                log.info("🏁 Общий поиск завершен. Найдено {} торгуемых пар из {} по {} комбинациям",
+                        totalPairsFound, totalPairsAnalyzed, timeframes.size() * periods.size());
+            } else {
+                log.warn("⚠️ Не найдено ни одной пары для анализа по заданным комбинациям");
+                aggregatedResponse.setSuccess(false);
             }
 
-            return response;
+            return aggregatedResponse;
 
         } catch (Exception e) {
             log.error("❌ Ошибка при поиске стабильных пар: {}", e.getMessage(), e);
