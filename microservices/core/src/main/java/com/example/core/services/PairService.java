@@ -717,23 +717,41 @@ public class PairService {
             return;
         }
 
-        List<Pair> pairsToSave = new ArrayList<>();
+        int savedCount = 0;
+        int skippedCount = 0;
 
         for (StabilityResultDto result : response.getResults()) {
-            // Проверяем, нет ли уже похожих результатов
-            LocalDateTime cutoffTime = LocalDateTime.now().minusHours(1);
-            List<Pair> existing = pairRepository.findSimilarStablePairs(
-                    result.getTickerA(), result.getTickerB(), timeframe, period, cutoffTime);
+            try {
+                // Проверяем, нет ли уже похожих результатов
+                LocalDateTime cutoffTime = LocalDateTime.now().minusHours(1);
+                List<Pair> existing = pairRepository.findSimilarStablePairs(
+                        result.getTickerA(), result.getTickerB(), timeframe, period, cutoffTime);
 
-            if (existing.isEmpty()) {
-                Pair pair = Pair.fromStabilityResult(result, timeframe, period, searchSettings);
-                pairsToSave.add(pair);
+                if (existing.isEmpty()) {
+                    Pair pair = Pair.fromStabilityResult(result, timeframe, period, searchSettings);
+                    pairRepository.save(pair); // Сохраняем по одной для лучшего контроля ошибок
+                    savedCount++;
+                } else {
+                    skippedCount++;
+                    log.debug("🔄 Пара {}-{} [{}][{}] уже существует, пропускаем", 
+                             result.getTickerA(), result.getTickerB(), timeframe, period);
+                }
+            } catch (Exception e) {
+                // Обрабатываем нарушения уникальных ограничений и другие ошибки
+                if (e.getMessage() != null && e.getMessage().contains("unique constraint")) {
+                    skippedCount++;
+                    log.debug("🔄 Пара {}-{} [{}][{}] нарушает уникальное ограничение, пропускаем дубликат", 
+                             result.getTickerA(), result.getTickerB(), timeframe, period);
+                } else {
+                    log.error("💥 Ошибка при сохранении пары {}-{} [{}][{}]: {}", 
+                             result.getTickerA(), result.getTickerB(), timeframe, period, e.getMessage());
+                }
             }
         }
 
-        if (!pairsToSave.isEmpty()) {
-            pairRepository.saveAll(pairsToSave);
-            log.info("💾 Сохранено {} новых стабильных пар", pairsToSave.size());
+        if (savedCount > 0 || skippedCount > 0) {
+            log.info("💾 Результаты сохранения [{}][{}]: {} новых пар, {} пропущено дубликатов", 
+                    timeframe, period, savedCount, skippedCount);
         }
     }
 
