@@ -632,7 +632,7 @@ public class PairService {
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(null) // Получаем все доступные тикеры
                     .excludeTickers(null) // Никого не исключаем
-                    .skipValidation(true) // ВАЖНО: Используем только кэш БД, НЕ догружаем с OKX
+                    .skipValidation(false) // ВАЖНО: Включаем догрузку недостающих данных с OKX
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getAllCandlesExtended(request);
