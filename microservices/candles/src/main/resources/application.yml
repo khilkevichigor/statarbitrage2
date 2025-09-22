@@ -89,4 +89,4 @@ app:
     preload-enabled: true
     daily-update-enabled: true
     startup-check: true
-    thread-pool-size: 3  # Уменьшено для экономии памяти при больших объемах данных
+    thread-pool-size: 5  # Уменьшено для экономии памяти при больших объемах данных
