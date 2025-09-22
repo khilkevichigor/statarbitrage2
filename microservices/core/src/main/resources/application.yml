@@ -65,7 +65,7 @@ spring:
         config:
           candles-service:
             connectTimeout: 30000  # 30 секунд
-            readTimeout: 1800000    # 3 минуты
+            readTimeout: 43200000    # 12 ч
           default:
             connectTimeout: 10000  # 10 секунд для остальных
             readTimeout: 60000     # 1 минута для остальных

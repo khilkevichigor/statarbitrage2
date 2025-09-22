@@ -61,9 +61,9 @@ declare -A services=(
     ["okx"]="8088"
     ["3commas"]="8089"
     ["python"]="8090"
-    ["changes"]="8091"
-    ["processors"]="8092"
-    ["candles"]="8093"
+    ["changes"]="8092"
+    ["processors"]="8093"
+    ["candles"]="8091"
     ["backtesting"]="8094"
     ["chart"]="8095"
     ["statistics"]="8096"
@@ -91,6 +91,13 @@ for service in "${!services[@]}"; do
     
     # Запуск сервиса в фоне
     cd $service
+    
+    # Специальные настройки JVM для candles-service (обработка больших объемов данных)
+    if [ "$service" = "candles" ]; then
+        export JAVA_OPTS="-Xmx4G -Xms2G -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
+        echo -e "${BLUE}🔧 Настройки JVM для $service: $JAVA_OPTS${NC}"
+    fi
+    
     nohup mvn spring-boot:run > ../logs/$service.log 2>&1 &
     echo $! > ../pids/$service.pid
     cd ..
