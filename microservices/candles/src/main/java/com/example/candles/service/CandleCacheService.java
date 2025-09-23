@@ -554,6 +554,8 @@ public class CandleCacheService {
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
 
         // ЧЕТКАЯ ЛОГИКА: Проверяем что есть в кэше, если меньше чем запрошено - догружаем
+        // Для ПАРАЛЛЕЛЬНОЙ chunked loading собираем все futures
+        List<CompletableFuture<Void>> chunkingFutures = new ArrayList<>();
         
         int debugCount = 0; // Для отладки - покажем первые 5 тикеров
         for (String ticker : tickers) {
@@ -583,10 +585,11 @@ public class CandleCacheService {
                     // КРИТИЧНО: Загружаем большие объемы по чанкам во избежание OutOfMemoryError
                     int chunkSize = getMaxLoadLimitForTimeframe(timeframe);
                     if (missing > chunkSize) {
-                        // Загружаем итеративно по частям
-                        log.info("📦 CHUNKED LOAD: {} - требуется догрузить {} свечей, загрузим по {} за раз", 
-                                ticker, missing, chunkSize);
-                        loadCandlesInChunks(ticker, timeframe, missing, chunkSize);
+                        // Загружаем итеративно по частям В ПАРАЛЛЕЛЬНОМ ПОТОКЕ
+                        log.info("📦 CHUNKED LOAD: {} - требуется догрузить {} свечей, загрузим по {} за раз В ПОТОКЕ {}", 
+                                ticker, missing, chunkSize, Thread.currentThread().getId());
+                        CompletableFuture<Void> future = loadCandlesInChunks(ticker, timeframe, missing, chunkSize);
+                        chunkingFutures.add(future); // Собираем для ожидания
                         // После загрузки по чанкам, данные уже в БД
                         missingCandlesCount.put(ticker, 0); // Помечаем как обработанный
                     } else {
@@ -606,10 +609,11 @@ public class CandleCacheService {
                 // Нет данных в кэше - загружаем полное количество по чанкам
                 int chunkSize = getMaxLoadLimitForTimeframe(timeframe);
                 if (candleLimit > chunkSize) {
-                    // Загружаем полный объем по частям
-                    log.info("📦 CHUNKED LOAD: {} - нет данных в кэше, загрузим {} свечей по {} за раз", 
-                            ticker, candleLimit, chunkSize);
-                    loadCandlesInChunks(ticker, timeframe, candleLimit, chunkSize);
+                    // Загружаем полный объем по частям В ПАРАЛЛЕЛЬНОМ ПОТОКЕ
+                    log.info("📦 CHUNKED LOAD: {} - нет данных в кэше, загрузим {} свечей по {} за раз В ПОТОКЕ {}", 
+                            ticker, candleLimit, chunkSize, Thread.currentThread().getId());
+                    CompletableFuture<Void> future = loadCandlesInChunks(ticker, timeframe, candleLimit, chunkSize);
+                    chunkingFutures.add(future); // Собираем для ожидания
                     // После загрузки по чанкам, данные уже в БД
                     missingCandlesCount.put(ticker, 0); // Помечаем как обработанный
                 } else {
@@ -617,6 +621,18 @@ public class CandleCacheService {
                     missingCandlesCount.put(ticker, candleLimit);
                     log.info("❌ Кэш MISS: {} - нет данных, загрузим {} свечей", ticker, candleLimit);
                 }
+            }
+        }
+
+        // ОЖИДАНИЕ ЗАВЕРШЕНИЯ ВСЕХ ПАРАЛЛЕЛЬНЫХ CHUNKED LOADING ОПЕРАЦИЙ
+        if (!chunkingFutures.isEmpty()) {
+            log.info("⏳ ОЖИДАНИЕ: {} параллельных chunked loading операций...", chunkingFutures.size());
+            try {
+                CompletableFuture.allOf(chunkingFutures.toArray(new CompletableFuture[0])).join();
+                log.info("🎉 ВСЕ CHUNKED LOADING ОПЕРАЦИИ ЗАВЕРШЕНЫ: {} тикеров обработано в {} потоках", 
+                        chunkingFutures.size(), threadPoolSize);
+            } catch (Exception e) {
+                log.error("❌ Ошибка при ожидании chunked loading операций: {}", e.getMessage(), e);
             }
         }
 
@@ -1060,49 +1076,54 @@ public class CandleCacheService {
 
     /**
      * Загружает большой объем свечей по частям (чанкам) для избежания OutOfMemoryError
+     * ПАРАЛЛЕЛЬНО для разных тикеров - каждый тикер в отдельном потоке
+     * Возвращает CompletableFuture для ожидания завершения операции
      */
-    private void loadCandlesInChunks(String ticker, String timeframe, int totalMissing, int chunkSize) {
-        try {
-            int loadedSoFar = 0;
-            int totalChunks = (int) Math.ceil((double) totalMissing / chunkSize);
-            
-            log.info("🚀 НАЧАЛО CHUNKED LOAD: {} - загрузим {} свечей за {} чанков по {} свечей", 
-                    ticker, totalMissing, totalChunks, chunkSize);
-            
-            for (int chunkNum = 1; chunkNum <= totalChunks; chunkNum++) {
-                int remainingToLoad = totalMissing - loadedSoFar;
-                int currentChunkSize = Math.min(chunkSize, remainingToLoad);
+    private CompletableFuture<Void> loadCandlesInChunks(String ticker, String timeframe, int totalMissing, int chunkSize) {
+        // Запускаем chunked loading для каждого тикера в отдельном потоке
+        return CompletableFuture.runAsync(() -> {
+            try {
+                int loadedSoFar = 0;
+                int totalChunks = (int) Math.ceil((double) totalMissing / chunkSize);
                 
-                log.info("📦 CHUNK {}/{}: {} - загружаем {} свечей (загружено: {}/{})", 
-                        chunkNum, totalChunks, ticker, currentChunkSize, loadedSoFar, totalMissing);
+                log.info("🚀 ПОТОК НАЧАЛО CHUNKED LOAD: {} - загрузим {} свечей за {} чанков по {} свечей", 
+                        ticker, totalMissing, totalChunks, chunkSize);
                 
-                // Загружаем чанк и сохраняем в БД сразу
-                int actuallyLoaded = loadCandlesChunkOptimized(ticker, timeframe, currentChunkSize);
-                loadedSoFar += actuallyLoaded;
-                
-                // Принудительная очистка памяти после каждого чанка
-                System.gc();
-                
-                // Пауза между чанками для снижения нагрузки
-                Thread.sleep(500); // Уменьшил паузу для ускорения
-                
-                log.info("✅ CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{})", 
-                        chunkNum, totalChunks, ticker, actuallyLoaded, loadedSoFar, totalMissing);
-                
-                // Если получили меньше данных чем ожидали - прерываем
-                if (actuallyLoaded < Math.min(currentChunkSize, 1000)) { // Учитываем что данных может не хватать
-                    log.warn("⚠️ CHUNK INCOMPLETE: {} - получено {} из {} свечей, завершаем загрузку", 
-                            ticker, actuallyLoaded, currentChunkSize);
-                    break;
+                for (int chunkNum = 1; chunkNum <= totalChunks; chunkNum++) {
+                    int remainingToLoad = totalMissing - loadedSoFar;
+                    int currentChunkSize = Math.min(chunkSize, remainingToLoad);
+                    
+                    log.info("📦 ПОТОК CHUNK {}/{}: {} - загружаем {} свечей (загружено: {}/{})", 
+                            chunkNum, totalChunks, ticker, currentChunkSize, loadedSoFar, totalMissing);
+                    
+                    // Загружаем чанк и сохраняем в БД сразу
+                    int actuallyLoaded = loadCandlesChunkOptimized(ticker, timeframe, currentChunkSize);
+                    loadedSoFar += actuallyLoaded;
+                    
+                    // Принудительная очистка памяти после каждого чанка
+                    System.gc();
+                    
+                    // Пауза между чанками для снижения нагрузки
+                    Thread.sleep(500);
+                    
+                    log.info("✅ ПОТОК CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{})", 
+                            chunkNum, totalChunks, ticker, actuallyLoaded, loadedSoFar, totalMissing);
+                    
+                    // Если получили меньше данных чем ожидали - прерываем
+                    if (actuallyLoaded < Math.min(currentChunkSize, 1000)) {
+                        log.warn("⚠️ ПОТОК CHUNK INCOMPLETE: {} - получено {} из {} свечей, завершаем загрузку", 
+                                ticker, actuallyLoaded, currentChunkSize);
+                        break;
+                    }
                 }
+                
+                log.info("🎉 ПОТОК CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} из {} запрошенных свечей", 
+                        ticker, loadedSoFar, totalMissing);
+                
+            } catch (Exception e) {
+                log.error("❌ ПОТОК Ошибка при загрузке чанками для {}: {}", ticker, e.getMessage(), e);
             }
-            
-            log.info("🎉 CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} из {} запрошенных свечей", 
-                    ticker, loadedSoFar, totalMissing);
-            
-        } catch (Exception e) {
-            log.error("❌ Ошибка при загрузке чанками для {}: {}", ticker, e.getMessage(), e);
-        }
+        }, executorService); // ВАЖНО: Используем executorService для параллельной работы
     }
 
     /**
