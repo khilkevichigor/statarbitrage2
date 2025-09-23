@@ -89,4 +89,4 @@ app:
     preload-enabled: true
     daily-update-enabled: true
     startup-check: true
-    thread-pool-size: 5  # Увеличено для более быстрой параллельной chunked loading разных тикеров
+    thread-pool-size: 5  # Уменьшено для экономии памяти при OutOfMemoryError

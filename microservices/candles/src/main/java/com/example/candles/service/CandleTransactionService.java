@@ -85,9 +85,10 @@ public class CandleTransactionService {
                 log.info("💾 BATCH SAVED: {} - обработано {} свечей за {} сек", 
                         ticker, processedCount, (System.currentTimeMillis() - batchStartTime) / 1000);
 
-                // Принудительно очищаем память после каждого батча
-                if (i % 5000 == 0) { // Каждые 5K свечей
+                // Более агрессивная очистка памяти для предотвращения OutOfMemoryError
+                if (i % 1000 == 0) { // Каждые 1K свечей (было 5K)
                     System.gc();
+                    try { Thread.sleep(50); } catch (Exception ignored) {} // Пауза для GC
                 }
             }
 
