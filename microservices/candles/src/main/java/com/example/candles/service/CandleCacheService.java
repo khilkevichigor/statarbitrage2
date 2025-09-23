@@ -52,7 +52,7 @@ public class CandleCacheService {
     @PostConstruct
     public void initializeExecutorService() {
         this.executorService = Executors.newFixedThreadPool(threadPoolSize);
-        log.info("🔧 Инициализирован ExecutorService с {} потоками", threadPoolSize);
+        log.info("🔧 Инициализирован ExecutorService с {} потоками для параллельной обработки тикеров", threadPoolSize);
     }
 
     @PreDestroy
@@ -872,7 +872,7 @@ public class CandleCacheService {
         // Ждем завершения всех потоков
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
-            log.info("🏁 ВСЕ 5 ПОТОКОВ: Завершена многопоточная обработка {} тикеров", tickers.size());
+            log.info("🏁 ВСЕ {} ПОТОКОВ: Завершена многопоточная обработка {} тикеров", threadPoolSize, tickers.size());
         } catch (Exception e) {
             log.error("❌ ВСЕ ПОТОКИ: Ошибка при ожидании завершения потоков: {}", e.getMessage(), e);
         }
@@ -948,10 +948,10 @@ public class CandleCacheService {
                 return emptyResult;
             }
             
-            log.info("🚀 МНОГОПОТОЧНАЯ догрузка недостающих свечей в 5 потоков для {} тикеров", 
-                    filteredMissingCount.size());
+            log.info("🚀 МНОГОПОТОЧНАЯ догрузка недостающих свечей в {} потоков для {} тикеров", 
+                    threadPoolSize, filteredMissingCount.size());
 
-            // ИСПРАВЛЕНО: Многопоточная загрузка недостающих данных в 5 потоков
+            // ИСПРАВЛЕНО: Многопоточная загрузка недостающих данных в настраиваемое количество потоков
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             
             for (Map.Entry<String, Integer> entry : filteredMissingCount.entrySet()) {
@@ -1022,7 +1022,7 @@ public class CandleCacheService {
             // Ждем завершения всех потоков
             try {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
-                log.info("🏁 ВСЕ 5 ПОТОКОВ: Завершена многопоточная догрузка {} тикеров", missingCandlesCount.size());
+                log.info("🏁 ВСЕ {} ПОТОКОВ: Завершена многопоточная догрузка {} тикеров", threadPoolSize, missingCandlesCount.size());
             } catch (Exception e) {
                 log.error("❌ ВСЕ ПОТОКИ: Ошибка при ожидании завершения потоков догрузки: {}", e.getMessage(), e);
             }
