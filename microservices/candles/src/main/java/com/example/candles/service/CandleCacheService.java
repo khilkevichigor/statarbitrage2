@@ -579,10 +579,23 @@ public class CandleCacheService {
                 // ЧЕТКО: Если данных меньше запрошенного количества - догружаем недостающие
                 if (latestCandles.size() < candleLimit) {
                     int missing = candleLimit - latestCandles.size();
-                    missingCandlesCount.put(ticker, missing);
-                    if (debugCount <= 5) {
-                        log.info("🔄 Кэш PARTIAL: {} - есть {}, нужно {}, догрузим {}", 
-                                ticker, latestCandles.size(), candleLimit, missing);
+                    
+                    // КРИТИЧНО: Загружаем большие объемы по чанкам во избежание OutOfMemoryError
+                    int chunkSize = getMaxLoadLimitForTimeframe(timeframe);
+                    if (missing > chunkSize) {
+                        // Загружаем итеративно по частям
+                        log.info("📦 CHUNKED LOAD: {} - требуется догрузить {} свечей, загрузим по {} за раз", 
+                                ticker, missing, chunkSize);
+                        loadCandlesInChunks(ticker, timeframe, missing, chunkSize);
+                        // После загрузки по чанкам, данные уже в БД
+                        missingCandlesCount.put(ticker, 0); // Помечаем как обработанный
+                    } else {
+                        // Обычная загрузка для небольших объемов
+                        missingCandlesCount.put(ticker, missing);
+                        if (debugCount <= 5) {
+                            log.info("🔄 Кэш PARTIAL: {} - есть {}, нужно {}, догрузим {}", 
+                                    ticker, latestCandles.size(), candleLimit, missing);
+                        }
                     }
                 } else {
                     if (debugCount <= 5) {
@@ -590,9 +603,20 @@ public class CandleCacheService {
                     }
                 }
             } else {
-                // Нет данных в кэше - загружаем полное количество
-                missingCandlesCount.put(ticker, candleLimit);
-                log.info("❌ Кэш MISS: {} - нет данных, загрузим {} свечей", ticker, candleLimit);
+                // Нет данных в кэше - загружаем полное количество по чанкам
+                int chunkSize = getMaxLoadLimitForTimeframe(timeframe);
+                if (candleLimit > chunkSize) {
+                    // Загружаем полный объем по частям
+                    log.info("📦 CHUNKED LOAD: {} - нет данных в кэше, загрузим {} свечей по {} за раз", 
+                            ticker, candleLimit, chunkSize);
+                    loadCandlesInChunks(ticker, timeframe, candleLimit, chunkSize);
+                    // После загрузки по чанкам, данные уже в БД
+                    missingCandlesCount.put(ticker, 0); // Помечаем как обработанный
+                } else {
+                    // Обычная загрузка для небольших объемов
+                    missingCandlesCount.put(ticker, candleLimit);
+                    log.info("❌ Кэш MISS: {} - нет данных, загрузим {} свечей", ticker, candleLimit);
+                }
             }
         }
 
@@ -884,13 +908,37 @@ public class CandleCacheService {
         final int[] totalAddedCount = {0}; // Используем массив для thread-safe изменения
 
         try {
+            // Фильтруем тикеры с missingCount = 0 (уже обработанные через chunked loading)
+            Map<String, Integer> filteredMissingCount = missingCandlesCount.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    Map.Entry::getValue,
+                    (existing, replacement) -> existing,
+                    ConcurrentHashMap::new
+                ));
+
+            if (filteredMissingCount.size() != missingCandlesCount.size()) {
+                int skippedCount = missingCandlesCount.size() - filteredMissingCount.size();
+                log.info("🚫 ФИЛЬТРАЦИЯ: Пропускаем {} тикеров с missingCount = 0 (уже обработаны через chunked loading)", 
+                         skippedCount);
+            }
+
+            if (filteredMissingCount.isEmpty()) {
+                log.info("✅ ВСЕ ТИКЕРЫ УЖЕ ОБРАБОТАНЫ: Нет тикеров для загрузки после фильтрации");
+                Map<String, Object> emptyResult = new HashMap<>();
+                emptyResult.put("candles", new ConcurrentHashMap<String, List<Candle>>());
+                emptyResult.put("addedCount", 0);
+                return emptyResult;
+            }
+            
             log.info("🚀 МНОГОПОТОЧНАЯ догрузка недостающих свечей в 5 потоков для {} тикеров", 
-                    missingCandlesCount.size());
+                    filteredMissingCount.size());
 
             // ИСПРАВЛЕНО: Многопоточная загрузка недостающих данных в 5 потоков
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             
-            for (Map.Entry<String, Integer> entry : missingCandlesCount.entrySet()) {
+            for (Map.Entry<String, Integer> entry : filteredMissingCount.entrySet()) {
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                     String ticker = entry.getKey();
                     int missingCount = entry.getValue();
@@ -1011,6 +1059,137 @@ public class CandleCacheService {
     }
 
     /**
+     * Загружает большой объем свечей по частям (чанкам) для избежания OutOfMemoryError
+     */
+    private void loadCandlesInChunks(String ticker, String timeframe, int totalMissing, int chunkSize) {
+        try {
+            int loadedSoFar = 0;
+            int totalChunks = (int) Math.ceil((double) totalMissing / chunkSize);
+            
+            log.info("🚀 НАЧАЛО CHUNKED LOAD: {} - загрузим {} свечей за {} чанков по {} свечей", 
+                    ticker, totalMissing, totalChunks, chunkSize);
+            
+            for (int chunkNum = 1; chunkNum <= totalChunks; chunkNum++) {
+                int remainingToLoad = totalMissing - loadedSoFar;
+                int currentChunkSize = Math.min(chunkSize, remainingToLoad);
+                
+                log.info("📦 CHUNK {}/{}: {} - загружаем {} свечей (загружено: {}/{})", 
+                        chunkNum, totalChunks, ticker, currentChunkSize, loadedSoFar, totalMissing);
+                
+                // Загружаем чанк и сохраняем в БД сразу
+                int actuallyLoaded = loadCandlesChunkOptimized(ticker, timeframe, currentChunkSize);
+                loadedSoFar += actuallyLoaded;
+                
+                // Принудительная очистка памяти после каждого чанка
+                System.gc();
+                
+                // Пауза между чанками для снижения нагрузки
+                Thread.sleep(500); // Уменьшил паузу для ускорения
+                
+                log.info("✅ CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{})", 
+                        chunkNum, totalChunks, ticker, actuallyLoaded, loadedSoFar, totalMissing);
+                
+                // Если получили меньше данных чем ожидали - прерываем
+                if (actuallyLoaded < Math.min(currentChunkSize, 1000)) { // Учитываем что данных может не хватать
+                    log.warn("⚠️ CHUNK INCOMPLETE: {} - получено {} из {} свечей, завершаем загрузку", 
+                            ticker, actuallyLoaded, currentChunkSize);
+                    break;
+                }
+            }
+            
+            log.info("🎉 CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} из {} запрошенных свечей", 
+                    ticker, loadedSoFar, totalMissing);
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при загрузке чанками для {}: {}", ticker, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Оптимизированная загрузка чанка с правильным подсчетом загруженных свечей
+     */
+    private int loadCandlesChunkOptimized(String ticker, String timeframe, int chunkSize) {
+        int loadedCount = 0;
+        int batchSize = 300; // OKX API лимит
+        Long beforeTimestamp = null;
+
+        try {
+            // Получаем СТАРЕЙШУЮ временную метку из кэша для загрузки исторических данных
+            Optional<Long> minTimestamp = cachedCandleRepository
+                .findMinTimestampByTickerTimeframeExchange(ticker, timeframe, "OKX");
+            if (minTimestamp.isPresent()) {
+                beforeTimestamp = minTimestamp.get();
+                log.info("🔄 CHUNK START: {} - начинаем с самой старой свечи timestamp={}", 
+                        ticker, beforeTimestamp);
+            } else {
+                log.info("🔄 CHUNK START: {} - нет данных в кэше, загружаем с текущего момента", ticker);
+            }
+            
+            while (loadedCount < chunkSize) {
+                int remainingCandles = chunkSize - loadedCount;
+                int currentBatchSize = Math.min(batchSize, remainingCandles);
+
+                List<Candle> batchCandles;
+                if (beforeTimestamp == null) {
+                    batchCandles = okxFeignClient.getCandles(ticker, timeframe, currentBatchSize);
+                    log.info("🌐 API CALL: {} - getCandles(size={})", ticker, currentBatchSize);
+                } else {
+                    batchCandles = okxFeignClient.getCandlesBefore(ticker, timeframe, currentBatchSize, beforeTimestamp);
+                    log.info("🌐 API CALL: {} - getCandlesBefore(size={}, before={})", 
+                            ticker, currentBatchSize, beforeTimestamp);
+                }
+
+                if (batchCandles == null || batchCandles.isEmpty()) {
+                    log.warn("⚠️ NO DATA: {} - получены пустые данные, прерываем загрузку", ticker);
+                    break; // Больше нет данных
+                }
+
+                // Логируем диапазон загруженных свечей
+                long firstTimestamp = batchCandles.get(0).getTimestamp();
+                long lastTimestamp = batchCandles.get(batchCandles.size() - 1).getTimestamp();
+                log.info("📥 BATCH RECEIVED: {} - {} свечей [{}...{}]", 
+                        ticker, batchCandles.size(), firstTimestamp, lastTimestamp);
+
+                // Сохраняем батч в БД сразу
+                candleTransactionService.saveCandlesToCache(ticker, timeframe, "OKX", batchCandles);
+                loadedCount += batchCandles.size();
+
+                // Обновляем timestamp для следующего запроса (берем самую старую из текущего батча)
+                beforeTimestamp = batchCandles.get(0).getTimestamp(); // ИСПРАВЛЕНО: берем первую (самую старую) свечу
+                log.info("🔄 NEXT TIMESTAMP: {} - следующий запрос before={} (самая старая из текущего батча)", 
+                        ticker, beforeTimestamp);
+
+                // Короткая пауза между батчами
+                Thread.sleep(120);
+
+                if (loadedCount % 1500 == 0) { // Каждые 5 батчей
+                    log.info("💾 Чанк прогресс: {} - сохранено {} свечей", ticker, loadedCount);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка загрузки чанка для {}: {}", ticker, e.getMessage(), e);
+        }
+
+        return loadedCount; // Возвращаем реальное количество загруженных свечей
+    }
+
+    /**
+     * Определяет максимальное количество свечей для догрузки во избежание OutOfMemoryError
+     */
+    private int getMaxLoadLimitForTimeframe(String timeframe) {
+        return switch (timeframe) {
+            case "1m" -> 50000;   // ~35 дней для 1m (безопасно для памяти)
+            case "5m" -> 100000;  // ~347 дней для 5m
+            case "15m" -> 50000;  // ~520 дней для 15m
+            case "1H" -> 20000;   // ~833 дня для 1H
+            case "4H" -> 10000;   // ~1667 дней для 4H
+            case "1D" -> 3650;    // 10 лет для 1D
+            default -> 20000;     // Безопасный дефолт
+        };
+    }
+
+    /**
      * Определяет размер батча в зависимости от таймфрейма и объема данных
      */
     private int getBatchSizeForTimeframe(String timeframe, int candleLimit) {
@@ -1071,13 +1250,14 @@ public class CandleCacheService {
      * Загружает свечи с пагинацией для одного тикера
      */
     private List<Candle> loadCandlesWithPagination(String ticker, String timeframe, int totalLimit) {
-        List<Candle> allCandles = new ArrayList<>();
+        int loadedCount = 0;
         int batchSize = 300; // Максимум для OKX API
         Long beforeTimestamp = null;
+        List<Candle> allSavedCandles = new ArrayList<>(); // Только для возврата метаданных
 
         try {
-            while (allCandles.size() < totalLimit) {
-                int remainingCandles = totalLimit - allCandles.size();
+            while (loadedCount < totalLimit) {
+                int remainingCandles = totalLimit - loadedCount;
                 int currentBatchSize = Math.min(batchSize, remainingCandles);
 
                 List<Candle> batchCandles;
@@ -1093,7 +1273,18 @@ public class CandleCacheService {
                     break; // Больше нет данных
                 }
 
-                allCandles.addAll(batchCandles);
+                // КРИТИЧНО: Сохраняем батч в БД СРАЗУ вместо накопления в памяти
+                candleTransactionService.saveCandlesToCache(ticker, timeframe, "OKX", batchCandles);
+                loadedCount += batchCandles.size();
+                
+                // Сохраняем только первые и последние свечи для валидации
+                if (allSavedCandles.isEmpty()) {
+                    allSavedCandles.addAll(batchCandles.subList(0, Math.min(10, batchCandles.size())));
+                }
+                if (batchCandles.size() >= 10) {
+                    List<Candle> lastCandles = batchCandles.subList(Math.max(0, batchCandles.size() - 10), batchCandles.size());
+                    allSavedCandles.addAll(lastCandles);
+                }
 
                 // Устанавливаем timestamp для следующего запроса
                 beforeTimestamp = batchCandles.get(batchCandles.size() - 1).getTimestamp();
@@ -1101,18 +1292,30 @@ public class CandleCacheService {
                 // Пауза между запросами для соблюдения rate limit
                 Thread.sleep(120);
 
-                log.info("📥 Загружено {} свечей для {} (всего: {})",
-                        batchCandles.size(), ticker, allCandles.size());
+                log.info("💾 Сохранен батч {} свечей для {} (всего загружено: {})",
+                        batchCandles.size(), ticker, loadedCount);
+                
+                // Принудительно очищаем память каждые 5 батчей
+                if ((loadedCount / batchSize) % 5 == 0) {
+                    System.gc();
+                }
             }
 
-            // Сортируем по времени (от старых к новым)
-            allCandles.sort(Comparator.comparing(Candle::getTimestamp));
+            // Получаем уже сохраненные данные из БД для возврата (последние 100)
+            List<CachedCandle> cachedCandles = cachedCandleRepository
+                .findLatestByTickerTimeframeExchange(ticker, timeframe, "OKX", PageRequest.of(0, 100));
+            List<Candle> savedCandles = cachedCandles.stream()
+                .map(CachedCandle::toCandle)
+                .collect(Collectors.toList());
+            
+            log.info("✅ Загрузка завершена для {}: {} свечей сохранено в БД", ticker, loadedCount);
+            
+            return savedCandles; // Возвращаем только часть для экономии памяти
 
         } catch (Exception e) {
             log.error("❌ Ошибка пагинации свечей для {}: {}", ticker, e.getMessage(), e);
+            return new ArrayList<>();
         }
-
-        return allCandles;
     }
 
     /**

@@ -100,6 +100,15 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
             @Param("timeframe") String timeframe,
             @Param("exchange") String exchange);
 
+    // Подсчет конкретной свечи по timestamp для проверки дубликатов
+    @Query("SELECT COUNT(cc) FROM CachedCandle cc WHERE cc.ticker = :ticker " +
+            "AND cc.timeframe = :timeframe AND cc.exchange = :exchange AND cc.timestamp = :timestamp")
+    Long countByTickerTimeframeExchangeAndTimestamp(
+            @Param("ticker") String ticker,
+            @Param("timeframe") String timeframe,
+            @Param("exchange") String exchange,
+            @Param("timestamp") Long timestamp);
+
     // УДАЛЕНО: deleteByTickerTimeframeExchange - больше не нужно удаление
     // УДАЛЕНО: deleteOldCandlesByExchangeTimeframe - оставляем все исторические данные
     

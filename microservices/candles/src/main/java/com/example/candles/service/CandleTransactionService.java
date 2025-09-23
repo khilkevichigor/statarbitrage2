@@ -40,32 +40,50 @@ public class CandleTransactionService {
             int batchSize = 1000;
 
             for (int i = 0; i < candles.size(); i += batchSize) {
+                long batchStartTime = System.currentTimeMillis();
                 List<Candle> batch = candles.subList(i, Math.min(i + batchSize, candles.size()));
 
                 List<CachedCandle> cachedCandles = batch.stream()
                         .map(candle -> CachedCandle.fromCandle(candle, ticker, timeframe, exchange))
-                        .collect(Collectors.toList());
+                        .toList();
 
-                // Используем INSERT ... ON CONFLICT DO NOTHING для игнорирования дубликатов
-                for (CachedCandle cachedCandle : cachedCandles) {
-                    try {
-                        cachedCandleRepository.insertIgnoreDuplicates(
-                                cachedCandle.getTicker(),
-                                cachedCandle.getTimeframe(), 
-                                cachedCandle.getExchange(),
-                                cachedCandle.getTimestamp(),
-                                cachedCandle.getOpenPrice(),
-                                cachedCandle.getHighPrice(),
-                                cachedCandle.getLowPrice(),
-                                cachedCandle.getClosePrice(),
-                                cachedCandle.getVolume(),
-                                cachedCandle.getIsValid()
-                        );
-                    } catch (Exception e) {
-                        log.warn("❌ ОШИБКА: Не удалось сохранить свечу для {}: {}", ticker, e.getMessage());
-                        // Продолжаем со следующей свечей без прерывания транзакции
+                // Супер-быстрое сохранение через батчевый INSERT (игнорируем дубликаты)
+                int processedCount = 0;
+                
+                try {
+                    // Используем стандартный saveAll для батчевой вставки
+                    cachedCandleRepository.saveAll(cachedCandles);
+                    processedCount = cachedCandles.size();
+                    
+                } catch (Exception e) {
+                    log.warn("⚠️ BATCH FAILED: {} - падаем на поштучные вставки: {}", ticker, e.getMessage());
+                    
+                    // Fallback: поштучные вставки если батчевая не сработала
+                    for (CachedCandle cachedCandle : cachedCandles) {
+                        try {
+                            cachedCandleRepository.insertIgnoreDuplicates(
+                                    cachedCandle.getTicker(),
+                                    cachedCandle.getTimeframe(), 
+                                    cachedCandle.getExchange(),
+                                    cachedCandle.getTimestamp(),
+                                    cachedCandle.getOpenPrice(),
+                                    cachedCandle.getHighPrice(),
+                                    cachedCandle.getLowPrice(),
+                                    cachedCandle.getClosePrice(),
+                                    cachedCandle.getVolume(),
+                                    cachedCandle.getIsValid()
+                            );
+                            processedCount++;
+                            
+                        } catch (Exception ex) {
+                            log.debug("🔄 SKIP: {} timestamp={} - вероятно дубликат", 
+                                    ticker, cachedCandle.getTimestamp());
+                        }
                     }
                 }
+                
+                log.info("💾 BATCH SAVED: {} - обработано {} свечей за {} сек", 
+                        ticker, processedCount, (System.currentTimeMillis() - batchStartTime) / 1000);
 
                 // Принудительно очищаем память после каждого батча
                 if (i % 5000 == 0) { // Каждые 5K свечей
