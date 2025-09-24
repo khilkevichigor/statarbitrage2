@@ -28,6 +28,12 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      * Найти все пары по тикерам
      */
     List<Pair> findByTickerAAndTickerB(String tickerA, String tickerB);
+    
+    /**
+     * Проверить существование пары по всем ключевым полям
+     */
+    boolean existsByTickerAAndTickerBAndTimeframeAndPeriodAndType(
+            String tickerA, String tickerB, String timeframe, String period, PairType type);
 
     /**
      * Найти все пары по типу

@@ -123,8 +123,10 @@ logging:
   level:
     com.example.core: INFO
     com.vaadin.flow.spring.SpringInstantiator: WARN
-    org.hibernate.AssertionFailure: WARN  # Уменьшаем спам от Hibernate
-    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: WARN  # Уменьшаем спам от SQL ошибок дубликатов
+    org.hibernate.AssertionFailure: ERROR  # Подавляем спам от Hibernate AssertionFailure
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: ERROR  # Подавляем спам от SQL ошибок дубликатов  
+    org.postgresql.util.PSQLException: ERROR  # Подавляем PostgreSQL constraint ошибки
+    org.springframework.dao.DataIntegrityViolationException: ERROR  # Подавляем Spring DAO ошибки constraint
     root: INFO
   file:
     name: core/logs/core.log

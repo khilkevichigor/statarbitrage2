@@ -768,8 +768,17 @@ public class PairService {
      * Безопасное создание и сохранение пары в отдельной транзакции
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private void savePairSafely(Pair pair) {
+    protected void savePairSafely(Pair pair) {
         try {
+            // Проверяем существование пары перед сохранением для избежания SQL ошибок
+            boolean exists = pairRepository.existsByTickerAAndTickerBAndTimeframeAndPeriodAndType(
+                    pair.getTickerA(), pair.getTickerB(), pair.getTimeframe(), pair.getPeriod(), pair.getType());
+            
+            if (exists) {
+                log.debug("🔄 Пара {}/{} уже существует - пропускаем", pair.getTickerA(), pair.getTickerB());
+                return;
+            }
+            
             // Создаем новый объект для избежания проблем с Hibernate session
             Pair detachedPair = new Pair();
             
@@ -806,14 +815,22 @@ public class PairService {
             pairRepository.save(detachedPair);
             
         } catch (Exception e) {
-            // Проверяем на дубликат ключа - это нормальная ситуация
-            if (e.getMessage() != null && e.getMessage().contains("duplicate key value violates unique constraint")) {
-                log.debug("🔄 Пара {} уже существует - пропускаем", pair.getPairName());
+            // Проверяем на различные типы ошибок дубликатов
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && (
+                errorMessage.contains("duplicate key value violates unique constraint") ||
+                errorMessage.contains("uk_stable_pairs_unique") ||
+                errorMessage.contains("ConstraintViolationException") ||
+                e.getCause() != null && e.getCause().getMessage() != null && 
+                e.getCause().getMessage().contains("duplicate key"))) {
+                
+                log.info("🔄 Пара {}/{} уже существует - пропускаем дубликат",
+                         pair.getTickerA(), pair.getTickerB());
                 return; // Тихо игнорируем дубликаты
             }
             
             // Все остальные ошибки логируем и перебрасываем
-            log.debug("❌ Ошибка сохранения пары: {}", e.getMessage());
+            log.debug("❌ Ошибка сохранения пары: {}", errorMessage);
             throw e;
         }
     }
