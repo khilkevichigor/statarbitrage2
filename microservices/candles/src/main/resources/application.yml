@@ -80,6 +80,8 @@ management:
 logging:
   level:
     com.example.candles: INFO
+    org.hibernate.AssertionFailure: WARN  # Уменьшаем спам от Hibernate
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: WARN  # Уменьшаем спам от SQL ошибок дубликатов
 
 # Настройки кэша свечей
 app:

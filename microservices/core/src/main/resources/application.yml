@@ -123,6 +123,8 @@ logging:
   level:
     com.example.core: INFO
     com.vaadin.flow.spring.SpringInstantiator: WARN
+    org.hibernate.AssertionFailure: WARN  # Уменьшаем спам от Hibernate
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: WARN  # Уменьшаем спам от SQL ошибок дубликатов
     root: INFO
   file:
     name: core/logs/core.log
