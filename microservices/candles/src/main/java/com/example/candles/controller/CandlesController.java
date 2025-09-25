@@ -1,8 +1,8 @@
 package com.example.candles.controller;
 
 import com.example.candles.client.OkxFeignClient;
-import com.example.candles.service.CandlesService;
 import com.example.candles.service.CandleCacheService;
+import com.example.candles.service.CandlesService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.ExtendedCandlesRequest;
@@ -29,6 +29,7 @@ public class CandlesController {
     private final CandleCacheService candleCacheService;
     private final OkxFeignClient okxFeignClient;
 
+    @Deprecated
     @PostMapping("/applicable-map")
     public Map<String, List<Candle>> getApplicableCandlesMap(@RequestBody CandlesRequest request) {
         try {
@@ -51,9 +52,10 @@ public class CandlesController {
     }
 
     /**
-     * Новый эндпоинт для анализа стабильности - получает ВСЕ доступные свечи
+     * Эндпоинт для анализа стабильности - получает ВСЕ доступные свечи
      * Использует пустой список тикеров для получения всех доступных тикеров
      */
+    @Deprecated
     @PostMapping("/all")
     public Map<String, List<Candle>> getAllCandles(@RequestBody Settings settings) {
         log.info("🔍 Получение всех доступных свечей для анализа стабильности...");
@@ -82,7 +84,7 @@ public class CandlesController {
     }
 
     /**
-     * ИСПРАВЛЕНО: Быстрый эндпоинт получения свечей ИЗ КЭША - АК-47 подход! 
+     * ИСПРАВЛЕНО: Быстрый эндпоинт получения свечей ИЗ КЭША - АК-47 подход!
      * Больше никаких медленных запросов к OKX API - только из локальной базы
      */
     @PostMapping("/all-extended")
@@ -95,12 +97,12 @@ public class CandlesController {
         // Получаем тикеры: используем переданный список или все доступные
         List<String> swapTickers;
         final List<String> originalRequestedTickers; // Сохраняем оригинальный список для фильтрации результата
-        
+
         if (request.getTickers() != null && !request.getTickers().isEmpty()) {
             log.info("📝 Используем переданный список из {} тикеров", request.getTickers().size());
             originalRequestedTickers = new ArrayList<>(request.getTickers()); // Сохраняем оригинальный список
             swapTickers = new ArrayList<>(request.getTickers());
-            
+
             // Добавляем BTC-USDT-SWAP как эталон если его нет в списке
             if (!swapTickers.contains("BTC-USDT-SWAP")) {
                 swapTickers.add("BTC-USDT-SWAP");
@@ -123,22 +125,22 @@ public class CandlesController {
 
         // ИСПРАВЛЕНО: Используем ТОЛЬКО кэш - АК-47 подход!
         Map<String, List<Candle>> result;
-        
+
         if (request.isSkipValidation()) {
             log.info("🚫 ВАЛИДАЦИЯ ОТКЛЮЧЕНА: Возвращаем данные как есть без фильтрации");
             // Получаем данные без валидации - простой запрос из кэша
             result = candleCacheService.getCachedCandlesSimple(
-                    swapTickers, 
-                    request.getTimeframe(), 
-                    request.getCandleLimit(), 
+                    swapTickers,
+                    request.getTimeframe(),
+                    request.getCandleLimit(),
                     "OKX"
             );
         } else {
             log.info("✅ ВАЛИДАЦИЯ ВКЛЮЧЕНА: Применяем стандартную валидацию консистентности");
             result = candleCacheService.getCachedCandles(
-                    swapTickers, 
-                    request.getTimeframe(), 
-                    request.getCandleLimit(), 
+                    swapTickers,
+                    request.getTimeframe(),
+                    request.getCandleLimit(),
                     "OKX"
             );
         }
@@ -150,7 +152,7 @@ public class CandlesController {
             int avgCandles = totalCandles / result.size();
             log.info("⚡ АК-47: Запрос ИЗ КЭША завершен за {} мс! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
                     elapsed, result.size(), avgCandles, totalCandles);
-            
+
             // Если были переданы конкретные тикеры, возвращаем только их (исключаем добавленный BTC эталон)
             if (originalRequestedTickers != null) {
                 Map<String, List<Candle>> filteredResult = result.entrySet().stream()
@@ -159,8 +161,8 @@ public class CandlesController {
                                 Map.Entry::getKey,
                                 Map.Entry::getValue
                         ));
-                
-                log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров (исключен BTC эталон)", 
+
+                log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров (исключен BTC эталон)",
                         filteredResult.size(), result.size());
                 return filteredResult;
             }

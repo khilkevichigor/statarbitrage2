@@ -3,8 +3,8 @@ package com.example.core.services;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.dto.ZScoreParam;
-import com.example.shared.models.Settings;
 import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,8 +15,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class ZScoreService {
-
-    private final PairService tradingPairService;
+    private final PairService pairService;
     private final PythonAnalysisService pythonAnalysisService;
     private final ObtainTopZScoreDataBeforeCreateNewPairService obtainTopZScoreDataBeforeCreateNewPairService;
     private final FilterZScoreDataForExistingPairBeforeNewTradeService filterZScoreDataForExistingPairBeforeNewTradeService;
@@ -68,7 +67,7 @@ public class ZScoreService {
                 isIncompleteBySize = actualSize < expected;
                 if (isIncompleteBySize) {
                     if (tradingPair != null) {
-                        tradingPairService.delete(tradingPair);
+                        pairService.deletePair(tradingPair);
                         log.warn("⚠️ Удалили пару {}/{} — наблюдений {} (ожидалось {})",
                                 data.getUnderValuedTicker(), data.getOverValuedTicker(), actualSize, expected);
                     }
@@ -83,7 +82,7 @@ public class ZScoreService {
                 lastZScore = data.getLatestZScore();
             } else {
                 if (tradingPair != null) {
-                    tradingPairService.delete(tradingPair);
+                    pairService.deletePair(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — отсутствует информация о Z-score",
                             data.getUnderValuedTicker(), data.getOverValuedTicker());
                 }
@@ -93,7 +92,7 @@ public class ZScoreService {
             boolean isIncompleteByZ = settings.isUseMinZFilter() && lastZScore < settings.getMinZ();
             if (isIncompleteByZ) {
                 if (tradingPair != null) {
-                    tradingPairService.delete(tradingPair);
+                    pairService.deletePair(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — Z-скор={} < Z-скор Min={}",
                             data.getUnderValuedTicker(), data.getOverValuedTicker(), lastZScore, settings.getMinZ());
                 }
@@ -104,7 +103,7 @@ public class ZScoreService {
             if (settings.isUseMinRSquaredFilter() && data.getAvgRSquared() != null && data.getAvgRSquared() < settings.getMinRSquared()) {
                 isIncompleteByRSquared = true;
                 if (tradingPair != null) {
-                    tradingPairService.delete(tradingPair);
+                    pairService.deletePair(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — RSquared={} < MinRSquared={}",
                             data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
                 }
@@ -115,7 +114,7 @@ public class ZScoreService {
             if (settings.isUseMinCorrelationFilter() && data.getPearsonCorr() != null && data.getPearsonCorr() < settings.getMinCorrelation()) {
                 isIncompleteByCorrelation = true;
                 if (tradingPair != null) {
-                    tradingPairService.delete(tradingPair);
+                    pairService.deletePair(tradingPair);
                     log.warn("⚠️ Удалили пару {}/{} — Correlation={} < MinCorrelation={}",
                             data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getPearsonCorr(), settings.getMinCorrelation());
                 }
@@ -136,7 +135,7 @@ public class ZScoreService {
                 if (pValue != null && pValue > settings.getMaxPValue()) {
                     isIncompleteByPValue = true;
                     if (tradingPair != null) {
-                        tradingPairService.delete(tradingPair);
+                        pairService.deletePair(tradingPair);
                         log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
                                 data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMaxPValue());
                     }
@@ -158,7 +157,7 @@ public class ZScoreService {
                 if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
                     isIncompleteByAdfValue = true;
                     if (tradingPair != null) {
-                        tradingPairService.delete(tradingPair);
+                        pairService.deletePair(tradingPair);
                         log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
                                 data.getUnderValuedTicker(), data.getOverValuedTicker(), adfValue, settings.getMaxAdfValue());
                     }
@@ -190,7 +189,7 @@ public class ZScoreService {
         }
         checkZScoreParamsSize(rawZScoreDataList);
         if (excludeExistingPairs) {
-            tradingPairService.excludeExistingPairs(rawZScoreDataList);
+            pairService.excludeExistingPairs(rawZScoreDataList);
         }
         return rawZScoreDataList;
     }

@@ -1,7 +1,7 @@
 package com.example.core.ui.views;
 
 import com.example.core.processors.FetchPairsProcessor;
-import com.example.core.services.TradingPairService;
+import com.example.core.services.PairService;
 import com.example.core.ui.components.SettingsComponent;
 import com.example.core.ui.components.TradingPairsComponent;
 import com.example.core.ui.layout.MainLayout;
@@ -36,7 +36,7 @@ import java.util.concurrent.CompletableFuture;
 public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
 
     private final FetchPairsProcessor fetchPairsProcessor;
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final UIUpdateService uiUpdateService;
     private final TradingPairsComponent tradingPairsComponent;
     private final SettingsComponent settingsComponent;
@@ -44,12 +44,12 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
     private Button getCointPairsButton;
 
     public SelectedPairsView(FetchPairsProcessor fetchPairsProcessor,
-                             TradingPairService tradingPairService,
+                             PairService pairService,
                              UIUpdateService uiUpdateService,
                              TradingPairsComponent tradingPairsComponent,
                              SettingsComponent settingsComponent) {
         this.fetchPairsProcessor = fetchPairsProcessor;
-        this.tradingPairService = tradingPairService;
+        this.pairService = pairService;
         this.uiUpdateService = uiUpdateService;
         this.tradingPairsComponent = tradingPairsComponent;
         this.settingsComponent = settingsComponent;
@@ -104,7 +104,7 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
                     tradingPairsComponent.setSelectedPairs(Collections.emptyList());
                 }));
 
-                int deleteAllByStatus = tradingPairService.deleteAllByStatus(TradeStatus.SELECTED);
+                int deleteAllByStatus = pairService.deleteAllByStatus(TradeStatus.SELECTED);
                 log.debug("Deleted all {} pairs from database", deleteAllByStatus);
                 List<Pair> pairs = fetchPairsProcessor.fetchPairs(FetchPairsRequest.builder().build());
 

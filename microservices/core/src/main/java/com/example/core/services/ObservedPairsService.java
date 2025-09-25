@@ -1,9 +1,9 @@
 package com.example.core.services;
 
-import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.Settings;
-import com.example.shared.models.Pair;
 import com.example.shared.enums.PairType;
+import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ObservedPairsService {
 
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final SettingsService settingsService;
 
     @Transactional
@@ -27,7 +27,7 @@ public class ObservedPairsService {
         settings.setObservedPairs(pairsString);
         settingsService.save(settings);
 
-        tradingPairService.deleteAllByStatus(TradeStatus.OBSERVED);
+        pairService.deleteAllByStatus(TradeStatus.OBSERVED);
 
         if (pairsString == null || pairsString.isBlank()) {
             return;
@@ -48,16 +48,16 @@ public class ObservedPairsService {
                 }
 
                 Pair tradingPair = Pair.builder()
-                    .type(PairType.TRADING)
-                    .tickerA(longTicker)
-                    .tickerB(shortTicker)
-                    .pairName(longTicker + "/" + shortTicker)
-                    .build();
+                        .type(PairType.TRADING)
+                        .tickerA(longTicker)
+                        .tickerB(shortTicker)
+                        .pairName(longTicker + "/" + shortTicker)
+                        .build();
                 tradingPair.setStatus(TradeStatus.OBSERVED);
                 tradingPairList.add(tradingPair);
             }
         }
 
-        tradingPairService.saveAll(tradingPairList);
+        pairService.saveAll(tradingPairList);
     }
 }

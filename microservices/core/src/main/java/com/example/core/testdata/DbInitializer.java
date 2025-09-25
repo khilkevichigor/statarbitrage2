@@ -1,7 +1,6 @@
 package com.example.core.testdata;
 
 import com.example.core.repositories.SettingsRepository;
-import com.example.core.services.TradingPairService;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +17,6 @@ import java.util.List;
 @Order(1)
 public class DbInitializer {
     private final SettingsRepository settingsRepository;
-    private final TradingPairService tradingPairService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void initialize() {

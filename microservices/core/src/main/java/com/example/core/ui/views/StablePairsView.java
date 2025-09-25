@@ -33,12 +33,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  * Скриннер стабильных коинтегрированных пар
@@ -55,7 +50,7 @@ public class StablePairsView extends VerticalLayout {
     // Элементы формы поиска - мульти-селекты
     private MultiSelectComboBox<String> timeframeMultiSelect;
     private MultiSelectComboBox<String> periodMultiSelect;
-    
+
     // Доступные варианты
     private final List<String> availableTimeframes = Arrays.asList(
             "1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M"
@@ -73,7 +68,7 @@ public class StablePairsView extends VerticalLayout {
     private NumberField minRSquaredField;
     private Checkbox maxPValueEnabled;
     private NumberField maxPValueField;
-    
+
     // Новое поле для фильтрации по тикерам
     private Checkbox searchTickersEnabled;
     private TextArea searchTickersField;
@@ -81,7 +76,7 @@ public class StablePairsView extends VerticalLayout {
     private Button searchButton;
     private Button clearAllButton;
     private ProgressBar progressBar;
-    
+
     // Новые элементы для настроек
     private Checkbox runOnScheduleCheckbox;
     private Button saveSettingsButton;
@@ -95,7 +90,7 @@ public class StablePairsView extends VerticalLayout {
     // Статистика
     private Span statsLabel;
 
-    public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog, 
+    public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog,
                            StablePairsScreenerSettingsService settingsService) {
         this.pairService = pairService;
         this.zScoreChartDialog = zScoreChartDialog;
@@ -209,7 +204,7 @@ public class StablePairsView extends VerticalLayout {
         searchTickersField.setHeight("80px");
         searchTickersField.setEnabled(searchTickersEnabled.getValue());
         searchTickersField.getStyle().set("font-family", "monospace");
-        
+
         // Связываем чекбокс с полем
         searchTickersEnabled.addValueChangeListener(e -> {
             searchTickersField.setEnabled(e.getValue());
@@ -224,12 +219,12 @@ public class StablePairsView extends VerticalLayout {
             if (value != null && !value.trim().isEmpty()) {
                 // Очищаем и нормализуем названия инструментов
                 String normalized = Arrays.stream(value.split(","))
-                    .map(String::trim)
-                    .map(String::toUpperCase)
-                    .filter(s -> !s.isEmpty())
-                    .reduce((a, b) -> a + "," + b)
-                    .orElse("");
-                
+                        .map(String::trim)
+                        .map(String::toUpperCase)
+                        .filter(s -> !s.isEmpty())
+                        .reduce((a, b) -> a + "," + b)
+                        .orElse("");
+
                 if (!normalized.equals(value)) {
                     searchTickersField.setValue(normalized);
                 }
@@ -331,7 +326,7 @@ public class StablePairsView extends VerticalLayout {
         savedSettingsCombo = new ComboBox<>("Сохранённые настройки");
         savedSettingsCombo.setItemLabelGenerator(StablePairsScreenerSettings::getName);
         savedSettingsCombo.setWidth("300px");
-        
+
         // Загружаем существующие настройки при инициализации
         loadAvailableSettings();
 
@@ -498,19 +493,19 @@ public class StablePairsView extends VerticalLayout {
         try {
             Set<String> timeframes = timeframeMultiSelect.getValue();
             Set<String> periods = periodMultiSelect.getValue();
-            
+
             if (timeframes.isEmpty()) {
                 Notification.show("❌ Выберите хотя бы один таймфрейм", 3000, Notification.Position.TOP_CENTER)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
-            
+
             if (periods.isEmpty()) {
                 Notification.show("❌ Выберите хотя бы один период", 3000, Notification.Position.TOP_CENTER)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
-            
+
             Map<String, Object> searchSettings = buildSearchSettings();
 
             log.info("🔍 Запуск поиска стабильных пар: TF={}, Period={}", timeframes, periods);
@@ -581,7 +576,7 @@ public class StablePairsView extends VerticalLayout {
         if (maxPValueEnabled.getValue() && maxPValueField.getValue() != null) {
             settings.put("maxPValue", maxPValueField.getValue());
         }
-        
+
         // Добавляем фильтрацию по тикерам
         if (searchTickersEnabled.getValue() && searchTickersField.getValue() != null && !searchTickersField.getValue().trim().isEmpty()) {
             Set<String> tickers = getSearchTickersSet();
@@ -599,7 +594,7 @@ public class StablePairsView extends VerticalLayout {
         if (searchTickersField.getValue() == null || searchTickersField.getValue().trim().isEmpty()) {
             return new HashSet<>();
         }
-        
+
         Set<String> instruments = new HashSet<>();
         String[] instrumentArray = searchTickersField.getValue().split(",");
         for (String instrument : instrumentArray) {
@@ -725,8 +720,8 @@ public class StablePairsView extends VerticalLayout {
 
             log.info("📝 Добавлены инструменты из пары {}: {}", pairName, instruments);
             Notification.show(
-                    String.format("✅ Добавлены инструменты из пары %s: %s", pairName, String.join(", ", instruments)),
-                    3000, Notification.Position.BOTTOM_CENTER)
+                            String.format("✅ Добавлены инструменты из пары %s: %s", pairName, String.join(", ", instruments)),
+                            3000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
         } catch (Exception e) {
@@ -740,29 +735,29 @@ public class StablePairsView extends VerticalLayout {
      * Извлекает полные названия инструментов из названия пары
      * Поддерживает форматы:
      * - "ENJ-USDT-SWAP/LUNA-USDT-SWAP" -> [ENJ-USDT-SWAP, LUNA-USDT-SWAP]
-     * - "BTC-ETH" -> [BTC, ETH]  
+     * - "BTC-ETH" -> [BTC, ETH]
      * - "BTCUSDT-ETHUSDT" -> [BTCUSDT, ETHUSDT]
      */
     private Set<String> extractInstrumentsFromPairName(String pairName) {
         Set<String> instruments = new HashSet<>();
-        
+
         try {
             // Разделяем по слешу для получения отдельных инструментов
             String[] parts = pairName.split("/");
-            
+
             for (String part : parts) {
                 String instrument = part.trim().toUpperCase();
                 if (!instrument.isEmpty()) {
                     instruments.add(instrument);
                 }
             }
-            
+
             log.debug("🔍 Извлечены инструменты из '{}': {}", pairName, instruments);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка извлечения инструментов из '{}': {}", pairName, e.getMessage(), e);
         }
-        
+
         return instruments;
     }
 
@@ -770,29 +765,29 @@ public class StablePairsView extends VerticalLayout {
      * Извлекает базовые тикеры из названия пары (DEPRECATED - используется только для совместимости)
      * Поддерживает форматы:
      * - "ENJ-USDT-SWAP/LUNA-USDT-SWAP" -> [ENJ, LUNA]
-     * - "BTC-ETH" -> [BTC, ETH]  
+     * - "BTC-ETH" -> [BTC, ETH]
      * - "BTCUSDT-ETHUSDT" -> [BTC, ETH]
      */
     private Set<String> extractTickersFromPairName(String pairName) {
         Set<String> tickers = new HashSet<>();
-        
+
         try {
             // Разделяем по слешу для получения отдельных инструментов
             String[] instruments = pairName.split("/");
-            
+
             for (String instrument : instruments) {
                 String ticker = extractBaseTickerFromInstrument(instrument.trim());
                 if (!ticker.isEmpty()) {
                     tickers.add(ticker);
                 }
             }
-            
+
             log.debug("🔍 Извлечены тикеры из '{}': {}", pairName, tickers);
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка извлечения тикеров из '{}': {}", pairName, e.getMessage(), e);
         }
-        
+
         return tickers;
     }
 
@@ -807,16 +802,16 @@ public class StablePairsView extends VerticalLayout {
         if (instrument == null || instrument.isEmpty()) {
             return "";
         }
-        
+
         String upper = instrument.toUpperCase();
-        
+
         // Для форматов типа "ENJ-USDT-SWAP", "BTC-USDT", "ETH-USD" 
         if (upper.contains("-")) {
             // Берем первую часть до первого дефиса
             String baseTicker = upper.split("-")[0];
             return baseTicker.trim();
         }
-        
+
         // Для форматов типа "BTCUSDT", "ETHUSDC"
         // Убираем известные суффиксы-валюты
         String[] knownSuffixes = {"USDT", "USDC", "USD", "BTC", "ETH", "BNB", "BUSD"};
@@ -825,7 +820,7 @@ public class StablePairsView extends VerticalLayout {
                 return upper.substring(0, upper.length() - suffix.length()).trim();
             }
         }
-        
+
         // Если ничего не подошло, возвращаем как есть
         return upper.trim();
     }
@@ -833,27 +828,27 @@ public class StablePairsView extends VerticalLayout {
     private void calculateZScore(Pair pair) {
         try {
             log.info("🧮 Расчет Z-Score для пары {}", pair.getPairName());
-            
+
             // Выполняем расчет в фоновом потоке
             getUI().ifPresent(ui -> {
                 Thread calculateThread = new Thread(() -> {
                     try {
-                        Pair calculatedTradingPair = 
+                        Pair calculatedTradingPair =
                                 pairService.calculateZScoreForStablePair(pair);
 
                         ui.access(() -> {
                             if (calculatedTradingPair != null) {
                                 Notification.show(
-                                                String.format("✅ Z-Score рассчитан для пары %s! Показываю график...", 
+                                                String.format("✅ Z-Score рассчитан для пары %s! Показываю график...",
                                                         pair.getPairName()),
                                                 3000, Notification.Position.BOTTOM_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                                
+
                                 // Показываем график с рассчитанными данными
                                 zScoreChartDialog.showChart(calculatedTradingPair);
                             } else {
                                 Notification.show(
-                                                String.format("❌ Не удалось рассчитать Z-Score для пары %s", 
+                                                String.format("❌ Не удалось рассчитать Z-Score для пары %s",
                                                         pair.getPairName()),
                                                 3000, Notification.Position.TOP_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -863,7 +858,7 @@ public class StablePairsView extends VerticalLayout {
                     } catch (Exception e) {
                         log.error("Ошибка при расчете Z-Score для пары {}: {}", pair.getPairName(), e.getMessage(), e);
                         ui.access(() -> {
-                            Notification.show("❌ Ошибка расчета: " + e.getMessage(), 
+                            Notification.show("❌ Ошибка расчета: " + e.getMessage(),
                                             5000, Notification.Position.TOP_CENTER)
                                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
                         });
@@ -931,7 +926,7 @@ public class StablePairsView extends VerticalLayout {
         try {
             List<StablePairsScreenerSettings> allSettings = settingsService.getAllSettings();
             savedSettingsCombo.setItems(allSettings);
-            
+
             // Автоматически выбираем настройки по умолчанию, если они есть
             allSettings.stream()
                     .filter(StablePairsScreenerSettings::isDefault)
@@ -940,7 +935,7 @@ public class StablePairsView extends VerticalLayout {
                         savedSettingsCombo.setValue(defaultSettings);
                         loadSettingsIntoUI(defaultSettings);
                     });
-            
+
         } catch (Exception e) {
             log.error("Ошибка при загрузке доступных настроек: {}", e.getMessage(), e);
             Notification.show("❌ Ошибка при загрузке настроек", 3000, Notification.Position.TOP_CENTER)
@@ -951,32 +946,32 @@ public class StablePairsView extends VerticalLayout {
     private void loadSettingsIntoUI(StablePairsScreenerSettings settings) {
         try {
             log.debug("🔄 Загрузка настроек в UI: {}", settings.getName());
-            
+
             // Загружаем таймфреймы и периоды
             timeframeMultiSelect.setValue(settings.getSelectedTimeframesSet());
             periodMultiSelect.setValue(settings.getSelectedPeriodsSet());
-            
+
             // Загружаем настройки фильтров
             minCorrelationEnabled.setValue(settings.isMinCorrelationEnabled());
             minCorrelationField.setValue(settings.getMinCorrelationValue());
             minCorrelationField.setEnabled(settings.isMinCorrelationEnabled());
-            
+
             minWindowSizeEnabled.setValue(settings.isMinWindowSizeEnabled());
             minWindowSizeField.setValue(settings.getMinWindowSizeValue());
             minWindowSizeField.setEnabled(settings.isMinWindowSizeEnabled());
-            
+
             maxAdfValueEnabled.setValue(settings.isMaxAdfValueEnabled());
             maxAdfValueField.setValue(settings.getMaxAdfValue());
             maxAdfValueField.setEnabled(settings.isMaxAdfValueEnabled());
-            
+
             minRSquaredEnabled.setValue(settings.isMinRSquaredEnabled());
             minRSquaredField.setValue(settings.getMinRSquaredValue());
             minRSquaredField.setEnabled(settings.isMinRSquaredEnabled());
-            
+
             maxPValueEnabled.setValue(settings.isMaxPValueEnabled());
             maxPValueField.setValue(settings.getMaxPValue());
             maxPValueField.setEnabled(settings.isMaxPValueEnabled());
-            
+
             // Загружаем настройки фильтрации по тикерам
             searchTickersEnabled.setValue(settings.isSearchTickersEnabled());
             if (settings.getSearchTickers() != null && !settings.getSearchTickers().trim().isEmpty()) {
@@ -985,15 +980,15 @@ public class StablePairsView extends VerticalLayout {
                 searchTickersField.clear();
             }
             searchTickersField.setEnabled(settings.isSearchTickersEnabled());
-            
+
             // Загружаем настройки автоматизации
             runOnScheduleCheckbox.setValue(settings.isRunOnSchedule());
-            
+
             log.info("✅ Настройки '{}' загружены в UI", settings.getName());
-            
+
         } catch (Exception e) {
             log.error("Ошибка при загрузке настроек в UI: {}", e.getMessage(), e);
-            Notification.show("❌ Ошибка при загрузке настроек: " + e.getMessage(), 
+            Notification.show("❌ Ошибка при загрузке настроек: " + e.getMessage(),
                             3000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
@@ -1005,9 +1000,9 @@ public class StablePairsView extends VerticalLayout {
             com.vaadin.flow.component.textfield.TextField nameField = new com.vaadin.flow.component.textfield.TextField("Название настроек");
             nameField.setValue("Настройки " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             nameField.setWidth("300px");
-            
+
             com.vaadin.flow.component.orderedlayout.VerticalLayout dialogContent = new com.vaadin.flow.component.orderedlayout.VerticalLayout(nameField);
-            
+
             com.vaadin.flow.component.confirmdialog.ConfirmDialog dialog = new com.vaadin.flow.component.confirmdialog.ConfirmDialog();
             dialog.setHeader("Сохранение настроек");
             dialog.add(dialogContent);
@@ -1021,7 +1016,7 @@ public class StablePairsView extends VerticalLayout {
                                 .addThemeVariants(NotificationVariant.LUMO_ERROR);
                         return;
                     }
-                    
+
                     // Создаем настройки из текущего состояния UI
                     StablePairsScreenerSettings settings = settingsService.createFromUIParams(
                             settingsName.trim(),
@@ -1035,19 +1030,19 @@ public class StablePairsView extends VerticalLayout {
                             searchTickersEnabled.getValue(), getSearchTickersSet(),
                             runOnScheduleCheckbox.getValue()
                     );
-                    
+
                     // Сохраняем
                     StablePairsScreenerSettings saved = settingsService.saveSettings(settings);
-                    
+
                     Notification.show(
-                            String.format("💾 Настройки '%s' сохранены", saved.getName()),
-                            3000, Notification.Position.BOTTOM_CENTER)
+                                    String.format("💾 Настройки '%s' сохранены", saved.getName()),
+                                    3000, Notification.Position.BOTTOM_CENTER)
                             .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                    
+
                     // Обновляем список доступных настроек
                     loadAvailableSettings();
                     savedSettingsCombo.setValue(saved);
-                    
+
                 } catch (Exception e) {
                     log.error("Ошибка при сохранении настроек: {}", e.getMessage(), e);
                     Notification.show("❌ Ошибка при сохранении: " + e.getMessage(),
@@ -1055,9 +1050,9 @@ public class StablePairsView extends VerticalLayout {
                             .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 }
             });
-            
+
             dialog.open();
-            
+
         } catch (Exception e) {
             log.error("Ошибка при инициации сохранения настроек: {}", e.getMessage(), e);
             Notification.show("❌ Ошибка: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER)
@@ -1073,17 +1068,17 @@ public class StablePairsView extends VerticalLayout {
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
-            
+
             loadSettingsIntoUI(selected);
-            
+
             // Отмечаем настройки как использованные
             settingsService.markAsUsed(selected.getId());
-            
+
             Notification.show(
-                    String.format("📁 Настройки '%s' загружены", selected.getName()),
-                    3000, Notification.Position.BOTTOM_CENTER)
+                            String.format("📁 Настройки '%s' загружены", selected.getName()),
+                            3000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            
+
         } catch (Exception e) {
             log.error("Ошибка при загрузке выбранных настроек: {}", e.getMessage(), e);
             Notification.show("❌ Ошибка при загрузке: " + e.getMessage(),

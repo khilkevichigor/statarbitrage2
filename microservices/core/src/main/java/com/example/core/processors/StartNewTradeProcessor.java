@@ -5,8 +5,8 @@ import com.example.core.services.*;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.Settings;
 import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,7 +20,7 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class StartNewTradeProcessor {
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationServiceImpl;
@@ -51,7 +51,7 @@ public class StartNewTradeProcessor {
         }
 
         final ZScoreData zScoreData = maybeZScoreData.get();
-        tradingPairService.updateZScoreDataCurrent(tradingPair, zScoreData);
+        pairService.updateZScoreDataCurrent(tradingPair, zScoreData);
 
         // 3. Валидация тикеров и автотрейдинга
         if (!startNewTradeValidationService.validateTickers(tradingPair, zScoreData)) {
@@ -119,9 +119,9 @@ public class StartNewTradeProcessor {
         TradeResult longTrade = openResult.getLongTradeResult();
         TradeResult shortTrade = openResult.getShortTradeResult();
 
-        tradingPairService.addEntryPoints(tradingPair, zScoreData, longTrade, shortTrade);
-        tradingPairService.addChanges(tradingPair);
-        tradingPairService.save(tradingPair);
+        pairService.addEntryPoints(tradingPair, zScoreData, longTrade, shortTrade);
+        pairService.addChanges(tradingPair);
+        pairService.save(tradingPair);
 
         tradeHistoryService.updateTradeLog(tradingPair, settings);
 
@@ -132,7 +132,7 @@ public class StartNewTradeProcessor {
         log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());
-        tradingPairService.save(tradingPair);
+        pairService.save(tradingPair);
         return tradingPair;
     }
 }

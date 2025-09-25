@@ -1,16 +1,16 @@
 package com.example.core.processors;
 
 import com.example.core.client.CandlesFeignClient;
+import com.example.core.services.PairService;
 import com.example.core.services.SettingsService;
-import com.example.core.services.TradingPairService;
 import com.example.core.services.ZScoreService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.models.Settings;
 import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import com.example.shared.utils.NumberFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class FetchPairsProcessor {
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final ZScoreService zScoreService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
@@ -69,7 +69,7 @@ public class FetchPairsProcessor {
     }
 
     private List<String> getUsedTickers() {
-        List<Pair> activePairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+        List<Pair> activePairs = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
         for (Pair pair : activePairs) {
             tickers.add(pair.getLongTicker());
@@ -144,7 +144,7 @@ public class FetchPairsProcessor {
 
     private List<Pair> createPairs(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
         try {
-            return tradingPairService.createPairDataList(zScoreDataList, candlesMap);
+            return pairService.createPairDataList(zScoreDataList, candlesMap);
         } catch (Exception e) {
             log.error("❌ Ошибка при создании PairData: {}", e.getMessage());
             return Collections.emptyList();

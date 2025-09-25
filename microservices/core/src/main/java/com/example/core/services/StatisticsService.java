@@ -1,7 +1,6 @@
 package com.example.core.services;
 
 import com.example.core.repositories.TradeHistoryRepository;
-import com.example.core.services.ExitReasonType;
 import com.example.shared.dto.PairAggregatedStatisticsDto;
 import com.example.shared.dto.TradePairsStatisticsDto;
 import com.example.shared.enums.TradeStatus;
@@ -22,26 +21,26 @@ import java.util.stream.Collectors;
 public class StatisticsService {
 
     private final TradeHistoryRepository tradeHistoryRepository;
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final TradeHistoryService tradeHistoryService;
 
     public TradePairsStatisticsDto collectStatistics() {
-        BigDecimal unrealizedProfitUSDTToday = tradingPairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDTToday = pairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
                 .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitUSDTTotal = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitUSDTTotal = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitPercentToday = tradingPairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitPercentToday = pairService.findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus.TRADING).stream()
                 .map(Pair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal unrealizedProfitPercentTotal = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
+        BigDecimal unrealizedProfitPercentTotal = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING).stream()
                 .map(Pair::getProfitPercentChanges)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -126,7 +125,7 @@ public class StatisticsService {
 
     public List<PairAggregatedStatisticsDto> getClosedPairsAggregatedStatistics() {
         try {
-            List<Pair> closedPairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
+            List<Pair> closedPairs = pairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
 
             Map<String, List<Pair>> pairGroups = closedPairs.stream()
                     .collect(Collectors.groupingBy(Pair::getPairName));
@@ -180,8 +179,8 @@ public class StatisticsService {
     private String calculateAverageTradeDuration(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
                 .filter(p -> p.getEntryTime() != null && p.getUpdatedTime() != null)
-                .mapToLong(p -> p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 
-                          p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                .mapToLong(p -> p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() -
+                        p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
                 .average();
 
         if (average.isPresent()) {
@@ -193,8 +192,8 @@ public class StatisticsService {
     private long calculateAverageTradeDurationMinutes(List<Pair> pairs) {
         return (long) pairs.stream()
                 .filter(p -> p.getEntryTime() != null && p.getUpdatedTime() != null)
-                .mapToLong(p -> p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 
-                          p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()) // миллисекунды
+                .mapToLong(p -> p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() -
+                        p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()) // миллисекунды
                 .average()
                 .orElse(0.0) / 1000 / 60;
     }

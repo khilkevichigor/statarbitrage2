@@ -3,8 +3,8 @@ package com.example.core.ui.components;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.processors.UpdateTradeProcessor;
 import com.example.core.services.AveragingService;
+import com.example.core.services.PairService;
 import com.example.core.services.SettingsService;
-import com.example.core.services.TradingPairService;
 import com.example.shared.dto.StartNewTradeRequest;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.enums.TradeStatus;
@@ -39,7 +39,7 @@ import static com.example.shared.utils.BigDecimalUtil.safeScale;
 @UIScope
 public class TradingPairsComponent extends VerticalLayout {
 
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final ZScoreChartDialog zScoreChartDialog;
@@ -56,14 +56,14 @@ public class TradingPairsComponent extends VerticalLayout {
     private Consumer<Void> uiUpdateCallback;
 
     public TradingPairsComponent(
-            TradingPairService tradingPairService,
+            PairService pairService,
             StartNewTradeProcessor startNewTradeProcessor,
             UpdateTradeProcessor updateTradeProcessor,
             ZScoreChartDialog zScoreChartDialog,
             AveragingService averagingService,
             SettingsService settingsService
     ) {
-        this.tradingPairService = tradingPairService;
+        this.pairService = pairService;
         this.startNewTradeProcessor = startNewTradeProcessor;
         this.updateTradeProcessor = updateTradeProcessor;
         this.zScoreChartDialog = zScoreChartDialog;
@@ -136,8 +136,8 @@ public class TradingPairsComponent extends VerticalLayout {
 
         tradingPairsGrid.addColumn(p -> {
             if (p.getUpdatedTime() != null && p.getEntryTime() != null) {
-                long duration = p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 
-                               p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+                long duration = p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() -
+                        p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
                 return TimeFormatterUtil.formatDurationFromMillis(duration);
             }
             return "N/A";
@@ -192,8 +192,8 @@ public class TradingPairsComponent extends VerticalLayout {
 
         closedPairsGrid.addColumn(p -> {
             if (p.getUpdatedTime() != null && p.getEntryTime() != null) {
-                long duration = p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 
-                               p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+                long duration = p.getUpdatedTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() -
+                        p.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
                 return TimeFormatterUtil.formatDurationFromMillis(duration);
             }
             return "N/A";
@@ -406,7 +406,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateSelectedPairs() {
         try {
-            List<Pair> pairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.SELECTED);
+            List<Pair> pairs = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.SELECTED);
             selectedPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating selected pairs", e);
@@ -415,7 +415,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updatePairs() {
         try {
-            List<Pair> pairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<Pair> pairs = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             tradingPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating trading pairs", e);
@@ -424,7 +424,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateClosedPairs() {
         try {
-            List<Pair> pairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
+            List<Pair> pairs = pairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.CLOSED);
             closedPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating closed pairs", e);
@@ -435,8 +435,8 @@ public class TradingPairsComponent extends VerticalLayout {
         try {
             unrealizedProfitLayout.removeAll();
 
-            BigDecimal usdtProfit = safeScale(tradingPairService.getUnrealizedProfitUSDTTotal(), 2);
-            BigDecimal percentProfit = safeScale(tradingPairService.getUnrealizedProfitPercentTotal(), 2);
+            BigDecimal usdtProfit = safeScale(pairService.getUnrealizedProfitUSDTTotal(), 2);
+            BigDecimal percentProfit = safeScale(pairService.getUnrealizedProfitPercentTotal(), 2);
 
             String label = String.format("💰 Нереализованный профит: %s$/%s%%", usdtProfit, percentProfit);
             unrealizedProfitLayout.add(new H2(label));
@@ -447,7 +447,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateErrorPairs() {
         try {
-            List<Pair> pairs = tradingPairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.ERROR);
+            List<Pair> pairs = pairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.ERROR);
             errorPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating error pairs", e);
@@ -456,7 +456,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateObservedPairs() {
         try {
-            List<Pair> pairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.OBSERVED);
+            List<Pair> pairs = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.OBSERVED);
             observedPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating observed pairs", e);
@@ -558,7 +558,7 @@ public class TradingPairsComponent extends VerticalLayout {
         Checkbox checkbox = new Checkbox(tradingPair.isCloseAtBreakeven());
         checkbox.addValueChangeListener(event -> {
             tradingPair.setCloseAtBreakeven(event.getValue());
-            tradingPairService.save(tradingPair);
+            pairService.save(tradingPair);
             Notification.show(String.format("Для пары %s закрытие в БУ %s",
                     tradingPair.getPairName(),
                     event.getValue() ? "включено" : "отключено"));
@@ -645,7 +645,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void closeAllTrades() {
         try {
-            List<Pair> tradingPairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<Pair> tradingPairs = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             for (Pair tradingPair : tradingPairs) {
                 updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
                         .tradingPair(tradingPair)
@@ -662,15 +662,15 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void closeAllTradesWithConfirmation() {
         try {
-            List<Pair> tradingPairs = tradingPairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
+            List<Pair> tradingPairs = pairService.findAllByStatusOrderByEntryTimeDesc(TradeStatus.TRADING);
             if (tradingPairs.isEmpty()) {
                 Notification.show("Нет активных торговых пар для закрытия");
                 return;
             }
-            
+
             ConfirmationDialog dialog = new ConfirmationDialog(
-                    "Подтверждение", 
-                    String.format("Вы уверены, что хотите закрыть все торговые пары (%d шт.)?", tradingPairs.size()), 
+                    "Подтверждение",
+                    String.format("Вы уверены, что хотите закрыть все торговые пары (%d шт.)?", tradingPairs.size()),
                     e -> closeAllTrades()
             );
             dialog.open();

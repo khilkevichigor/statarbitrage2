@@ -9,8 +9,8 @@ import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.rabbit.CoreEvent;
-import com.example.shared.models.Settings;
 import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import com.example.shared.utils.FormatUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,13 +25,12 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class UpdateTradeProcessor {
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final SettingsService settingsService;
     private final TradeHistoryService tradeHistoryService;
     private final ZScoreService zScoreService;
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ExitStrategyService exitStrategyService;
-    //    private final NotificationService notificationService;
     private final SendEventService sendEventService;
     private final ChartService chartService;
     private final AveragingService averagingService;
@@ -81,7 +80,7 @@ public class UpdateTradeProcessor {
         final Settings settings = settingsService.getSettings();
 
         //todo здесь сетить настройки в пару для дальнейшей аналитики чатЖПТ
-        tradingPairService.updateSettingsParam(tradingPair, settings);
+        pairService.updateSettingsParam(tradingPair, settings);
 
         TradingProvider provider = tradingProviderFactory.getCurrentProvider();
         provider.updatePositionPrices(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()));
@@ -99,14 +98,14 @@ public class UpdateTradeProcessor {
 
         logPairInfo(zScoreData, settings);
 
-        tradingPairService.updateZScoreDataCurrent(tradingPair, zScoreData);
+        pairService.updateZScoreDataCurrent(tradingPair, zScoreData);
 
         // Обновляем пиксельный спред синхронно с Z-Score и ценами
         log.debug("🔢 Обновляем пиксельный спред для пары {}", tradingPair.getPairName());
         chartService.calculatePixelSpreadIfNeeded(tradingPair); // Инициализация при первом запуске
         chartService.addCurrentPixelSpreadPoint(tradingPair); // Добавляем новую точку
 
-        tradingPairService.addChanges(tradingPair); // обновляем профит до проверки стратегии выхода
+        pairService.addChanges(tradingPair); // обновляем профит до проверки стратегии выхода
 
         // Проверяем автоусреднение после обновления профита
         if (averagingService.shouldPerformAutoAveraging(tradingPair, settings)) {
@@ -127,7 +126,7 @@ public class UpdateTradeProcessor {
             return handleAutoClose(tradingPair, settings, exitReason);
         }
 
-        tradingPairService.save(tradingPair);
+        pairService.save(tradingPair);
         tradeHistoryService.updateTradeLog(tradingPair, settings);
         return tradingPair;
     }
@@ -148,14 +147,14 @@ public class UpdateTradeProcessor {
             if (zScoreData != null) {
                 freshPair.setLongTickerCandles(candlesMap.get(freshPair.getLongTicker()));
                 freshPair.setShortTickerCandles(candlesMap.get(freshPair.getShortTicker()));
-                tradingPairService.updateZScoreDataCurrent(freshPair, zScoreData);
+                pairService.updateZScoreDataCurrent(freshPair, zScoreData);
 
                 // Обновляем пиксельный спред для наблюдаемой пары
                 log.debug("🔢 Обновляем пиксельный спред для наблюдаемой пары {}", freshPair.getPairName());
                 chartService.calculatePixelSpreadIfNeeded(freshPair); // Инициализация при первом запуске
                 chartService.addCurrentPixelSpreadPoint(freshPair); // Добавляем новую точку
 
-                tradingPairService.save(freshPair);
+                pairService.save(freshPair);
             }
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при обновлении наблюдаемой пары {}: {}",
@@ -171,7 +170,7 @@ public class UpdateTradeProcessor {
     }
 
     private Pair loadFreshPairData(Pair tradingPair) {
-        final Pair freshPair = tradingPairService.findById(tradingPair.getId());
+        final Pair freshPair = pairService.findById(tradingPair.getId());
         if (freshPair == null || freshPair.getStatus() == TradeStatus.CLOSED) {
             log.debug("⏭️ Пропускаем обновление закрытой пары {}", tradingPair.getPairName());
             return null;
@@ -300,10 +299,10 @@ public class UpdateTradeProcessor {
     }
 
     private void finalizeClosedTrade(Pair tradingPair, Settings settings) {
-        tradingPairService.addChanges(tradingPair);
-        tradingPairService.updatePortfolioBalanceAfterTradeUSDT(tradingPair); //баланс после
+        pairService.addChanges(tradingPair);
+        pairService.updatePortfolioBalanceAfterTradeUSDT(tradingPair); //баланс после
         tradingIntegrationServiceImpl.deletePositions(tradingPair);
-        tradingPairService.save(tradingPair);
+        pairService.save(tradingPair);
         tradeHistoryService.updateTradeLog(tradingPair, settings);
     }
 
@@ -353,7 +352,7 @@ public class UpdateTradeProcessor {
 
         tradingPair.setStatus(TradeStatus.ERROR);
         tradingPair.setErrorDescription(errorType.getDescription());
-        tradingPairService.save(tradingPair);
+        pairService.save(tradingPair);
         // не обновляем другие данные тк нужны реальные данные по сделкам!
         return tradingPair;
     }

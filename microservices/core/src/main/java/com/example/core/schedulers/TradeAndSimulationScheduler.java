@@ -2,14 +2,13 @@ package com.example.core.schedulers;
 
 import com.example.core.processors.UpdateTradeProcessor;
 import com.example.core.services.EventSendService;
-import com.example.core.services.TradingPairService;
+import com.example.core.services.PairService;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.UpdateUiEvent;
 import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,11 +23,11 @@ public class TradeAndSimulationScheduler {
     private final AtomicBoolean updateTradesRunning = new AtomicBoolean(false);
     private final AtomicBoolean maintainPairsRunning = new AtomicBoolean(false);
 
-    private final TradingPairService tradingPairService;
+    private final PairService pairService;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final EventSendService eventSendService;
 
-//    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
+    //    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
     public void updateTrades() {
         if (!canStartUpdateTrades()) {
             return;
@@ -77,7 +76,7 @@ public class TradeAndSimulationScheduler {
 
     private List<Pair> getUpdatablePairs() {
         try {
-            return tradingPairService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
+            return pairService.findAllByStatusIn(List.of(TradeStatus.TRADING, TradeStatus.OBSERVED));
         } catch (Exception e) {
             log.error("❌ Ошибка при получении торговых пар: {}", e.getMessage());
             return List.of();
