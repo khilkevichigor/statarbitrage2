@@ -913,7 +913,7 @@ public class CandleCacheService {
             log.info("🚀 МНОГОПОТОЧНАЯ догрузка недостающих свечей в {} потоков для {} тикеров", 
                     threadPoolSize, filteredMissingCount.size());
 
-            // ИСПРАВЛЕНО: Многопоточная загрузка недостающих данных в настраиваемое количество потоков
+            // Многопоточная загрузка недостающих данных в настраиваемое количество потоков
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             
             for (Map.Entry<String, Integer> entry : filteredMissingCount.entrySet()) {
@@ -939,7 +939,7 @@ public class CandleCacheService {
                             log.info("🔄 ПОТОК: Для {} загружаем {} исторических свечей до {}",
                                     ticker, missingCount, new java.util.Date(oldestTimestamp * 1000));
                             
-                            // ИСПРАВЛЕНО: Загружаем исторические данные ДО oldestTimestamp
+                            // Загружаем исторические данные ДО oldestTimestamp
                             loadedCandles = loadCandlesBeforeTimestamp(ticker, timeframe, missingCount, oldestTimestamp);
                         } else {
                             // Нет данных - загружаем полное количество (последние свечи)
