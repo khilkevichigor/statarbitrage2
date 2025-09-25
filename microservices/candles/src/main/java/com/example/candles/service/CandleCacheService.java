@@ -134,16 +134,32 @@ public class CandleCacheService {
         
         if (btcCandles != null && !btcCandles.isEmpty()) {
             btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
-            expectedCandleCount = btcCandles.size();
-            expectedFirstTimestamp = btcCandles.get(0).getTimestamp();
-            expectedLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
             
-            log.info("🎯 ЭТАЛОН: Используем BTC-USDT-SWAP - {} свечей, {} - {}", 
-                    expectedCandleCount, 
-                    formatTimestamp(expectedFirstTimestamp),
-                    formatTimestamp(expectedLastTimestamp));
+            // ✅ ЭТАЛОН ДОЛЖЕН ИМЕТЬ ТОЧНО ЗАПРОШЕННОЕ КОЛИЧЕСТВО СВЕЧЕЙ!
+            if (btcCandles.size() == expectedLimit) {
+                expectedCandleCount = expectedLimit;
+                expectedFirstTimestamp = btcCandles.get(0).getTimestamp();
+                expectedLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                
+                log.info("🎯 ЭТАЛОН: BTC-USDT-SWAP валиден - {} свечей (как запрошено), {} - {}", 
+                        expectedCandleCount, 
+                        formatTimestamp(expectedFirstTimestamp),
+                        formatTimestamp(expectedLastTimestamp));
+            } else {
+                log.error("❌ ЭТАЛОН: BTC-USDT-SWAP невалиден - {} свечей вместо {} запрошенных! Эталон должен иметь полный набор данных!",
+                        btcCandles.size(), expectedLimit);
+                expectedCandleCount = expectedLimit;
+                
+                // Для эталона требуем точное количество - если его нет, установим временные значения  
+                // которые не пройдут валидацию у неполных тикеров
+                expectedFirstTimestamp = 0;
+                expectedLastTimestamp = Long.MAX_VALUE;
+            }
         } else {
-            log.warn("⚠️ ЭТАЛОН: BTC-USDT-SWAP не найден в данных, используем первый доступный тикер");
+            log.error("❌ ЭТАЛОН: BTC-USDT-SWAP не найден в данных! Эталон обязателен для валидации!");
+            expectedCandleCount = expectedLimit;
+            expectedFirstTimestamp = 0;
+            expectedLastTimestamp = Long.MAX_VALUE;
         }
 
         // Проходим по всем тикерам и собираем статистику
@@ -168,12 +184,11 @@ public class CandleCacheService {
             firstTimestampDistribution.merge(firstTimestamp, 1, Integer::sum);
             lastTimestampDistribution.merge(lastTimestamp, 1, Integer::sum);
 
-            // Если BTC не найден, устанавливаем эталон с первого тикера
+            // ❌ УБИРАЕМ РЕЗЕРВНЫЙ ЭТАЛОН - эталон должен быть ТОЛЬКО BTC с точным количеством!
+            // Если BTC не найден или невалиден, НЕ используем другие тикеры как эталон
             if (expectedFirstTimestamp == -1) {
-                expectedFirstTimestamp = firstTimestamp;
-                expectedLastTimestamp = lastTimestamp;
-                expectedCandleCount = candleCount;
-                log.warn("⚠️ РЕЗЕРВНЫЙ ЭТАЛОН: Используем {} как эталон", ticker);
+                // Эталон не установлен = все тикеры невалидны
+                log.error("❌ НЕТ ВАЛИДНОГО ЭТАЛОНА: BTC-USDT-SWAP должен иметь {} свечей!", expectedLimit);
             }
 
             // Проверяем соответствие эталону
@@ -442,8 +457,6 @@ public class CandleCacheService {
                                     ticker, freshCandles.size(), filteredCandles.size());
                             
                             if (!filteredCandles.isEmpty()) {
-                                result.put(ticker, filteredCandles);
-                                
                                 // Сохраняем в БД
                                 int savedCount = candleTransactionService.saveCandlesToCache(
                                         ticker, timeframe, exchange, filteredCandles);
@@ -452,6 +465,20 @@ public class CandleCacheService {
                                 }
                                 
                                 log.info("💾 ПОТОК: {} - сохранено {} свечей в БД", ticker, savedCount);
+                                
+                                // ✅ КРИТИЧНО: Получаем обновленные данные из БД для валидации!
+                                List<CachedCandle> updatedCachedCandles = cachedCandleRepository
+                                        .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
+                                                PageRequest.of(0, candleLimit));
+                                                
+                                List<Candle> updatedCandles = updatedCachedCandles.stream()
+                                        .map(CachedCandle::toCandle)
+                                        .sorted(Comparator.comparing(Candle::getTimestamp))
+                                        .collect(Collectors.toList());
+                                        
+                                result.put(ticker, updatedCandles);
+                                log.info("🔄 ПОТОК: {} - получено {} обновленных свечей из кэша для валидации", 
+                                        ticker, updatedCandles.size());
                             } else {
                                 log.warn("⚠️ ПОТОК: {} - нет свечей в требуемом диапазоне", ticker);
                             }
