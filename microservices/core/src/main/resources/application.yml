@@ -3,6 +3,11 @@ server:
   servlet:
     session:
       timeout: 30m
+  tomcat:
+    max-http-post-size: 100MB        # Увеличиваем лимит POST запросов
+    max-http-header-size: 8KB        # Увеличиваем лимит заголовков
+    connection-timeout: 30000        # 30 секунд таймаут соединения
+  max-http-request-header-size: 8KB  # Лимит заголовков запроса
 
 spring:
   application:
@@ -101,6 +106,17 @@ vaadin:
 cointegration:
   api:
     url: http://localhost:8000
+    timeout:
+      connect: 30000  # 30 секунд
+      read: 300000    # 5 минут для больших запросов
+
+# HTTP Client Configuration
+http:
+  client:
+    max-request-size: 100MB      # Максимальный размер запроса
+    max-response-size: 50MB      # Максимальный размер ответа
+    connection-timeout: 30000    # 30 секунд
+    read-timeout: 300000         # 5 минут
 
 # OKX API Configuration
 okx:

@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +70,9 @@ public class PairService {
             Map<String, Object> analysisSettings = buildAnalysisSettings(searchSettings);
             Settings settings = settingsService.getSettings();
             
+            // Извлекаем searchTickers из настроек для фильтрации
+            Set<String> searchTickers = extractSearchTickers(searchSettings);
+            
             // Результаты для аккумуляции
             StabilityResponseDto aggregatedResponse = new StabilityResponseDto();
             aggregatedResponse.setSuccess(true);
@@ -82,11 +86,24 @@ public class PairService {
                     log.info("🔍 Поиск для комбинации: timeframe={}, period={}", timeframe, period);
                     
                     try {
-                        // Получаем свечи для конкретной комбинации
-                        Map<String, List<Candle>> candlesMap = getCandlesForAnalysis(settings, timeframe, period);
+                        // Получаем свечи для конкретной комбинации с учетом фильтра тикеров
+                        Map<String, List<Candle>> candlesMap = getCandlesForAnalysis(settings, timeframe, period, searchTickers);
 
                         if (candlesMap.isEmpty()) {
                             log.warn("⚠️ Не удалось получить данные свечей для timeframe={}, period={}", timeframe, period);
+                            continue;
+                        }
+
+                        // Проверяем, что у нас достаточно инструментов для анализа стабильности
+                        if (candlesMap.size() < 2) {
+                            if (searchTickers != null && !searchTickers.isEmpty()) {
+                                log.warn("⚠️ Недостаточно инструментов для анализа стабильности: получено {} из {} запрошенных. " +
+                                        "Возможно, некоторые инструменты исключены валидацией консистентности данных.", 
+                                        candlesMap.size(), searchTickers.size());
+                                log.warn("💡 Попробуйте выбрать инструменты с более консистентными историческими данными или увеличить список инструментов.");
+                            } else {
+                                log.warn("⚠️ Недостаточно инструментов для анализа стабильности: получено только {}", candlesMap.size());
+                            }
                             continue;
                         }
 
@@ -610,14 +627,21 @@ public class PairService {
 
     // ======== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ========
 
-    private Map<String, List<Candle>> getCandlesForAnalysis(Settings settings, String timeframe, String period) {
+    private Map<String, List<Candle>> getCandlesForAnalysis(Settings settings, String timeframe, String period, Set<String> searchTickers) {
         try {
             // Рассчитываем количество свечей для запрошенного периода
             int candleLimit = calculateCandleLimit(timeframe, period);
-            log.info("📊 Запрашиваем {} свечей для таймфрейма {} и периода {}", candleLimit, timeframe, period);
+            
+            if (searchTickers != null && !searchTickers.isEmpty()) {
+                log.info("📊 Запрашиваем {} свечей для таймфрейма {} и периода {} с фильтром по {} тикерам: {}", 
+                        candleLimit, timeframe, period, searchTickers.size(), searchTickers);
+            } else {
+                log.info("📊 Запрашиваем {} свечей для таймфрейма {} и периода {} без фильтра тикеров", 
+                        candleLimit, timeframe, period);
+            }
 
             // Всегда используем расширенный запрос к candles микросервису с пагинацией
-            return getCandlesExtended(settings, timeframe, candleLimit);
+            return getCandlesExtended(settings, timeframe, candleLimit, searchTickers);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
@@ -625,10 +649,15 @@ public class PairService {
         }
     }
 
-    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit) {
+    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, Set<String> searchTickers) {
         try {
-            log.info("📊 Расширенный запрос {} свечей для таймфрейма {} через candles микросервис",
-                    candleLimit, timeframe);
+            if (searchTickers != null && !searchTickers.isEmpty()) {
+                log.info("📊 Расширенный запрос {} свечей для таймфрейма {} через candles микросервис с фильтром по {} тикерам",
+                        candleLimit, timeframe, searchTickers.size());
+            } else {
+                log.info("📊 Расширенный запрос {} свечей для таймфрейма {} через candles микросервис без фильтра тикеров",
+                        candleLimit, timeframe);
+            }
 
             ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
@@ -636,7 +665,8 @@ public class PairService {
                     .minVolume(settings.getMinVolume())
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
-                    .tickers(null) // Получаем все доступные тикеры
+                    .tickers(searchTickers != null && !searchTickers.isEmpty() ? 
+                            searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(null) // Никого не исключаем
                     .skipValidation(false) // ВАЖНО: Включаем догрузку недостающих данных с OKX
                     .build();
@@ -646,8 +676,13 @@ public class PairService {
             if (result != null && !result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = result.values().stream().mapToInt(List::size).sum() / result.size();
-                log.info("✅ Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
-                        result.size(), avgCandles, totalCandles);
+                if (searchTickers != null && !searchTickers.isEmpty()) {
+                    log.info("✅ Получено {} тикеров из {} запрошенных со средним количеством {} свечей (всего {} свечей)",
+                            result.size(), searchTickers.size(), avgCandles, totalCandles);
+                } else {
+                    log.info("✅ Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
+                            result.size(), avgCandles, totalCandles);
+                }
             }
 
             return result != null ? result : new HashMap<>();
@@ -662,8 +697,10 @@ public class PairService {
                     .minVolume(settings.getMinVolume())
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
-                    .tickers(null)
+                    .tickers(searchTickers != null && !searchTickers.isEmpty() ? 
+                            searchTickers.stream().toList() : null) // Передаем полные названия и в fallback
                     .excludeTickers(null)
+                    .skipValidation(false)
                     .build();
             return candlesFeignClient.getAllCandlesExtended(fallbackRequest);
         }
@@ -856,5 +893,76 @@ public class PairService {
      */
     public List<Pair> getCointegrationPairs() {
         return pairRepository.findCointegrationPairs();
+    }
+
+    // ======== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ДЛЯ ПОИСКА ========
+
+    /**
+     * Извлекает Set тикеров из настроек поиска
+     */
+    @SuppressWarnings("unchecked")
+    private Set<String> extractSearchTickers(Map<String, Object> searchSettings) {
+        if (searchSettings == null || searchSettings.isEmpty()) {
+            return null;
+        }
+
+        Object searchTickersObj = searchSettings.get("searchTickers");
+        if (searchTickersObj == null) {
+            return null;
+        }
+
+        if (searchTickersObj instanceof Set<?>) {
+            Set<?> tickersSet = (Set<?>) searchTickersObj;
+            if (tickersSet.isEmpty()) {
+                return null;
+            }
+            
+            // Конвертируем в Set<String> с валидацией
+            Set<String> result = new HashSet<>();
+            for (Object ticker : tickersSet) {
+                if (ticker instanceof String tickerStr) {
+                    String trimmed = tickerStr.trim().toUpperCase();
+                    if (!trimmed.isEmpty()) {
+                        result.add(trimmed);
+                    }
+                }
+            }
+            
+            if (result.isEmpty()) {
+                log.debug("🔍 Фильтр тикеров пуст после валидации");
+                return null;
+            }
+            
+            log.info("🎯 Применяется фильтр по {} тикерам: {}", result.size(), result);
+            return result;
+        }
+
+        // Поддержка строк для обратной совместимости
+        if (searchTickersObj instanceof String tickersStr) {
+            String trimmedStr = tickersStr.trim();
+            if (trimmedStr.isEmpty()) {
+                return null;
+            }
+            
+            Set<String> result = new HashSet<>();
+            String[] tickerArray = trimmedStr.split(",");
+            for (String ticker : tickerArray) {
+                String trimmed = ticker.trim().toUpperCase();
+                if (!trimmed.isEmpty()) {
+                    result.add(trimmed);
+                }
+            }
+            
+            if (result.isEmpty()) {
+                log.debug("🔍 Фильтр тикеров пуст после парсинга строки");
+                return null;
+            }
+            
+            log.info("🎯 Применяется фильтр по {} тикерам из строки: {}", result.size(), result);
+            return result;
+        }
+
+        log.warn("⚠️ searchTickers имеет неожиданный тип: {}", searchTickersObj.getClass());
+        return null;
     }
 }

@@ -124,6 +124,21 @@ public class StablePairsScreenerSettings {
     @Column(name = "max_p_value")
     private Double maxPValue = 0.1;
 
+    // ======== ФИЛЬТР ПО ТИКЕРАМ ========
+
+    /**
+     * Включен ли фильтр по определенным тикерам
+     */
+    @Column(name = "search_tickers_enabled", nullable = false)
+    private boolean searchTickersEnabled = false;
+
+    /**
+     * Список тикеров для поиска (через запятую)
+     * Если пустое - то поиск по всем возможным тикерам
+     */
+    @Column(name = "search_tickers", columnDefinition = "TEXT")
+    private String searchTickers;
+
     // ======== АВТОМАТИЧЕСКИЙ ЗАПУСК ========
 
     /**
@@ -227,6 +242,52 @@ public class StablePairsScreenerSettings {
         }
     }
 
+    /**
+     * Получить тикеры для поиска как Set
+     */
+    public Set<String> getSearchTickersSet() {
+        Set<String> result = new HashSet<>();
+        if (searchTickers != null && !searchTickers.trim().isEmpty()) {
+            String[] tickers = searchTickers.split(",");
+            for (String ticker : tickers) {
+                String trimmed = ticker.trim().toUpperCase();
+                if (!trimmed.isEmpty()) {
+                    result.add(trimmed);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Установить тикеры для поиска из Set
+     */
+    public void setSearchTickersSet(Set<String> tickers) {
+        if (tickers == null || tickers.isEmpty()) {
+            this.searchTickers = "";
+        } else {
+            // Конвертируем в верхний регистр и сортируем для консистентности
+            this.searchTickers = tickers.stream()
+                .map(String::toUpperCase)
+                .sorted()
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
+        }
+    }
+
+    /**
+     * Добавить тикеры к существующим
+     */
+    public void addTickers(String... newTickers) {
+        Set<String> currentTickers = getSearchTickersSet();
+        for (String ticker : newTickers) {
+            if (ticker != null && !ticker.trim().isEmpty()) {
+                currentTickers.add(ticker.trim().toUpperCase());
+            }
+        }
+        setSearchTickersSet(currentTickers);
+    }
+
     // ======== УТИЛИТЫ ДЛЯ СОЗДАНИЯ НАСТРОЕК ПО УМОЛЧАНИЮ ========
 
     /**
@@ -248,6 +309,8 @@ public class StablePairsScreenerSettings {
                 .minRSquaredValue(0.1)
                 .maxPValueEnabled(true)
                 .maxPValue(0.1)
+                .searchTickersEnabled(false)
+                .searchTickers("")
                 .runOnSchedule(false)
                 .build();
     }

@@ -157,6 +157,10 @@ public class StablePairsScreenerSettingsService {
             searchSettings.put("maxPValue", settings.getMaxPValue());
         }
         
+        if (settings.isSearchTickersEnabled() && !settings.getSearchTickersSet().isEmpty()) {
+            searchSettings.put("searchTickers", settings.getSearchTickersSet());
+        }
+        
         log.debug("✅ Карта настроек построена: {}", searchSettings);
         return searchSettings;
     }
@@ -173,6 +177,7 @@ public class StablePairsScreenerSettingsService {
             boolean maxAdfValueEnabled, Double maxAdfValue,
             boolean minRSquaredEnabled, Double minRSquaredValue,
             boolean maxPValueEnabled, Double maxPValue,
+            boolean searchTickersEnabled, Set<String> searchTickers,
             boolean runOnSchedule) {
         
         log.debug("🏗️ Создание настроек из UI параметров: {}", name);
@@ -191,6 +196,8 @@ public class StablePairsScreenerSettingsService {
         settings.setMinRSquaredValue(minRSquaredValue);
         settings.setMaxPValueEnabled(maxPValueEnabled);
         settings.setMaxPValue(maxPValue);
+        settings.setSearchTickersEnabled(searchTickersEnabled);
+        settings.setSearchTickersSet(searchTickers);
         settings.setRunOnSchedule(runOnSchedule);
         
         return settings;
@@ -233,6 +240,14 @@ public class StablePairsScreenerSettingsService {
             (settings.getMinWindowSizeValue() == null || 
              settings.getMinWindowSizeValue() <= 0)) {
             throw new IllegalArgumentException("Минимальный размер окна должен быть больше 0");
+        }
+        
+        // Валидация фильтра тикеров
+        if (settings.isSearchTickersEnabled()) {
+            Set<String> tickers = settings.getSearchTickersSet();
+            if (tickers.isEmpty()) {
+                throw new IllegalArgumentException("При включенном фильтре тикеров должен быть указан хотя бы один тикер");
+            }
         }
         
         log.debug("✅ Валидация настроек прошла успешно");

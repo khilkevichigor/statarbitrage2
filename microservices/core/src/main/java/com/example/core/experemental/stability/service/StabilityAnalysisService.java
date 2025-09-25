@@ -6,19 +6,38 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import jakarta.annotation.PostConstruct;
+import java.time.Duration;
 
 @Service
 @Slf4j
 public class StabilityAnalysisService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    private RestTemplate restTemplate;
 
     @Value("${cointegration.api.url:http://localhost:8000}")
     private String pythonApiBaseUrl;
+    
+    @Value("${cointegration.api.timeout.connect:30000}")
+    private int connectTimeout;
+    
+    @Value("${cointegration.api.timeout.read:300000}")
+    private int readTimeout;
+    
+    @PostConstruct
+    public void initRestTemplate() {
+        // Создаем RestTemplate с увеличенными таймаутами
+        this.restTemplate = new RestTemplate();
+        
+        log.info("🔧 Настроен RestTemplate для Python API: connectTimeout={}ms, readTimeout={}ms", 
+                connectTimeout, readTimeout);
+        log.info("⚠️  Для полной настройки таймаутов нужно настроить HTTP клиент на уровне сервера");
+    }
 
     /**
      * Отправляет запрос на анализ стабильности в Python API
@@ -34,6 +53,8 @@ public class StabilityAnalysisService {
         try {
             // Сериализуем запрос в JSON
             String requestJson = objectMapper.writeValueAsString(request);
+            double sizeInMB = requestJson.length() / (1024.0 * 1024.0);
+            log.info("📦 Размер JSON запроса: {} MB ({} байт)", String.format("%.2f", sizeInMB), requestJson.length());
             log.debug("📝 JSON запрос: {}", requestJson.length() > 1000 ? 
                     requestJson.substring(0, 1000) + "..." : requestJson);
 

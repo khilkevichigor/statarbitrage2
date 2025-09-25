@@ -26,6 +26,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.PageTitle;
@@ -72,6 +73,10 @@ public class StablePairsView extends VerticalLayout {
     private NumberField minRSquaredField;
     private Checkbox maxPValueEnabled;
     private NumberField maxPValueField;
+    
+    // Новое поле для фильтрации по тикерам
+    private Checkbox searchTickersEnabled;
+    private TextArea searchTickersField;
 
     private Button searchButton;
     private Button clearAllButton;
@@ -148,12 +153,15 @@ public class StablePairsView extends VerticalLayout {
 
         row1.add(timeframeMultiSelect, periodMultiSelect);
 
-        // Вторая строка: Настройки фильтров
-        HorizontalLayout row2 = createFilterRow1();
-        HorizontalLayout row3 = createFilterRow2();
+        // Вторая строка: Фильтрация по тикерам
+        HorizontalLayout row2 = createSearchTickersRow();
 
-        // Третья строка: Настройки автоматизации
-        HorizontalLayout row4 = createAutomationRow();
+        // Третья строка: Настройки фильтров
+        HorizontalLayout row3 = createFilterRow1();
+        HorizontalLayout row4 = createFilterRow2();
+
+        // Пятая строка: Настройки автоматизации
+        HorizontalLayout row5 = createAutomationRow();
 
         // Кнопки
         HorizontalLayout buttonRow = new HorizontalLayout();
@@ -179,8 +187,57 @@ public class StablePairsView extends VerticalLayout {
 
         buttonRow.add(searchButton, clearAllButton, saveSettingsButton, loadSettingsButton);
 
-        formLayout.add(formTitle, row1, row2, row3, row4, buttonRow);
+        formLayout.add(formTitle, row1, row2, row3, row4, row5, buttonRow);
         return formLayout;
+    }
+
+    private HorizontalLayout createSearchTickersRow() {
+        HorizontalLayout row = new HorizontalLayout();
+        row.setAlignItems(FlexComponent.Alignment.START);
+        row.setWidthFull();
+
+        // Чекбокс для включения фильтрации по тикерам
+        searchTickersEnabled = new Checkbox("Искать для");
+        searchTickersEnabled.setValue(false);
+        searchTickersEnabled.getStyle().set("align-self", "flex-start");
+        searchTickersEnabled.getStyle().set("margin-top", "8px");
+
+        // TextArea для ввода инструментов
+        searchTickersField = new TextArea();
+        searchTickersField.setPlaceholder("Введите названия инструментов через запятую (например: BTC-USDT-SWAP,ETH-USDT-SWAP,BTCUSDT,ETHUSDT)");
+        searchTickersField.setWidth("500px");
+        searchTickersField.setHeight("80px");
+        searchTickersField.setEnabled(searchTickersEnabled.getValue());
+        searchTickersField.getStyle().set("font-family", "monospace");
+        
+        // Связываем чекбокс с полем
+        searchTickersEnabled.addValueChangeListener(e -> {
+            searchTickersField.setEnabled(e.getValue());
+            if (!e.getValue()) {
+                searchTickersField.clear();
+            }
+        });
+
+        // Добавляем валидацию для инструментов
+        searchTickersField.addValueChangeListener(e -> {
+            String value = e.getValue();
+            if (value != null && !value.trim().isEmpty()) {
+                // Очищаем и нормализуем названия инструментов
+                String normalized = Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .map(String::toUpperCase)
+                    .filter(s -> !s.isEmpty())
+                    .reduce((a, b) -> a + "," + b)
+                    .orElse("");
+                
+                if (!normalized.equals(value)) {
+                    searchTickersField.setValue(normalized);
+                }
+            }
+        });
+
+        row.add(searchTickersEnabled, searchTickersField);
+        return row;
     }
 
     private HorizontalLayout createFilterRow1() {
@@ -397,6 +454,11 @@ public class StablePairsView extends VerticalLayout {
         addButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
         addButton.addClickListener(e -> addToMonitoring(pair));
 
+        Button addTickersButton = new Button("Добавить тикеры", VaadinIcon.TAGS.create());
+        addTickersButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        addTickersButton.getElement().setAttribute("title", "Добавить инструменты пары в поле поиска");
+        addTickersButton.addClickListener(e -> addTickersToSearch(pair));
+
         Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
         chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         chartButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
@@ -407,7 +469,7 @@ public class StablePairsView extends VerticalLayout {
         deleteButton.getElement().setAttribute("title", "Удалить");
         deleteButton.addClickListener(e -> deleteFoundPair(pair));
 
-        actions.add(addButton, chartButton, deleteButton);
+        actions.add(addButton, addTickersButton, chartButton, deleteButton);
         return actions;
     }
 
@@ -519,8 +581,34 @@ public class StablePairsView extends VerticalLayout {
         if (maxPValueEnabled.getValue() && maxPValueField.getValue() != null) {
             settings.put("maxPValue", maxPValueField.getValue());
         }
+        
+        // Добавляем фильтрацию по тикерам
+        if (searchTickersEnabled.getValue() && searchTickersField.getValue() != null && !searchTickersField.getValue().trim().isEmpty()) {
+            Set<String> tickers = getSearchTickersSet();
+            settings.put("searchTickers", tickers);
+            log.info("🎯 Добавлен фильтр по тикерам: {}", tickers);
+        }
 
         return settings;
+    }
+
+    /**
+     * Получить набор инструментов из UI поля
+     */
+    private Set<String> getSearchTickersSet() {
+        if (searchTickersField.getValue() == null || searchTickersField.getValue().trim().isEmpty()) {
+            return new HashSet<>();
+        }
+        
+        Set<String> instruments = new HashSet<>();
+        String[] instrumentArray = searchTickersField.getValue().split(",");
+        for (String instrument : instrumentArray) {
+            String trimmed = instrument.trim().toUpperCase();
+            if (!trimmed.isEmpty()) {
+                instruments.add(trimmed);
+            }
+        }
+        return instruments;
     }
 
     private void clearAllResults() {
@@ -602,6 +690,144 @@ public class StablePairsView extends VerticalLayout {
                 "Отмена", event -> {
         });
         dialog.open();
+    }
+
+    private void addTickersToSearch(Pair pair) {
+        try {
+            // Извлекаем тикеры из названия пары
+            String pairName = pair.getPairName();
+            if (pairName == null || pairName.trim().isEmpty()) {
+                Notification.show("❌ Не удалось получить название пары", 3000, Notification.Position.TOP_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            // Извлекаем полные названия инструментов из пары
+            Set<String> instruments = extractInstrumentsFromPairName(pairName);
+
+            if (instruments.isEmpty()) {
+                Notification.show("❌ Не удалось извлечь инструменты из названия пары", 3000, Notification.Position.TOP_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            // Включаем фильтр по тикерам
+            searchTickersEnabled.setValue(true);
+            searchTickersField.setEnabled(true);
+
+            // Добавляем новые инструменты к существующим
+            Set<String> existingInstruments = getSearchTickersSet();
+            existingInstruments.addAll(instruments);
+
+            // Обновляем поле с инструментами
+            String instrumentsString = String.join(",", existingInstruments);
+            searchTickersField.setValue(instrumentsString);
+
+            log.info("📝 Добавлены инструменты из пары {}: {}", pairName, instruments);
+            Notification.show(
+                    String.format("✅ Добавлены инструменты из пары %s: %s", pairName, String.join(", ", instruments)),
+                    3000, Notification.Position.BOTTOM_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+
+        } catch (Exception e) {
+            log.error("Ошибка при добавлении тикеров из пары {}: {}", pair.getPairName(), e.getMessage(), e);
+            Notification.show("❌ Ошибка: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    /**
+     * Извлекает полные названия инструментов из названия пары
+     * Поддерживает форматы:
+     * - "ENJ-USDT-SWAP/LUNA-USDT-SWAP" -> [ENJ-USDT-SWAP, LUNA-USDT-SWAP]
+     * - "BTC-ETH" -> [BTC, ETH]  
+     * - "BTCUSDT-ETHUSDT" -> [BTCUSDT, ETHUSDT]
+     */
+    private Set<String> extractInstrumentsFromPairName(String pairName) {
+        Set<String> instruments = new HashSet<>();
+        
+        try {
+            // Разделяем по слешу для получения отдельных инструментов
+            String[] parts = pairName.split("/");
+            
+            for (String part : parts) {
+                String instrument = part.trim().toUpperCase();
+                if (!instrument.isEmpty()) {
+                    instruments.add(instrument);
+                }
+            }
+            
+            log.debug("🔍 Извлечены инструменты из '{}': {}", pairName, instruments);
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка извлечения инструментов из '{}': {}", pairName, e.getMessage(), e);
+        }
+        
+        return instruments;
+    }
+
+    /**
+     * Извлекает базовые тикеры из названия пары (DEPRECATED - используется только для совместимости)
+     * Поддерживает форматы:
+     * - "ENJ-USDT-SWAP/LUNA-USDT-SWAP" -> [ENJ, LUNA]
+     * - "BTC-ETH" -> [BTC, ETH]  
+     * - "BTCUSDT-ETHUSDT" -> [BTC, ETH]
+     */
+    private Set<String> extractTickersFromPairName(String pairName) {
+        Set<String> tickers = new HashSet<>();
+        
+        try {
+            // Разделяем по слешу для получения отдельных инструментов
+            String[] instruments = pairName.split("/");
+            
+            for (String instrument : instruments) {
+                String ticker = extractBaseTickerFromInstrument(instrument.trim());
+                if (!ticker.isEmpty()) {
+                    tickers.add(ticker);
+                }
+            }
+            
+            log.debug("🔍 Извлечены тикеры из '{}': {}", pairName, tickers);
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка извлечения тикеров из '{}': {}", pairName, e.getMessage(), e);
+        }
+        
+        return tickers;
+    }
+
+    /**
+     * Извлекает базовый тикер из названия инструмента
+     * Примеры:
+     * - "ENJ-USDT-SWAP" -> "ENJ"
+     * - "BTCUSDT" -> "BTC"
+     * - "ETH" -> "ETH"
+     */
+    private String extractBaseTickerFromInstrument(String instrument) {
+        if (instrument == null || instrument.isEmpty()) {
+            return "";
+        }
+        
+        String upper = instrument.toUpperCase();
+        
+        // Для форматов типа "ENJ-USDT-SWAP", "BTC-USDT", "ETH-USD" 
+        if (upper.contains("-")) {
+            // Берем первую часть до первого дефиса
+            String baseTicker = upper.split("-")[0];
+            return baseTicker.trim();
+        }
+        
+        // Для форматов типа "BTCUSDT", "ETHUSDC"
+        // Убираем известные суффиксы-валюты
+        String[] knownSuffixes = {"USDT", "USDC", "USD", "BTC", "ETH", "BNB", "BUSD"};
+        for (String suffix : knownSuffixes) {
+            if (upper.endsWith(suffix) && upper.length() > suffix.length()) {
+                return upper.substring(0, upper.length() - suffix.length()).trim();
+            }
+        }
+        
+        // Если ничего не подошло, возвращаем как есть
+        return upper.trim();
     }
 
     private void calculateZScore(Pair pair) {
@@ -751,6 +977,15 @@ public class StablePairsView extends VerticalLayout {
             maxPValueField.setValue(settings.getMaxPValue());
             maxPValueField.setEnabled(settings.isMaxPValueEnabled());
             
+            // Загружаем настройки фильтрации по тикерам
+            searchTickersEnabled.setValue(settings.isSearchTickersEnabled());
+            if (settings.getSearchTickers() != null && !settings.getSearchTickers().trim().isEmpty()) {
+                searchTickersField.setValue(settings.getSearchTickers());
+            } else {
+                searchTickersField.clear();
+            }
+            searchTickersField.setEnabled(settings.isSearchTickersEnabled());
+            
             // Загружаем настройки автоматизации
             runOnScheduleCheckbox.setValue(settings.isRunOnSchedule());
             
@@ -797,6 +1032,7 @@ public class StablePairsView extends VerticalLayout {
                             maxAdfValueEnabled.getValue(), maxAdfValueField.getValue(),
                             minRSquaredEnabled.getValue(), minRSquaredField.getValue(),
                             maxPValueEnabled.getValue(), maxPValueField.getValue(),
+                            searchTickersEnabled.getValue(), getSearchTickersSet(),
                             runOnScheduleCheckbox.getValue()
                     );
                     
