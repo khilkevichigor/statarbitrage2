@@ -689,7 +689,7 @@ public class PairService {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при расширенном получении свечей: {}", e.getMessage(), e);
-            // Fallback к расширенному методу с ограничением
+            // Fallback к расширенному методу с ограничением //todo впилить
             log.warn("🔄 Используем fallback к расширенному методу с ограничением 300 свечей");
             ExtendedCandlesRequest fallbackRequest = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
