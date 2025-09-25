@@ -503,44 +503,6 @@ public class CandleCacheService {
     }
 
     public Map<String, List<Candle>> getCachedCandles(List<String> tickers, String timeframe,
-                                                      int candleLimit) {
-        return getCachedCandles(tickers, timeframe, candleLimit, defaultExchange);
-    }
-
-    /**
-     * ПРОСТОЙ запрос свечей БЕЗ ВАЛИДАЦИИ - возвращает данные как есть
-     * Используется для конкретных пар когда не нужна фильтрация
-     */
-    public Map<String, List<Candle>> getCachedCandlesSimple(List<String> tickers, String timeframe,
-                                                            int candleLimit, String exchange) {
-        log.info("🚫 ПРОСТОЙ запрос свечей БЕЗ ВАЛИДАЦИИ: {} тикеров, таймфрейм {}, лимит {}",
-                tickers.size(), timeframe, candleLimit);
-
-        Map<String, List<Candle>> result = new ConcurrentHashMap<>();
-
-        for (String ticker : tickers) {
-            List<CachedCandle> latestCandles = cachedCandleRepository
-                    .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
-                            PageRequest.of(0, candleLimit));
-
-            if (!latestCandles.isEmpty()) {
-                List<Candle> candlesList = latestCandles.stream()
-                        .map(CachedCandle::toCandle)
-                        .sorted(Comparator.comparing(Candle::getTimestamp))
-                        .collect(Collectors.toList());
-                        
-                result.put(ticker, candlesList);
-                log.debug("✅ ПРОСТОЙ: {} - получено {} свечей", ticker, candlesList.size());
-            } else {
-                log.warn("⚠️ ПРОСТОЙ: {} - нет данных в кэше", ticker);
-            }
-        }
-        
-        log.info("✅ ПРОСТОЙ запрос завершен: получено {} тикеров из {}", result.size(), tickers.size());
-        return result;
-    }
-
-    public Map<String, List<Candle>> getCachedCandles(List<String> tickers, String timeframe,
                                                       int candleLimit, String exchange) {
         log.info("🔍 Запрос кэшированных свечей: {} тикеров, таймфрейм {}, лимит {}",
                 tickers.size(), timeframe, candleLimit);
@@ -553,14 +515,14 @@ public class CandleCacheService {
         long currentTimestamp = System.currentTimeMillis() / 1000;
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
 
-        // ЧЕТКАЯ ЛОГИКА: Проверяем что есть в кэше, если меньше чем запрошено - догружаем
+        // Проверяем что есть в кэше, если меньше чем запрошено - догружаем
         // Для ПАРАЛЛЕЛЬНОЙ chunked loading собираем все futures
         List<CompletableFuture<Void>> chunkingFutures = new ArrayList<>();
         
         int debugCount = 0; // Для отладки - покажем первые 5 тикеров
         for (String ticker : tickers) {
             if (debugCount < 5) debugCount++;
-            // ИСПРАВЛЕНО: Проверяем последние N свечей для этого тикера
+            // Проверяем последние N свечей для этого тикера
             List<CachedCandle> latestCandles = cachedCandleRepository
                     .findLatestByTickerTimeframeExchange(ticker, timeframe, exchange, 
                             PageRequest.of(0, candleLimit));
@@ -578,7 +540,7 @@ public class CandleCacheService {
                 result.put(ticker, candlesList);
                 cacheHits++; // Увеличиваем счетчик кэш-хитов
                 
-                // ЧЕТКО: Если данных меньше запрошенного количества - догружаем недостающие
+                // Если данных меньше запрошенного количества - догружаем недостающие
                 if (latestCandles.size() < candleLimit) {
                     int missing = candleLimit - latestCandles.size();
                     

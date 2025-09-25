@@ -280,7 +280,6 @@ public class SearchStablePairService {
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ?
                             searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(null) // Никого не исключаем
-                    .skipValidation(false) // ВАЖНО: Включаем догрузку недостающих данных с OKX
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getAllCandlesExtended(request);
@@ -312,7 +311,6 @@ public class SearchStablePairService {
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ?
                             searchTickers.stream().toList() : null) // Передаем полные названия и в fallback
                     .excludeTickers(null)
-                    .skipValidation(false)
                     .build();
             return candlesFeignClient.getAllCandlesExtended(fallbackRequest);
         }

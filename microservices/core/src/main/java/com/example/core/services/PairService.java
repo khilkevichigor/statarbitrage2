@@ -103,7 +103,6 @@ public class PairService {
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB()))
                     .excludeTickers(null)
-                    .skipValidation(true) // Пропускаем валидацию для конкретных пар
                     .build();
 
             // Получаем свечи для пары

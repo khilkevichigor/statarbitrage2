@@ -52,12 +52,4 @@ public class ExtendedCandlesRequest {
      * Используется для исключения уже торгуемых тикеров при поиске новых пар
      */
     private List<String> excludeTickers;
-
-    /**
-     * Пропустить валидацию консистентности свечей.
-     * true - вернуть данные как есть, без фильтрации и догрузки
-     * false (по умолчанию) - применить стандартную валидацию
-     */
-    @Builder.Default
-    private boolean skipValidation = false;
 }

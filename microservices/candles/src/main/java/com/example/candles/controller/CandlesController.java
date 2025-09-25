@@ -123,34 +123,21 @@ public class CandlesController {
             }
         }
 
-        // ИСПРАВЛЕНО: Используем ТОЛЬКО кэш - АК-47 подход!
         Map<String, List<Candle>> result;
 
-        if (request.isSkipValidation()) {
-            log.info("🚫 ВАЛИДАЦИЯ ОТКЛЮЧЕНА: Возвращаем данные как есть без фильтрации");
-            // Получаем данные без валидации - простой запрос из кэша
-            result = candleCacheService.getCachedCandlesSimple(
-                    swapTickers,
-                    request.getTimeframe(),
-                    request.getCandleLimit(),
-                    "OKX"
-            );
-        } else {
-            log.info("✅ ВАЛИДАЦИЯ ВКЛЮЧЕНА: Применяем стандартную валидацию консистентности");
-            result = candleCacheService.getCachedCandles(
-                    swapTickers,
-                    request.getTimeframe(),
-                    request.getCandleLimit(),
-                    "OKX"
-            );
-        }
+        result = candleCacheService.getCachedCandles(
+                swapTickers,
+                request.getTimeframe(),
+                request.getCandleLimit(),
+                "OKX"
+        );
 
         long elapsed = System.currentTimeMillis() - startTime;
 
         if (result != null && !result.isEmpty()) {
             int totalCandles = result.values().stream().mapToInt(List::size).sum();
             int avgCandles = totalCandles / result.size();
-            log.info("⚡ АК-47: Запрос ИЗ КЭША завершен за {} мс! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
+            log.info("⚡ Запрос ИЗ КЭША завершен за {} мс! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
                     elapsed, result.size(), avgCandles, totalCandles);
 
             // Если были переданы конкретные тикеры, возвращаем только их (исключаем добавленный BTC эталон)
@@ -167,30 +154,9 @@ public class CandlesController {
                 return filteredResult;
             }
         } else {
-            log.warn("⚠️ АК-47: Кэш не содержит данных - проверьте работу предзагрузки!");
+            log.warn("⚠️ Кэш не содержит данных - проверьте работу предзагрузки!");
         }
 
         return result != null ? result : Map.of();
-    }
-
-    /**
-     * Конвертация ExtendedCandlesRequest в Settings
-     */
-    private Settings convertToSettings(ExtendedCandlesRequest request) {
-        Settings settings = new Settings();
-        settings.setTimeframe(request.getTimeframe());
-        settings.setCandleLimit(request.getCandleLimit());
-        settings.setMinVolume(request.getMinVolume());
-        settings.setUseMinVolumeFilter(request.isUseMinVolumeFilter());
-        settings.setMinimumLotBlacklist(request.getMinimumLotBlacklist() != null ? request.getMinimumLotBlacklist() : "");
-
-        // Устанавливаем разумные значения по умолчанию для остальных полей
-        settings.setMinCorrelation(0.1);
-        settings.setMinWindowSize(100);
-        settings.setMaxPValue(1.0);
-        settings.setMaxAdfValue(1.0);
-        settings.setMinRSquared(0.1);
-
-        return settings;
     }
 }
