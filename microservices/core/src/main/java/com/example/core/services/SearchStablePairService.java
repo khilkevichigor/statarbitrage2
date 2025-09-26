@@ -189,10 +189,26 @@ public class SearchStablePairService {
 
                 validatedCandles.put(ticker, candles);
             } else {
-                invalidTickers.add(String.format("%s(свечей:%d≠%d, начало:%s≠%s, конец:%s≠%s)",
-                        ticker, candles.size(), referenceCount,
-                        formatTimestamp(candles.get(0).getTimestamp()), formatTimestamp(referenceStart),
+                // Формируем детальное описание только для различающихся параметров
+                List<String> differences = new ArrayList<>();
+                
+                if (candles.size() != referenceCount) {
+                    differences.add(String.format("свечей:%d≠%d", candles.size(), referenceCount));
+                }
+                if (candles.get(0).getTimestamp() != referenceStart) {
+                    differences.add(String.format("начало:%s≠%s", 
+                        formatTimestamp(candles.get(0).getTimestamp()), formatTimestamp(referenceStart)));
+                }
+                if (candles.get(candles.size() - 1).getTimestamp() != referenceEnd) {
+                    differences.add(String.format("конец:%s≠%s", 
                         formatTimestamp(candles.get(candles.size() - 1).getTimestamp()), formatTimestamp(referenceEnd)));
+                }
+                
+                String reason = !differences.isEmpty() ? 
+                    "(" + String.join(", ", differences) + ")" : 
+                    "(неизвестная причина)";
+                    
+                invalidTickers.add(ticker + reason);
             }
         }
 

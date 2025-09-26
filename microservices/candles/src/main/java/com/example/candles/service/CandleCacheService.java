@@ -200,10 +200,25 @@ public class CandleCacheService {
                 validTickers.add(ticker);
                 validCandlesMap.put(ticker, candles); // ✅ Добавляем только валидные тикеры
             } else {
-                String reason = String.format("(свечей:%d≠%d, начало:%s≠%s, конец:%s≠%s)", 
-                    candleCount, expectedCandleCount, 
-                    formatTimestamp(firstTimestamp), formatTimestamp(expectedFirstTimestamp),
-                    formatTimestamp(lastTimestamp), formatTimestamp(expectedLastTimestamp));
+                // Формируем детальное описание только для различающихся параметров
+                List<String> differences = new ArrayList<>();
+                
+                if (candleCount != expectedCandleCount) {
+                    differences.add(String.format("свечей:%d≠%d", candleCount, expectedCandleCount));
+                }
+                if (firstTimestamp != expectedFirstTimestamp) {
+                    differences.add(String.format("начало:%s≠%s", 
+                        formatTimestamp(firstTimestamp), formatTimestamp(expectedFirstTimestamp)));
+                }
+                if (lastTimestamp != expectedLastTimestamp) {
+                    differences.add(String.format("конец:%s≠%s", 
+                        formatTimestamp(lastTimestamp), formatTimestamp(expectedLastTimestamp)));
+                }
+                
+                String reason = !differences.isEmpty() ? 
+                    "(" + String.join(", ", differences) + ")" : 
+                    "(неизвестная причина)";
+                    
                 invalidTickers.add(ticker + reason);
             }
         }
