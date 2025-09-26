@@ -520,13 +520,28 @@ public class CandleCacheService {
                             freshCandles = okxFeignClient.getCandles(ticker, timeframe, candleLimit);
                             log.info("📥 ПОТОК: {} - ЭТАЛОН, загружаем полное количество {} свечей", 
                                     ticker, candleLimit);
+                        } else if (expectedFirstTimestamp != -1L && expectedLastTimestamp != -1L) {
+                            // ✅ Для остальных тикеров загружаем точный диапазон используя пагинацию
+                            log.info("📥 ПОТОК: {} - загружаем точный диапазон {}-{}", 
+                                    ticker, formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
+                            freshCandles = loadCandlesInExactRange(ticker, timeframe, expectedFirstTimestamp, expectedLastTimestamp);
+                            if (freshCandles == null) {
+                                log.error("❌ ПОТОК: {} - loadCandlesInExactRange вернул null!", ticker);
+                                freshCandles = new ArrayList<>();
+                            } else if (freshCandles.isEmpty()) {
+                                log.warn("⚠️ ПОТОК: {} - loadCandlesInExactRange вернул пустой список!", ticker);
+                            } else {
+                                log.info("✅ ПОТОК: {} - loadCandlesInExactRange вернул {} свечей", ticker, freshCandles.size());
+                            }
                         } else {
-                            // Для остальных тикеров используем обычную загрузку
+                            // Обычная загрузка без ограничений
                             freshCandles = okxFeignClient.getCandles(ticker, timeframe, candleLimit);
-                            log.info("📥 ПОТОК: {} - загружаем {} свечей", ticker, candleLimit);
+                            log.info("📥 ПОТОК: {} - загружаем {} свечей без ограничений", ticker, candleLimit);
                         }
                         
                         if (freshCandles != null && !freshCandles.isEmpty()) {
+                            // ✅ ИСПРАВЛЕНО: Создаем изменяемый список для сортировки
+                            freshCandles = new ArrayList<>(freshCandles);
                             freshCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
                             
                             List<Candle> candlesToSave;
@@ -535,22 +550,16 @@ public class CandleCacheService {
                                 candlesToSave = freshCandles;
                                 log.info("📥 ПОТОК: {} - ЭТАЛОН, сохраняем все {} свечей", 
                                         ticker, candlesToSave.size());
+                            } else if (expectedFirstTimestamp != -1L && expectedLastTimestamp != -1L) {
+                                // ✅ Остальные тикеры уже загружены в точном диапазоне - сохраняем без фильтрации!
+                                candlesToSave = freshCandles;
+                                log.info("📥 ПОТОК: {} - ТОЧНЫЙ ДИАПАЗОН, сохраняем все {} свечей", 
+                                        ticker, candlesToSave.size());
                             } else {
-                                // Для остальных тикеров фильтруем по временному диапазону ТОЛЬКО если есть временные ограничения
-                                if (expectedFirstTimestamp != -1L && expectedLastTimestamp != -1L) {
-                                    candlesToSave = freshCandles.stream()
-                                            .filter(candle -> candle.getTimestamp() >= expectedFirstTimestamp && 
-                                                            candle.getTimestamp() <= expectedLastTimestamp)
-                                            .collect(Collectors.toList());
-                                            
-                                    log.info("📥 ПОТОК: {} - получено {} свечей, отфильтровано {} под эталон", 
-                                            ticker, freshCandles.size(), candlesToSave.size());
-                                } else {
-                                    // Если нет временных ограничений - сохраняем все полученные свечи
-                                    candlesToSave = freshCandles;
-                                    log.info("📥 ПОТОК: {} - БЕЗ ФИЛЬТРАЦИИ, сохраняем все {} свечей", 
-                                            ticker, candlesToSave.size());
-                                }
+                                // Обычная загрузка без ограничений - сохраняем все полученные свечи
+                                candlesToSave = freshCandles;
+                                log.info("📥 ПОТОК: {} - БЕЗ ФИЛЬТРАЦИИ, сохраняем все {} свечей", 
+                                        ticker, candlesToSave.size());
                             }
                             
                             if (!candlesToSave.isEmpty()) {
@@ -584,7 +593,7 @@ public class CandleCacheService {
                         }
                         
                     } catch (Exception e) {
-                        log.error("💥 ПОТОК: Ошибка специальной догрузки {}: {}", ticker, e.getMessage());
+                        log.error("💥 ПОТОК: Ошибка специальной догрузки {}: {}", ticker, e.getMessage(), e);
                     }
                 }, executorService);
                 
@@ -1583,5 +1592,79 @@ public class CandleCacheService {
         }
 
         return allCandles;
+    }
+
+    /**
+     * Загружает свечи в точном временном диапазоне [firstTimestamp, lastTimestamp]
+     * Использует пагинацию через getCandlesBefore для получения исторических данных
+     */
+    private List<Candle> loadCandlesInExactRange(String ticker, String timeframe, 
+                                                 long expectedFirstTimestamp, long expectedLastTimestamp) {
+        List<Candle> result = new ArrayList<>();
+        int batchSize = 300; // OKX API лимит
+        long currentBeforeTimestamp = expectedLastTimestamp + getTimeframeInSeconds(timeframe); // Начинаем с конца диапазона
+        
+        try {
+            log.info("🎯 ТОЧНЫЙ ДИАПАЗОН: Загружаем {} от {} до {}", 
+                    ticker, formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
+            
+            int totalLoaded = 0;
+            while (result.isEmpty() || result.get(0).getTimestamp() > expectedFirstTimestamp) {
+                // Загружаем свечи до currentBeforeTimestamp
+                List<Candle> batch = okxFeignClient.getCandlesBefore(ticker, timeframe, batchSize, currentBeforeTimestamp);
+                
+                if (batch == null || batch.isEmpty()) {
+                    log.warn("⚠️ ТОЧНЫЙ ДИАПАЗОН: Нет данных до {}", formatTimestamp(currentBeforeTimestamp));
+                    break;
+                }
+                
+                // Фильтруем только свечи в нужном диапазоне
+                List<Candle> filteredBatch = batch.stream()
+                        .filter(candle -> candle.getTimestamp() >= expectedFirstTimestamp && 
+                                        candle.getTimestamp() <= expectedLastTimestamp)
+                        .sorted(Comparator.comparingLong(Candle::getTimestamp))
+                        .collect(Collectors.toList());
+                
+                if (!filteredBatch.isEmpty()) {
+                    // Добавляем в начало списка (так как загружаем от новых к старым)
+                    result.addAll(0, filteredBatch);
+                    totalLoaded += filteredBatch.size();
+                }
+                
+                // Обновляем timestamp для следующего запроса (самая старая из текущего батча)
+                currentBeforeTimestamp = batch.get(batch.size() - 1).getTimestamp();
+                
+                // Если самая старая свеча из батча старше нужного диапазона - останавливаемся
+                if (currentBeforeTimestamp < expectedFirstTimestamp) {
+                    break;
+                }
+                
+                // Пауза между запросами
+                Thread.sleep(120);
+                
+                log.debug("📥 ТОЧНЫЙ ДИАПАЗОН: {} - загружено {} свечей в диапазоне (всего: {})", 
+                        ticker, filteredBatch.size(), totalLoaded);
+                        
+                // Защита от бесконечного цикла
+                if (totalLoaded > 50000) {
+                    log.warn("⚠️ ТОЧНЫЙ ДИАПАЗОН: Превышен лимит загрузки для {}, завершаем", ticker);
+                    break;
+                }
+            }
+            
+            // Финальная сортировка и удаление дубликатов по timestamp
+            result = result.stream()
+                    .distinct()
+                    .sorted(Comparator.comparingLong(Candle::getTimestamp))
+                    .collect(Collectors.toList());
+                    
+            log.info("✅ ТОЧНЫЙ ДИАПАЗОН: {} - загружено {} свечей в диапазоне {}-{}", 
+                    ticker, result.size(), formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
+                    
+        } catch (Exception e) {
+            log.error("❌ ТОЧНЫЙ ДИАПАЗОН: Ошибка загрузки для {}: {}", ticker, e.getMessage(), e);
+        }
+        
+        return result;
     }
 }
