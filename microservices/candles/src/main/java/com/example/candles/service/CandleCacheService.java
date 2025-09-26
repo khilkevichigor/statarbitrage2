@@ -753,11 +753,19 @@ public class CandleCacheService {
                 
                 // ИСПРАВЛЕНО: Более строгие лимиты свежести для разных таймфреймов
                 long maxAllowedAge = calculateMaxAllowedAge(timeframe);
-                long ageInSeconds = currentTimestamp - lastCandleTimestamp;
+                
+                // Приводим timestamp'ы к единому формату (секунды)
+                long lastCandleTimestampInSeconds = lastCandleTimestamp;
+                if (lastCandleTimestamp > 9999999999L) { // это миллисекунды
+                    lastCandleTimestampInSeconds = lastCandleTimestamp / 1000;
+                }
+                
+                long ageInSeconds = currentTimestamp - lastCandleTimestampInSeconds;
                 boolean isStale = ageInSeconds > maxAllowedAge;
                 
-                log.info("🔍 ДИАГНОСТИКА СВЕЖЕСТИ BTC: последняя={}, текущая={}, возраст={} сек, лимит={} сек, устарел={}",
-                        formatTimestamp(lastCandleTimestamp), formatTimestamp(currentTimestamp),
+                log.info("🔍 ДИАГНОСТИКА СВЕЖЕСТИ BTC: последняя={} (raw={}), текущая={} (raw={}), возраст={} сек, лимит={} сек, устарел={}",
+                        formatTimestamp(lastCandleTimestamp), lastCandleTimestamp,
+                        formatTimestamp(currentTimestamp), currentTimestamp,
                         ageInSeconds, maxAllowedAge, isStale);
                 
                 if (isStale) {
@@ -789,7 +797,11 @@ public class CandleCacheService {
                             result.put(btcTicker, updatedCandles);
                             
                             long newLastTimestamp = updatedCandles.get(updatedCandles.size() - 1).getTimestamp();
-                            long newAge = currentTimestamp - newLastTimestamp;
+                            long newLastTimestampInSeconds = newLastTimestamp;
+                            if (newLastTimestamp > 9999999999L) {
+                                newLastTimestampInSeconds = newLastTimestamp / 1000;
+                            }
+                            long newAge = currentTimestamp - newLastTimestampInSeconds;
                             
                             log.info("✅ BTC ЭТАЛОН КРИТИЧНО ОБНОВЛЕН: сохранено +{}, последняя: {} (возраст: {} мин)", 
                                     savedCount, formatTimestamp(newLastTimestamp), newAge / 60);
