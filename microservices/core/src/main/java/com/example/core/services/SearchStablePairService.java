@@ -340,7 +340,8 @@ public class SearchStablePairService {
             default -> multiplier * 24;
         };
 
-        return Math.max(100, idealLimit);
+//        return Math.max(100, idealLimit); //todo пока отрубил тк для 1М и 3 года достаточно 36 свечей, 100 свечей для BTC тупо нет на окх почему-то
+        return idealLimit;
     }
 
     private Map<String, Object> buildAnalysisSettings(Map<String, Object> searchSettings) {
