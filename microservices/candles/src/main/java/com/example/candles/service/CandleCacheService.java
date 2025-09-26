@@ -350,10 +350,22 @@ public class CandleCacheService {
         
         btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
         
-        // Проверяем полноту эталона BTC
-        if (btcCandles.size() < candleLimit) {
-            log.warn("🔄 ЭТАЛОН НЕПОЛНЫЙ: BTC имеет {} свечей вместо {}, догружаем...", 
-                    btcCandles.size(), candleLimit);
+        // Проверяем полноту и свежесть эталона BTC
+        long currentTimestamp = System.currentTimeMillis() / 1000;
+        long lastCandleTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+        long maxAllowedAge = calculateMaxAllowedAge(timeframe); // ИСПРАВЛЕНО: Используем строгие лимиты
+        boolean isStale = (currentTimestamp - lastCandleTimestamp) > maxAllowedAge;
+        
+        if (btcCandles.size() < candleLimit || isStale) {
+            if (btcCandles.size() < candleLimit) {
+                log.warn("🔄 ЭТАЛОН НЕПОЛНЫЙ: BTC имеет {} свечей вместо {}, догружаем...", 
+                        btcCandles.size(), candleLimit);
+            }
+            if (isStale) {
+                long ageInSeconds = currentTimestamp - lastCandleTimestamp;
+                log.warn("🔄 ЭТАЛОН УСТАРЕЛ: BTC последняя свеча {} сек назад (макс: {}), обновляем...", 
+                        ageInSeconds, maxAllowedAge);
+            }
             
             try {
                 // Специальная догрузка ТОЛЬКО для BTC до полного размера
@@ -626,6 +638,9 @@ public class CandleCacheService {
 
         long currentTimestamp = System.currentTimeMillis() / 1000;
         long requiredFromTimestamp = calculateFromTimestamp(currentTimestamp, timeframe, candleLimit);
+        
+        log.info("🔍 ДИАГНОСТИКА ВРЕМЕНИ: текущая timestamp={} ({})", 
+                currentTimestamp, formatTimestamp(currentTimestamp));
 
         // Проверяем что есть в кэше, если меньше чем запрошено - догружаем
         // Для ПАРАЛЛЕЛЬНОЙ chunked loading собираем все futures
@@ -723,6 +738,77 @@ public class CandleCacheService {
 
         log.info("✅ ИТОГО: {} тикеров (кэш: {}, догружено: {}, добавлено в БД: {} свечей)",
                 result.size(), cacheHits, missingCandlesCount.size(), totalCandlesAdded);
+
+        // 🔍 КРИТИЧЕСКАЯ ПРОВЕРКА СВЕЖЕСТИ BTC ЭТАЛОНА ПЕРЕД ВАЛИДАЦИЕЙ
+        final String btcTicker = "BTC-USDT-SWAP";
+        log.info("🔍 ДИАГНОСТИКА: Начинаем проверку свежести BTC эталона для таймфрейма {}", timeframe);
+        
+        if (result.containsKey(btcTicker)) {
+            List<Candle> btcCandles = result.get(btcTicker);
+            log.info("🔍 ДИАГНОСТИКА: BTC найден в результатах, {} свечей", btcCandles.size());
+            
+            if (!btcCandles.isEmpty()) {
+                btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
+                long lastCandleTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                
+                // ИСПРАВЛЕНО: Более строгие лимиты свежести для разных таймфреймов
+                long maxAllowedAge = calculateMaxAllowedAge(timeframe);
+                long ageInSeconds = currentTimestamp - lastCandleTimestamp;
+                boolean isStale = ageInSeconds > maxAllowedAge;
+                
+                log.info("🔍 ДИАГНОСТИКА СВЕЖЕСТИ BTC: последняя={}, текущая={}, возраст={} сек, лимит={} сек, устарел={}",
+                        formatTimestamp(lastCandleTimestamp), formatTimestamp(currentTimestamp),
+                        ageInSeconds, maxAllowedAge, isStale);
+                
+                if (isStale) {
+                    long ageInMinutes = ageInSeconds / 60;
+                    long ageInHours = ageInMinutes / 60;
+                    
+                    log.warn("🔄 КРИТИЧНО: BTC ЭТАЛОН УСТАРЕЛ - {} ч. {} мин. назад (лимит: {} сек)", 
+                            ageInHours, ageInMinutes % 60, maxAllowedAge);
+                    
+                    try {
+                        log.info("🚀 ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА СВЕЖИХ ДАННЫХ BTC...");
+                        
+                        // Принудительное обновление BTC
+                        List<Candle> freshBtcCandles = okxFeignClient.getCandles(btcTicker, timeframe, candleLimit);
+                        if (!freshBtcCandles.isEmpty()) {
+                            freshBtcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
+                            
+                            int savedCount = candleTransactionService.saveCandlesToCache(btcTicker, timeframe, exchange, freshBtcCandles);
+                            
+                            // Получаем обновленные данные из кэша
+                            List<CachedCandle> updatedCachedCandles = cachedCandleRepository
+                                    .findLatestByTickerTimeframeExchange(btcTicker, timeframe, exchange, 
+                                            PageRequest.of(0, candleLimit));
+                            List<Candle> updatedCandles = updatedCachedCandles.stream()
+                                    .map(CachedCandle::toCandle)
+                                    .sorted(Comparator.comparing(Candle::getTimestamp))
+                                    .collect(Collectors.toList());
+                            
+                            result.put(btcTicker, updatedCandles);
+                            
+                            long newLastTimestamp = updatedCandles.get(updatedCandles.size() - 1).getTimestamp();
+                            long newAge = currentTimestamp - newLastTimestamp;
+                            
+                            log.info("✅ BTC ЭТАЛОН КРИТИЧНО ОБНОВЛЕН: сохранено +{}, последняя: {} (возраст: {} мин)", 
+                                    savedCount, formatTimestamp(newLastTimestamp), newAge / 60);
+                        } else {
+                            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось загрузить свежие данные BTC!");
+                        }
+                    } catch (Exception e) {
+                        log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при принудительном обновлении BTC: {}", e.getMessage(), e);
+                    }
+                } else {
+                    long ageInMinutes = ageInSeconds / 60;
+                    log.info("✅ BTC ЭТАЛОН СВЕЖ: возраст {} мин (лимит: {} сек)", ageInMinutes, maxAllowedAge);
+                }
+            } else {
+                log.warn("🔍 ДИАГНОСТИКА: BTC найден, но список свечей пуст!");
+            }
+        } else {
+            log.warn("🔍 ДИАГНОСТИКА: BTC НЕ НАЙДЕН в результатах! Доступные тикеры: {}", result.keySet());
+        }
 
         // 🔍 ВАЛИДАЦИЯ И ФИЛЬТРАЦИЯ СВЕЧЕЙ для коинтеграции
         return validateAndFilterCandlesWithRetry(result, timeframe, candleLimit, tickers, exchange);
@@ -1145,6 +1231,24 @@ public class CandleCacheService {
             case "1W" -> 604800;
             case "1M" -> 2592000; // примерно 30 дней
             default -> 3600; // По умолчанию как 1H
+        };
+    }
+
+    /**
+     * Вычисляет максимально допустимый возраст данных для каждого таймфрейма
+     * ИСПРАВЛЕНО: Более строгие и реалистичные лимиты для свежести эталона
+     */
+    private long calculateMaxAllowedAge(String timeframe) {
+        return switch (timeframe) {
+            case "1m" -> 300;     // 5 минут для минутных свечей
+            case "5m" -> 900;     // 15 минут для 5-минутных свечей  
+            case "15m" -> 1800;   // 30 минут для 15-минутных свечей
+            case "1H" -> 7200;    // 2 часа для часовых свечей
+            case "4H" -> 14400;   // 4 часа для 4-часовых свечей
+            case "1D" -> 86400;   // 24 часа для дневных свечей
+            case "1W" -> 604800;  // 7 дней для недельных свечей
+            case "1M" -> 2592000; // 30 дней для месячных свечей
+            default -> 7200;     // По умолчанию 2 часа
         };
     }
 
