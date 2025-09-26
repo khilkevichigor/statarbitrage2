@@ -776,24 +776,19 @@ public class CandleCacheService {
                             ageInHours, ageInMinutes % 60, maxAllowedAge);
                     
                     try {
-                        log.info("🚀 ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА СВЕЖИХ ДАННЫХ BTC...");
+                        log.info("🚀 ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА СВЕЖИХ ДАННЫХ BTC (БЫСТРАЯ МНОГОПОТОЧНАЯ)...");
                         
-                        // Принудительное обновление BTC
-                        List<Candle> freshBtcCandles = okxFeignClient.getCandles(btcTicker, timeframe, candleLimit);
-                        if (!freshBtcCandles.isEmpty()) {
-                            freshBtcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
-                            
-                            int savedCount = candleTransactionService.saveCandlesToCache(btcTicker, timeframe, exchange, freshBtcCandles);
-                            
-                            // Получаем обновленные данные из кэша
-                            List<CachedCandle> updatedCachedCandles = cachedCandleRepository
-                                    .findLatestByTickerTimeframeExchange(btcTicker, timeframe, exchange, 
-                                            PageRequest.of(0, candleLimit));
-                            List<Candle> updatedCandles = updatedCachedCandles.stream()
-                                    .map(CachedCandle::toCandle)
-                                    .sorted(Comparator.comparing(Candle::getTimestamp))
-                                    .collect(Collectors.toList());
-                            
+                        // ✅ Используем быстрый многопоточный метод для BTC эталона
+                        Map<String, Object> btcReloadResult = loadMissingCandlesForTickers(
+                                List.of(btcTicker), timeframe, candleLimit, exchange, -1L, -1L);
+                        
+                        @SuppressWarnings("unchecked")
+                        Map<String, List<Candle>> btcReloadedCandles = 
+                                (Map<String, List<Candle>>) btcReloadResult.get("candlesMap");
+                        Integer savedCount = (Integer) btcReloadResult.get("addedCount");
+                        
+                        if (btcReloadedCandles.containsKey(btcTicker)) {
+                            List<Candle> updatedCandles = btcReloadedCandles.get(btcTicker);
                             result.put(btcTicker, updatedCandles);
                             
                             long newLastTimestamp = updatedCandles.get(updatedCandles.size() - 1).getTimestamp();
