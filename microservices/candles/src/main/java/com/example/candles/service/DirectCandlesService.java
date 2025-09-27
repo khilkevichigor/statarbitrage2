@@ -258,7 +258,7 @@ public class DirectCandlesService {
         }
         
         log.info("🎯 Найдены временные границы для синхронизации: {} - {}", 
-                Instant.ofEpochMilli(latestOldestTime), Instant.ofEpochMilli(earliestNewestTime));
+                Instant.ofEpochSecond(latestOldestTime), Instant.ofEpochSecond(earliestNewestTime));
         
         // Синхронизируем временные диапазоны и обрезаем до нужного количества
         Map<String, List<Candle>> adjustedCandles = new HashMap<>();
@@ -291,8 +291,8 @@ public class DirectCandlesService {
                         
                 log.debug("🔄 {}: синхронизировано {} свечей в диапазоне {} - {}", 
                         ticker, processedCandles.size(),
-                        Instant.ofEpochMilli(finalLatestOldestTime), 
-                        Instant.ofEpochMilli(finalEarliestNewestTime));
+                        Instant.ofEpochSecond(finalLatestOldestTime), 
+                        Instant.ofEpochSecond(finalEarliestNewestTime));
             } else {
                 // Простая обрезка без синхронизации
                 processedCandles = candles.stream()

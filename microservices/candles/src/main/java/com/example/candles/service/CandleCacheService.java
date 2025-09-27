@@ -145,7 +145,7 @@ public class CandleCacheService {
                         formatTimestamp(expectedFirstTimestamp),
                         formatTimestamp(expectedLastTimestamp));
             } else {
-                log.error("❌ ЭТАЛОН: BTC-USDT-SWAP невалиден - {} свечей вместо {} запрошенных! Эталон должен иметь полный набор данных!",
+                log.error("❌ ЭТАЛОН: BTC-USDT-SWAP невалиден - {} свечей вместо {} запрошенных! Эталон должен иметь полный набор данных!", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                         btcCandles.size(), expectedLimit);
                 expectedCandleCount = expectedLimit;
 
@@ -187,7 +187,7 @@ public class CandleCacheService {
             // Если BTC не найден или невалиден, НЕ используем другие тикеры как эталон
             if (expectedFirstTimestamp == -1) {
                 // Эталон не установлен = все тикеры невалидны
-                log.error("❌ НЕТ ВАЛИДНОГО ЭТАЛОНА: BTC-USDT-SWAP должен иметь {} свечей!", expectedLimit);
+                log.error("❌ НЕТ ВАЛИДНОГО ЭТАЛОНА: BTC-USDT-SWAP должен иметь {} свечей!", expectedLimit); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
             }
 
             // Проверяем соответствие эталону
@@ -357,12 +357,12 @@ public class CandleCacheService {
 
         if (btcCandles.size() < candleLimit || isStale) {
             if (btcCandles.size() < candleLimit) {
-                log.warn("🔄 ЭТАЛОН НЕПОЛНЫЙ: BTC имеет {} свечей вместо {}, догружаем...",
+                log.warn("🔄 ЭТАЛОН НЕПОЛНЫЙ: BTC имеет {} свечей вместо {}, догружаем...", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                         btcCandles.size(), candleLimit);
             }
             if (isStale) {
                 long ageInSeconds = currentTimestamp - lastCandleTimestamp;
-                log.warn("🔄 ЭТАЛОН УСТАРЕЛ: BTC последняя свеча {} сек назад (макс: {}), обновляем...",
+                log.warn("🔄 ЭТАЛОН УСТАРЕЛ: BTC последняя свеча {} сек назад (макс: {}), обновляем...", //todo пиши дату свечи чтобы было понятно
                         ageInSeconds, maxAllowedAge);
             }
 
@@ -380,7 +380,7 @@ public class CandleCacheService {
                 if (reloadedBtc.containsKey(btcTicker)) {
                     btcCandles = reloadedBtc.get(btcTicker);
                     candlesMap.put(btcTicker, btcCandles); // Обновляем в общей карте
-                    log.info("✅ ЭТАЛОН ДОГРУЖЕН: BTC теперь имеет {} свечей (+{} добавлено)",
+                    log.info("✅ ЭТАЛОН ДОГРУЖЕН: BTC теперь имеет {} свечей (+{} добавлено)", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                             btcCandles.size(), addedCount);
                 } else {
                     log.error("❌ Не удалось догрузить BTC-USDT-SWAP до полного размера!");
@@ -395,7 +395,7 @@ public class CandleCacheService {
         // ШАГ 2: ПРОВЕРЯЕМ ВАЛИДНОСТЬ ПОЛНОГО ЭТАЛОНА
         btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
         if (btcCandles.size() != candleLimit) {
-            log.error("❌ ЭТАЛОН ВСЕ ЕЩЕ НЕПОЛНЫЙ: BTC имеет {} свечей вместо требуемых {}!",
+            log.error("❌ ЭТАЛОН ВСЕ ЕЩЕ НЕПОЛНЫЙ: BTC имеет {} свечей вместо требуемых {}!", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                     btcCandles.size(), candleLimit);
             return new ConcurrentHashMap<>();
         }
@@ -416,7 +416,7 @@ public class CandleCacheService {
         int invalidCount = candlesMap.size() - validCount;
 
         if (invalidCount == 0) {
-            log.info("✨ ВСЕ ТИКЕРЫ ВАЛИДНЫ: Возвращаем {} тикеров", validCount);
+            log.info("✨ ВСЕ ТИКЕРЫ ВАЛИДНЫ: Возвращаем {} тикеров", validCount); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
             return validCandlesMap;
         }
 
@@ -432,7 +432,7 @@ public class CandleCacheService {
         }
 
         if (tickersToReload.isEmpty()) {
-            log.info("i️ ВСЕ НЕВАЛИДНЫЕ ТИКЕРЫ - ЭТО BTC (уже догружен): Возвращаем {} валидных тикеров", validCount);
+            log.info("i️ ВСЕ НЕВАЛИДНЫЕ ТИКЕРЫ - ЭТО BTC (уже догружен): Возвращаем {} валидных тикеров", validCount); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
             return validCandlesMap;
         }
 
@@ -530,7 +530,7 @@ public class CandleCacheService {
                             } else if (freshCandles.isEmpty()) {
                                 log.warn("⚠️ ПОТОК: {} - loadCandlesInExactRange вернул пустой список!", ticker);
                             } else {
-                                log.info("✅ ПОТОК: {} - loadCandlesInExactRange вернул {} свечей", ticker, freshCandles.size());
+                                log.info("✅ ПОТОК: {} - loadCandlesInExactRange вернул {} свечей", ticker, freshCandles.size()); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                             }
                         } else {
                             // Обычная загрузка без ограничений
@@ -547,17 +547,17 @@ public class CandleCacheService {
                             if ("BTC-USDT-SWAP".equals(ticker)) {
                                 // ✅ Для эталона сохраняем ВСЕ свечи без фильтрации!
                                 candlesToSave = freshCandles;
-                                log.info("📥 ПОТОК: {} - ЭТАЛОН, сохраняем все {} свечей",
+                                log.info("📥 ПОТОК: {} - ЭТАЛОН, сохраняем все {} свечей", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                                         ticker, candlesToSave.size());
                             } else if (expectedFirstTimestamp != -1L && expectedLastTimestamp != -1L) {
                                 // ✅ Остальные тикеры уже загружены в точном диапазоне - сохраняем без фильтрации!
                                 candlesToSave = freshCandles;
-                                log.info("📥 ПОТОК: {} - ТОЧНЫЙ ДИАПАЗОН, сохраняем все {} свечей",
+                                log.info("📥 ПОТОК: {} - ТОЧНЫЙ ДИАПАЗОН, сохраняем все {} свечей", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                                         ticker, candlesToSave.size());
                             } else {
                                 // Обычная загрузка без ограничений - сохраняем все полученные свечи
                                 candlesToSave = freshCandles;
-                                log.info("📥 ПОТОК: {} - БЕЗ ФИЛЬТРАЦИИ, сохраняем все {} свечей",
+                                log.info("📥 ПОТОК: {} - БЕЗ ФИЛЬТРАЦИИ, сохраняем все {} свечей", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                                         ticker, candlesToSave.size());
                             }
 
@@ -582,10 +582,10 @@ public class CandleCacheService {
                                         .collect(Collectors.toList());
 
                                 result.put(ticker, updatedCandles);
-                                log.info("🔄 ПОТОК: {} - получено {} обновленных свечей из кэша для валидации",
+                                log.info("🔄 ПОТОК: {} - получено {} обновленных свечей из кэша для валидации", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                                         ticker, updatedCandles.size());
                             } else {
-                                log.warn("⚠️ ПОТОК: {} - нет свечей в требуемом диапазоне", ticker);
+                                log.warn("⚠️ ПОТОК: {} - нет свечей в требуемом диапазоне", ticker); //todo пиши диапазон дат чтобы было понятно
                             }
                         } else {
                             log.warn("⚠️ ПОТОК: {} - не удалось получить свечи", ticker);
@@ -602,7 +602,7 @@ public class CandleCacheService {
             // Ждем завершения всех потоков
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-            log.info("🏁 СПЕЦИАЛЬНАЯ ДОГРУЗКА: Завершена для {} тикеров, добавлено {} свечей в БД",
+            log.info("🏁 СПЕЦИАЛЬНАЯ ДОГРУЗКА: Завершена для {} тикеров, добавлено {} свечей в БД", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                     tickers.size(), totalAddedCount[0]);
 
         } catch (Exception e) {
@@ -650,7 +650,115 @@ public class CandleCacheService {
         log.info("🔍 ДИАГНОСТИКА ВРЕМЕНИ: текущая timestamp={} ({})",
                 currentTimestamp, formatTimestamp(currentTimestamp));
 
-        // Проверяем что есть в кэше, если меньше чем запрошено - догружаем
+        /* 🔍
+        КРИТИЧЕСКАЯ ОБРАБОТКА BTC ЭТАЛОНА В САМОМ НАЧАЛЕ!
+        Сначала готовим полностью эталон, потом подгоняем под него остальные тикеры
+        */
+        final String btcTicker = "BTC-USDT-SWAP";
+        log.info("🎯 ЭТАЛОН: Обрабатываем BTC эталон в ПЕРВУЮ ОЧЕРЕДЬ для таймфрейма {}", timeframe);
+
+        // Сначала загружаем BTC из кэша если есть, или создаем запись для догрузки
+        boolean btcProcessed = false;
+        List<CachedCandle> btcCachedCandles = cachedCandleRepository
+                .findLatestByTickerTimeframeExchange(btcTicker, timeframe, exchange,
+                        PageRequest.of(0, candleLimit));
+
+        if (!btcCachedCandles.isEmpty()) {
+            List<Candle> btcCandles = btcCachedCandles.stream()
+                    .map(CachedCandle::toCandle)
+                    .sorted(Comparator.comparing(Candle::getTimestamp))
+                    .collect(Collectors.toList());
+            
+            result.put(btcTicker, btcCandles);
+            
+            // Если данных меньше запрошенного - добавляем в список для догрузки
+            if (btcCachedCandles.size() < candleLimit) {
+                int missing = candleLimit - btcCachedCandles.size();
+                missingCandlesCount.put(btcTicker, missing);
+                log.info("🎯 ЭТАЛОН: BTC частично в кэше ({}/{}), догрузим {} свечей", 
+                        btcCachedCandles.size(), candleLimit, missing); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
+            } else {
+                log.info("🎯 ЭТАЛОН: BTC полностью в кэше ({} свечей)", btcCachedCandles.size()); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
+            }
+        } else {
+            // BTC вообще нет в кэше - полная догрузка
+            missingCandlesCount.put(btcTicker, candleLimit);
+            log.info("🎯 ЭТАЛОН: BTC отсутствует в кэше, загрузим {} свечей", candleLimit);
+        }
+
+        // Если нужно догрузить BTC - делаем это СРАЗУ И БЛОКИРУЮЩЕ
+        if (missingCandlesCount.containsKey(btcTicker)) {
+            log.info("🚀 ЭТАЛОН: ПРИОРИТЕТНАЯ ЗАГРУЗКА BTC для создания эталона...");
+            
+            Map<String, Object> btcLoadingResult = loadMissingCandles(
+                    Map.of(btcTicker, missingCandlesCount.get(btcTicker)),
+                    timeframe, exchange, requiredFromTimestamp);
+                    
+            @SuppressWarnings("unchecked")
+            Map<String, List<Candle>> btcLoadedCandles = (Map<String, List<Candle>>) btcLoadingResult.get("candles");
+            
+            if (btcLoadedCandles.containsKey(btcTicker)) {
+                result.put(btcTicker, btcLoadedCandles.get(btcTicker));
+                log.info("✅ ЭТАЛОН: BTC успешно загружен и готов к использованию");
+                btcProcessed = true;
+                // Убираем из списка для догрузки так как уже обработали
+                missingCandlesCount.remove(btcTicker);
+                totalCandlesAdded += (Integer) btcLoadingResult.get("addedCount");
+            } else {
+                log.error("❌ ЭТАЛОН: КРИТИЧЕСКАЯ ОШИБКА - не удалось загрузить BTC!");
+            }
+        } else {
+            btcProcessed = true;
+        }
+
+        // Проверяем свежесть BTC эталона
+        if (btcProcessed && result.containsKey(btcTicker)) {
+            List<Candle> btcCandles = result.get(btcTicker);
+            if (!btcCandles.isEmpty()) {
+                btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
+                long lastCandleTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                
+                long maxAllowedAge = calculateMaxAllowedAge(timeframe);
+                
+                long lastCandleTimestampInSeconds = lastCandleTimestamp;
+                if (lastCandleTimestamp > 9999999999L) {
+                    lastCandleTimestampInSeconds = lastCandleTimestamp / 1000;
+                }
+                
+                long ageInSeconds = currentTimestamp - lastCandleTimestampInSeconds;
+                boolean isStale = ageInSeconds > maxAllowedAge;
+                
+                if (isStale) {
+                    long ageInMinutes = ageInSeconds / 60;
+                    long ageInHours = ageInMinutes / 60;
+                    
+                    log.warn("🔄 ЭТАЛОН: BTC УСТАРЕЛ - {} ч. {} мин. назад, принудительно обновляем...",
+                            ageInHours, ageInMinutes % 60);
+                    
+                    try {
+                        Map<String, Object> btcReloadResult = loadMissingCandlesForTickers(
+                                List.of(btcTicker), timeframe, candleLimit, exchange, -1L, -1L);
+                        
+                        @SuppressWarnings("unchecked")
+                        Map<String, List<Candle>> btcReloadedCandles =
+                                (Map<String, List<Candle>>) btcReloadResult.get("candlesMap");
+                        
+                        if (btcReloadedCandles.containsKey(btcTicker)) {
+                            result.put(btcTicker, btcReloadedCandles.get(btcTicker));
+                            log.info("✅ ЭТАЛОН: BTC критично обновлен и готов!"); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
+                        }
+                    } catch (Exception e) {
+                        log.error("❌ ЭТАЛОН: Ошибка обновления BTC: {}", e.getMessage());
+                    }
+                } else {
+                    log.info("✅ ЭТАЛОН: BTC свежий и готов к использованию"); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
+                }
+            }
+        }
+
+        log.info("🎯 ЭТАЛОН ГОТОВ: Переходим к обработке остальных {} тикеров", tickers.size());
+
+        // Теперь обрабатываем остальные тикеры, исключая уже обработанный BTC
         // Для ПАРАЛЛЕЛЬНОЙ chunked loading собираем все futures
         List<CompletableFuture<Void>> chunkingFutures = new ArrayList<>();
 
@@ -663,7 +771,7 @@ public class CandleCacheService {
                             PageRequest.of(0, candleLimit));
 
             log.info("🔍 DEBUG: Для {} найдено {} последних свечей в кэше (запрошено {})",
-                    ticker, latestCandles.size(), candleLimit);
+                    ticker, latestCandles.size(), candleLimit); //todo пиши дату последней свечи чтобы было понятно
 
             if (!latestCandles.isEmpty()) {
                 // Есть данные в кэше - всегда их берем
@@ -699,7 +807,7 @@ public class CandleCacheService {
                     }
                 } else {
                     if (debugCount <= 5) {
-                        log.info("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, latestCandles.size());
+                        log.info("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, latestCandles.size()); //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                     }
                 }
             } else {
@@ -746,87 +854,6 @@ public class CandleCacheService {
 
         log.info("✅ ИТОГО: {} тикеров (кэш: {}, догружено: {}, добавлено в БД: {} свечей)",
                 result.size(), cacheHits, missingCandlesCount.size(), totalCandlesAdded);
-
-        //todo перенеси работу с эталоном в самый вверх! мы сначала готовим полностью эталон, и только потом подгоняем остальные тикеры под эталон!
-        /* 🔍
-        КРИТИЧЕСКАЯ ПРОВЕРКА СВЕЖЕСТИ BTC ЭТАЛОНА ПЕРЕД ВАЛИДАЦИЕЙ
-        */
-        final String btcTicker = "BTC-USDT-SWAP";
-        log.info("🔍 ДИАГНОСТИКА: Начинаем проверку свежести BTC эталона для таймфрейма {}", timeframe);
-
-        if (result.containsKey(btcTicker)) {
-            List<Candle> btcCandles = result.get(btcTicker);
-            log.info("🔍 ДИАГНОСТИКА: BTC найден в результатах, {} свечей", btcCandles.size());
-
-            if (!btcCandles.isEmpty()) {
-                btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
-                long lastCandleTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-
-                // ИСПРАВЛЕНО: Более строгие лимиты свежести для разных таймфреймов
-                long maxAllowedAge = calculateMaxAllowedAge(timeframe);
-
-                // Приводим timestamp'ы к единому формату (секунды)
-                long lastCandleTimestampInSeconds = lastCandleTimestamp;
-                if (lastCandleTimestamp > 9999999999L) { // это миллисекунды
-                    lastCandleTimestampInSeconds = lastCandleTimestamp / 1000;
-                }
-
-                long ageInSeconds = currentTimestamp - lastCandleTimestampInSeconds;
-                boolean isStale = ageInSeconds > maxAllowedAge;
-
-                log.info("🔍 ДИАГНОСТИКА СВЕЖЕСТИ BTC: последняя={} (raw={}), текущая={} (raw={}), возраст={} сек, лимит={} сек, устарел={}",
-                        formatTimestamp(lastCandleTimestamp), lastCandleTimestamp,
-                        formatTimestamp(currentTimestamp), currentTimestamp,
-                        ageInSeconds, maxAllowedAge, isStale);
-
-                if (isStale) {
-                    long ageInMinutes = ageInSeconds / 60;
-                    long ageInHours = ageInMinutes / 60;
-
-                    log.warn("🔄 КРИТИЧНО: BTC ЭТАЛОН УСТАРЕЛ - {} ч. {} мин. назад (лимит: {} сек)",
-                            ageInHours, ageInMinutes % 60, maxAllowedAge);
-
-                    try {
-                        log.info("🚀 ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА СВЕЖИХ ДАННЫХ BTC (БЫСТРАЯ МНОГОПОТОЧНАЯ)...");
-
-                        // ✅ Используем быстрый многопоточный метод для BTC эталона
-                        Map<String, Object> btcReloadResult = loadMissingCandlesForTickers(
-                                List.of(btcTicker), timeframe, candleLimit, exchange, -1L, -1L);
-
-                        @SuppressWarnings("unchecked")
-                        Map<String, List<Candle>> btcReloadedCandles =
-                                (Map<String, List<Candle>>) btcReloadResult.get("candlesMap");
-                        Integer savedCount = (Integer) btcReloadResult.get("addedCount");
-
-                        if (btcReloadedCandles.containsKey(btcTicker)) {
-                            List<Candle> updatedCandles = btcReloadedCandles.get(btcTicker);
-                            result.put(btcTicker, updatedCandles);
-
-                            long newLastTimestamp = updatedCandles.get(updatedCandles.size() - 1).getTimestamp();
-                            long newLastTimestampInSeconds = newLastTimestamp;
-                            if (newLastTimestamp > 9999999999L) {
-                                newLastTimestampInSeconds = newLastTimestamp / 1000;
-                            }
-                            long newAge = currentTimestamp - newLastTimestampInSeconds;
-
-                            log.info("✅ BTC ЭТАЛОН КРИТИЧНО ОБНОВЛЕН: сохранено +{}, последняя: {} (возраст: {} мин)",
-                                    savedCount, formatTimestamp(newLastTimestamp), newAge / 60);
-                        } else {
-                            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось загрузить свежие данные BTC!");
-                        }
-                    } catch (Exception e) {
-                        log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при принудительном обновлении BTC: {}", e.getMessage(), e);
-                    }
-                } else {
-                    long ageInMinutes = ageInSeconds / 60;
-                    log.info("✅ BTC ЭТАЛОН СВЕЖ: возраст {} мин (лимит: {} сек)", ageInMinutes, maxAllowedAge);
-                }
-            } else {
-                log.warn("🔍 ДИАГНОСТИКА: BTC найден, но список свечей пуст!");
-            }
-        } else {
-            log.warn("🔍 ДИАГНОСТИКА: BTC НЕ НАЙДЕН в результатах! Доступные тикеры: {}", result.keySet());
-        }
 
         // 🔍 ВАЛИДАЦИЯ И ФИЛЬТРАЦИЯ СВЕЧЕЙ для коинтеграции
         return validateAndFilterCandlesWithRetry(result, timeframe, candleLimit, tickers, exchange);
@@ -1301,18 +1328,18 @@ public class CandleCacheService {
                     // Пауза между чанками для снижения нагрузки и освобождения памяти
                     Thread.sleep(1000); // Увеличил паузу для лучшей очистки памяти
 
-                    log.info("✅ ПОТОК CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{})",
+                    log.info("✅ ПОТОК CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{})", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                             chunkNum, totalChunks, ticker, actuallyLoaded, loadedSoFar, totalMissing);
 
                     // Если получили меньше данных чем ожидали - прерываем
                     if (actuallyLoaded < Math.min(currentChunkSize, 1000)) {
-                        log.warn("⚠️ ПОТОК CHUNK INCOMPLETE: {} - получено {} из {} свечей, завершаем загрузку",
+                        log.warn("⚠️ ПОТОК CHUNK INCOMPLETE: {} - получено {} из {} свечей, завершаем загрузку", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                                 ticker, actuallyLoaded, currentChunkSize);
                         break;
                     }
                 }
 
-                log.info("🎉 ПОТОК CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} из {} запрошенных свечей",
+                log.info("🎉 ПОТОК CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} из {} запрошенных свечей", //todo пиши диапазон дат и кол-во свечей чтобы было понятно
                         ticker, loadedSoFar, totalMissing);
 
             } catch (Exception e) {
