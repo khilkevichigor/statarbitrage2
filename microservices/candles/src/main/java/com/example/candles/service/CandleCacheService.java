@@ -1646,7 +1646,7 @@ public class CandleCacheService {
                         ticker, filteredBatch.size(), totalLoaded);
                         
                 // Защита от бесконечного цикла
-                if (totalLoaded > 150000) { //todo проверить что это, изменил с 50к на 150к и чарт открылся - хз ваще
+                if (totalLoaded > 50000) { //todo проверить что это, изменил с 50к на 150к и чарт открылся - хз ваще
                     log.warn("⚠️ ТОЧНЫЙ ДИАПАЗОН: Превышен лимит загрузки для {}, завершаем", ticker);
                     break;
                 }
