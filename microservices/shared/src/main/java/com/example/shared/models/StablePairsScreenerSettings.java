@@ -99,13 +99,13 @@ public class StablePairsScreenerSettings {
     // ======== ФИЛЬТРЫ R2 ========
 
     /**
-     * Включен ли фильтр минимального R²
+     * Включен ли фильтр минимального R2
      */
     @Column(name = "min_r_squared_enabled", nullable = false)
     private boolean minRSquaredEnabled = true;
 
     /**
-     * Минимальное R² значение
+     * Минимальное R2 значение
      */
     @Column(name = "min_r_squared_value")
     private Double minRSquaredValue = 0.1;
@@ -146,6 +146,13 @@ public class StablePairsScreenerSettings {
      */
     @Column(name = "run_on_schedule", nullable = false)
     private boolean runOnSchedule = false;
+
+    /**
+     * Использовать кэш для получения свечей (по умолчанию включено)
+     * Если выключено - загружать свечи напрямую с OKX
+     */
+    @Column(name = "use_cache", nullable = false)
+    private Boolean useCache = true;
 
     // ======== МЕТАДАННЫЕ ========
 
@@ -312,6 +319,7 @@ public class StablePairsScreenerSettings {
                 .searchTickersEnabled(false)
                 .searchTickers("")
                 .runOnSchedule(false)
+                .useCache(true)
                 .build();
     }
 

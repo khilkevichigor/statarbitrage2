@@ -52,4 +52,10 @@ public class ExtendedCandlesRequest {
      * Используется для исключения уже торгуемых тикеров при поиске новых пар
      */
     private List<String> excludeTickers;
+
+    /**
+     * Использовать ли кэш для получения свечей (по умолчанию true).
+     * Если false - загружать свечи напрямую с OKX
+     */
+    private Boolean useCache;
 }

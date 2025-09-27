@@ -25,11 +25,27 @@ public class CandlesService {
 
     private final OkxFeignClient okxFeignClient;
     private final CandleCacheService candleCacheService;
+    private final DirectCandlesService directCandlesService;
 
     public Map<String, List<Candle>> getAllCandlesExtended(ExtendedCandlesRequest request) {
-        log.info("⚡ Запрос {} свечей для таймфрейма {} ИЗ КЭША",
-                request.getCandleLimit(), request.getTimeframe());
+        // Проверяем, использовать ли кэш (по умолчанию true)
+        boolean useCache = request.getUseCache() != null ? request.getUseCache() : true;
+        
+        if (useCache) {
+            log.info("💾 Запрос {} свечей для таймфрейма {} ИЗ КЭША",
+                    request.getCandleLimit(), request.getTimeframe());
+            return getAllCandlesFromCache(request);
+        } else {
+            log.info("🚀 Запрос {} свечей для таймфрейма {} НАПРЯМУЮ С OKX (без кэша)",
+                    request.getCandleLimit(), request.getTimeframe());
+            return directCandlesService.loadCandlesDirectly(request);
+        }
+    }
 
+    /**
+     * Получение свечей из кэша (старый метод)
+     */
+    private Map<String, List<Candle>> getAllCandlesFromCache(ExtendedCandlesRequest request) {
         long startTime = System.currentTimeMillis();
 
         // Получаем тикеры: используем переданный список или все доступные
@@ -76,7 +92,7 @@ public class CandlesService {
         if (result != null && !result.isEmpty()) {
             int totalCandles = result.values().stream().mapToInt(List::size).sum();
             int avgCandles = totalCandles / result.size();
-            log.info("⚡ Запрос ИЗ КЭША завершен за {} мс! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
+            log.info("💾 Запрос ИЗ КЭША завершен за {} мс! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
                     elapsed, result.size(), avgCandles, totalCandles);
 
             // Если были переданы конкретные тикеры, возвращаем только их (исключаем добавленный BTC эталон)

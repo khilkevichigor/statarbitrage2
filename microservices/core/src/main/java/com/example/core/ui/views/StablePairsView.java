@@ -72,6 +72,9 @@ public class StablePairsView extends VerticalLayout {
     // Новое поле для фильтрации по тикерам
     private Checkbox searchTickersEnabled;
     private TextArea searchTickersField;
+    
+    // Чекбокс для использования кэша
+    private Checkbox useCacheCheckbox;
 
     private Button searchButton;
     private Button clearAllButton;
@@ -309,8 +312,13 @@ public class StablePairsView extends VerticalLayout {
         HorizontalLayout pValueGroup = new HorizontalLayout(maxPValueEnabled, maxPValueField);
         pValueGroup.setSpacing(false);
         pValueGroup.setAlignItems(FlexComponent.Alignment.END);
+        
+        // Чекбокс для использования кэша
+        useCacheCheckbox = new Checkbox("Использовать КЭШ");
+        useCacheCheckbox.setValue(true);
+        useCacheCheckbox.getElement().setAttribute("title", "Использовать кэшированные свечи из базы данных. Если выключено - загружать свечи напрямую с OKX (может занять несколько часов)");
 
-        row.add(rSquaredGroup, pValueGroup);
+        row.add(rSquaredGroup, pValueGroup, useCacheCheckbox);
         return row;
     }
 
@@ -583,6 +591,11 @@ public class StablePairsView extends VerticalLayout {
             settings.put("searchTickers", tickers);
             log.info("🎯 Добавлен фильтр по тикерам: {}", tickers);
         }
+        
+        // Добавляем настройку использования кэша
+        boolean useCache = useCacheCheckbox.getValue();
+        settings.put("useCache", useCache);
+        log.info("💾 Использование кэша: {}", useCache ? "включено" : "выключено");
 
         return settings;
     }
@@ -983,6 +996,9 @@ public class StablePairsView extends VerticalLayout {
 
             // Загружаем настройки автоматизации
             runOnScheduleCheckbox.setValue(settings.isRunOnSchedule());
+            
+            // Загружаем настройку использования кэша (по умолчанию включено)
+            useCacheCheckbox.setValue(settings.getUseCache() != null ? settings.getUseCache() : true);
 
             log.info("✅ Настройки '{}' загружены в UI", settings.getName());
 
@@ -1028,7 +1044,8 @@ public class StablePairsView extends VerticalLayout {
                             minRSquaredEnabled.getValue(), minRSquaredField.getValue(),
                             maxPValueEnabled.getValue(), maxPValueField.getValue(),
                             searchTickersEnabled.getValue(), getSearchTickersSet(),
-                            runOnScheduleCheckbox.getValue()
+                            runOnScheduleCheckbox.getValue(),
+                            useCacheCheckbox.getValue()
                     );
 
                     // Сохраняем

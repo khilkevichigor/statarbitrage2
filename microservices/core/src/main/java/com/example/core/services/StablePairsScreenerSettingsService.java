@@ -161,6 +161,9 @@ public class StablePairsScreenerSettingsService {
             searchSettings.put("searchTickers", settings.getSearchTickersSet());
         }
         
+        // Добавляем настройку использования кэша
+        searchSettings.put("useCache", settings.getUseCache() != null ? settings.getUseCache() : true);
+        
         log.debug("✅ Карта настроек построена: {}", searchSettings);
         return searchSettings;
     }
@@ -178,7 +181,8 @@ public class StablePairsScreenerSettingsService {
             boolean minRSquaredEnabled, Double minRSquaredValue,
             boolean maxPValueEnabled, Double maxPValue,
             boolean searchTickersEnabled, Set<String> searchTickers,
-            boolean runOnSchedule) {
+            boolean runOnSchedule,
+            Boolean useCache) {
         
         log.debug("🏗️ Создание настроек из UI параметров: {}", name);
         
@@ -199,6 +203,7 @@ public class StablePairsScreenerSettingsService {
         settings.setSearchTickersEnabled(searchTickersEnabled);
         settings.setSearchTickersSet(searchTickers);
         settings.setRunOnSchedule(runOnSchedule);
+        settings.setUseCache(useCache != null ? useCache : true);
         
         return settings;
     }
