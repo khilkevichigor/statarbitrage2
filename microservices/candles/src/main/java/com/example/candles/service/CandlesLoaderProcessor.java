@@ -3,6 +3,7 @@ package com.example.candles.service;
 import com.example.candles.client.OkxFeignClient;
 import com.example.candles.utils.CandleCalculatorUtil;
 import com.example.shared.dto.Candle;
+import com.example.shared.models.CachedCandle;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -366,7 +367,10 @@ public class CandlesLoaderProcessor {
                 }
 
                 // Устанавливаем timestamp для следующего запроса (самая старая свеча из текущего батча)
-                beforeTimestamp = batchCandles.get(batchCandles.size() - 1).getTimestamp();
+                beforeTimestamp = batchCandles.stream()
+                        .mapToLong(Candle::getTimestamp)
+                        .min()
+                        .orElseThrow(() -> new RuntimeException("Ошибка получения таймштампа самой старой свечи для получения предыдущих 300 свечей"));
                 requestNumber++;
 
                 // Защита от бесконечного цикла
