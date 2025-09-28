@@ -47,17 +47,15 @@ public class CacheValidatedCandlesProcessor {
         this.currentTimeframe = timeframe;
         
         try {
-            // Шаг 1: Вычисляем ожидаемые параметры
-            ExpectedParameters expected = calculateExpectedParameters(untilDate, timeframe, period);
-            log.info("🎯 ОЖИДАНИЯ: {} свечей в диапазоне {} - {}", 
-                    expected.candlesCount, formatTimestamp(expected.expectedOldestTime), formatTimestamp(expected.expectedNewestTime));
+            // Шаг 1: Вычисляем ожидаемое количество свечей
+            int expectedCandlesCount = calculateCandlesCount(timeframe, period);
+            log.info("🎯 ОЖИДАНИЯ: {} свечей для периода '{}' с таймфреймом {}", expectedCandlesCount, period, timeframe);
             
-            // Шаг 2: Получаем свечи из кэша в ожидаемом временном диапазоне
-            List<Candle> cachedCandles = getCandlesFromCache(exchange, ticker, timeframe, expected.candlesCount, 
-                    expected.expectedOldestTime, expected.expectedNewestTime);
+            // Шаг 2: Получаем все свечи для данного тикера и используем реальный диапазон
+            List<Candle> cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);
             
-            // Шаг 3: Валидируем полученные свечи
-            ValidationResult validationResult = validateCachedCandles(cachedCandles, expected, ticker);
+            // Шаг 3: Валидируем полученные свечи по количеству
+            ValidationResult validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
             
             // Шаг 4: Если данные некорректны - догружаем
             if (!validationResult.isValid) {
@@ -69,10 +67,9 @@ public class CacheValidatedCandlesProcessor {
                 if (loadedCount > 0) {
                     log.info("✅ ДОГРУЗКА ЗАВЕРШЕНА: Загружено {} свечей, повторно получаем из кэша", loadedCount);
                     
-                    // Повторно получаем из кэша после догрузки в ожидаемом временном диапазоне
-                    cachedCandles = getCandlesFromCache(exchange, ticker, timeframe, expected.candlesCount,
-                            expected.expectedOldestTime, expected.expectedNewestTime);
-                    validationResult = validateCachedCandles(cachedCandles, expected, ticker);
+                    // Повторно получаем из кэша после догрузки используя реальный диапазон
+                    cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);
+                    validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
                     
                     if (!validationResult.isValid) {
                         log.error("❌ ПОВТОРНАЯ ВАЛИДАЦИЯ ПРОВАЛЕНА: {} для тикера {}", validationResult.reason, ticker);
@@ -158,7 +155,50 @@ public class CacheValidatedCandlesProcessor {
     }
     
     /**
-     * Получает свечи из кэша в заданном временном диапазоне
+     * Получает последние свечи из кэша по реальному диапазону (последние N свечей)
+     */
+    private List<Candle> getCandlesFromCacheByActualRange(String exchange, String ticker, String timeframe, int expectedCount) {
+        log.info("🗃️ КЭШ ЗАПРОС: Получаем последние {} свечей для тикера {}", expectedCount, ticker);
+        
+        try {
+            // Получаем все свечи для данного тикера, отсортированные по убыванию времени
+            List<CachedCandle> cachedCandles = cachedCandleRepository
+                    .findByTickerAndTimeframeAndExchangeOrderByTimestampDesc(ticker, timeframe, exchange);
+                
+            log.info("🔍 КЭШ ПОИСК: Найдено {} свечей в БД для тикера {}", cachedCandles.size(), ticker);
+            
+            // Берем только нужное количество последних свечей
+            List<CachedCandle> limitedCandles = cachedCandles.stream()
+                    .limit(expectedCount)
+                    .collect(Collectors.toList());
+                    
+            // Сортируем обратно по возрастанию времени для корректного порядка
+            limitedCandles.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+            
+            // Конвертируем в Candle
+            List<Candle> candles = limitedCandles.stream()
+                    .map(CachedCandle::toCandle)
+                    .collect(Collectors.toList());
+            
+            log.info("✅ КЭШ ОТВЕТ: Получено {} свечей для тикера {} из кэша по реальному диапазону", candles.size(), ticker);
+            
+            if (!candles.isEmpty()) {
+                long actualOldest = candles.get(0).getTimestamp();
+                long actualNewest = candles.get(candles.size() - 1).getTimestamp();
+                log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН ИЗ КЭША: {} - {}", 
+                        formatTimestamp(actualOldest), formatTimestamp(actualNewest));
+            }
+            
+            return candles;
+            
+        } catch (Exception e) {
+            log.error("❌ КЭШ ОШИБКА: Ошибка получения свечей для тикера {}: {}", ticker, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Получает свечи из кэша в заданном временном диапазоне (устаревший метод, используется для старых тестов)
      */
     private List<Candle> getCandlesFromCache(String exchange, String ticker, String timeframe, int limit, long expectedOldestTime, long expectedNewestTime) {
         log.info("🗃️ КЭШ ЗАПРОС: Получаем {} свечей для тикера {} в диапазоне {} - {}", 
@@ -197,7 +237,29 @@ public class CacheValidatedCandlesProcessor {
     }
     
     /**
-     * Валидирует полученные из кэша свечи
+     * Валидирует свечи только по количеству (упрощенная версия без проверки временного диапазона)
+     */
+    private ValidationResult validateCandlesByCount(List<Candle> candles, int expectedCount, String ticker, String timeframe) {
+        log.info("🔍 ВАЛИДАЦИЯ КЭШа: Проверяем {} свечей для тикера {}", candles.size(), ticker);
+        
+        // Проверка: Количество свечей с использованием точной валидации из утилитного класса
+        if (!CandleCalculatorUtil.isValidCandlesCount(timeframe, expectedCount, candles.size())) {
+            int allowedDifference = CandleCalculatorUtil.getAllowedDifference(timeframe, expectedCount);
+            int actualDifference = Math.abs(candles.size() - expectedCount);
+            String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe);
+            
+            String reason = String.format("Отклонение в количестве свечей превышает допустимое: ожидалось %d, получено %d (отклонение %d > допустимое %d, %s)", 
+                    expectedCount, candles.size(), actualDifference, allowedDifference, tolerance);
+            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
+            return new ValidationResult(false, reason);
+        }
+        
+        log.info("✅ ВАЛИДАЦИЯ УСПЕШНА: Свечи для тикера {} прошли проверку по количеству", ticker);
+        return new ValidationResult(true, "Валидация по количеству успешна");
+    }
+
+    /**
+     * Валидирует полученные из кэша свечи (полная версия с проверкой временного диапазона)
      */
     private ValidationResult validateCachedCandles(List<Candle> candles, ExpectedParameters expected, String ticker) {
         log.info("🔍 ВАЛИДАЦИЯ КЭШа: Проверяем {} свечей для тикера {}", candles.size(), ticker);

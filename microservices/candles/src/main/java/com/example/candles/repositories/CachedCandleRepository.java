@@ -18,6 +18,9 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
     List<CachedCandle> findByTickerAndTimeframeAndExchangeOrderByTimestampAsc(
             String ticker, String timeframe, String exchange);
 
+    List<CachedCandle> findByTickerAndTimeframeAndExchangeOrderByTimestampDesc(
+            String ticker, String timeframe, String exchange);
+
     List<CachedCandle> findByTickerAndTimeframeAndExchangeAndTimestampBetweenOrderByTimestampAsc(
             String ticker, String timeframe, String exchange, Long fromTimestamp, Long toTimestamp);
 
