@@ -1,6 +1,7 @@
 package com.example.candles.service;
 
 import com.example.candles.client.OkxFeignClient;
+import com.example.candles.utils.CandleCalculatorUtil;
 import com.example.shared.dto.Candle;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,54 +72,9 @@ public class CandlesLoaderProcessor {
      * Вычисляет количество свечей исходя из таймфрейма и периода
      */
     private int calculateCandlesCount(String timeframe, String period) {
-        log.info("🔢 РАСЧЕТ СВЕЧЕЙ: timeframe={}, period={}", timeframe, period);
-        
-        // Получаем количество единиц времени в периоде
-        int periodUnits = parsePeriod(period);
-        
-        // Вычисляем количество свечей в зависимости от таймфрейма
-        int candlesCount = switch (timeframe) {
-            case "1m" -> periodUnits * 365 * 24 * 60;        // минуты в году
-            case "5m" -> periodUnits * 365 * 24 * 12;        // 5-минутки в году
-            case "15m" -> periodUnits * 365 * 24 * 4;        // 15-минутки в году  
-            case "1H" -> periodUnits * 365 * 24;             // часы в году
-            case "4H" -> periodUnits * 365 * 6;              // 4-часовки в году
-            case "1D" -> periodUnits * 365;                  // дни в году
-            case "1W" -> periodUnits * 52;                   // недели в году
-            case "1M" -> periodUnits * 12;                   // месяцы в году (если это месячный ТФ)
-            default -> {
-                log.warn("⚠️ НЕИЗВЕСТНЫЙ ТАЙМФРЕЙМ: {}, используем расчет для 1H", timeframe);
-                yield periodUnits * 365 * 24;
-            }
-        };
-        
-        log.info("✅ РЕЗУЛЬТАТ РАСЧЕТА: {} свечей для периода {} лет с таймфреймом {}", 
-                candlesCount, periodUnits, timeframe);
-        return candlesCount;
+        return CandleCalculatorUtil.calculateCandlesCount(timeframe, period);
     }
     
-    /**
-     * Парсит период типа "1year", "6months", "30days" в количество лет
-     */
-    private int parsePeriod(String period) {
-        period = period.toLowerCase().trim();
-        
-        if (period.contains("1 год")) {
-            String number = period.replaceAll("[^0-9]", "");
-            return Integer.parseInt(number.isEmpty() ? "1" : number);
-        } else if (period.contains("месяц")) {
-            String number = period.replaceAll("[^0-9]", "");
-            int months = Integer.parseInt(number.isEmpty() ? "6" : number);
-            return Math.max(1, months / 12); // Переводим в года, минимум 1 год
-        } else if (period.contains("день")) {
-            String number = period.replaceAll("[^0-9]", "");
-            int days = Integer.parseInt(number.isEmpty() ? "365" : number);
-            return Math.max(1, days / 365); // Переводим в года, минимум 1 год
-        } else {
-            log.warn("⚠️ НЕИЗВЕСТНЫЙ ПЕРИОД: {}, используем 1 год", period);
-            return 1;
-        }
-    }
     
     /**
      * Загружает свечи с OKX
