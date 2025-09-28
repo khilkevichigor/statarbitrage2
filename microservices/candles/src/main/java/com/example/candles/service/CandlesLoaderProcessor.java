@@ -115,8 +115,13 @@ public class CandlesLoaderProcessor {
         
         // Проверка 2: Временной диапазон
         if (candles.size() >= 2) {
-            long oldestTime = candles.get(candles.size() - 1).getTimestamp(); // Последняя = самая старая
-            long newestTime = candles.get(0).getTimestamp(); // Первая = самая новая
+            // Определяем новейшую и старейшую свечи по timestamp
+            long firstTimestamp = candles.get(0).getTimestamp();
+            long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+            
+            // Правильно определяем, какая свеча новее по значению timestamp
+            long newestTime = Math.max(firstTimestamp, lastTimestamp);
+            long oldestTime = Math.min(firstTimestamp, lastTimestamp);
             
             log.info("📅 ВРЕМЕННОЙ ДИАПАЗОН: {} - {}", 
                     formatTimestamp(oldestTime), formatTimestamp(newestTime));
