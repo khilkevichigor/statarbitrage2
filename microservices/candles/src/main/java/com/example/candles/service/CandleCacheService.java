@@ -137,13 +137,18 @@ public class CandleCacheService {
             // ✅ ЭТАЛОН ДОЛЖЕН ИМЕТЬ ТОЧНО ЗАПРОШЕННОЕ КОЛИЧЕСТВО СВЕЧЕЙ!
             if (btcCandles.size() == expectedLimit) {
                 expectedCandleCount = expectedLimit;
-                expectedFirstTimestamp = btcCandles.get(0).getTimestamp();
-                expectedLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-
-                log.info("🎯 ЭТАЛОН: BTC-USDT-SWAP валиден - {} свечей (как запрошено), {} - {}",
+                
+                // 🎯 ВАЖНО: Обрезаем временные границы до начала дня для упрощения работы с периодами
+                long originalFirstTimestamp = btcCandles.get(0).getTimestamp();
+                long originalLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                
+                expectedFirstTimestamp = truncateToStartOfDay(originalFirstTimestamp);
+                expectedLastTimestamp = truncateToStartOfDay(originalLastTimestamp);
+                
+                log.info("🎯 ЭТАЛОН: BTC-USDT-SWAP валиден - {} свечей (как запрошено), оригинал {} - {}, обрезано до {} - {}",
                         expectedCandleCount,
-                        formatTimestamp(expectedFirstTimestamp),
-                        formatTimestamp(expectedLastTimestamp));
+                        formatTimestamp(originalFirstTimestamp), formatTimestamp(originalLastTimestamp),
+                        formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
             } else {
                 if (!btcCandles.isEmpty()) {
                     long oldestTime = btcCandles.get(0).getTimestamp();
@@ -181,10 +186,14 @@ public class CandleCacheService {
             candles.sort(Comparator.comparingLong(Candle::getTimestamp));
 
             int candleCount = candles.size();
-            long firstTimestamp = candles.get(0).getTimestamp();
-            long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+            long originalFirstTimestamp = candles.get(0).getTimestamp();
+            long originalLastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+            
+            // 🎯 ВАЖНО: Обрезаем временные границы тикера до начала дня для сравнения с эталоном
+            long firstTimestamp = truncateToStartOfDay(originalFirstTimestamp);
+            long lastTimestamp = truncateToStartOfDay(originalLastTimestamp);
 
-            // Собираем статистику распределения
+            // Собираем статистику распределения (используем обрезанные временные метки)
             candleCountDistribution.merge(candleCount, 1, Integer::sum);
             firstTimestampDistribution.merge(firstTimestamp, 1, Integer::sum);
             lastTimestampDistribution.merge(lastTimestamp, 1, Integer::sum);
@@ -212,12 +221,14 @@ public class CandleCacheService {
                     differences.add(String.format("свечей:%d≠%d", candleCount, expectedCandleCount));
                 }
                 if (firstTimestamp != expectedFirstTimestamp) {
-                    differences.add(String.format("начало:%s≠%s",
-                            formatTimestamp(firstTimestamp), formatTimestamp(expectedFirstTimestamp)));
+                    differences.add(String.format("начало:%s≠%s (оригинал %s)",
+                            formatTimestamp(firstTimestamp), formatTimestamp(expectedFirstTimestamp),
+                            formatTimestamp(originalFirstTimestamp)));
                 }
                 if (lastTimestamp != expectedLastTimestamp) {
-                    differences.add(String.format("конец:%s≠%s",
-                            formatTimestamp(lastTimestamp), formatTimestamp(expectedLastTimestamp)));
+                    differences.add(String.format("конец:%s≠%s (оригинал %s)",
+                            formatTimestamp(lastTimestamp), formatTimestamp(expectedLastTimestamp),
+                            formatTimestamp(originalLastTimestamp)));
                 }
 
                 String reason = !differences.isEmpty() ?
@@ -416,13 +427,17 @@ public class CandleCacheService {
             return new ConcurrentHashMap<>();
         }
 
-        long expectedFirstTimestamp = btcCandles.get(0).getTimestamp();
-        long expectedLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+        // 🎯 ВАЖНО: Обрезаем временные границы до начала дня для упрощения работы с периодами
+        long originalFirstTimestamp = btcCandles.get(0).getTimestamp();
+        long originalLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+        
+        long expectedFirstTimestamp = truncateToStartOfDay(originalFirstTimestamp);
+        long expectedLastTimestamp = truncateToStartOfDay(originalLastTimestamp);
 
-        log.info("🎯 ЭТАЛОН ГОТОВ: {} свечей, {} - {}",
+        log.info("🎯 ЭТАЛОН ГОТОВ: {} свечей, оригинал {} - {}, обрезано до {} - {}",
                 candleLimit,
-                formatTimestamp(expectedFirstTimestamp),
-                formatTimestamp(expectedLastTimestamp));
+                formatTimestamp(originalFirstTimestamp), formatTimestamp(originalLastTimestamp),
+                formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
 
         // ШАГ 3: ВАЛИДАЦИЯ ВСЕХ ТИКЕРОВ ОТНОСИТЕЛЬНО ПОЛНОГО ЭТАЛОНА
         Map<String, List<Candle>> validCandlesMap = validateAndFilterCandlesConsistency(
@@ -684,12 +699,12 @@ public class CandleCacheService {
         log.info("🔍 ДИАГНОСТИКА ВРЕМЕНИ: текущая timestamp={} ({})",
                 currentTimestamp, formatTimestamp(currentTimestamp));
 
-        /* 🔍
+        /*
         КРИТИЧЕСКАЯ ОБРАБОТКА BTC ЭТАЛОНА В САМОМ НАЧАЛЕ!
         Сначала готовим полностью эталон, потом подгоняем под него остальные тикеры
         */
         final String btcTicker = "BTC-USDT-SWAP";
-        log.info("🎯 ЭТАЛОН: Обрабатываем BTC эталон в ПЕРВУЮ ОЧЕРЕДЬ для таймфрейма {}", timeframe);
+        log.info("🎯 ЭТАЛОН: Обрабатываем BTC эталон в ПЕРВУЮ ОЧЕРЕДЬ для таймфрейма {} с обрезкой до начала дня", timeframe);
 
         // Сначала загружаем BTC из кэша если есть, или создаем запись для догрузки
         boolean btcProcessed = false;
@@ -710,16 +725,29 @@ public class CandleCacheService {
                 int missing = candleLimit - btcCachedCandles.size();
                 missingCandlesCount.put(btcTicker, missing);
                 // Получаем диапазон дат для более информативного лога
-                long oldestTime = btcCandles.get(0).getTimestamp();
-                long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                log.info("🎯 ЭТАЛОН: BTC частично в кэше ({}/{} свечей), диапазон {} - {}, догрузим {} свечей", 
+                long originalOldestTime = btcCandles.get(0).getTimestamp();
+                long originalNewestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                
+                // 🎯 ВАЖНО: Показываем обрезку времени в логе
+                long truncatedOldestTime = truncateToStartOfDay(originalOldestTime);
+                long truncatedNewestTime = truncateToStartOfDay(originalNewestTime);
+                
+                log.info("🎯 ЭТАЛОН: BTC частично в кэше ({}/{} свечей), оригинал {} - {}, обрезано до {} - {}, догрузим {} свечей", 
                         btcCachedCandles.size(), candleLimit, 
-                        formatTimestamp(oldestTime), formatTimestamp(newestTime), missing);
+                        formatTimestamp(originalOldestTime), formatTimestamp(originalNewestTime),
+                        formatTimestamp(truncatedOldestTime), formatTimestamp(truncatedNewestTime), missing);
             } else {
-                long oldestTime = btcCandles.get(0).getTimestamp();
-                long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                log.info("🎯 ЭТАЛОН: BTC полностью в кэше ({} свечей), диапазон {} - {}", 
-                        btcCachedCandles.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
+                long originalOldestTime = btcCandles.get(0).getTimestamp();
+                long originalNewestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                
+                // 🎯 ВАЖНО: Показываем обрезку времени в логе
+                long truncatedOldestTime = truncateToStartOfDay(originalOldestTime);
+                long truncatedNewestTime = truncateToStartOfDay(originalNewestTime);
+                
+                log.info("🎯 ЭТАЛОН: BTC полностью в кэше ({} свечей), оригинал {} - {}, обрезано до {} - {}", 
+                        btcCachedCandles.size(), 
+                        formatTimestamp(originalOldestTime), formatTimestamp(originalNewestTime),
+                        formatTimestamp(truncatedOldestTime), formatTimestamp(truncatedNewestTime));
             }
         } else {
             // BTC вообще нет в кэше - полная догрузка
@@ -798,10 +826,17 @@ public class CandleCacheService {
                         log.error("❌ ЭТАЛОН: Ошибка обновления BTC: {}", e.getMessage());
                     }
                 } else {
-                    long oldestTime = btcCandles.get(0).getTimestamp();
-                    long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                    log.info("✅ ЭТАЛОН: BTC свежий и готов к использованию ({} свечей), диапазон {} - {}", 
-                            btcCandles.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
+                    long originalOldestTime = btcCandles.get(0).getTimestamp();
+                    long originalNewestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
+                    
+                    // 🎯 ВАЖНО: Показываем обрезку времени в логе
+                    long truncatedOldestTime = truncateToStartOfDay(originalOldestTime);
+                    long truncatedNewestTime = truncateToStartOfDay(originalNewestTime);
+                    
+                    log.info("✅ ЭТАЛОН: BTC свежий и готов к использованию ({} свечей), оригинал {} - {}, обрезано до {} - {}", 
+                            btcCandles.size(), 
+                            formatTimestamp(originalOldestTime), formatTimestamp(originalNewestTime),
+                            formatTimestamp(truncatedOldestTime), formatTimestamp(truncatedNewestTime));
                 }
             }
         }
@@ -1342,6 +1377,47 @@ public class CandleCacheService {
             case "1M" -> 2592000; // примерно 30 дней
             default -> 3600; // По умолчанию как 1H
         };
+    }
+
+    /**
+     * Обрезает временную метку до начала дня (00:00:00Z)
+     * Это упрощает работу с периодами и делает границы диапазонов более предсказуемыми
+     */
+    private long truncateToStartOfDay(long timestamp) {
+        // Определяем, в каких единицах timestamp - секунды или миллисекунды
+        long timestampMillis;
+        if (timestamp > 9999999999L) {
+            // timestamp в миллисекундах (больше чем 9999999999 секунд = примерно 2286 год)
+            timestampMillis = timestamp;
+        } else {
+            // timestamp в секундах
+            timestampMillis = timestamp * 1000L;
+        }
+        
+        // Константа для миллисекунд в дне
+        final long MILLIS_PER_DAY = 24L * 60L * 60L * 1000L;
+        
+        // Вычисляем количество полных дней с Unix epoch (1 января 1970 00:00:00 UTC)
+        long daysFromEpoch = timestampMillis / MILLIS_PER_DAY;
+        
+        // Получаем начало этого дня в миллисекундах (00:00:00.000 UTC)
+        long dayStartMillis = daysFromEpoch * MILLIS_PER_DAY;
+        
+        // Возвращаем в той же единице, что и входящий timestamp
+        long result;
+        if (timestamp > 9999999999L) {
+            result = dayStartMillis; // Возвращаем в миллисекундах
+        } else {
+            result = dayStartMillis / 1000L; // Возвращаем в секундах
+        }
+        
+        // Добавляем отладочную информацию
+        log.info("🕒 ОБРЕЗКА ВРЕМЕНИ: {} ({}) → {} ({}) (разница {} единиц)", 
+                formatTimestamp(timestamp), timestamp, 
+                formatTimestamp(result), result, 
+                timestamp - result);
+        
+        return result;
     }
 
     /**
