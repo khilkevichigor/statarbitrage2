@@ -156,6 +156,6 @@ public class CandlesProcessorController {
      * Генерирует дату "до" как начало текущего дня в формате 2025-09-27T00:00:00Z
      */
     private String generateUntilDate() {
-        return LocalDate.now().atStartOfDay().toString() + ":00.000Z";
+        return LocalDate.now().atStartOfDay() + ":00Z";
     }
 }

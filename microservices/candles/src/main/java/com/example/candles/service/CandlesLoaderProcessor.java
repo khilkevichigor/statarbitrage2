@@ -53,14 +53,30 @@ public class CandlesLoaderProcessor {
                 return 0;
             }
 
-            // Шаг 3: Валидируем загруженные данные
+            // Шаг 3: Логируем фактический временной диапазон загруженных свечей
+            if (!candles.isEmpty()) {
+                long actualOldest = candles.get(0).getTimestamp();
+                long actualNewest = candles.get(candles.size() - 1).getTimestamp();
+                // Определяем правильный порядок
+                long oldestTimestamp = Math.min(actualOldest, actualNewest);
+                long newestTimestamp = Math.max(actualOldest, actualNewest);
+                
+                log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН ЗАГРУЖЕННЫХ СВЕЧЕЙ: {} - {}", 
+                        formatTimestamp(oldestTimestamp), formatTimestamp(newestTimestamp));
+                
+                // Рассчитаем сколько дней покрывают загруженные данные
+                long daysCovered = (newestTimestamp - oldestTimestamp) / (24 * 60 * 60 * 1000L);
+                log.info("⏰ ПОКРЫТИЕ: Загруженные {} свечей покрывают {} дней", candles.size(), daysCovered);
+            }
+
+            // Шаг 4: Валидируем загруженные данные
             boolean isValid = validateLoadedCandles(candles, untilDate, timeframe, period, candlesCount);
             if (!isValid) {
                 log.error("❌ ВАЛИДАЦИЯ: Загруженные свечи не прошли валидацию для тикера {}", ticker);
                 return 0;
             }
 
-            // Шаг 4: Сохраняем свечи в БД
+            // Шаг 5: Сохраняем свечи в БД
             int savedCount = saveCandlesToDatabase(ticker, timeframe, exchange, candles);
 
             log.info("✅ ЗАГРУЗКА ЗАВЕРШЕНА: Сохранено {} свечей для тикера {} в БД", savedCount, ticker);
