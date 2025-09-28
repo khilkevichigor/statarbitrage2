@@ -28,7 +28,7 @@ public class CandlesProcessorController {
     /**
      * Получить валидированные свечи из кэша
      * 
-     * GET /api/candles-processor/validated-cache?exchange=OKX&ticker=BTC-USDT-SWAP&timeframe=1H&period=1year
+     * GET /api/candles-processor/validated-cache?exchange=OKX&ticker=BTC-USDT-SWAP&timeframe=1H&period=1 год
      */
     @GetMapping("/validated-cache")
     public ResponseEntity<?> getValidatedCandlesFromCache(
