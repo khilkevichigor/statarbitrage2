@@ -54,6 +54,10 @@ public class CacheValidatedCandlesProcessor {
             // Шаг 2: Получаем все свечи для данного тикера и используем реальный диапазон
             List<Candle> cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);
             
+            // Шаг 2.5: Обрезаем свечи точно до untilDate
+            long untilTimestamp = parseUntilDate(untilDate);
+            cachedCandles = filterCandlesUntilDate(cachedCandles, untilTimestamp, expectedCandlesCount, timeframe);
+            
             // Шаг 3: Валидируем полученные свечи по количеству
             ValidationResult validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
             
@@ -69,6 +73,8 @@ public class CacheValidatedCandlesProcessor {
                     
                     // Повторно получаем из кэша после догрузки используя реальный диапазон
                     cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);
+                    // Повторно обрезаем свечи точно до untilDate
+                    cachedCandles = filterCandlesUntilDate(cachedCandles, untilTimestamp, expectedCandlesCount, timeframe);
                     validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
                     
                     if (!validationResult.isValid) {
@@ -236,6 +242,56 @@ public class CacheValidatedCandlesProcessor {
         }
     }
     
+    /**
+     * Фильтрует свечи точно до untilDate и берет нужное количество
+     */
+    private List<Candle> filterCandlesUntilDate(List<Candle> candles, long untilTimestamp, int expectedCount, String timeframe) {
+        if (candles.isEmpty()) {
+            log.warn("⚠️ ФИЛЬТР UNTILDATE: Список свечей пуст, нечего фильтровать");
+            return candles;
+        }
+        
+        log.info("🔍 ФИЛЬТР UNTILDATE: Фильтруем {} свечей до даты {}", candles.size(), formatTimestamp(untilTimestamp));
+        
+        // Фильтруем свечи строго ДО untilDate (не включительно)
+        List<Candle> filteredCandles = candles.stream()
+                .filter(candle -> candle.getTimestamp() < untilTimestamp)
+                .collect(Collectors.toList());
+        
+        log.info("🔍 ФИЛЬТР РЕЗУЛЬТАТ: После фильтрации по дате осталось {} свечей", filteredCandles.size());
+        
+        // Если после фильтрации осталось больше чем нужно - берем последние N свечей
+        if (filteredCandles.size() > expectedCount) {
+            // Сортируем по убыванию времени, берем первые N, затем сортируем обратно по возрастанию
+            List<Candle> lastNCandles = filteredCandles.stream()
+                    .sorted((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp())) // По убыванию
+                    .limit(expectedCount)
+                    .sorted((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp())) // Обратно по возрастанию
+                    .collect(Collectors.toList());
+            
+            log.info("🔍 ФИЛЬТР ОБРЕЗКА: Взяли последние {} свечей из {} доступных", expectedCount, filteredCandles.size());
+            filteredCandles = lastNCandles;
+        }
+        
+        if (!filteredCandles.isEmpty()) {
+            long actualOldest = filteredCandles.get(0).getTimestamp();
+            long actualNewest = filteredCandles.get(filteredCandles.size() - 1).getTimestamp();
+            log.info("📅 ФИНАЛЬНЫЙ ДИАПАЗОН ПОСЛЕ ФИЛЬТРА: {} - {}", 
+                    formatTimestamp(actualOldest), formatTimestamp(actualNewest));
+            
+            // Проверяем, что последняя свеча действительно до untilDate
+            if (actualNewest >= untilTimestamp) {
+                log.warn("⚠️ ФИЛЬТР ПРОБЛЕМА: Новейшая свеча {} >= untilDate {}", 
+                        formatTimestamp(actualNewest), formatTimestamp(untilTimestamp));
+            } else {
+                log.info("✅ ФИЛЬТР ПРОВЕРКА: Новейшая свеча {} < untilDate {} - корректно", 
+                        formatTimestamp(actualNewest), formatTimestamp(untilTimestamp));
+            }
+        }
+        
+        return filteredCandles;
+    }
+
     /**
      * Валидирует свечи только по количеству (упрощенная версия без проверки временного диапазона)
      */
