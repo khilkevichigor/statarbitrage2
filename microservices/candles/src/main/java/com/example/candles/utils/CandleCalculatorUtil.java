@@ -54,6 +54,61 @@ public class CandleCalculatorUtil {
     }
 
     /**
+     * Рассчитывает количество свечей с учетом untilDate (конечной даты)
+     * Учитывает, что последняя свеча должна быть ДО untilDate на один интервал таймфрейма
+     */
+    public static int calculateCandlesCountUntilDate(String ticker, String timeframe, String period, String untilDate) {
+        log.debug("🧮 РАСЧЕТ СВЕЧЕЙ С UNTILDATE для {}: timeframe={}, period={}, untilDate={}", ticker, timeframe, period, untilDate);
+
+        try {
+            // Базовый расчет количества свечей
+            int baseCandlesCount = calculateCandlesCount(ticker, timeframe, period);
+            
+            // Парсим untilDate
+            java.time.Instant untilInstant = java.time.Instant.parse(untilDate);
+            long untilTimestamp = untilInstant.toEpochMilli();
+            
+            // Рассчитываем сколько времени назад от untilDate началась бы эта выборка
+            long timeframeDurationMs = getTimeframeDurationInMillis(timeframe);
+            long startTimestamp = untilTimestamp - (baseCandlesCount * timeframeDurationMs);
+            
+            // Рассчитываем фактическое количество свечей от startTimestamp до untilDate
+            long actualDurationMs = untilTimestamp - startTimestamp;
+            int actualCandlesCount = (int) (actualDurationMs / timeframeDurationMs);
+            
+            log.info("✅ РЕЗУЛЬТАТ РАСЧЕТА С UNTILDATE для {}: {} свечей (базовый {}) для периода '{}' до {}",
+                    ticker, actualCandlesCount, baseCandlesCount, period, untilDate);
+            
+            return actualCandlesCount;
+
+        } catch (Exception e) {
+            log.error("❌ ОШИБКА РАСЧЕТА С UNTILDATE для {}: {}", ticker, e.getMessage());
+            // Возвращаем базовый расчет как fallback
+            return calculateCandlesCount(ticker, timeframe, period);
+        }
+    }
+
+    /**
+     * Возвращает длительность таймфрейма в миллисекундах
+     */
+    public static long getTimeframeDurationInMillis(String timeframe) {
+        return switch (timeframe) {
+            case "1m" -> 60 * 1000L;                    // 1 минута
+            case "5m" -> 5 * 60 * 1000L;                // 5 минут
+            case "15m" -> 15 * 60 * 1000L;              // 15 минут
+            case "1H" -> 60 * 60 * 1000L;               // 1 час
+            case "4H" -> 4 * 60 * 60 * 1000L;           // 4 часа
+            case "1D" -> 24 * 60 * 60 * 1000L;          // 1 день
+            case "1W" -> 7 * 24 * 60 * 60 * 1000L;      // 1 неделя
+            case "1M" -> 30L * 24 * 60 * 60 * 1000L;    // 1 месяц (приблизительно)
+            default -> {
+                log.warn("⚠️ НЕИЗВЕСТНЫЙ ТАЙМФРЕЙМ: {}, используем 1H", timeframe);
+                yield 60 * 60 * 1000L;
+            }
+        };
+    }
+
+    /**
      * Парсит период в количество дней
      */
     private static int parsePeriodToDays(String period) {
@@ -151,7 +206,7 @@ public class CandleCalculatorUtil {
             log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} превышает допустимое {} для таймфрейма {}",
                     actualDifference, allowedDifference, timeframe);
         } else if (actualDifference > 0) {
-            log.debug("ℹ️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} в пределах нормы (допустимо {}) для таймфрейма {}",
+            log.debug("i️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} в пределах нормы (допустимо {}) для таймфрейма {}",
                     actualDifference, allowedDifference, timeframe);
         }
 

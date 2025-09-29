@@ -47,9 +47,9 @@ public class CacheValidatedCandlesProcessor {
         this.currentTimeframe = timeframe;
 
         try {
-            // Шаг 1: Вычисляем ожидаемое количество свечей
-            int expectedCandlesCount = calculateCandlesCount(ticker, timeframe, period);
-            log.info("🎯 ОЖИДАНИЯ: {} свечей для периода '{}' с таймфреймом {}", expectedCandlesCount, period, timeframe);
+            // Шаг 1: Вычисляем ожидаемое количество свечей С УЧЕТОМ untilDate
+            int expectedCandlesCount = CandleCalculatorUtil.calculateCandlesCountUntilDate(ticker, timeframe, period, untilDate);
+            log.info("🎯 ОЖИДАНИЯ: {} свечей для периода '{}' с таймфреймом {} до {}", expectedCandlesCount, period, timeframe, untilDate);
 
             // Шаг 2: Получаем все свечи для данного тикера и используем реальный диапазон
             List<Candle> cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);

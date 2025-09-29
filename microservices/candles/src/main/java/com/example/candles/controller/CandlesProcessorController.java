@@ -194,8 +194,9 @@ public class CandlesProcessorController {
             log.info("🚀 МНОГОПОТОЧНОСТЬ: Запускаем обработку {} тикеров в {} потоках",
                     tickersToProcess.size(), Math.min(5, tickersToProcess.size()));
 
-            // Создаем пул потоков (максимум 5 потоков) в try-with-resources блоке
-            try (ExecutorService executor = Executors.newFixedThreadPool(Math.min(5, tickersToProcess.size()))) {
+            // Создаем пул потоков (максимум 5 потоков)
+            ExecutorService executor = Executors.newFixedThreadPool(Math.min(5, tickersToProcess.size()));
+            try {
                 // Создаем задачи для каждого тикера
                 List<Future<Void>> futures = new java.util.ArrayList<>();
 
@@ -255,6 +256,11 @@ public class CandlesProcessorController {
             } catch (InterruptedException e) {
                 log.error("❌ ПРЕРЫВАНИЕ: Обработка была прервана: {}", e.getMessage());
                 Thread.currentThread().interrupt();
+            } finally {
+                // Гарантированно закрываем executor
+                if (!executor.isShutdown()) {
+                    executor.shutdownNow();
+                }
             }
 
             log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
