@@ -51,12 +51,11 @@ public class CacheValidatedCandlesProcessor {
             int expectedCandlesCount = CandleCalculatorUtil.calculateCandlesCountUntilDate(ticker, timeframe, period, untilDate);
             log.info("🎯 ОЖИДАНИЯ: {} свечей для периода '{}' с таймфреймом {} до {}", expectedCandlesCount, period, timeframe, untilDate);
 
-            // Шаг 2: Получаем все свечи для данного тикера и используем реальный диапазон
-            List<Candle> cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);
-
-            // Шаг 2.5: Обрезаем свечи точно до untilDate
+            // Шаг 2: Парсим untilDate 
             long untilTimestamp = parseUntilDate(untilDate);
-            cachedCandles = filterCandlesUntilDate(cachedCandles, untilTimestamp, expectedCandlesCount, timeframe);
+            
+            // Шаг 3: Получаем свечи ДО untilDate
+            List<Candle> cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
 
             // Шаг 3: Валидируем полученные свечи по количеству
             ValidationResult validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
@@ -71,10 +70,8 @@ public class CacheValidatedCandlesProcessor {
                 if (loadedCount > 0) {
                     log.info("✅ ДОГРУЗКА ЗАВЕРШЕНА: Загружено {} свечей, повторно получаем из кэша", loadedCount);
 
-                    // Повторно получаем из кэша после догрузки используя реальный диапазон
-                    cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount);
-                    // Повторно обрезаем свечи точно до untilDate
-                    cachedCandles = filterCandlesUntilDate(cachedCandles, untilTimestamp, expectedCandlesCount, timeframe);
+                    // Повторно получаем из кэша после догрузки ДО untilDate
+                    cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
                     validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
 
                     if (!validationResult.isValid) {
@@ -161,19 +158,22 @@ public class CacheValidatedCandlesProcessor {
     }
 
     /**
-     * Получает последние свечи из кэша по реальному диапазону (последние N свечей)
+     * Получает последние свечи из кэша по реальному диапазону, отталкиваясь от untilDate
      */
-    private List<Candle> getCandlesFromCacheByActualRange(String exchange, String ticker, String timeframe, int expectedCount) {
-        log.info("🗃️ КЭШ ЗАПРОС: Получаем последние {} свечей для тикера {}", expectedCount, ticker);
+    private List<Candle> getCandlesFromCacheByActualRange(String exchange, String ticker, String timeframe, int expectedCount, long untilTimestamp) {
+        log.info("🗃️ КЭШ ЗАПРОС: Получаем последние {} свечей для тикера {} ДО даты {}", 
+                expectedCount, ticker, formatTimestamp(untilTimestamp));
 
         try {
-            // Получаем все свечи для данного тикера, отсортированные по убыванию времени
+            // Получаем все свечи для данного тикера ДО untilDate, отсортированные по убыванию времени
             List<CachedCandle> cachedCandles = cachedCandleRepository
-                    .findByTickerAndTimeframeAndExchangeOrderByTimestampDesc(ticker, timeframe, exchange);
+                    .findByTickerAndTimeframeAndExchangeAndTimestampLessThanOrderByTimestampDesc(
+                            ticker, timeframe, exchange, untilTimestamp);
 
-            log.info("🔍 КЭШ ПОИСК: Найдено {} свечей в БД для тикера {}", cachedCandles.size(), ticker);
+            log.info("🔍 КЭШ ПОИСК: Найдено {} свечей в БД для тикера {} ДО даты {}", 
+                    cachedCandles.size(), ticker, formatTimestamp(untilTimestamp));
 
-            // Берем только нужное количество последних свечей
+            // Берем только нужное количество последних свечей (ДО untilDate)
             List<CachedCandle> limitedCandles = cachedCandles.stream()
                     .limit(expectedCount)
                     .collect(Collectors.toList());
@@ -186,13 +186,16 @@ public class CacheValidatedCandlesProcessor {
                     .map(CachedCandle::toCandle)
                     .collect(Collectors.toList());
 
-            log.info("✅ КЭШ ОТВЕТ: Получено {} свечей для тикера {} из кэша по реальному диапазону", candles.size(), ticker);
+            log.info("✅ КЭШ ОТВЕТ: Получено {} свечей для тикера {} из кэша ДО untilDate", candles.size(), ticker);
 
             if (!candles.isEmpty()) {
                 long actualOldest = candles.get(0).getTimestamp();
                 long actualNewest = candles.get(candles.size() - 1).getTimestamp();
                 log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН ИЗ КЭША: {} - {}",
                         formatTimestamp(actualOldest), formatTimestamp(actualNewest));
+                log.info("🔍 ПРОВЕРКА UNTILDATE: Новейшая свеча {} < untilDate {} = {}",
+                        formatTimestamp(actualNewest), formatTimestamp(untilTimestamp), 
+                        actualNewest < untilTimestamp);
             }
 
             return candles;
