@@ -294,15 +294,17 @@ public class CacheValidatedCandlesProcessor {
 
     /**
      * Валидирует свечи только по количеству (упрощенная версия без проверки временного диапазона)
+     * Использует увеличенную погрешность для случаев с untilDate
      */
     private ValidationResult validateCandlesByCount(List<Candle> candles, int expectedCount, String ticker, String timeframe) {
         log.info("🔍 ВАЛИДАЦИЯ КЭШа: Проверяем {} свечей для тикера {}", candles.size(), ticker);
 
-        // Проверка: Количество свечей с использованием точной валидации из утилитного класса
-        if (!CandleCalculatorUtil.isValidCandlesCount(timeframe, expectedCount, candles.size())) {
-            int allowedDifference = CandleCalculatorUtil.getAllowedDifference(timeframe, expectedCount);
-            int actualDifference = Math.abs(candles.size() - expectedCount);
-            String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe);
+        // Используем увеличенную погрешность для случаев с untilDate фильтрацией
+        int allowedDifference = CandleCalculatorUtil.getAllowedDifferenceWithUntilDate(timeframe, expectedCount);
+        int actualDifference = Math.abs(candles.size() - expectedCount);
+        
+        if (actualDifference > allowedDifference) {
+            String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe) + " + untilDate буфер";
 
             String reason = String.format("Отклонение в количестве свечей превышает допустимое: ожидалось %d, получено %d (отклонение %d > допустимое %d, %s)",
                     expectedCount, candles.size(), actualDifference, allowedDifference, tolerance);
@@ -310,8 +312,8 @@ public class CacheValidatedCandlesProcessor {
             return new ValidationResult(false, reason);
         }
 
-        log.info("✅ ВАЛИДАЦИЯ УСПЕШНА: Свечи для тикера {} прошли проверку по количеству", ticker);
-        return new ValidationResult(true, "Валидация по количеству успешна");
+        log.info("✅ ВАЛИДАЦИЯ УСПЕШНА: Свечи для тикера {} прошли проверку по количеству с untilDate (допустимое отклонение {})", ticker, allowedDifference);
+        return new ValidationResult(true, "Валидация по количеству с untilDate успешна");
     }
 
     /**

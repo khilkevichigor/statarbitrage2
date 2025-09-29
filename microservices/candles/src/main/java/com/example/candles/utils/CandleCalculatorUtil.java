@@ -54,32 +54,43 @@ public class CandleCalculatorUtil {
     }
 
     /**
+     * Возвращает допустимую погрешность для валидации количества свечей с учетом untilDate
+     * При использовании untilDate допускаем большую погрешность из-за фильтрации данных
+     */
+    public static int getAllowedDifferenceWithUntilDate(String timeframe, int expectedCount) {
+        // Для случаев с untilDate увеличиваем допустимое отклонение в 1.5 раза
+        int baseDifference = getAllowedDifference(timeframe, expectedCount);
+        int adjustedDifference = (int) (baseDifference * 1.5);
+        
+        // Дополнительно добавляем буфер для фильтрации по времени
+        int timeFilterBuffer = switch (timeframe) {
+            case "1m" -> 48;     // ~30 минут буфер
+            case "5m" -> 24;     // ~2 часа буфер  
+            case "15m" -> 16;    // ~4 часа буфер
+            case "1H" -> 8;      // ~8 часов буфер
+            case "4H" -> 6;      // ~24 часа буфер
+            default -> 0;
+        };
+        
+        return adjustedDifference + timeFilterBuffer;
+    }
+
+    /**
      * Рассчитывает количество свечей с учетом untilDate (конечной даты)
-     * Учитывает, что последняя свеча должна быть ДО untilDate на один интервал таймфрейма
+     * Возвращает базовое количество, но валидация будет использовать увеличенную погрешность
      */
     public static int calculateCandlesCountUntilDate(String ticker, String timeframe, String period, String untilDate) {
         log.debug("🧮 РАСЧЕТ СВЕЧЕЙ С UNTILDATE для {}: timeframe={}, period={}, untilDate={}", ticker, timeframe, period, untilDate);
 
         try {
-            // Базовый расчет количества свечей
+            // Возвращаем базовое количество свечей
+            // Валидация будет использовать увеличенную погрешность через getAllowedDifferenceWithUntilDate
             int baseCandlesCount = calculateCandlesCount(ticker, timeframe, period);
             
-            // Парсим untilDate
-            java.time.Instant untilInstant = java.time.Instant.parse(untilDate);
-            long untilTimestamp = untilInstant.toEpochMilli();
+            log.info("✅ РЕЗУЛЬТАТ РАСЧЕТА С UNTILDATE для {}: {} свечей (базовый расчет) для периода '{}' до {} (увеличенная погрешность при валидации)",
+                    ticker, baseCandlesCount, period, untilDate);
             
-            // Рассчитываем сколько времени назад от untilDate началась бы эта выборка
-            long timeframeDurationMs = getTimeframeDurationInMillis(timeframe);
-            long startTimestamp = untilTimestamp - (baseCandlesCount * timeframeDurationMs);
-            
-            // Рассчитываем фактическое количество свечей от startTimestamp до untilDate
-            long actualDurationMs = untilTimestamp - startTimestamp;
-            int actualCandlesCount = (int) (actualDurationMs / timeframeDurationMs);
-            
-            log.info("✅ РЕЗУЛЬТАТ РАСЧЕТА С UNTILDATE для {}: {} свечей (базовый {}) для периода '{}' до {}",
-                    ticker, actualCandlesCount, baseCandlesCount, period, untilDate);
-            
-            return actualCandlesCount;
+            return baseCandlesCount;
 
         } catch (Exception e) {
             log.error("❌ ОШИБКА РАСЧЕТА С UNTILDATE для {}: {}", ticker, e.getMessage());
