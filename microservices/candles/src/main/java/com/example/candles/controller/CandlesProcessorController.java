@@ -27,6 +27,7 @@ public class CandlesProcessorController {
     private final CacheValidatedCandlesProcessor cacheValidatedCandlesProcessor;
     private final CandlesLoaderProcessor candlesLoaderProcessor;
 
+    //todo первый рабочий эндпоинт с этим функционалом! самостоятельно не используется
     /**
      * Получить валидированные свечи из кэша
      * <p>
@@ -90,6 +91,7 @@ public class CandlesProcessorController {
         }
     }
 
+    //todo сгенерил этот эндпоинт в довесок к "/validated-cache". самостоятельно не используется
     /**
      * Загрузить и сохранить свечи с OKX
      * <p>
@@ -154,8 +156,9 @@ public class CandlesProcessorController {
         }
     }
 
+    //todo главный новый эндпоинт который будет делать всю работу!!!
     /**
-     * Получить валидированные свечи из кэша для множества тикеров (аналог /all-extended)
+     * Получить валидированные свечи из кэша для множества тикеров (аналог /all-extended) с догрузкой и сохранением
      * <p>
      * POST /api/candles-processor/validated-cache-extended
      */
