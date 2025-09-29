@@ -3,13 +3,11 @@ package com.example.candles.service;
 import com.example.candles.client.OkxFeignClient;
 import com.example.candles.utils.CandleCalculatorUtil;
 import com.example.shared.dto.Candle;
-import com.example.shared.models.CachedCandle;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -38,19 +36,19 @@ public class CandlesLoaderProcessor {
      * Главный публичный метод для загрузки свечей с OKX и сохранения в БД
      */
     public int loadAndSaveCandles(String exchange, String ticker, String untilDate, String timeframe, String period) {
-        log.info("🚀 ЗАГРУЗКА СВЕЧЕЙ: Начинаем загрузку для тикера {} на бирже {}", ticker, exchange);
-        log.info("📊 ПАРАМЕТРЫ: untilDate={}, timeframe={}, period={}", untilDate, timeframe, period);
+        log.info("🚀 ЗАГРУЗКА СВЕЧЕЙ для {}: Начинаем загрузку на бирже {}", ticker, exchange);
+        log.info("📊 ПАРАМЕТРЫ для {}: untilDate={}, timeframe={}, period={}", ticker, untilDate, timeframe, period);
 
         try {
             // Шаг 1: Вычисляем количество свечей для загрузки
-            int candlesCount = calculateCandlesCount(timeframe, period);
-            log.info("📈 РАСЧЕТ: Необходимо загрузить {} свечей для периода {} с таймфреймом {}",
-                    candlesCount, period, timeframe);
+            int candlesCount = calculateCandlesCount(ticker, timeframe, period);
+            log.info("📈 РАСЧЕТ для {}: Необходимо загрузить {} свечей для периода {} с таймфреймом {}",
+                    ticker, candlesCount, period, timeframe);
 
             // Шаг 2: Загружаем свечи с OKX
             List<Candle> candles = loadCandlesFromOkxWithPagination(ticker, timeframe, candlesCount);
             if (candles == null || candles.isEmpty()) {
-                log.error("❌ ОШИБКА: Не удалось загрузить свечи для тикера {}", ticker);
+                log.error("❌ ОШИБКА для {}: Не удалось загрузить свечи", ticker);
                 return 0;
             }
 
@@ -61,30 +59,30 @@ public class CandlesLoaderProcessor {
                 // Определяем правильный порядок
                 long oldestTimestamp = Math.min(actualOldest, actualNewest);
                 long newestTimestamp = Math.max(actualOldest, actualNewest);
-                
-                log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН ЗАГРУЖЕННЫХ СВЕЧЕЙ: {} - {}", 
-                        formatTimestamp(oldestTimestamp), formatTimestamp(newestTimestamp));
-                
+
+                log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН ЗАГРУЖЕННЫХ СВЕЧЕЙ для {}: {} - {}",
+                        ticker, formatTimestamp(oldestTimestamp), formatTimestamp(newestTimestamp));
+
                 // Рассчитаем сколько дней покрывают загруженные данные
                 long daysCovered = (newestTimestamp - oldestTimestamp) / (24 * 60 * 60 * 1000L);
-                log.info("⏰ ПОКРЫТИЕ: Загруженные {} свечей покрывают {} дней", candles.size(), daysCovered);
+                log.info("⏰ ПОКРЫТИЕ для {}: Загруженные {} свечей покрывают {} дней", ticker, candles.size(), daysCovered);
             }
 
             // Шаг 4: Валидируем загруженные данные
             boolean isValid = validateLoadedCandles(candles, untilDate, timeframe, period, candlesCount);
             if (!isValid) {
-                log.error("❌ ВАЛИДАЦИЯ: Загруженные свечи не прошли валидацию для тикера {}", ticker);
+                log.error("❌ ВАЛИДАЦИЯ для {}: Загруженные свечи не прошли валидацию", ticker);
                 return 0;
             }
 
             // Шаг 5: Сохраняем свечи в БД
             int savedCount = saveCandlesToDatabase(ticker, timeframe, exchange, candles);
 
-            log.info("✅ ЗАГРУЗКА ЗАВЕРШЕНА: Сохранено {} свечей для тикера {} в БД", savedCount, ticker);
+            log.info("✅ ЗАГРУЗКА ЗАВЕРШЕНА для {}: Сохранено {} свечей в БД", ticker, savedCount);
             return savedCount;
 
         } catch (Exception e) {
-            log.error("💥 ОШИБКА ЗАГРУЗКИ: Ошибка при загрузке свечей для тикера {}: {}", ticker, e.getMessage(), e);
+            log.error("💥 ОШИБКА ЗАГРУЗКИ для {}: Ошибка при загрузке свечей: {}", ticker, e.getMessage(), e);
             return 0;
         }
     }
@@ -92,8 +90,8 @@ public class CandlesLoaderProcessor {
     /**
      * Вычисляет количество свечей исходя из таймфрейма и периода
      */
-    private int calculateCandlesCount(String timeframe, String period) {
-        return CandleCalculatorUtil.calculateCandlesCount(timeframe, period);
+    private int calculateCandlesCount(String ticker, String timeframe, String period) {
+        return CandleCalculatorUtil.calculateCandlesCount(ticker, timeframe, period);
     }
 
 
@@ -115,7 +113,7 @@ public class CandlesLoaderProcessor {
                 List<Candle> candles = okxFeignClient.getCandles(ticker, timeframe, candlesCount);
                 if (candles != null) {
                     allCandles.addAll(candles);
-                    log.info("✅ OKX ОТВЕТ: Получено {} свечей за 1 запрос", candles.size());
+                    log.info("✅ OKX ОТВЕТ для {}: Получено {} свечей за 1 запрос", ticker, candles.size());
                 }
                 return allCandles;
             }
@@ -151,12 +149,12 @@ public class CandlesLoaderProcessor {
                             batchCandles.size(), requestSize);
                     break;
                 }
-                
+
                 // КРИТИЧНО: Если новых свечей нет - API возвращает дубликаты
                 if (newCandles.isEmpty()) {
                     emptyRequestsCount++;
                     log.warn("⚠️ OKX ДУБЛИКАТЫ: API возвращает те же данные (попытка {}/3)", emptyRequestsCount);
-                    
+
                     // После 3 запросов без новых данных - завершаем
                     if (emptyRequestsCount >= 3) {
                         log.warn("⚠️ OKX ЗАВЕРШЕНИЕ: 3 запроса подряд без новых данных, завершаем загрузку");
@@ -310,8 +308,8 @@ public class CandlesLoaderProcessor {
      * Загружает свечи с OKX с корректной пагинацией через beforeTimestamp
      */
     private List<Candle> loadCandlesFromOkxWithPagination(String ticker, String timeframe, int candlesCount) {
-        log.info("📡 OKX ЗАПРОС: Загружаем {} свечей для тикера {} с таймфреймом {} (с пагинацией beforeTimestamp)",
-                candlesCount, ticker, timeframe);
+        log.info("📡 OKX ЗАПРОС для {}: Загружаем {} свечей с таймфреймом {} (с пагинацией beforeTimestamp)",
+                ticker, candlesCount, timeframe);
 
         final int MAX_CANDLES_PER_REQUEST = 300;
         List<Candle> allCandles = new ArrayList<>();
@@ -323,7 +321,7 @@ public class CandlesLoaderProcessor {
                 List<Candle> candles = okxFeignClient.getCandles(ticker, timeframe, candlesCount);
                 if (candles != null) {
                     allCandles.addAll(candles);
-                    log.info("✅ OKX ОТВЕТ: Получено {} свечей за 1 запрос", candles.size());
+                    log.info("✅ OKX ОТВЕТ для {}: Получено {} свечей за 1 запрос", ticker, candles.size());
                 }
                 return allCandles;
             }
@@ -336,8 +334,8 @@ public class CandlesLoaderProcessor {
                 int remainingCandles = candlesCount - loadedCount;
                 int requestSize = Math.min(MAX_CANDLES_PER_REQUEST, remainingCandles);
 
-                log.info("📡 OKX ЗАПРОС #{}: Загружаем {} свечей (загружено {}/{})",
-                        requestNumber, requestSize, loadedCount, candlesCount);
+                log.info("📡 OKX ЗАПРОС для {} #{}: Загружаем {} свечей (загружено {}/{})",
+                        ticker, requestNumber, requestSize, loadedCount, candlesCount);
 
                 List<Candle> batchCandles;
                 if (beforeTimestamp == null) {
@@ -349,20 +347,20 @@ public class CandlesLoaderProcessor {
                 }
 
                 if (batchCandles == null || batchCandles.isEmpty()) {
-                    log.info("ℹ️ OKX ЗАВЕРШЕНИЕ: Больше данных нет, завершаем загрузку на {} запросе", requestNumber);
+                    log.info("ℹ️ OKX ЗАВЕРШЕНИЕ для {}: Больше данных нет, завершаем загрузку на {} запросе", ticker, requestNumber);
                     break;
                 }
 
                 allCandles.addAll(batchCandles);
                 loadedCount += batchCandles.size();
 
-                log.info("✅ OKX ЗАПРОС #{}: Получено {} свечей (всего загружено {}/{})",
-                        requestNumber, batchCandles.size(), loadedCount, candlesCount);
+                log.info("✅ OKX ЗАПРОС для {} #{}: Получено {} свечей (всего загружено {}/{})",
+                        ticker, requestNumber, batchCandles.size(), loadedCount, candlesCount);
 
                 // Если получили меньше свечей чем запрашивали - значит данных больше нет
                 if (batchCandles.size() < requestSize) {
-                    log.info("ℹ️ OKX ЛИМИТ: Получено {} свечей из {}, исторические данные закончились",
-                            batchCandles.size(), requestSize);
+                    log.info("ℹ️ OKX ЛИМИТ для {}: Получено {} свечей из {}, исторические данные закончились",
+                            ticker, batchCandles.size(), requestSize);
                     break;
                 }
 
@@ -375,7 +373,7 @@ public class CandlesLoaderProcessor {
 
                 // Защита от бесконечного цикла
                 if (requestNumber > 200) {
-                    log.warn("⚠️ ЗАЩИТА: Достигнут лимит в 200 запросов, завершаем загрузку");
+                    log.warn("⚠️ ЗАЩИТА для {}: Достигнут лимит в 200 запросов, завершаем загрузку", ticker);
                     break;
                 }
 
@@ -383,17 +381,17 @@ public class CandlesLoaderProcessor {
                 Thread.sleep(120);
             }
 
-            log.info("✅ OKX ИТОГ: Загружено {} свечей за {} запросов для тикера {}",
-                    allCandles.size(), requestNumber - 1, ticker);
+            log.info("✅ OKX ИТОГ для {}: Загружено {} свечей за {} запросов",
+                    ticker, allCandles.size(), requestNumber - 1);
 
             return allCandles;
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("❌ OKX ПРЕРВАНО: Загрузка прервана для тикера {}", ticker);
+            log.error("❌ OKX ПРЕРВАНО для {}: Загрузка прервана", ticker);
             return allCandles; // Возвращаем что успели загрузить
         } catch (Exception e) {
-            log.error("❌ OKX ОШИБКА: Ошибка при загрузке свечей для тикера {}: {}", ticker, e.getMessage(), e);
+            log.error("❌ OKX ОШИБКА для {}: Ошибка при загрузке свечей: {}", ticker, e.getMessage(), e);
             return allCandles; // Возвращаем что успели загрузить
         }
     }

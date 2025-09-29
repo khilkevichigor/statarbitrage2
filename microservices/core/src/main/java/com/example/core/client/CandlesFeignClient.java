@@ -1,11 +1,12 @@
 package com.example.core.client;
 
 import com.example.shared.dto.Candle;
-import com.example.shared.dto.CandlesRequest;
 import com.example.shared.dto.ExtendedCandlesRequest;
-import com.example.shared.models.Settings;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,13 @@ public interface CandlesFeignClient {
      */
     @PostMapping("/api/candles/all-extended")
     Map<String, List<Candle>> getAllCandlesExtended(@RequestBody ExtendedCandlesRequest request);
+
+    /**
+     * Получить валидированные свечи из кэша для множества тикеров (новый улучшенный метод)
+     * Возвращает данные в том же формате что и getAllCandlesExtended для совместимости
+     */
+    @PostMapping("/api/candles-processor/validated-cache-extended")
+    Map<String, List<Candle>> getValidatedCandlesExtended(@RequestBody ExtendedCandlesRequest request);
 
     // ============= МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ КЭШЕМ СВЕЧЕЙ =============
 

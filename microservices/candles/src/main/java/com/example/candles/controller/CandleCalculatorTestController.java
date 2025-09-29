@@ -16,10 +16,10 @@ import java.util.Map;
 @RequestMapping("/api/candle-calculator")
 @Slf4j
 public class CandleCalculatorTestController {
-    
+
     /**
      * Тестирование расчета количества свечей для одной комбинации
-     * 
+     * <p>
      * GET /api/candle-calculator/test?timeframe=1H&period=месяц
      */
     @GetMapping("/test")
@@ -28,13 +28,13 @@ public class CandleCalculatorTestController {
             @RequestParam String period
     ) {
         log.info("🧮 ТЕСТ РАСЧЕТА: timeframe={}, period={}", timeframe, period);
-        
+
         try {
-            int candlesCount = CandleCalculatorUtil.calculateCandlesCount(timeframe, period);
+            int candlesCount = CandleCalculatorUtil.calculateCandlesCount("", timeframe, period);
             int allowedDifference = CandleCalculatorUtil.getAllowedDifference(timeframe, candlesCount);
             String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe);
             String details = CandleCalculatorUtil.getCalculationDetails(timeframe, period);
-            
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "timeframe", timeframe,
@@ -44,7 +44,7 @@ public class CandleCalculatorTestController {
                     "tolerance", tolerance,
                     "details", details
             ));
-            
+
         } catch (Exception e) {
             log.error("❌ ОШИБКА ТЕСТА: {}", e.getMessage(), e);
             return ResponseEntity.ok(Map.of(
@@ -53,30 +53,30 @@ public class CandleCalculatorTestController {
             ));
         }
     }
-    
+
     /**
      * Тестирование всех поддерживаемых комбинаций
-     * 
+     * <p>
      * GET /api/candle-calculator/test-all
      */
     @GetMapping("/test-all")
     public ResponseEntity<?> testAllCombinations() {
         log.info("🧮 ТЕСТ ВСЕХ КОМБИНАЦИЙ");
-        
+
         String[] timeframes = {"1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M"};
         String[] periods = {"день", "неделя", "месяц", "6 месяцев", "1 год", "2 года", "3 года"};
-        
+
         List<Map<String, Object>> results = new ArrayList<>();
         int successCount = 0;
         int errorCount = 0;
-        
+
         for (String timeframe : timeframes) {
             for (String period : periods) {
                 try {
-                    int candlesCount = CandleCalculatorUtil.calculateCandlesCount(timeframe, period);
+                    int candlesCount = CandleCalculatorUtil.calculateCandlesCount("", timeframe, period);
                     int allowedDifference = CandleCalculatorUtil.getAllowedDifference(timeframe, candlesCount);
                     String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe);
-                    
+
                     results.add(Map.of(
                             "timeframe", timeframe,
                             "period", period,
@@ -86,7 +86,7 @@ public class CandleCalculatorTestController {
                             "success", true
                     ));
                     successCount++;
-                    
+
                 } catch (Exception e) {
                     results.add(Map.of(
                             "timeframe", timeframe,
@@ -99,9 +99,9 @@ public class CandleCalculatorTestController {
                 }
             }
         }
-        
+
         log.info("✅ ТЕСТ ЗАВЕРШЕН: успешно {}, ошибок {}", successCount, errorCount);
-        
+
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "totalTests", timeframes.length * periods.length,
@@ -110,10 +110,10 @@ public class CandleCalculatorTestController {
                 "results", results
         ));
     }
-    
+
     /**
      * Тестирование валидации количества свечей
-     * 
+     * <p>
      * POST /api/candle-calculator/test-validation
      * Body: {"timeframe": "1H", "expectedCount": 720, "actualCount": 721}
      */
@@ -122,15 +122,15 @@ public class CandleCalculatorTestController {
         String timeframe = (String) request.get("timeframe");
         int expectedCount = (Integer) request.get("expectedCount");
         int actualCount = (Integer) request.get("actualCount");
-        
+
         log.info("🔍 ТЕСТ ВАЛИДАЦИИ: timeframe={}, expected={}, actual={}", timeframe, expectedCount, actualCount);
-        
+
         try {
             boolean isValid = CandleCalculatorUtil.isValidCandlesCount(timeframe, expectedCount, actualCount);
             int allowedDifference = CandleCalculatorUtil.getAllowedDifference(timeframe, expectedCount);
             int actualDifference = Math.abs(actualCount - expectedCount);
             String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe);
-            
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "timeframe", timeframe,
@@ -142,7 +142,7 @@ public class CandleCalculatorTestController {
                     "isValid", isValid,
                     "validation", isValid ? "✅ Прошла" : "❌ Провалена"
             ));
-            
+
         } catch (Exception e) {
             log.error("❌ ОШИБКА ВАЛИДАЦИИ: {}", e.getMessage(), e);
             return ResponseEntity.ok(Map.of(
@@ -151,10 +151,10 @@ public class CandleCalculatorTestController {
             ));
         }
     }
-    
+
     /**
      * Показать примеры использования
-     * 
+     * <p>
      * GET /api/candle-calculator/examples
      */
     @GetMapping("/examples")
@@ -168,7 +168,7 @@ public class CandleCalculatorTestController {
                         "tolerance", "±24 (1 день)"
                 ),
                 Map.of(
-                        "description", "1 день за год", 
+                        "description", "1 день за год",
                         "timeframe", "1D",
                         "period", "1 год",
                         "expectedCandles", "365 дней",
@@ -176,7 +176,7 @@ public class CandleCalculatorTestController {
                 ),
                 Map.of(
                         "description", "5 минут за неделю",
-                        "timeframe", "5m", 
+                        "timeframe", "5m",
                         "period", "неделя",
                         "expectedCandles", "2016 (7 * 24 * 12)",
                         "tolerance", "±288 (1 день)"
@@ -184,12 +184,12 @@ public class CandleCalculatorTestController {
                 Map.of(
                         "description", "1 неделя за 2 года",
                         "timeframe", "1W",
-                        "period", "2 года", 
+                        "period", "2 года",
                         "expectedCandles", "104 (2 * 52)",
                         "tolerance", "точное соответствие"
                 )
         );
-        
+
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "examples", examples,
