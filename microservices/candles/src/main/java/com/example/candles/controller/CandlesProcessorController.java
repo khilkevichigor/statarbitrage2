@@ -266,6 +266,17 @@ public class CandlesProcessorController {
             log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
                     totalCandlesCount.get(), successfulTickers.get(), tickersToProcess.size());
 
+            // Валидация консистентности данных между тикерами
+            ValidationResult consistencyResult = validateDataConsistencyBetweenTickers(result);
+            if (!consistencyResult.isValid) {
+                log.error("❌ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: {}", consistencyResult.reason);
+                return ResponseEntity.ok(Map.of(
+                        "success", false,
+                        "message", "Данные не прошли валидацию консистентности: " + consistencyResult.reason,
+                        "candlesCount", 0
+                ));
+            }
+
             // Для совместимости с существующим API возвращаем данные в том же формате
             // что и /all-extended: просто Map<String, List<Candle>>
             return ResponseEntity.ok(result);
@@ -285,5 +296,116 @@ public class CandlesProcessorController {
      */
     private String generateUntilDate() {
         return LocalDate.now().atStartOfDay() + ":00Z";
+    }
+
+    /**
+     * Валидирует консистентность данных между тикерами
+     * Проверяет, что у всех тикеров одинаковые диапазоны дат и количество свечей
+     */
+    private ValidationResult validateDataConsistencyBetweenTickers(Map<String, List<Candle>> tickerData) {
+        log.info("🔍 ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Проверяем {} тикеров на соответствие данных", tickerData.size());
+
+        if (tickerData.isEmpty()) {
+            return new ValidationResult(false, "Нет данных для валидации");
+        }
+
+        // Переменные для хранения эталонных значений (первого тикера)
+        String referenceTicker = null;
+        int referenceCount = -1;
+        long referenceFirstTimestamp = -1;
+        long referenceLastTimestamp = -1;
+
+        for (Map.Entry<String, List<Candle>> entry : tickerData.entrySet()) {
+            String ticker = entry.getKey();
+            List<Candle> candles = entry.getValue();
+
+            if (candles.isEmpty()) {
+                log.warn("⚠️ ВАЛИДАЦИЯ: Тикер {} имеет пустой список свечей", ticker);
+                continue;
+            }
+
+            int currentCount = candles.size();
+            long currentFirstTimestamp = candles.get(0).getTimestamp();
+            long currentLastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+
+            log.info("📊 ВАЛИДАЦИЯ: Тикер {}: {} свечей, диапазон {} - {}", 
+                    ticker, currentCount, 
+                    formatTimestamp(currentFirstTimestamp), 
+                    formatTimestamp(currentLastTimestamp));
+
+            // Устанавливаем эталонные значения с первого тикера
+            if (referenceTicker == null) {
+                referenceTicker = ticker;
+                referenceCount = currentCount;
+                referenceFirstTimestamp = currentFirstTimestamp;
+                referenceLastTimestamp = currentLastTimestamp;
+                log.info("🎯 ЭТАЛОН: Тикер {} установлен как эталон: {} свечей, диапазон {} - {}", 
+                        referenceTicker, referenceCount,
+                        formatTimestamp(referenceFirstTimestamp), 
+                        formatTimestamp(referenceLastTimestamp));
+                continue;
+            }
+
+            // Проверяем количество свечей
+            if (currentCount != referenceCount) {
+                String reason = String.format("Несоответствие количества свечей: %s имеет %d свечей, а эталон %s имеет %d свечей",
+                        ticker, currentCount, referenceTicker, referenceCount);
+                log.error("❌ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
+                return new ValidationResult(false, reason);
+            }
+
+            // Проверяем первую свечу
+            if (currentFirstTimestamp != referenceFirstTimestamp) {
+                String reason = String.format("Несоответствие первой свечи: %s начинается с %s, а эталон %s с %s",
+                        ticker, formatTimestamp(currentFirstTimestamp), 
+                        referenceTicker, formatTimestamp(referenceFirstTimestamp));
+                log.error("❌ ВАЛИДАЦИЯ ПЕРВОЙ СВЕЧИ: {}", reason);
+                return new ValidationResult(false, reason);
+            }
+
+            // Проверяем последнюю свечу
+            if (currentLastTimestamp != referenceLastTimestamp) {
+                String reason = String.format("Несоответствие последней свечи: %s заканчивается на %s, а эталон %s на %s",
+                        ticker, formatTimestamp(currentLastTimestamp), 
+                        referenceTicker, formatTimestamp(referenceLastTimestamp));
+                log.error("❌ ВАЛИДАЦИЯ ПОСЛЕДНЕЙ СВЕЧИ: {}", reason);
+                return new ValidationResult(false, reason);
+            }
+
+            log.info("✅ ВАЛИДАЦИЯ: Тикер {} соответствует эталону", ticker);
+        }
+
+        log.info("✅ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Все {} тикеров имеют идентичные диапазоны и количество свечей", tickerData.size());
+        return new ValidationResult(true, "Все тикеры имеют одинаковые диапазоны дат и количество свечей");
+    }
+
+    /**
+     * Форматирует timestamp в читаемый вид
+     */
+    private String formatTimestamp(long timestamp) {
+        try {
+            if (timestamp > 9999999999L) {
+                // Миллисекунды
+                return java.time.Instant.ofEpochMilli(timestamp).toString();
+            } else {
+                // Секунды
+                return java.time.Instant.ofEpochSecond(timestamp).toString();
+            }
+        } catch (Exception e) {
+            return String.valueOf(timestamp);
+        }
+    }
+
+    /**
+     * Класс для хранения результата валидации
+     */
+    private static class ValidationResult {
+        final boolean isValid;
+        final String reason;
+
+        ValidationResult(boolean isValid, String reason) {
+            this.isValid = isValid;
+            this.reason = reason;
+        }
     }
 }
