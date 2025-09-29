@@ -45,8 +45,8 @@ public class CandlesLoaderProcessor {
             log.info("📈 РАСЧЕТ для {}: Необходимо загрузить {} свечей для периода {} с таймфреймом {}",
                     ticker, candlesCount, period, timeframe);
 
-            // Шаг 2: Загружаем свечи с OKX
-            List<Candle> candles = loadCandlesFromOkxWithPagination(ticker, timeframe, candlesCount);
+            // Шаг 2: Загружаем свечи с OKX от untilDate назад
+            List<Candle> candles = loadCandlesFromOkxWithPagination(ticker, timeframe, candlesCount, untilDate);
             if (candles == null || candles.isEmpty()) {
                 log.error("❌ ОШИБКА для {}: Не удалось загрузить свечи", ticker);
                 return 0;
@@ -145,7 +145,7 @@ public class CandlesLoaderProcessor {
 
                 // Если получили меньше свечей чем запрашивали - значит данных больше нет
                 if (batchCandles.size() < requestSize) {
-                    log.info("ℹ️ OKX ЛИМИТ: Получено {} свечей из {}, исторические данные закончились",
+                    log.info("i️ OKX ЛИМИТ: Получено {} свечей из {}, исторические данные закончились",
                             batchCandles.size(), requestSize);
                     break;
                 }
@@ -307,26 +307,25 @@ public class CandlesLoaderProcessor {
     /**
      * Загружает свечи с OKX с корректной пагинацией через beforeTimestamp
      */
-    private List<Candle> loadCandlesFromOkxWithPagination(String ticker, String timeframe, int candlesCount) {
-        log.info("📡 OKX ЗАПРОС для {}: Загружаем {} свечей с таймфреймом {} (с пагинацией beforeTimestamp)",
-                ticker, candlesCount, timeframe);
+    private List<Candle> loadCandlesFromOkxWithPagination(String ticker, String timeframe, int candlesCount, String untilDate) {
+        log.info("📡 OKX ЗАПРОС для {}: Загружаем {} свечей с таймфреймом {} ДО даты {} (с пагинацией beforeTimestamp)",
+                ticker, candlesCount, timeframe, untilDate);
 
         final int MAX_CANDLES_PER_REQUEST = 300;
         List<Candle> allCandles = new ArrayList<>();
-        Long beforeTimestamp = null; // Для пагинации
+        
+        // Парсим untilDate и используем его как начальную точку для пагинации
+        Long beforeTimestamp;
+        try {
+            beforeTimestamp = Instant.parse(untilDate).toEpochMilli();
+            log.info("🎯 OKX НАЧАЛЬНАЯ ТОЧКА для {}: Загружаем данные назад от {}", ticker, untilDate);
+        } catch (Exception e) {
+            log.error("❌ ОШИБКА ПАРСИНГА untilDate {}: {}, используем текущее время", untilDate, e.getMessage());
+            beforeTimestamp = System.currentTimeMillis();
+        }
 
         try {
-            // Если нужно меньше 300 свечей - делаем один запрос
-            if (candlesCount <= MAX_CANDLES_PER_REQUEST) {
-                List<Candle> candles = okxFeignClient.getCandles(ticker, timeframe, candlesCount);
-                if (candles != null) {
-                    allCandles.addAll(candles);
-                    log.info("✅ OKX ОТВЕТ для {}: Получено {} свечей за 1 запрос", ticker, candles.size());
-                }
-                return allCandles;
-            }
-
-            // Для больших объемов - пагинация с beforeTimestamp
+            // Для всех объемов используем пагинацию с beforeTimestamp от untilDate
             int loadedCount = 0;
             int requestNumber = 1;
 
@@ -334,20 +333,14 @@ public class CandlesLoaderProcessor {
                 int remainingCandles = candlesCount - loadedCount;
                 int requestSize = Math.min(MAX_CANDLES_PER_REQUEST, remainingCandles);
 
-                log.info("📡 OKX ЗАПРОС для {} #{}: Загружаем {} свечей (загружено {}/{})",
-                        ticker, requestNumber, requestSize, loadedCount, candlesCount);
+                log.info("📡 OKX ЗАПРОС для {} #{}: Загружаем {} свечей ДО {} (загружено {}/{})",
+                        ticker, requestNumber, requestSize, formatTimestamp(beforeTimestamp), loadedCount, candlesCount);
 
-                List<Candle> batchCandles;
-                if (beforeTimestamp == null) {
-                    // Первый запрос - получаем последние свечи
-                    batchCandles = okxFeignClient.getCandles(ticker, timeframe, requestSize);
-                } else {
-                    // Последующие запросы - используем пагинацию
-                    batchCandles = okxFeignClient.getCandlesBefore(ticker, timeframe, requestSize, beforeTimestamp);
-                }
+                // Всегда используем getCandlesBefore с beforeTimestamp от untilDate
+                List<Candle> batchCandles = okxFeignClient.getCandlesBefore(ticker, timeframe, requestSize, beforeTimestamp);
 
                 if (batchCandles == null || batchCandles.isEmpty()) {
-                    log.info("ℹ️ OKX ЗАВЕРШЕНИЕ для {}: Больше данных нет, завершаем загрузку на {} запросе", ticker, requestNumber);
+                    log.info("i️ OKX ЗАВЕРШЕНИЕ для {}: Больше данных нет, завершаем загрузку на {} запросе", ticker, requestNumber);
                     break;
                 }
 
@@ -359,7 +352,7 @@ public class CandlesLoaderProcessor {
 
                 // Если получили меньше свечей чем запрашивали - значит данных больше нет
                 if (batchCandles.size() < requestSize) {
-                    log.info("ℹ️ OKX ЛИМИТ для {}: Получено {} свечей из {}, исторические данные закончились",
+                    log.info("i️ OKX ЛИМИТ для {}: Получено {} свечей из {}, исторические данные закончились",
                             ticker, batchCandles.size(), requestSize);
                     break;
                 }
@@ -371,6 +364,8 @@ public class CandlesLoaderProcessor {
                         .orElseThrow(() -> new RuntimeException("Ошибка получения таймштампа самой старой свечи для получения предыдущих 300 свечей"));
                 requestNumber++;
 
+                log.info("🔄 OKX ПАГИНАЦИЯ для {}: Следующий запрос будет ДО {}", ticker, formatTimestamp(beforeTimestamp));
+
                 // Защита от бесконечного цикла
                 if (requestNumber > 200) {
                     log.warn("⚠️ ЗАЩИТА для {}: Достигнут лимит в 200 запросов, завершаем загрузку", ticker);
@@ -381,8 +376,8 @@ public class CandlesLoaderProcessor {
                 Thread.sleep(120);
             }
 
-            log.info("✅ OKX ИТОГ для {}: Загружено {} свечей за {} запросов",
-                    ticker, allCandles.size(), requestNumber - 1);
+            log.info("✅ OKX ИТОГ для {}: Загружено {} свечей за {} запросов от untilDate {}",
+                    ticker, allCandles.size(), requestNumber - 1, untilDate);
 
             return allCandles;
 
