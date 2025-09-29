@@ -377,14 +377,57 @@ public class CandlesProcessorController {
                 .max()
                 .orElse(0);
                 
-        log.info("🔍 АНАЛИЗ: Максимальное количество свечей среди тикеров: {}", maxCandles);
+        // Находим самый широкий временной диапазон (самую старую первую свечу и самую новую последнюю свечу)
+        long oldestFirstTimestamp = Long.MAX_VALUE;
+        long newestLastTimestamp = Long.MIN_VALUE;
         
-        // Возвращаем тикеры с количеством свечей меньше максимального
+        for (List<Candle> candles : tickerData.values()) {
+            if (!candles.isEmpty()) {
+                long firstTimestamp = candles.get(0).getTimestamp();
+                long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+                oldestFirstTimestamp = Math.min(oldestFirstTimestamp, firstTimestamp);
+                newestLastTimestamp = Math.max(newestLastTimestamp, lastTimestamp);
+            }
+        }
+        
+        // Делаем переменные effectively final для использования в lambda
+        final long finalOldestFirstTimestamp = oldestFirstTimestamp;
+        final long finalNewestLastTimestamp = newestLastTimestamp;
+        
+        log.info("🔍 АНАЛИЗ: Максимальное количество свечей: {}", maxCandles);
+        log.info("🔍 АНАЛИЗ: Эталонный диапазон: {} - {}", 
+                formatTimestamp(finalOldestFirstTimestamp), formatTimestamp(finalNewestLastTimestamp));
+        
+        // Возвращаем тикеры, которым нужна догрузка (меньше свечей ИЛИ неполный временной диапазон)
         return tickerData.entrySet().stream()
-                .filter(entry -> entry.getValue().size() < maxCandles)
+                .filter(entry -> {
+                    List<Candle> candles = entry.getValue();
+                    if (candles.isEmpty()) return true;
+                    
+                    // Проверяем количество свечей
+                    boolean needsMoreCandles = candles.size() < maxCandles;
+                    
+                    // Проверяем временной диапазон
+                    long firstTimestamp = candles.get(0).getTimestamp();
+                    long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+                    boolean needsOlderData = firstTimestamp > finalOldestFirstTimestamp;
+                    boolean needsNewerData = lastTimestamp < finalNewestLastTimestamp;
+                    
+                    return needsMoreCandles || needsOlderData || needsNewerData;
+                })
                 .map(Map.Entry::getKey)
-                .peek(ticker -> log.info("🎯 ДОГРУЗКА НУЖНА: {} ({} свечей < {} макс)", 
-                        ticker, tickerData.get(ticker).size(), maxCandles))
+                .peek(ticker -> {
+                    List<Candle> candles = tickerData.get(ticker);
+                    if (!candles.isEmpty()) {
+                        long firstTimestamp = candles.get(0).getTimestamp();
+                        long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+                        log.info("🎯 ДОГРУЗКА НУЖНА: {} ({} свечей, диапазон {} - {})", 
+                                ticker, candles.size(), 
+                                formatTimestamp(firstTimestamp), formatTimestamp(lastTimestamp));
+                    } else {
+                        log.info("🎯 ДОГРУЗКА НУЖНА: {} (нет данных)", ticker);
+                    }
+                })
                 .toList();
     }
 
