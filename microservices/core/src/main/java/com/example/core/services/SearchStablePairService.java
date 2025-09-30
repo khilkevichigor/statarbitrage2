@@ -269,7 +269,7 @@ public class SearchStablePairService {
             }
 
             // Всегда используем расширенный запрос к candles микросервису с пагинацией
-            return getCandlesExtended(settings, timeframe, candleLimit, searchTickers, searchSettings);
+            return getCandlesExtended(settings, timeframe, candleLimit, searchTickers, period, searchSettings);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
@@ -277,7 +277,7 @@ public class SearchStablePairService {
         }
     }
 
-    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, Set<String> searchTickers, Map<String, Object> searchSettings) {
+    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, Set<String> searchTickers, String period, Map<String, Object> searchSettings) {
         try {
             if (searchTickers != null && !searchTickers.isEmpty()) {
                 log.info("📊 Расширенный запрос {} свечей для таймфрейма {} через candles микросервис с фильтром по {} тикерам",
@@ -296,10 +296,10 @@ public class SearchStablePairService {
                     .minVolume(settings.getMinVolume())
                     .useMinVolumeFilter(settings.isUseMinVolumeFilter())
                     .minimumLotBlacklist(settings.getMinimumLotBlacklist())
-                    .tickers(searchTickers != null && !searchTickers.isEmpty() ?
-                            searchTickers.stream().toList() : null) // Передаем полные названия инструментов
+                    .tickers(searchTickers != null && !searchTickers.isEmpty() ? searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(null) // Никого не исключаем
                     .useCache(useCache != null ? useCache : true) // По умолчанию используем кэш
+                    .period(period)
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getValidatedCandlesExtended(request);
@@ -320,7 +320,7 @@ public class SearchStablePairService {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при расширенном получении свечей: {}", e.getMessage(), e);
-            // Fallback к расширенному методу с ограничением //todo впилить
+            // Fallback к расширенному методу с ограничением //todo выпилить
             log.warn("🔄 Используем fallback к расширенному методу с ограничением 300 свечей");
             ExtendedCandlesRequest fallbackRequest = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
