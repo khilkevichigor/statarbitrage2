@@ -302,7 +302,7 @@ public class SearchStablePairService {
                     .useCache(useCache != null ? useCache : true) // По умолчанию используем кэш
                     .build();
 
-            Map<String, List<Candle>> result = candlesFeignClient.getAllCandlesExtended(request);
+            Map<String, List<Candle>> result = candlesFeignClient.getValidatedCandlesExtended(request);
 
             if (result != null && !result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
@@ -332,7 +332,7 @@ public class SearchStablePairService {
                             searchTickers.stream().toList() : null) // Передаем полные названия и в fallback
                     .excludeTickers(null)
                     .build();
-            return candlesFeignClient.getAllCandlesExtended(fallbackRequest);
+            return candlesFeignClient.getValidatedCandlesExtended(fallbackRequest);
         }
     }
 

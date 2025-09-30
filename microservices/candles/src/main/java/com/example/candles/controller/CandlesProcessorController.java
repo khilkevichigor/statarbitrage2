@@ -1,5 +1,6 @@
 package com.example.candles.controller;
 
+import com.example.candles.client.OkxFeignClient;
 import com.example.candles.service.CacheValidatedCandlesProcessor;
 import com.example.candles.service.CandlesLoaderProcessor;
 import com.example.shared.dto.Candle;
@@ -10,10 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Контроллер для тестирования новых сервисов-процессоров
@@ -26,6 +30,7 @@ public class CandlesProcessorController {
 
     private final CacheValidatedCandlesProcessor cacheValidatedCandlesProcessor;
     private final CandlesLoaderProcessor candlesLoaderProcessor;
+    private final OkxFeignClient okxFeignClient;
 
     //todo первый рабочий эндпоинт с этим функционалом! самостоятельно не используется
     /**
@@ -178,8 +183,36 @@ public class CandlesProcessorController {
 
             log.info("📅 ДАТА ДО: {}", untilDate);
 
+            // Получаем тикеры: используем переданный список или все доступные
+            List<String> tickersToProcess;
+            final List<String> originalRequestedTickers; // Сохраняем оригинальный список для фильтрации результата
+
+            if (request.getTickers() != null && !request.getTickers().isEmpty()) {
+                log.info("📝 Используем переданный список из {} тикеров", request.getTickers().size());
+                originalRequestedTickers = new ArrayList<>(request.getTickers()); // Сохраняем оригинальный список
+                tickersToProcess = new ArrayList<>(request.getTickers());
+
+                // Добавляем BTC-USDT-SWAP как эталон если его нет в списке
+                if (!tickersToProcess.contains("BTC-USDT-SWAP")) {
+                    tickersToProcess.add("BTC-USDT-SWAP");
+                    log.info("🎯 Добавлен BTC-USDT-SWAP как эталон для валидации (всего {} тикеров для загрузки)", tickersToProcess.size());
+                }
+            } else {
+                log.info("🌐 Получаем все доступные тикеры");
+                originalRequestedTickers = null; // При загрузке всех тикеров фильтрация не нужна
+                tickersToProcess = okxFeignClient.getAllSwapTickers(true);
+
+                // Исключаем тикеры из excludeTickers если они указаны
+                if (request.getExcludeTickers() != null && !request.getExcludeTickers().isEmpty()) {
+                    log.info("❌ Исключаем {} тикеров из результата", request.getExcludeTickers().size());
+                    tickersToProcess = tickersToProcess.stream()
+                            .filter(ticker -> !request.getExcludeTickers().contains(ticker))
+                            .toList();
+                    log.info("✅ После исключения осталось {} тикеров", tickersToProcess.size());
+                }
+            }
+
             // Определяем список тикеров для обработки
-            List<String> tickersToProcess = request.getTickers();
             if (tickersToProcess == null || tickersToProcess.isEmpty()) {
                 log.error("❌ API ОШИБКА: Список тикеров не может быть пустым для extended запроса");
                 return ResponseEntity.badRequest().body(Map.of(
@@ -201,15 +234,16 @@ public class CandlesProcessorController {
             ExecutorService executor = Executors.newFixedThreadPool(Math.min(5, tickersToProcess.size()));
             try {
                 // Создаем задачи для каждого тикера
-                List<Future<Void>> futures = new java.util.ArrayList<>();
+                List<Future<Void>> futures = new ArrayList<>();
 
                 for (String ticker : tickersToProcess) {
+                    List<String> finalTickersToProcess = tickersToProcess;
                     Future<Void> future = executor.submit(() -> {
                         int tickerNumber = processedTickers.incrementAndGet();
                         String threadName = Thread.currentThread().getName();
 
                         log.info("🔄 [{}/{}] Поток {}: Обрабатываем тикер {}",
-                                tickerNumber, tickersToProcess.size(), threadName, ticker);
+                                tickerNumber, finalTickersToProcess.size(), threadName, ticker);
 
                         try {
                             long startTime = System.currentTimeMillis();
@@ -224,14 +258,14 @@ public class CandlesProcessorController {
                                 totalCandlesCount.addAndGet(candles.size());
                                 successfulTickers.incrementAndGet();
                                 log.info("✅ [{}/{}] Поток {}: Получено {} свечей для тикера {} за {} мс",
-                                        tickerNumber, tickersToProcess.size(), threadName, candles.size(), ticker, duration);
+                                        tickerNumber, finalTickersToProcess.size(), threadName, candles.size(), ticker, duration);
                             } else {
                                 log.warn("⚠️ [{}/{}] Поток {}: Пустой результат для тикера {} за {} мс",
-                                        tickerNumber, tickersToProcess.size(), threadName, ticker, duration);
+                                        tickerNumber, finalTickersToProcess.size(), threadName, ticker, duration);
                             }
                         } catch (Exception e) {
                             log.error("❌ [{}/{}] Поток {}: Ошибка при получении свечей для тикера {}: {}",
-                                    tickerNumber, tickersToProcess.size(), threadName, ticker, e.getMessage());
+                                    tickerNumber, finalTickersToProcess.size(), threadName, ticker, e.getMessage());
                         }
 
                         return null;
@@ -264,6 +298,29 @@ public class CandlesProcessorController {
                 if (!executor.isShutdown()) {
                     executor.shutdownNow();
                 }
+            }
+
+            Map<String, List<Candle>> filteredResult;
+            if (result != null && !result.isEmpty()) {
+                int totalCandles = result.values().stream().mapToInt(List::size).sum();
+                int avgCandles = totalCandles / result.size();
+                log.info("💾 Запрос ИЗ КЭША завершен! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
+                        result.size(), avgCandles, totalCandles);
+
+                // Если были переданы конкретные тикеры, возвращаем только их
+                if (originalRequestedTickers != null) {
+                    filteredResult = result.entrySet().stream()
+                            .filter(entry -> originalRequestedTickers.contains(entry.getKey()))
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    Map.Entry::getValue
+                            ));
+
+                    log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
+                            filteredResult.size(), result.size());
+                }
+            } else {
+                log.warn("⚠️ Кэш не содержит данных - проверьте работу предзагрузки!");
             }
 
             log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",

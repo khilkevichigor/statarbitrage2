@@ -92,7 +92,7 @@ public class StartNewTradeProcessor {
                 .excludeTickers(null) // Никого не исключаем
                 .build();
 
-        Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandlesExtended(request);
+        Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCandlesExtended(request);
         return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(tradingPair, settings, candlesMap);
     }
 

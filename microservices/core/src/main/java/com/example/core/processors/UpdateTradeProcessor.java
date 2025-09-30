@@ -202,7 +202,7 @@ public class UpdateTradeProcessor {
                 .build();
 
         // Получаем все свечи через расширенный эндпоинт с пагинацией
-        Map<String, List<Candle>> allCandlesMap = candlesFeignClient.getAllCandlesExtended(extendedRequest);
+        Map<String, List<Candle>> allCandlesMap = candlesFeignClient.getValidatedCandlesExtended(extendedRequest);
 
         // Проверяем, что получены данные свечей
         if (allCandlesMap == null || allCandlesMap.isEmpty()) {

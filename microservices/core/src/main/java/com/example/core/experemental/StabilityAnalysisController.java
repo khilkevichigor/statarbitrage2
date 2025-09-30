@@ -104,7 +104,7 @@ public class StabilityAnalysisController {
                     .build();
 
             long startTime = System.currentTimeMillis();
-            Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandlesExtended(request);
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCandlesExtended(request);
             long elapsed = System.currentTimeMillis() - startTime;
 
             if (candlesMap == null || candlesMap.isEmpty()) {

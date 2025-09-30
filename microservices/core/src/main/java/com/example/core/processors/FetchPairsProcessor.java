@@ -98,7 +98,7 @@ public class FetchPairsProcessor {
 
         try {
             log.info("⏳ Отправка запроса к candles микросервису...");
-            Map<String, List<Candle>> map = candlesFeignClient.getAllCandlesExtended(request);
+            Map<String, List<Candle>> map = candlesFeignClient.getValidatedCandlesExtended(request);
 
             double elapsed = (System.currentTimeMillis() - start) / 1000.0;
             if (map != null && !map.isEmpty()) {

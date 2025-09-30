@@ -106,7 +106,7 @@ public class PairService {
                     .build();
 
             // Получаем свечи для пары
-            Map<String, List<Candle>> candlesMap = candlesFeignClient.getAllCandlesExtended(extendedRequest);
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCandlesExtended(extendedRequest);
 
             if (candlesMap == null || candlesMap.isEmpty()) {
                 log.warn("⚠️ Не удалось получить данные свечей для пары {}", stablePair.getPairName());
