@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class CandleCacheScheduler {
 
                 // Проверяем есть ли данные в кэше
                 @SuppressWarnings("unchecked")
-                var exchangeStats = (java.util.Map<String, java.util.Map<String, Long>>) stats.get("byExchange");
+                var exchangeStats = (Map<String, Map<String, Long>>) stats.get("byExchange");
 
                 boolean hasCachedData = exchangeStats != null &&
                         exchangeStats.containsKey(defaultExchange) &&
