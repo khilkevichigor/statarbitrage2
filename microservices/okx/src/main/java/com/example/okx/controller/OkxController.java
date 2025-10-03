@@ -75,7 +75,17 @@ public class OkxController {
             @RequestParam(defaultValue = "1000000") double minQuoteVolume,
             @RequestParam(defaultValue = "false") boolean sorted
     ) {
+        log.info("Получен реквест timeFrame={}, limit={}, minQuoteVolume={}, sorted={}", timeFrame, limit, minQuoteVolume, sorted);
         return okxClient.getValidTickersV2(symbols, timeFrame, limit, minQuoteVolume, sorted);
+    }
+
+    @PostMapping("/tickers/valid-by-volume")
+    public List<String> getValidTickersByVolume(
+            @RequestParam(defaultValue = "1000000") double minQuoteVolume,
+            @RequestParam(defaultValue = "false") boolean sorted
+    ) {
+        log.info("Получен реквест minQuoteVolume={}, sorted={}", minQuoteVolume, sorted);
+        return okxClient.getValidTickersByVolume(minQuoteVolume, sorted);
     }
 
     /**
@@ -103,17 +113,4 @@ public class OkxController {
     ) {
         return okxClient.getCandlesWithBefore(symbol, timeFrame, limit, before);
     }
-
-    /**
-     * Получить тикер по символу (JsonArray) - для совместимости
-     */
-//    @GetMapping("/ticker/raw")
-//    public JsonArray getTickerRaw(@RequestParam String symbol) {
-//        try {
-//            return okxClient.getTicker(symbol);
-//        } catch (Exception e) {
-//            log.error("❌ Ошибка при получении raw тикера для {}: {}", symbol, e.getMessage(), e);
-//            throw new RuntimeException("Ошибка при получении тикера для " + symbol + ": " + e.getMessage(), e);
-//        }
-//    }
 }

@@ -191,23 +191,23 @@ public class SearchStablePairService {
             } else {
                 // Формируем детальное описание только для различающихся параметров
                 List<String> differences = new ArrayList<>();
-                
+
                 if (candles.size() != referenceCount) {
                     differences.add(String.format("свечей:%d≠%d", candles.size(), referenceCount));
                 }
                 if (candles.get(0).getTimestamp() != referenceStart) {
-                    differences.add(String.format("начало:%s≠%s", 
-                        formatTimestamp(candles.get(0).getTimestamp()), formatTimestamp(referenceStart)));
+                    differences.add(String.format("начало:%s≠%s",
+                            formatTimestamp(candles.get(0).getTimestamp()), formatTimestamp(referenceStart)));
                 }
                 if (candles.get(candles.size() - 1).getTimestamp() != referenceEnd) {
-                    differences.add(String.format("конец:%s≠%s", 
-                        formatTimestamp(candles.get(candles.size() - 1).getTimestamp()), formatTimestamp(referenceEnd)));
+                    differences.add(String.format("конец:%s≠%s",
+                            formatTimestamp(candles.get(candles.size() - 1).getTimestamp()), formatTimestamp(referenceEnd)));
                 }
-                
-                String reason = !differences.isEmpty() ? 
-                    "(" + String.join(", ", differences) + ")" : 
-                    "(неизвестная причина)";
-                    
+
+                String reason = !differences.isEmpty() ?
+                        "(" + String.join(", ", differences) + ")" :
+                        "(неизвестная причина)";
+
                 invalidTickers.add(ticker + reason);
             }
         }
@@ -287,18 +287,12 @@ public class SearchStablePairService {
                         candleLimit, timeframe);
             }
 
-            // Извлекаем параметр useCache из searchSettings
-            Boolean useCache = searchSettings != null ? (Boolean) searchSettings.get("useCache") : null;
-
             ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
                     .minVolume(settings.getMinVolume())
-//                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-//                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ? searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(Arrays.asList(settings.getMinimumLotBlacklist().split(",")))
-//                    .useCache(useCache != null ? useCache : true) // По умолчанию используем кэш
                     .period(period)
                     .build();
 

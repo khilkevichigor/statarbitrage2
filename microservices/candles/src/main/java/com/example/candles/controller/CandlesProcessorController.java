@@ -51,6 +51,7 @@ public class CandlesProcessorController {
             String timeframe = request.getTimeframe() != null ? request.getTimeframe() : "1H";
             String period = request.getPeriod() != null ? request.getPeriod() : "1 год";
             String untilDate = request.getUntilDate() != null ? request.getUntilDate() : generateUntilDate();
+            double minVolume = request.getMinVolume() != 0.0 ? request.getMinVolume() * 1_000_000.0 : 10_000_000.0;
 
             log.info("📅 ДАТА ДО: {}", untilDate);
 
@@ -59,6 +60,7 @@ public class CandlesProcessorController {
             final List<String> originalRequestedTickers; // Сохраняем оригинальный список для фильтрации результата
 
             boolean isStandardTickerBtcAdded = false;
+
             if (request.getTickers() != null && !request.getTickers().isEmpty()) {
                 log.info("📝 Используем переданный список из {} тикеров", request.getTickers().size());
                 originalRequestedTickers = new ArrayList<>(request.getTickers()); // Сохраняем оригинальный список
@@ -71,9 +73,12 @@ public class CandlesProcessorController {
                     log.info("🎯 Добавлен {} как эталон для валидации (всего {} тикеров для загрузки)", STANDARD_TICKER_BTC, tickersToProcess.size());
                 }
             } else {
-                log.info("🌐 Получаем все доступные тикеры");
+                log.info("🌐 Получаем тикеры...");
+
                 originalRequestedTickers = null; // При загрузке всех тикеров фильтрация не нужна
-                tickersToProcess = okxFeignClient.getAllSwapTickers(true);
+
+                tickersToProcess = okxFeignClient.getValidTickersByVolume(minVolume, true);
+                log.info("Получено валидных тикеров {}, minVolume={}", tickersToProcess.size(), minVolume);
 
                 // Исключаем тикеры из excludeTickers если они указаны
                 if (request.getExcludeTickers() != null && !request.getExcludeTickers().isEmpty()) {

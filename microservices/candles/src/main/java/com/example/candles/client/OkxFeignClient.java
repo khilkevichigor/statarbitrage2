@@ -44,6 +44,12 @@ public interface OkxFeignClient {
             @RequestParam(defaultValue = "false") boolean sorted
     );
 
+    @PostMapping("/api/okx/tickers/valid-by-volume")
+    List<String> getValidTickersByVolume(
+            @RequestParam(defaultValue = "1000000") double minQuoteVolume,
+            @RequestParam(defaultValue = "false") boolean sorted
+    );
+
     /**
      * Получить исторические свечи с параметром before для пагинации
      */

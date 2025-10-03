@@ -405,11 +405,11 @@ public class OkxClient {
                 .mapToObj(i -> swapTickers.subList(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, swapTickers.size())))
                 .toList();
 
-        log.debug("🔍 Валидируем {} тикеров в {} потоков (батчей: {})", swapTickers.size(), threadCount, batches.size());
+        log.info("🔍 Валидируем {} тикеров в {} потоков (батчей: {})", swapTickers.size(), threadCount, batches.size());
 
         for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
             List<String> batch = batches.get(batchIndex);
-            log.debug("🔄 Валидируем батч {}/{} ({} тикеров)", batchIndex + 1, batches.size(), batch.size());
+            log.info("🔄 Валидируем батч {}/{} ({} тикеров)", batchIndex + 1, batches.size(), batch.size());
 
             List<CompletableFuture<Void>> futures = batch.stream()
                     .map(symbol -> CompletableFuture.runAsync(() -> {
@@ -456,8 +456,8 @@ public class OkxClient {
         executor.shutdown();
 
         long endTime = System.currentTimeMillis();
-        log.debug("Всего откинули {} тикеров с низким объёмом", skippedCount.get());
-        log.debug("✅ Отобрано {} тикеров за {}с", validTickers.size(), String.format("%.2f", (endTime - startTime) / 1000.0));
+        log.info("Всего откинули {} тикеров с низким объёмом", skippedCount.get());
+        log.info("✅ Отобрано {} тикеров за {}с", validTickers.size(), String.format("%.2f", (endTime - startTime) / 1000.0));
 
         return isSorted ? validTickers.stream().sorted().toList() : validTickers;
     }
@@ -498,4 +498,8 @@ public class OkxClient {
         }
     }
 
+    public List<String> getValidTickersByVolume(double minQuoteVolume, boolean sorted) {
+        List<String> allSwapTickers = getAllSwapTickers(true);
+        return getValidTickersV2(allSwapTickers, "1D", 2, minQuoteVolume, sorted);
+    }
 }
