@@ -18,15 +18,17 @@ public interface CandlesFeignClient {
      * Метод для получения большого количества свечей с пагинацией через candles микросервис
      * Микросервис сам будет делать несколько запросов к OKX API для получения нужного количества свечей
      */
+    @Deprecated
     @PostMapping("/api/candles/all-extended")
     Map<String, List<Candle>> getAllCandlesExtended(@RequestBody ExtendedCandlesRequest request);
 
     /**
      * Получить валидированные свечи из кэша для множества тикеров (новый улучшенный метод)
      * Возвращает данные в том же формате что и getAllCandlesExtended для совместимости
+     * Догружает и сохраняет в КЭШ
      */
     @PostMapping("/api/candles-processor/validated-cache-extended")
-    Map<String, List<Candle>> getValidatedCandlesExtended(@RequestBody ExtendedCandlesRequest request);
+    Map<String, List<Candle>> getValidatedCacheExtended(@RequestBody ExtendedCandlesRequest request);
 
     // ============= МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ КЭШЕМ СВЕЧЕЙ =============
 

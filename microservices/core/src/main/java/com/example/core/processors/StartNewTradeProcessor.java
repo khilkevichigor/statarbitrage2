@@ -12,9 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -81,18 +79,22 @@ public class StartNewTradeProcessor {
     }
 
     private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
+
+        List<String> blacklistItems = Arrays.asList(settings.getMinimumLotBlacklist().split(","));
+        List<String> excludedTickers = new ArrayList<>(blacklistItems);
+
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume())
-                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+//                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+//                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
-                .excludeTickers(null) // Никого не исключаем
+                .excludeTickers(excludedTickers) // Никого не исключаем
                 .build();
 
-        Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCandlesExtended(request);
+        Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
         return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(tradingPair, settings, candlesMap);
     }
 

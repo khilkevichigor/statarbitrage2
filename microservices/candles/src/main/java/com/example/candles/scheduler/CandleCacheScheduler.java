@@ -71,7 +71,7 @@ public class CandleCacheScheduler {
     /**
      * Ежедневное обновление кэша в 3:00 утра по местному времени
      */
-//    @Scheduled(cron = "0 0 3 * * ?")
+    @Scheduled(cron = "0 0 3 * * ?")
     public void scheduledCacheUpdate() {
         String currentTime = LocalDateTime.now().format(formatter);
         log.info("⏰ Запуск шедуллера обновления кэша в {}", currentTime);
@@ -101,7 +101,7 @@ public class CandleCacheScheduler {
     /**
      * Дополнительное обновление каждые 4 часа (только новые свечи)
      */
-//    @Scheduled(fixedRate = 4 * 60 * 60 * 1000, initialDelay = 30 * 60 * 1000) // 4 часа, старт через 30 мин
+    @Scheduled(fixedRate = 4 * 60 * 60 * 1000, initialDelay = 30 * 60 * 1000) // 4 часа, старт через 30 мин
     public void scheduledQuickUpdate() {
         if (!dailyUpdateEnabled || !isFirstPreloadCompleted) {
             return; // Пропускаем если основное обновление отключено или еще не было первой загрузки
@@ -122,7 +122,7 @@ public class CandleCacheScheduler {
     /**
      * Статистика кэша каждый час
      */
-//    @Scheduled(cron = "0 0 * * * ?") // Каждый час в начале часа
+    @Scheduled(cron = "0 0 * * * ?") // Каждый час в начале часа
     public void hourlyStatistics() {
         try {
             var stats = candleCacheService.getCacheStatistics(defaultExchange);

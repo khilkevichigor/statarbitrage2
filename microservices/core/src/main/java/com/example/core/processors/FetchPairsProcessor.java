@@ -85,20 +85,25 @@ public class FetchPairsProcessor {
                 settings.getTimeframe(), (int) settings.getCandleLimit(),
                 tradingTickers != null ? tradingTickers.size() : 0);
 
+        List<String> blacklistItems = Arrays.asList(settings.getMinimumLotBlacklist().split(","));
+        List<String> excludedTickers = new ArrayList<>();
+        excludedTickers.addAll(tradingTickers);
+        excludedTickers.addAll(blacklistItems);
+
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume())
-                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+//                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+//                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                 .tickers(null) // Получаем все доступные тикеры
-                .excludeTickers(tradingTickers) // Исключаем уже торгуемые тикеры
+                .excludeTickers(excludedTickers)
                 .build();
 
         try {
             log.info("⏳ Отправка запроса к candles микросервису...");
-            Map<String, List<Candle>> map = candlesFeignClient.getValidatedCandlesExtended(request);
+            Map<String, List<Candle>> map = candlesFeignClient.getValidatedCacheExtended(request);
 
             double elapsed = (System.currentTimeMillis() - start) / 1000.0;
             if (map != null && !map.isEmpty()) {

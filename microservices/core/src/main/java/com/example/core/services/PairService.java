@@ -94,19 +94,22 @@ public class PairService {
             log.info("🔧 ИСПРАВЛЕНИЕ: Используем точно те же параметры что и при поиске - timeframe: {}, period: {}, candleCount: {}",
                     timeframe, period, candleLimit);
 
+            List<String> blacklistItems = Arrays.asList(settings.getMinimumLotBlacklist().split(","));
+            List<String> excludedTickers = new ArrayList<>(blacklistItems);
+
             // Создаем запрос для получения свечей конкретной пары
             ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
                     .minVolume(settings.getMinVolume())
-                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+//                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+//                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB()))
-                    .excludeTickers(null)
+                    .excludeTickers(excludedTickers)
                     .build();
 
             // Получаем свечи для пары
-            Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCandlesExtended(extendedRequest);
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(extendedRequest);
 
             if (candlesMap == null || candlesMap.isEmpty()) {
                 log.warn("⚠️ Не удалось получить данные свечей для пары {}", stablePair.getPairName());

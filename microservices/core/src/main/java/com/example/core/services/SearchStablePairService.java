@@ -289,20 +289,20 @@ public class SearchStablePairService {
 
             // Извлекаем параметр useCache из searchSettings
             Boolean useCache = searchSettings != null ? (Boolean) searchSettings.get("useCache") : null;
-            
+
             ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
                     .minVolume(settings.getMinVolume())
-                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
+//                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
+//                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ? searchTickers.stream().toList() : null) // Передаем полные названия инструментов
-                    .excludeTickers(null) // Никого не исключаем
-                    .useCache(useCache != null ? useCache : true) // По умолчанию используем кэш
+                    .excludeTickers(Arrays.asList(settings.getMinimumLotBlacklist().split(",")))
+//                    .useCache(useCache != null ? useCache : true) // По умолчанию используем кэш
                     .period(period)
                     .build();
 
-            Map<String, List<Candle>> result = candlesFeignClient.getValidatedCandlesExtended(request);
+            Map<String, List<Candle>> result = candlesFeignClient.getValidatedCacheExtended(request);
 
             if (result != null && !result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
@@ -320,19 +320,7 @@ public class SearchStablePairService {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при расширенном получении свечей: {}", e.getMessage(), e);
-            // Fallback к расширенному методу с ограничением //todo выпилить
-            log.warn("🔄 Используем fallback к расширенному методу с ограничением 300 свечей");
-            ExtendedCandlesRequest fallbackRequest = ExtendedCandlesRequest.builder()
-                    .timeframe(timeframe)
-                    .candleLimit(300)
-                    .minVolume(settings.getMinVolume())
-                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
-                    .tickers(searchTickers != null && !searchTickers.isEmpty() ?
-                            searchTickers.stream().toList() : null) // Передаем полные названия и в fallback
-                    .excludeTickers(null)
-                    .build();
-            return candlesFeignClient.getValidatedCandlesExtended(fallbackRequest);
+            throw new RuntimeException(e);
         }
     }
 
