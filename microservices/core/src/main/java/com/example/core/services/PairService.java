@@ -118,7 +118,7 @@ public class PairService {
 
             // КРИТИЧЕСКАЯ ПРОВЕРКА: Для конкретной пары должны быть ОБА тикера!
             if (candlesMap.size() != 2) {
-                log.error("❌ CANDLES ФИЛЬТРАЦИЯ: Candles-сервис вернул {} тикеров вместо 2 для пары {} - один тикер отфильтрован!",
+                log.error("❌ CANDLES ФИЛЬТРАЦИЯ: Candles-сервис вернул {} тикеров вместо 2 для пары {}!",
                         candlesMap.size(), stablePair.getPairName());
                 log.error("❌ ДОСТУПНЫЕ ТИКЕРЫ: {}", candlesMap.keySet());
                 throw new IllegalStateException(String.format(

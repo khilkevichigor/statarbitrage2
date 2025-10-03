@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CandlesProcessorController {
 
+    private static final String STANDARD_TICKER_BTC = "BTC-USDT-SWAP";
     private final CacheValidatedCandlesProcessor cacheValidatedCandlesProcessor;
     private final CandlesLoaderProcessor candlesLoaderProcessor;
     private final OkxFeignClient okxFeignClient;
@@ -56,15 +58,17 @@ public class CandlesProcessorController {
             List<String> tickersToProcess;
             final List<String> originalRequestedTickers; // Сохраняем оригинальный список для фильтрации результата
 
+            boolean isStandardTickerBtcAdded = false;
             if (request.getTickers() != null && !request.getTickers().isEmpty()) {
                 log.info("📝 Используем переданный список из {} тикеров", request.getTickers().size());
                 originalRequestedTickers = new ArrayList<>(request.getTickers()); // Сохраняем оригинальный список
                 tickersToProcess = new ArrayList<>(request.getTickers());
 
                 // Добавляем BTC-USDT-SWAP как эталон если его нет в списке
-                if (!tickersToProcess.contains("BTC-USDT-SWAP")) {
-                    tickersToProcess.add("BTC-USDT-SWAP");
-                    log.info("🎯 Добавлен BTC-USDT-SWAP как эталон для валидации (всего {} тикеров для загрузки)", tickersToProcess.size());
+                if (!tickersToProcess.contains(STANDARD_TICKER_BTC)) {
+                    tickersToProcess.add(STANDARD_TICKER_BTC);
+                    isStandardTickerBtcAdded = true;
+                    log.info("🎯 Добавлен {} как эталон для валидации (всего {} тикеров для загрузки)", STANDARD_TICKER_BTC, tickersToProcess.size());
                 }
             } else {
                 log.info("🌐 Получаем все доступные тикеры");
@@ -207,6 +211,9 @@ public class CandlesProcessorController {
                 ));
             }
 
+            if (isStandardTickerBtcAdded) {
+                result.remove(STANDARD_TICKER_BTC);
+            }
             // Для совместимости с существующим API возвращаем данные в том же формате
             // что и /all-extended: просто Map<String, List<Candle>>
             return ResponseEntity.ok(result);
@@ -505,10 +512,10 @@ public class CandlesProcessorController {
         try {
             if (timestamp > 9999999999L) {
                 // Миллисекунды
-                return java.time.Instant.ofEpochMilli(timestamp).toString();
+                return Instant.ofEpochMilli(timestamp).toString();
             } else {
                 // Секунды
-                return java.time.Instant.ofEpochSecond(timestamp).toString();
+                return Instant.ofEpochSecond(timestamp).toString();
             }
         } catch (Exception e) {
             return String.valueOf(timestamp);
