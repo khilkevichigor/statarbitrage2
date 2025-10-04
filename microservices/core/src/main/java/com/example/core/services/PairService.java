@@ -89,23 +89,18 @@ public class PairService {
             String timeframe = stablePair.getTimeframe() != null ? stablePair.getTimeframe() : settings.getTimeframe();
             String period = stablePair.getPeriod() != null ? stablePair.getPeriod() : "1 год";
             // КРИТИЧНО: Используем реальное количество свечей из найденной пары!
-            int candleLimit = stablePair.getCandleCount() != null ? stablePair.getCandleCount() : 1000;
+            int candleLimit = stablePair.getCandleCount() != null ? stablePair.getCandleCount() : 1000; //todo 1000???
 
             log.info("🔧 ИСПРАВЛЕНИЕ: Используем точно те же параметры что и при поиске - timeframe: {}, period: {}, candleCount: {}",
                     timeframe, period, candleLimit);
-
-            List<String> blacklistItems = Arrays.asList(settings.getMinimumLotBlacklist().split(","));
-            List<String> excludedTickers = new ArrayList<>(blacklistItems);
 
             // Создаем запрос для получения свечей конкретной пары
             ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
                     .minVolume(settings.getMinVolume())
-//                    .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-//                    .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                     .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB()))
-                    .excludeTickers(excludedTickers)
+                    .period(period)
                     .build();
 
             // Получаем свечи для пары

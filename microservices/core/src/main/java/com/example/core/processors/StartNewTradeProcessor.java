@@ -80,18 +80,13 @@ public class StartNewTradeProcessor {
 
     private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
 
-        List<String> blacklistItems = Arrays.asList(settings.getMinimumLotBlacklist().split(","));
-        List<String> excludedTickers = new ArrayList<>(blacklistItems);
-
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume())
-//                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-//                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
-                .excludeTickers(excludedTickers) // Никого не исключаем
+                .period("1 год")
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);

@@ -95,10 +95,9 @@ public class FetchPairsProcessor {
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume())
-//                .useMinVolumeFilter(settings.isUseMinVolumeFilter())
-//                .minimumLotBlacklist(settings.getMinimumLotBlacklist())
                 .tickers(null) // Получаем все доступные тикеры
                 .excludeTickers(excludedTickers)
+                .period("1 год")
                 .build();
 
         try {
