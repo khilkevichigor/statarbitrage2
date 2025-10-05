@@ -279,6 +279,57 @@ public class Settings {
     @Column(name = "use_stable_pairs_for_monitoring")
     private boolean useStablePairsForMonitoring = false;
 
+    // ===== Управление шедуллерами =====
+
+    // UpdateTradesScheduler (обновление торговых пар каждую минуту)
+    @Builder.Default
+    @Column(name = "scheduler_update_trades_enabled")
+    private Boolean schedulerUpdateTradesEnabled = true;
+
+    // StablePairsScheduler (поиск стабильных пар ночью)
+    @Builder.Default
+    @Column(name = "scheduler_stable_pairs_enabled")
+    private Boolean schedulerStablePairsEnabled = true;
+
+    @Builder.Default
+    @Column(name = "scheduler_stable_pairs_cron")
+    private String schedulerStablePairsCron = "0 10 1 * * *";
+
+    // PortfolioHistoryService снапшот (каждые 15 минут)
+    @Builder.Default
+    @Column(name = "scheduler_portfolio_snapshot_enabled")
+    private Boolean schedulerPortfolioSnapshotEnabled = true;
+
+    // PortfolioHistoryService очистка (каждый день в 2:00)
+    @Builder.Default
+    @Column(name = "scheduler_portfolio_cleanup_enabled")
+    private Boolean schedulerPortfolioCleanupEnabled = true;
+
+    @Builder.Default
+    @Column(name = "scheduler_portfolio_cleanup_cron")
+    private String schedulerPortfolioCleanupCron = "0 0 2 * * ?";
+
+    // Шедуллеры Candles микросервиса (для справки)
+    @Builder.Default
+    @Column(name = "scheduler_candle_cache_sync_enabled")
+    private Boolean schedulerCandleCacheSyncEnabled = true;
+
+    @Builder.Default
+    @Column(name = "scheduler_candle_cache_sync_cron")
+    private String schedulerCandleCacheSyncCron = "0 0 3 * * ?";
+
+    @Builder.Default
+    @Column(name = "scheduler_candle_cache_update_enabled")
+    private Boolean schedulerCandleCacheUpdateEnabled = true;
+
+    @Builder.Default
+    @Column(name = "scheduler_candle_cache_stats_enabled")
+    private Boolean schedulerCandleCacheStatsEnabled = true;
+
+    @Builder.Default
+    @Column(name = "scheduler_candle_cache_stats_cron")
+    private String schedulerCandleCacheStatsCron = "0 0 * * * ?";
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
@@ -378,5 +429,18 @@ public class Settings {
         
         // Использование стабильных пар для мониторинга
         this.useStablePairsForMonitoring = other.useStablePairsForMonitoring;
+        
+        // Управление шедуллерами
+        this.schedulerUpdateTradesEnabled = other.schedulerUpdateTradesEnabled;
+        this.schedulerStablePairsEnabled = other.schedulerStablePairsEnabled;
+        this.schedulerStablePairsCron = other.schedulerStablePairsCron;
+        this.schedulerPortfolioSnapshotEnabled = other.schedulerPortfolioSnapshotEnabled;
+        this.schedulerPortfolioCleanupEnabled = other.schedulerPortfolioCleanupEnabled;
+        this.schedulerPortfolioCleanupCron = other.schedulerPortfolioCleanupCron;
+        this.schedulerCandleCacheSyncEnabled = other.schedulerCandleCacheSyncEnabled;
+        this.schedulerCandleCacheSyncCron = other.schedulerCandleCacheSyncCron;
+        this.schedulerCandleCacheUpdateEnabled = other.schedulerCandleCacheUpdateEnabled;
+        this.schedulerCandleCacheStatsEnabled = other.schedulerCandleCacheStatsEnabled;
+        this.schedulerCandleCacheStatsCron = other.schedulerCandleCacheStatsCron;
     }
 }

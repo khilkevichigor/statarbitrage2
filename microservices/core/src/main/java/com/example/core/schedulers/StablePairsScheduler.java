@@ -2,6 +2,7 @@ package com.example.core.schedulers;
 
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.services.PairService;
+import com.example.core.services.SchedulerControlService;
 import com.example.core.services.StablePairsScreenerSettingsService;
 import com.example.shared.models.StablePairsScreenerSettings;
 import jakarta.annotation.PreDestroy;
@@ -28,6 +29,7 @@ public class StablePairsScheduler {
 
     private final StablePairsScreenerSettingsService settingsService;
     private final PairService pairService;
+    private final SchedulerControlService schedulerControlService;
 
     // Пул потоков для параллельной обработки
     private final ExecutorService executorService = Executors.newFixedThreadPool(5,
@@ -46,6 +48,12 @@ public class StablePairsScheduler {
      */
     @Scheduled(cron = "0 10 1 * * *") // каждый день в 2:00
     public void searchStablePairsScheduled() {
+        // Проверяем включен ли шедуллер через настройки
+        if (!schedulerControlService.isStablePairsSchedulerEnabled()) {
+            log.debug("📅 StablePairsScheduler отключен в настройках");
+            return;
+        }
+        
         log.info("🌙 Запуск многопоточного автоматического поиска стабильных пар в {}", LocalDateTime.now());
 
         try {

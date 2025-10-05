@@ -3,6 +3,7 @@ package com.example.core.schedulers;
 import com.example.core.processors.UpdateTradeProcessor;
 import com.example.core.services.EventSendService;
 import com.example.core.services.PairService;
+import com.example.core.services.SchedulerControlService;
 import com.example.shared.dto.UpdateTradeRequest;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.UpdateUiEvent;
@@ -27,9 +28,16 @@ public class UpdateTradesScheduler {
     private final PairService pairService;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final EventSendService eventSendService;
+    private final SchedulerControlService schedulerControlService;
 
     @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
     public void updateTrades() {
+        // Проверяем включен ли шедуллер через настройки
+        if (!schedulerControlService.isUpdateTradesSchedulerEnabled()) {
+            log.info("📅 UpdateTradesScheduler отключен в настройках");
+            return;
+        }
+        
         if (!canStartUpdateTrades()) {
             return;
         }

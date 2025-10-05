@@ -4,6 +4,7 @@ import com.example.core.schedulers.UpdateTradesScheduler;
 import com.example.core.services.AutoVolumeService;
 import com.example.core.services.CapitalCalculationService;
 import com.example.core.services.PortfolioService;
+import com.example.core.services.SchedulerControlService;
 import com.example.core.services.SettingsService;
 import com.example.core.ui.utils.PeriodOptions;
 import com.example.core.ui.utils.TimeframeOptions;
@@ -43,6 +44,7 @@ public class SettingsComponent extends VerticalLayout {
     private final CapitalCalculationService capitalCalculationService;
     private final PortfolioService portfolioService;
     private final AutoVolumeService autoVolumeService;
+    private final SchedulerControlService schedulerControlService;
     private final Binder<Settings> settingsBinder;
 
     private Settings currentSettings;
@@ -58,12 +60,14 @@ public class SettingsComponent extends VerticalLayout {
                              UpdateTradesScheduler updateTradesScheduler,
                              CapitalCalculationService capitalCalculationService,
                              PortfolioService portfolioService,
-                             AutoVolumeService autoVolumeService) {
+                             AutoVolumeService autoVolumeService,
+                             SchedulerControlService schedulerControlService) {
         this.settingsService = settingsService;
         this.updateTradesScheduler = updateTradesScheduler;
         this.capitalCalculationService = capitalCalculationService;
         this.portfolioService = portfolioService;
         this.autoVolumeService = autoVolumeService;
+        this.schedulerControlService = schedulerControlService;
         this.settingsBinder = new Binder<>(Settings.class);
 
         initializeComponent();
@@ -321,6 +325,9 @@ public class SettingsComponent extends VerticalLayout {
         ));
 
         add(createScoringWeightsSection());
+
+        // Создаем секцию управления расписанием шедуллеров
+        add(createSchedulerControlSection());
 
         // Bind fields to settings object
         bindFields(
@@ -1194,6 +1201,135 @@ public class SettingsComponent extends VerticalLayout {
             capitalInfoSpan.setText("⚠️ Ошибка расчета капитала: " + e.getMessage());
             capitalInfoSpan.getStyle().set("color", "orange");
         }
+    }
+
+    /**
+     * Создает секцию управления шедуллерами
+     */
+    private Details createSchedulerControlSection() {
+        FormLayout schedulerForm = createFormLayout();
+
+        // Создаем чекбоксы для управления шедуллерами
+        Checkbox updateTradesSchedulerCheckbox = new Checkbox("UpdateTrades (каждую минуту)");
+        Checkbox stablePairsSchedulerCheckbox = new Checkbox("StablePairs (поиск пар ночью)");
+        Checkbox portfolioSnapshotSchedulerCheckbox = new Checkbox("Portfolio Snapshot (каждые 15 минут)");
+        Checkbox portfolioCleanupSchedulerCheckbox = new Checkbox("Portfolio Cleanup (очистка каждый день)");
+        Checkbox candleCacheSyncSchedulerCheckbox = new Checkbox("CandleCache Sync (синхронизация)");
+        Checkbox candleCacheUpdateSchedulerCheckbox = new Checkbox("CandleCache Update (обновление)");
+        Checkbox candleCacheStatsSchedulerCheckbox = new Checkbox("CandleCache Stats (статистика)");
+
+        // Создаем поля для отображения CRON выражений
+        Span stablePairsCronSpan = new Span();
+        stablePairsCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
+        Span portfolioCleanupCronSpan = new Span();
+        portfolioCleanupCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
+
+        // Инициализируем значения чекбоксов из настроек (с проверкой на null)
+        updateTradesSchedulerCheckbox.setValue(currentSettings.getSchedulerUpdateTradesEnabled() != null ? currentSettings.getSchedulerUpdateTradesEnabled() : true);
+        stablePairsSchedulerCheckbox.setValue(currentSettings.getSchedulerStablePairsEnabled() != null ? currentSettings.getSchedulerStablePairsEnabled() : true);
+        portfolioSnapshotSchedulerCheckbox.setValue(currentSettings.getSchedulerPortfolioSnapshotEnabled() != null ? currentSettings.getSchedulerPortfolioSnapshotEnabled() : true);
+        portfolioCleanupSchedulerCheckbox.setValue(currentSettings.getSchedulerPortfolioCleanupEnabled() != null ? currentSettings.getSchedulerPortfolioCleanupEnabled() : true);
+        candleCacheSyncSchedulerCheckbox.setValue(currentSettings.getSchedulerCandleCacheSyncEnabled() != null ? currentSettings.getSchedulerCandleCacheSyncEnabled() : true);
+        candleCacheUpdateSchedulerCheckbox.setValue(currentSettings.getSchedulerCandleCacheUpdateEnabled() != null ? currentSettings.getSchedulerCandleCacheUpdateEnabled() : true);
+        candleCacheStatsSchedulerCheckbox.setValue(currentSettings.getSchedulerCandleCacheStatsEnabled() != null ? currentSettings.getSchedulerCandleCacheStatsEnabled() : true);
+
+        // Отображаем CRON выражения
+        String stablePairsCron = schedulerControlService.getStablePairsSchedulerCron();
+        String portfolioCleanupCron = schedulerControlService.getPortfolioCleanupSchedulerCron();
+        stablePairsCronSpan.setText("CRON: " + stablePairsCron + " (02:10 каждый день)");
+        portfolioCleanupCronSpan.setText("CRON: " + portfolioCleanupCron + " (02:00 каждый день)");
+
+        // Создаем вертикальные компоновки для шедуллеров с CRON
+        VerticalLayout stablePairsLayout = new VerticalLayout();
+        stablePairsLayout.setSpacing(false);
+        stablePairsLayout.setPadding(false);
+        stablePairsLayout.add(stablePairsSchedulerCheckbox, stablePairsCronSpan);
+
+        VerticalLayout portfolioCleanupLayout = new VerticalLayout();
+        portfolioCleanupLayout.setSpacing(false);
+        portfolioCleanupLayout.setPadding(false);
+        portfolioCleanupLayout.add(portfolioCleanupSchedulerCheckbox, portfolioCleanupCronSpan);
+
+        // Добавляем компоненты в форму
+        schedulerForm.add(
+                updateTradesSchedulerCheckbox,
+                stablePairsLayout,
+                portfolioSnapshotSchedulerCheckbox,
+                portfolioCleanupLayout,
+                candleCacheSyncSchedulerCheckbox,
+                candleCacheUpdateSchedulerCheckbox,
+                candleCacheStatsSchedulerCheckbox
+        );
+
+        // Привязываем чекбоксы к настройкам
+        bindSchedulerControlFields(
+                updateTradesSchedulerCheckbox,
+                stablePairsSchedulerCheckbox,
+                portfolioSnapshotSchedulerCheckbox,
+                portfolioCleanupSchedulerCheckbox,
+                candleCacheSyncSchedulerCheckbox,
+                candleCacheUpdateSchedulerCheckbox,
+                candleCacheStatsSchedulerCheckbox
+        );
+
+        return createDetailsCard("📅 Расписание шедуллеров",
+                "Управление автоматическими задачами и их расписанием", schedulerForm);
+    }
+
+    /**
+     * Привязывает поля управления шедуллерами к настройкам
+     */
+    private void bindSchedulerControlFields(Checkbox updateTradesSchedulerCheckbox,
+                                            Checkbox stablePairsSchedulerCheckbox,
+                                            Checkbox portfolioSnapshotSchedulerCheckbox,
+                                            Checkbox portfolioCleanupSchedulerCheckbox,
+                                            Checkbox candleCacheSyncSchedulerCheckbox,
+                                            Checkbox candleCacheUpdateSchedulerCheckbox,
+                                            Checkbox candleCacheStatsSchedulerCheckbox) {
+
+        // Привязываем чекбоксы шедуллеров к настройкам
+        settingsBinder.forField(updateTradesSchedulerCheckbox)
+                .bind(Settings::getSchedulerUpdateTradesEnabled, Settings::setSchedulerUpdateTradesEnabled);
+
+        settingsBinder.forField(stablePairsSchedulerCheckbox)
+                .bind(Settings::getSchedulerStablePairsEnabled, Settings::setSchedulerStablePairsEnabled);
+
+        settingsBinder.forField(portfolioSnapshotSchedulerCheckbox)
+                .bind(Settings::getSchedulerPortfolioSnapshotEnabled, Settings::setSchedulerPortfolioSnapshotEnabled);
+
+        settingsBinder.forField(portfolioCleanupSchedulerCheckbox)
+                .bind(Settings::getSchedulerPortfolioCleanupEnabled, Settings::setSchedulerPortfolioCleanupEnabled);
+
+        settingsBinder.forField(candleCacheSyncSchedulerCheckbox)
+                .bind(Settings::getSchedulerCandleCacheSyncEnabled, Settings::setSchedulerCandleCacheSyncEnabled);
+
+        settingsBinder.forField(candleCacheUpdateSchedulerCheckbox)
+                .bind(Settings::getSchedulerCandleCacheUpdateEnabled, Settings::setSchedulerCandleCacheUpdateEnabled);
+
+        settingsBinder.forField(candleCacheStatsSchedulerCheckbox)
+                .bind(Settings::getSchedulerCandleCacheStatsEnabled, Settings::setSchedulerCandleCacheStatsEnabled);
+
+        // Добавляем логирование изменений
+        updateTradesSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 UpdateTradesScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        stablePairsSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 StablePairsScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        portfolioSnapshotSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 PortfolioSnapshotScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        portfolioCleanupSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 PortfolioCleanupScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        candleCacheSyncSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 CandleCacheSyncScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        candleCacheUpdateSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 CandleCacheUpdateScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        candleCacheStatsSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 CandleCacheStatsScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
     }
 
 }

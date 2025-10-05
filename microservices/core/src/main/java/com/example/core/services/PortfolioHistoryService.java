@@ -23,6 +23,7 @@ public class PortfolioHistoryService {
 
     private final PortfolioHistoryRepository portfolioHistoryRepository;
     private final TradingIntegrationService tradingIntegrationService;
+    private final SchedulerControlService schedulerControlService;
 
     /**
      * Сохраняет текущее состояние портфолио в историю
@@ -54,6 +55,12 @@ public class PortfolioHistoryService {
      */
     @Scheduled(fixedRate = 900000) // 15 минут = 15 * 60 * 1000 мс
     public void schedulePortfolioSnapshot() {
+        // Проверяем включен ли шедуллер через настройки
+        if (!schedulerControlService.isPortfolioSnapshotSchedulerEnabled()) {
+            log.debug("📅 PortfolioSnapshotScheduler отключен в настройках");
+            return;
+        }
+        
         log.debug("📷 Запуск автоматического снапшота портфолио");
         saveCurrentPortfolioSnapshot();
     }
@@ -104,6 +111,12 @@ public class PortfolioHistoryService {
     @Scheduled(cron = "0 0 2 * * ?") // Каждый день в 2:00 AM
     @Transactional
     public void cleanupOldRecords() {
+        // Проверяем включен ли шедуллер через настройки
+        if (!schedulerControlService.isPortfolioCleanupSchedulerEnabled()) {
+            log.debug("📅 PortfolioCleanupScheduler отключен в настройках");
+            return;
+        }
+        
         try {
             LocalDateTime cutoffDate = LocalDateTime.now().minusMonths(3);
             portfolioHistoryRepository.deleteBySnapshotTimeBefore(cutoffDate);
