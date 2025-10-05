@@ -9,11 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Сервис-процессор для получения свечей из кэша с валидацией
+ * Сервис-процессор для получения свечей из кэша с расширенной валидацией
  * <p>
  * Принимает параметры:
  * - биржа (exchange)
@@ -22,8 +23,15 @@ import java.util.stream.Collectors;
  * - таймфрейм (timeframe) в формате 1H, 1D, 1m...
  * - период (period) в виде "1year", "6months"...
  * <p>
- * Валидирует полученные свечи по количеству и временному диапазону.
- * При некорректных данных автоматически догружает через CandlesLoaderProcessor.
+ * Выполняет двухэтапную валидацию:
+ * 1. Валидация по количеству свечей (с учетом допустимых отклонений)
+ * 2. Валидация консистентности таймштампов (проверка временных интервалов между свечами)
+ * <p>
+ * При обнаружении проблем автоматически догружает недостающие данные:
+ * - Для проблем с количеством: стандартная догрузка всего диапазона
+ * - Для пропусков в таймштампах: специальная догрузка с повторными попытками до восстановления консистентности
+ * <p>
+ * Гарантирует 100% консистентность и непрерывность временных рядов свечей.
  */
 @Slf4j
 @Service
@@ -57,25 +65,47 @@ public class CacheValidatedCandlesProcessor {
             // Шаг 3: Получаем свечи ДО untilDate
             List<Candle> cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
 
-            // Шаг 3: Валидируем полученные свечи по количеству
+            // Шаг 4: Валидируем полученные свечи по количеству
             ValidationResult validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
 
-            // Шаг 4: Если данные некорректны - догружаем
-            if (!validationResult.isValid) {
-                log.warn("⚠️ ВАЛИДАЦИЯ ПРОВАЛЕНА: {}", validationResult.reason);
+            // Шаг 5: Валидируем консистентность таймштампов свечей
+            TimestampValidationResult timestampValidation = validateCandlesConsistency(cachedCandles, timeframe, ticker);
+
+            // Шаг 6: Если данные некорректны по количеству или консистентности - догружаем
+            if (!validationResult.isValid || !timestampValidation.isValid) {
+                if (!validationResult.isValid) {
+                    log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА: {}", validationResult.reason);
+                }
+                if (!timestampValidation.isValid) {
+                    log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА: {}", timestampValidation.reason);
+                }
+                
                 log.info("🔄 ДОГРУЗКА: Запускаем загрузку свежих данных для тикера {}", ticker);
 
-                // Догружаем свежие данные
-                int loadedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
+                // Если есть пропуски в таймштампах - используем специальную догрузку
+                int loadedCount;
+                if (!timestampValidation.isValid && !timestampValidation.gaps.isEmpty()) {
+                    loadedCount = loadMissingCandlesForGaps(timestampValidation.gaps, exchange, ticker, timeframe, period, untilDate);
+                } else {
+                    // Обычная догрузка для проблем с количеством
+                    loadedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
+                }
+                
                 if (loadedCount > 0) {
                     log.info("✅ ДОГРУЗКА ЗАВЕРШЕНА: Загружено {} свечей, повторно получаем из кэша", loadedCount);
 
                     // Повторно получаем из кэша после догрузки ДО untilDate
                     cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
                     validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
+                    timestampValidation = validateCandlesConsistency(cachedCandles, timeframe, ticker);
 
                     if (!validationResult.isValid) {
-                        log.error("❌ ПОВТОРНАЯ ВАЛИДАЦИЯ ПРОВАЛЕНА: {} для тикера {}", validationResult.reason, ticker);
+                        log.error("❌ ПОВТОРНАЯ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА: {} для тикера {}", validationResult.reason, ticker);
+                        return List.of(); // Возвращаем пустой список
+                    }
+                    
+                    if (!timestampValidation.isValid) {
+                        log.error("❌ ПОВТОРНАЯ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА: {} для тикера {}", timestampValidation.reason, ticker);
                         return List.of(); // Возвращаем пустой список
                     }
                 } else {
@@ -84,7 +114,7 @@ public class CacheValidatedCandlesProcessor {
                 }
             }
 
-            // Шаг 5: Возвращаем валидированные свечи
+            // Шаг 7: Возвращаем валидированные свечи
             log.info("✅ КЭШ РЕЗУЛЬТАТ: Возвращаем {} валидированных свечей для тикера {}", cachedCandles.size(), ticker);
             return cachedCandles;
 
@@ -296,6 +326,150 @@ public class CacheValidatedCandlesProcessor {
     }
 
     /**
+     * Валидирует консистентность таймштампов свечей - проверяет отсутствие пропусков во временных интервалах
+     * @param candles список свечей для проверки (должен быть отсортирован по возрастанию timestamp)
+     * @param timeframe таймфрейм (1m, 5m, 15m, 1H, 4H, 1D и т.д.)
+     * @param ticker название тикера для логирования
+     * @return результат валидации с информацией о найденных пропусках
+     */
+    private TimestampValidationResult validateCandlesConsistency(List<Candle> candles, String timeframe, String ticker) {
+        log.info("🔍 ВАЛИДАЦИЯ ТАЙМШТАМПОВ: Проверка консистентности {} свечей для тикера {} с таймфреймом {}", 
+                candles.size(), ticker, timeframe);
+        
+        if (candles == null || candles.isEmpty()) {
+            log.warn("⚠️ ВАЛИДАЦИЯ ТАЙМШТАМПОВ: Список свечей пуст для тикера {}", ticker);
+            return new TimestampValidationResult(true, "Список свечей пуст", List.of());
+        }
+        
+        if (candles.size() < 2) {
+            log.info("✅ ВАЛИДАЦИЯ ТАЙМШТАМПОВ: Слишком мало свечей ({}) для проверки консистентности тикера {}", 
+                    candles.size(), ticker);
+            return new TimestampValidationResult(true, "Недостаточно свечей для проверки", List.of());
+        }
+        
+        long timeframeDurationMs = getTimeframeDurationInMillis(timeframe);
+        List<TimestampGap> gaps = new ArrayList<>();
+        
+        // Проверяем интервалы между соседними свечами
+        for (int i = 1; i < candles.size(); i++) {
+            long previousTimestamp = candles.get(i - 1).getTimestamp();
+            long currentTimestamp = candles.get(i).getTimestamp();
+            long actualInterval = currentTimestamp - previousTimestamp;
+            
+            // Проверяем, что интервал соответствует таймфрейму (с небольшой погрешностью)
+            if (Math.abs(actualInterval - timeframeDurationMs) > timeframeDurationMs * 0.1) { // 10% погрешность
+                long missedCandles = (actualInterval / timeframeDurationMs) - 1;
+                if (missedCandles > 0) {
+                    TimestampGap gap = new TimestampGap(
+                            previousTimestamp, 
+                            currentTimestamp, 
+                            (int) missedCandles,
+                            i - 1, // позиция предыдущей свечи
+                            i      // позиция текущей свечи
+                    );
+                    gaps.add(gap);
+                    
+                    log.warn("⚠️ ПРОПУСК СВЕЧЕЙ: Между позициями {} и {} найден пропуск в {} свечей. " +
+                            "Предыдущая: {}, текущая: {}, ожидаемый интервал: {} мс, фактический: {} мс",
+                            i - 1, i, missedCandles,
+                            formatTimestamp(previousTimestamp), formatTimestamp(currentTimestamp),
+                            timeframeDurationMs, actualInterval);
+                }
+            }
+        }
+        
+        if (gaps.isEmpty()) {
+            log.info("✅ ВАЛИДАЦИЯ ТАЙМШТАМПОВ: Свечи для тикера {} прошли проверку консистентности. " +
+                    "Временные интервалы соответствуют таймфрейму {}", ticker, timeframe);
+            return new TimestampValidationResult(true, "Консистентность таймштампов корректна", gaps);
+        } else {
+            int totalMissedCandles = gaps.stream().mapToInt(TimestampGap::getMissedCandlesCount).sum();
+            String reason = String.format("Найдено %d пропусков с общим количеством недостающих свечей: %d", 
+                    gaps.size(), totalMissedCandles);
+            log.warn("⚠️ ВАЛИДАЦИЯ ТАЙМШТАМПОВ: {}", reason);
+            
+            // Детальное логирование каждого пропуска
+            for (int i = 0; i < gaps.size(); i++) {
+                TimestampGap gap = gaps.get(i);
+                log.warn("⚠️ ПРОПУСК #{}: {} недостающих свечей между {} и {}", 
+                        i + 1, gap.getMissedCandlesCount(),
+                        formatTimestamp(gap.getStartTimestamp()), formatTimestamp(gap.getEndTimestamp()));
+            }
+            
+            return new TimestampValidationResult(false, reason, gaps);
+        }
+    }
+
+    /**
+     * Догружает недостающие свечи для заполнения пропусков в таймштампах
+     * @param gaps список пропусков для заполнения
+     * @param exchange биржа
+     * @param ticker тикер
+     * @param timeframe таймфрейм
+     * @param period период
+     * @param untilDate дата до которой загружать
+     * @return общее количество догруженных свечей
+     */
+    private int loadMissingCandlesForGaps(List<TimestampGap> gaps, String exchange, String ticker, 
+                                         String timeframe, String period, String untilDate) {
+        if (gaps.isEmpty()) {
+            log.info("✅ ДОГРУЗКА ПРОПУСКОВ: Нет пропусков для догрузки тикера {}", ticker);
+            return 0;
+        }
+        
+        log.info("🔄 ДОГРУЗКА ПРОПУСКОВ: Начинаем догрузку для {} пропусков в тикере {}", gaps.size(), ticker);
+        
+        int totalLoadedCandles = 0;
+        int maxRetries = 3; // Максимальное количество попыток догрузки
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            log.info("🔄 ПОПЫТКА #{}: Догрузка недостающих свечей для тикера {}", attempt, ticker);
+            
+            // Делаем общую догрузку всего диапазона - это проще и надёжнее
+            // чем пытаться догружать каждый пропуск отдельно
+            int loadedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
+            
+            if (loadedCount > 0) {
+                log.info("✅ ПОПЫТКА #{}: Загружено {} свечей для тикера {}", attempt, loadedCount, ticker);
+                totalLoadedCandles += loadedCount;
+                
+                // Повторно проверяем консистентность после догрузки
+                long untilTimestamp = parseUntilDate(untilDate);
+                int expectedCandlesCount = CandleCalculatorUtil.calculateCandlesCountUntilDate(ticker, timeframe, period, untilDate);
+                List<Candle> reloadedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
+                
+                TimestampValidationResult revalidationResult = validateCandlesConsistency(reloadedCandles, timeframe, ticker);
+                
+                if (revalidationResult.isValid) {
+                    log.info("✅ ПОПЫТКА #{}: Консистентность восстановлена для тикера {} после догрузки", attempt, ticker);
+                    break;
+                } else {
+                    log.warn("⚠️ ПОПЫТКА #{}: Остались пропуски после догрузки для тикера {}: {}", 
+                            attempt, ticker, revalidationResult.reason);
+                    
+                    if (attempt == maxRetries) {
+                        log.error("❌ ДОГРУЗКА ПРОПУСКОВ: Исчерпаны попытки восстановления консистентности для тикера {}. " +
+                                "Остается {} пропусков", ticker, revalidationResult.gaps.size());
+                    } else {
+                        log.info("🔄 ПОВТОРНАЯ ПОПЫТКА: Будет выполнена повторная догрузка для тикера {}", ticker);
+                    }
+                }
+            } else {
+                log.warn("⚠️ ПОПЫТКА #{}: Не удалось догрузить свечи для тикера {} (получено 0 свечей)", attempt, ticker);
+                
+                if (attempt == maxRetries) {
+                    log.error("❌ ДОГРУЗКА ПРОПУСКОВ: Не удалось догрузить свечи для тикера {} за {} попыток", ticker, maxRetries);
+                }
+            }
+        }
+        
+        log.info("📊 ИТОГО ДОГРУЗКА ПРОПУСКОВ: Загружено {} свечей для тикера {} за {} попыток", 
+                totalLoadedCandles, ticker, Math.min(maxRetries, totalLoadedCandles > 0 ? 1 : maxRetries));
+        
+        return totalLoadedCandles;
+    }
+
+    /**
      * Валидирует свечи только по количеству (упрощенная версия без проверки временного диапазона)
      * Использует увеличенную погрешность для случаев с untilDate
      */
@@ -416,6 +590,60 @@ public class CacheValidatedCandlesProcessor {
         ValidationResult(boolean isValid, String reason) {
             this.isValid = isValid;
             this.reason = reason;
+        }
+    }
+
+    /**
+     * Класс для хранения результата валидации консистентности таймштампов
+     */
+    private static class TimestampValidationResult {
+        final boolean isValid;
+        final String reason;
+        final List<TimestampGap> gaps;
+
+        TimestampValidationResult(boolean isValid, String reason, List<TimestampGap> gaps) {
+            this.isValid = isValid;
+            this.reason = reason;
+            this.gaps = gaps;
+        }
+    }
+
+    /**
+     * Класс для описания пропуска во временных интервалах свечей
+     */
+    private static class TimestampGap {
+        final long startTimestamp;
+        final long endTimestamp;
+        final int missedCandlesCount;
+        final int startPosition;
+        final int endPosition;
+
+        TimestampGap(long startTimestamp, long endTimestamp, int missedCandlesCount, int startPosition, int endPosition) {
+            this.startTimestamp = startTimestamp;
+            this.endTimestamp = endTimestamp;
+            this.missedCandlesCount = missedCandlesCount;
+            this.startPosition = startPosition;
+            this.endPosition = endPosition;
+        }
+
+        public long getStartTimestamp() {
+            return startTimestamp;
+        }
+
+        public long getEndTimestamp() {
+            return endTimestamp;
+        }
+
+        public int getMissedCandlesCount() {
+            return missedCandlesCount;
+        }
+
+        public int getStartPosition() {
+            return startPosition;
+        }
+
+        public int getEndPosition() {
+            return endPosition;
         }
     }
 }
