@@ -200,6 +200,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
         Checkbox useMinIntersectionsFilterCheckbox = new Checkbox("Использовать фильтр по пересечениям цен");
+        Checkbox useStablePairsForMonitoringCheckbox = new Checkbox("Искать из Постоянный список для мониторинга");
 
         // Min intersections field
         NumberField minIntersectionsField = new NumberField("Мин. пересечений");
@@ -266,7 +267,8 @@ public class SettingsComponent extends VerticalLayout {
                 minPValueField, maxAdfValueField, minCorrelationField, minVolumeField,
                 checkIntervalField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
                 useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
-                useMinVolumeFilterCheckbox, useMinIntersectionsFilterCheckbox, minIntersectionsField));
+                useMinVolumeFilterCheckbox, useMinIntersectionsFilterCheckbox, minIntersectionsField,
+                useStablePairsForMonitoringCheckbox));
 
         // Создаем поля для усреднения (депозит берется из OKX через PortfolioService)
 
@@ -353,6 +355,7 @@ public class SettingsComponent extends VerticalLayout {
                 useMinVolumeFilterCheckbox,
                 useMinIntersectionsFilterCheckbox,
                 minIntersectionsField,
+                useStablePairsForMonitoringCheckbox,
                 useExitTakeCheckbox,
                 useExitStopCheckbox,
                 useExitZMinCheckbox,
@@ -492,7 +495,7 @@ public class SettingsComponent extends VerticalLayout {
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
                                           Checkbox useMinVolumeFilterCheckbox, Checkbox useMinIntersectionsFilterCheckbox,
-                                          NumberField minIntersectionsField) {
+                                          NumberField minIntersectionsField, Checkbox useStablePairsForMonitoringCheckbox) {
 
         FormLayout analysisForm = createFormLayout();
 
@@ -509,7 +512,7 @@ public class SettingsComponent extends VerticalLayout {
                 timeframeField, periodField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
                 maxAdfValueLayout, minCorrelationLayout, minVolumeLayout,
-                minIntersectionsLayout, minimumLotBlacklistField
+                minIntersectionsLayout, useStablePairsForMonitoringCheckbox, minimumLotBlacklistField
         );
 
         Details analysisSection = createDetailsCard("🔍 Анализ и фильтры",
@@ -776,6 +779,7 @@ public class SettingsComponent extends VerticalLayout {
                             Checkbox useMinVolumeFilterCheckbox,
                             Checkbox useMinIntersectionsFilterCheckbox,
                             NumberField minIntersectionsField,
+                            Checkbox useStablePairsForMonitoringCheckbox,
                             Checkbox useExitTakeCheckbox,
                             Checkbox useExitStopCheckbox,
                             Checkbox useExitZMinCheckbox,
@@ -844,6 +848,9 @@ public class SettingsComponent extends VerticalLayout {
         settingsBinder.forField(minIntersectionsField)
                 .withConverter(Double::intValue, Integer::doubleValue)
                 .bind(Settings::getMinIntersections, Settings::setMinIntersections);
+
+        // Bind stable pairs for monitoring checkbox
+        settingsBinder.forField(useStablePairsForMonitoringCheckbox).bind(Settings::isUseStablePairsForMonitoring, Settings::setUseStablePairsForMonitoring);
 
         // Bind exit strategy checkboxes
         settingsBinder.forField(useExitTakeCheckbox).bind(Settings::isUseExitTake, Settings::setUseExitTake);

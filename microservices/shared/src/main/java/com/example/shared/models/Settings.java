@@ -274,6 +274,11 @@ public class Settings {
     @Column(name = "candle_cache_force_load_period_days")
     private int candleCacheForceLoadPeriodDays = 365;
 
+    // ===== Использование стабильных пар для мониторинга =====
+    @Builder.Default
+    @Column(name = "use_stable_pairs_for_monitoring")
+    private boolean useStablePairsForMonitoring = false;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
@@ -370,5 +375,8 @@ public class Settings {
         this.candleCachePreloadSchedule = other.candleCachePreloadSchedule;
         this.candleCacheDailyUpdateSchedule = other.candleCacheDailyUpdateSchedule;
         this.candleCacheForceLoadPeriodDays = other.candleCacheForceLoadPeriodDays;
+        
+        // Использование стабильных пар для мониторинга
+        this.useStablePairsForMonitoring = other.useStablePairsForMonitoring;
     }
 }
