@@ -36,7 +36,7 @@ public class ObservedPairsView extends VerticalLayout implements UIUpdateable {
         this.uiUpdateService = uiUpdateService;
 
         this.pairsTextArea = new TextArea("Наблюдаемые пары (через запятую, разделитель тикеров - '/')");
-        this.saveButton = new Button("Сохранить");
+        this.saveButton = new Button("Сохранить наблюдаемые пары");
 
         setSizeFull();
         setSpacing(true);

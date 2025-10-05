@@ -1,6 +1,6 @@
 package com.example.core.ui.components;
 
-import com.example.core.schedulers.TradeAndSimulationScheduler;
+import com.example.core.schedulers.UpdateTradesScheduler;
 import com.example.core.services.AutoVolumeService;
 import com.example.core.services.CapitalCalculationService;
 import com.example.core.services.PortfolioService;
@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SettingsComponent extends VerticalLayout {
 
     private final SettingsService settingsService;
-    private final TradeAndSimulationScheduler tradeAndSimulationScheduler;
+    private final UpdateTradesScheduler updateTradesScheduler;
     private final CapitalCalculationService capitalCalculationService;
     private final PortfolioService portfolioService;
     private final AutoVolumeService autoVolumeService;
@@ -55,12 +55,12 @@ public class SettingsComponent extends VerticalLayout {
     private NumberField autoVolumeShortField;
 
     public SettingsComponent(SettingsService settingsService,
-                             TradeAndSimulationScheduler tradeAndSimulationScheduler,
+                             UpdateTradesScheduler updateTradesScheduler,
                              CapitalCalculationService capitalCalculationService,
                              PortfolioService portfolioService,
                              AutoVolumeService autoVolumeService) {
         this.settingsService = settingsService;
-        this.tradeAndSimulationScheduler = tradeAndSimulationScheduler;
+        this.updateTradesScheduler = updateTradesScheduler;
         this.capitalCalculationService = capitalCalculationService;
         this.portfolioService = portfolioService;
         this.autoVolumeService = autoVolumeService;

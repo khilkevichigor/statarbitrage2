@@ -9,6 +9,7 @@ import com.example.shared.events.UpdateUiEvent;
 import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TradeAndSimulationScheduler {
+public class UpdateTradesScheduler {
 
     // Флаги для синхронизации шедуллеров
     private final AtomicBoolean updateTradesRunning = new AtomicBoolean(false);
@@ -27,7 +28,7 @@ public class TradeAndSimulationScheduler {
     private final UpdateTradeProcessor updateTradeProcessor;
     private final EventSendService eventSendService;
 
-    //    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
+    @Scheduled(initialDelay = 15000, fixedRate = 60000) // Каждую минуту в 0 секунд
     public void updateTrades() {
         if (!canStartUpdateTrades()) {
             return;
