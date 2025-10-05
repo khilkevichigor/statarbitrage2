@@ -319,60 +319,60 @@ public class CacheValidatedCandlesProcessor {
         return new ValidationResult(true, "Валидация по количеству с untilDate успешна");
     }
 
-    /**
-     * Валидирует полученные из кэша свечи (полная версия с проверкой временного диапазона)
-     */
-    private ValidationResult validateCachedCandles(List<Candle> candles, ExpectedParameters expected, String ticker) {
-        log.info("🔍 ВАЛИДАЦИЯ КЭШа: Проверяем {} свечей для тикера {}", candles.size(), ticker);
-
-        // Проверка 1: Количество свечей с использованием точной валидации из утилитного класса
-        if (!CandleCalculatorUtil.isValidCandlesCount(currentTimeframe, expected.candlesCount, candles.size())) {
-            int allowedDifference = CandleCalculatorUtil.getAllowedDifference(currentTimeframe, expected.candlesCount);
-            int actualDifference = Math.abs(candles.size() - expected.candlesCount);
-            String tolerance = CandleCalculatorUtil.getToleranceDescription(currentTimeframe);
-
-            String reason = String.format("Отклонение в количестве свечей превышает допустимое: ожидалось %d, получено %d (отклонение %d > допустимое %d, %s)",
-                    expected.candlesCount, candles.size(), actualDifference, allowedDifference, tolerance);
-            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
-            return new ValidationResult(false, reason);
-        }
-
-        // Проверка 2: Временной диапазон (только если есть свечи)
-        if (!candles.isEmpty()) {
-            long actualOldestTime = candles.get(0).getTimestamp();          // Первая = самая старая (сортированы по возрастанию)
-            long actualNewestTime = candles.get(candles.size() - 1).getTimestamp(); // Последняя = самая новая
-
-            log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН: {} - {}",
-                    formatTimestamp(actualOldestTime), formatTimestamp(actualNewestTime));
-            log.info("📅 ОЖИДАЕМЫЙ ДИАПАЗОН: {} - {}",
-                    formatTimestamp(expected.expectedOldestTime), formatTimestamp(expected.expectedNewestTime));
-
-            // Допускаем погрешность в 1% от общего периода
-            long totalPeriod = expected.expectedNewestTime - expected.expectedOldestTime;
-            long allowedDifference = Math.max(totalPeriod / 100, 60 * 60 * 1000L); // Минимум 1 час
-
-            // Проверяем старейшую свечу
-            long oldestTimeDiff = Math.abs(actualOldestTime - expected.expectedOldestTime);
-            if (oldestTimeDiff > allowedDifference) {
-                String reason = String.format("Диапазон съехал: старейшая свеча %s не соответствует ожидаемой %s (разница %d мс)",
-                        formatTimestamp(actualOldestTime), formatTimestamp(expected.expectedOldestTime), oldestTimeDiff);
-                log.warn("⚠️ ВАЛИДАЦИЯ ДИАПАЗОНА: {}", reason);
-                return new ValidationResult(false, reason);
-            }
-
-            // Проверяем новейшую свечу
-            long newestTimeDiff = Math.abs(actualNewestTime - expected.expectedNewestTime);
-            if (newestTimeDiff > allowedDifference) {
-                String reason = String.format("Диапазон съехал: новейшая свеча %s не соответствует ожидаемой %s (разница %d мс)",
-                        formatTimestamp(actualNewestTime), formatTimestamp(expected.expectedNewestTime), newestTimeDiff);
-                log.warn("⚠️ ВАЛИДАЦИЯ ДИАПАЗОНА: {}", reason);
-                return new ValidationResult(false, reason);
-            }
-        }
-
-        log.info("✅ ВАЛИДАЦИЯ УСПЕШНА: Свечи для тикера {} прошли все проверки", ticker);
-        return new ValidationResult(true, "Валидация успешна");
-    }
+//    /**
+//     * Валидирует полученные из кэша свечи (полная версия с проверкой временного диапазона)
+//     */
+//    private ValidationResult validateCachedCandles(List<Candle> candles, ExpectedParameters expected, String ticker) {
+//        log.info("🔍 ВАЛИДАЦИЯ КЭШа: Проверяем {} свечей для тикера {}", candles.size(), ticker);
+//
+//        // Проверка 1: Количество свечей с использованием точной валидации из утилитного класса
+//        if (!CandleCalculatorUtil.isValidCandlesCount(currentTimeframe, expected.candlesCount, candles.size())) {
+//            int allowedDifference = CandleCalculatorUtil.getAllowedDifference(currentTimeframe, expected.candlesCount);
+//            int actualDifference = Math.abs(candles.size() - expected.candlesCount);
+//            String tolerance = CandleCalculatorUtil.getToleranceDescription(currentTimeframe);
+//
+//            String reason = String.format("Отклонение в количестве свечей превышает допустимое: ожидалось %d, получено %d (отклонение %d > допустимое %d, %s)",
+//                    expected.candlesCount, candles.size(), actualDifference, allowedDifference, tolerance);
+//            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
+//            return new ValidationResult(false, reason);
+//        }
+//
+//        // Проверка 2: Временной диапазон (только если есть свечи)
+//        if (!candles.isEmpty()) {
+//            long actualOldestTime = candles.get(0).getTimestamp();          // Первая = самая старая (сортированы по возрастанию)
+//            long actualNewestTime = candles.get(candles.size() - 1).getTimestamp(); // Последняя = самая новая
+//
+//            log.info("📅 ФАКТИЧЕСКИЙ ДИАПАЗОН: {} - {}",
+//                    formatTimestamp(actualOldestTime), formatTimestamp(actualNewestTime));
+//            log.info("📅 ОЖИДАЕМЫЙ ДИАПАЗОН: {} - {}",
+//                    formatTimestamp(expected.expectedOldestTime), formatTimestamp(expected.expectedNewestTime));
+//
+//            // Допускаем погрешность в 1% от общего периода
+//            long totalPeriod = expected.expectedNewestTime - expected.expectedOldestTime;
+//            long allowedDifference = Math.max(totalPeriod / 100, 60 * 60 * 1000L); // Минимум 1 час
+//
+//            // Проверяем старейшую свечу
+//            long oldestTimeDiff = Math.abs(actualOldestTime - expected.expectedOldestTime);
+//            if (oldestTimeDiff > allowedDifference) {
+//                String reason = String.format("Диапазон съехал: старейшая свеча %s не соответствует ожидаемой %s (разница %d мс)",
+//                        formatTimestamp(actualOldestTime), formatTimestamp(expected.expectedOldestTime), oldestTimeDiff);
+//                log.warn("⚠️ ВАЛИДАЦИЯ ДИАПАЗОНА: {}", reason);
+//                return new ValidationResult(false, reason);
+//            }
+//
+//            // Проверяем новейшую свечу
+//            long newestTimeDiff = Math.abs(actualNewestTime - expected.expectedNewestTime);
+//            if (newestTimeDiff > allowedDifference) {
+//                String reason = String.format("Диапазон съехал: новейшая свеча %s не соответствует ожидаемой %s (разница %d мс)",
+//                        formatTimestamp(actualNewestTime), formatTimestamp(expected.expectedNewestTime), newestTimeDiff);
+//                log.warn("⚠️ ВАЛИДАЦИЯ ДИАПАЗОНА: {}", reason);
+//                return new ValidationResult(false, reason);
+//            }
+//        }
+//
+//        log.info("✅ ВАЛИДАЦИЯ УСПЕШНА: Свечи для тикера {} прошли все проверки", ticker);
+//        return new ValidationResult(true, "Валидация успешна");
+//    }
 
     /**
      * Форматирует timestamp в читаемый вид
