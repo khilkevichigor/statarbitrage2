@@ -4,6 +4,7 @@ import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.services.PairService;
 import com.example.core.services.StablePairsScreenerSettingsService;
 import com.example.shared.models.StablePairsScreenerSettings;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -205,7 +206,7 @@ public class StablePairsScheduler {
     /**
      * Graceful shutdown при остановке приложения
      */
-    @jakarta.annotation.PreDestroy
+    @PreDestroy
     public void shutdown() {
         log.info("🛑 Завершение работы шедуллера стабильных пар");
 
