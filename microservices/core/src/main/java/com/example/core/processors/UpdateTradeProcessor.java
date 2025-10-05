@@ -34,6 +34,7 @@ public class UpdateTradeProcessor {
     private final AveragingService averagingService;
     private final TradingProviderFactory tradingProviderFactory;
     private final CandlesFeignClient candlesFeignClient;
+    private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
 
 
     //todo сделать проверку zScore - что он пересекал +3 и -3 несколько раз - говорит о том что пара гуляет туда-сюда
@@ -152,7 +153,13 @@ public class UpdateTradeProcessor {
                 chartService.calculatePixelSpreadIfNeeded(freshPair); // Инициализация при первом запуске
                 chartService.addCurrentPixelSpreadPoint(freshPair); // Добавляем новую точку
 
+                // ВАЖНО: Обновляем z-Score данные и историю (как для торговых пар)
+                updateZScoreDataCurrentService.updateCurrent(freshPair, zScoreData);
+                
                 pairService.save(freshPair);
+                
+                // Сохраняем историю z-Score для графика
+                tradeHistoryService.updateTradeLog(freshPair, settings);
             }
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при обновлении наблюдаемой пары {}: {}",

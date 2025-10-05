@@ -804,10 +804,38 @@ public class Pair {
             zScoreHistory = new ArrayList<>();
         }
         zScoreHistory.add(item);
+        // Автоматически сохраняем в JSON поле
+        setZScoreHistory(zScoreHistory);
     }
 
     public List<ZScoreParam> getZScoreHistory() {
-        return zScoreHistory != null ? zScoreHistory : new ArrayList<>();
+        if (zScoreHistory != null) {
+            return zScoreHistory;
+        }
+        if (zScoreHistoryJson != null && !zScoreHistoryJson.isEmpty()) {
+            try {
+                zScoreHistory = objectMapper.readValue(zScoreHistoryJson,
+                        new TypeReference<List<ZScoreParam>>() {});
+                return zScoreHistory;
+            } catch (JsonProcessingException e) {
+                log.error("Ошибка при десериализации истории Z-Score", e);
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    public void setZScoreHistory(List<ZScoreParam> history) {
+        this.zScoreHistory = history;
+        if (history != null) {
+            try {
+                this.zScoreHistoryJson = objectMapper.writeValueAsString(history);
+            } catch (JsonProcessingException e) {
+                log.error("Ошибка при сериализации истории Z-Score", e);
+                this.zScoreHistoryJson = "[]";
+            }
+        } else {
+            this.zScoreHistoryJson = null;
+        }
     }
 
     public void addProfitHistoryPoint(ProfitHistoryItem item) {

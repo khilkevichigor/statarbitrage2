@@ -7,6 +7,7 @@ import com.example.shared.models.StablePairsScreenerSettings;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -43,7 +44,7 @@ public class StablePairsScheduler {
      * Автоматический поиск стабильных пар по расписанию (многопоточный)
      * Запускается каждую ночь в 2:00 по местному времени
      */
-//    @Scheduled(cron = "0 10 1 * * *") // каждый день в 2:00
+    @Scheduled(cron = "0 10 1 * * *") // каждый день в 2:00
     public void searchStablePairsScheduled() {
         log.info("🌙 Запуск многопоточного автоматического поиска стабильных пар в {}", LocalDateTime.now());
 
