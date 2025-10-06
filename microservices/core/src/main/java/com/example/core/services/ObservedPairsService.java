@@ -52,6 +52,9 @@ public class ObservedPairsService {
                         .tickerA(longTicker)
                         .tickerB(shortTicker)
                         .pairName(longTicker + "/" + shortTicker)
+                        .timeframe(settings.getTimeframe())
+                        .settingsCandleLimit(java.math.BigDecimal.valueOf(settings.getCandleLimit()))
+                        .settingsMinZ(java.math.BigDecimal.valueOf(settings.getMinZ()))
                         .build();
                 tradingPair.setStatus(TradeStatus.OBSERVED);
                 tradingPairList.add(tradingPair);
