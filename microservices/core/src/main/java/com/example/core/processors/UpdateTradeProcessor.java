@@ -199,10 +199,10 @@ public class UpdateTradeProcessor {
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
-                .candleLimit((int) settings.getCandleLimit())
-                .minVolume(settings.getMinVolume())
+                .candleLimit((int) settings.getCandleLimit()) //todo check
+                .minVolume(0.001) //todo для уже торгуемой пары просто обновляем без фильтра по объему - сетим минималку
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()))
-                .period("1 год")
+                .period(settings.calculateCurrentPeriod()) //todo берем из настроек
                 .build();
 
         // Получаем все свечи через расширенный эндпоинт с пагинацией

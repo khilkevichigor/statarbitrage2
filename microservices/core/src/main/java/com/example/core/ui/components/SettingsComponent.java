@@ -409,7 +409,7 @@ public class SettingsComponent extends VerticalLayout {
         periodSelect.setItems(PeriodOptions.getAll().keySet());
 
         // Вычисляем текущий период на основе candleLimit и timeframe
-        String currentPeriod = calculateCurrentPeriod();
+        String currentPeriod = currentSettings.calculateCurrentPeriod();
         periodSelect.setValue(currentPeriod);
 
         periodSelect.setHelperText("Выберите период для анализа данных");
@@ -420,7 +420,7 @@ public class SettingsComponent extends VerticalLayout {
     /**
      * Вычисляет текущий период на основе candleLimit и timeframe
      */
-    private String calculateCurrentPeriod() {
+    private String calculateCurrentPeriod() { //todo перенес в Settings, можно удалить
         try {
             int candleLimit = (int) currentSettings.getCandleLimit();
             String timeframe = currentSettings.getTimeframe();
@@ -808,7 +808,7 @@ public class SettingsComponent extends VerticalLayout {
                         displayPeriod -> PeriodOptions.calculateCandleLimit(
                                 TimeframeOptions.getApiCode(timeframeField.getValue()), displayPeriod),
                         // Конвертер из candleLimit обратно в отображаемый период
-                        candleLimit -> calculateCurrentPeriod()
+                        candleLimit -> currentSettings.calculateCurrentPeriod()
                 )
                 .bind(settings -> (int) settings.getCandleLimit(),
                         (settings, candleLimit) -> settings.setCandleLimit(candleLimit));

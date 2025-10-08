@@ -5,7 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Entity
 @Table(name = "settings")
 @Data
@@ -442,5 +444,40 @@ public class Settings {
         this.schedulerCandleCacheUpdateEnabled = other.schedulerCandleCacheUpdateEnabled;
         this.schedulerCandleCacheStatsEnabled = other.schedulerCandleCacheStatsEnabled;
         this.schedulerCandleCacheStatsCron = other.schedulerCandleCacheStatsCron;
+    }
+
+    /**
+     * Вычисляет текущий период на основе candleLimit и timeframe
+     */
+    public String calculateCurrentPeriod() {
+        try {
+            int candleLimit = (int) this.getCandleLimit();
+            String timeframe = this.getTimeframe();
+
+            // Приблизительный расчет периода
+            int daysInPeriod = switch (timeframe) {
+                case "1m" -> candleLimit / (24 * 60);
+                case "5m" -> candleLimit / (24 * 12);
+                case "15m" -> candleLimit / (24 * 4);
+                case "1H" -> candleLimit / 24;
+                case "4H" -> candleLimit / 6;
+                case "1D" -> candleLimit;
+                case "1W" -> candleLimit * 7;
+                case "1M" -> candleLimit * 30;
+                default -> candleLimit / 24;
+            };
+
+            // Определяем ближайший период
+            if (daysInPeriod <= 1) return "день";
+            if (daysInPeriod <= 7) return "неделя";
+            if (daysInPeriod <= 30) return "месяц";
+            if (daysInPeriod <= 365) return "1 год";
+            if (daysInPeriod <= 730) return "2 года";
+            return "3 года";
+
+        } catch (Exception e) {
+            log.warn("Ошибка при расчете текущего периода: {}", e.getMessage());
+            throw new RuntimeException("Ошибка при расчете текущего периода");
+        }
     }
 }
