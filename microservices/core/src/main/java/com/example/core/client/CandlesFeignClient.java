@@ -75,6 +75,12 @@ public interface CandlesFeignClient {
     Map<String, String> updateSchedules(@RequestBody Map<String, Object> request);
 
     /**
+     * Очистка неактивных таймфреймов из кэша
+     */
+    @PostMapping("/api/cache/cleanup-inactive-timeframes")
+    Map<String, String> cleanupInactiveTimeframes(@RequestBody Map<String, Object> request);
+
+    /**
      * Health check кэша
      */
     @GetMapping("/api/cache/health")

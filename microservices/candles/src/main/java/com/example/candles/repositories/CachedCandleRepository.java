@@ -117,16 +117,16 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
 
     // УДАЛЕНО: deleteByTickerTimeframeExchange - больше не нужно удаление
     // УДАЛЕНО: deleteOldCandlesByExchangeTimeframe - оставляем все исторические данные
-    
+
     @Modifying
     @Transactional
     @Query(value = "INSERT INTO cached_candles (ticker, timeframe, exchange, timestamp, open_price, " +
             "high_price, low_price, close_price, volume, is_valid, created_at, updated_at) " +
-            "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NOW(), NOW()) ON CONFLICT DO NOTHING", 
+            "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NOW(), NOW()) ON CONFLICT DO NOTHING",
             nativeQuery = true)
     void insertIgnoreDuplicates(String ticker, String timeframe, String exchange, Long timestamp,
-                               Double openPrice, Double highPrice, Double lowPrice, 
-                               Double closePrice, Double volume, Boolean isValid);
+                                Double openPrice, Double highPrice, Double lowPrice,
+                                Double closePrice, Double volume, Boolean isValid);
 
     @Modifying
     @Transactional
@@ -145,6 +145,21 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
             "FROM CachedCandle cc WHERE cc.isValid = true " +
             "AND cc.createdAt >= :startOfDay AND cc.createdAt < :startOfNextDay " +
             "GROUP BY cc.exchange, cc.timeframe ORDER BY cc.exchange, cc.timeframe")
-    List<Object[]> getTodayCacheStatistics(@Param("startOfDay") LocalDateTime startOfDay, 
-                                          @Param("startOfNextDay") LocalDateTime startOfNextDay);
+    List<Object[]> getTodayCacheStatistics(@Param("startOfDay") LocalDateTime startOfDay,
+                                           @Param("startOfNextDay") LocalDateTime startOfNextDay);
+
+    /**
+     * Получить все уникальные таймфреймы для биржи
+     */
+    @Query("SELECT DISTINCT cc.timeframe FROM CachedCandle cc WHERE cc.exchange = :exchange " +
+            "ORDER BY cc.timeframe")
+    java.util.Set<String> findDistinctTimeframes(@Param("exchange") String exchange);
+
+    /**
+     * Удалить все свечи для определенной биржи и таймфрейма
+     */
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM CachedCandle cc WHERE cc.exchange = :exchange AND cc.timeframe = :timeframe")
+    int deleteByExchangeAndTimeframe(@Param("exchange") String exchange, @Param("timeframe") String timeframe);
 }

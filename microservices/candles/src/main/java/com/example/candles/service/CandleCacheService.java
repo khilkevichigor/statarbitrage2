@@ -137,14 +137,14 @@ public class CandleCacheService {
             // ✅ ЭТАЛОН ДОЛЖЕН ИМЕТЬ ТОЧНО ЗАПРОШЕННОЕ КОЛИЧЕСТВО СВЕЧЕЙ!
             if (btcCandles.size() == expectedLimit) {
                 expectedCandleCount = expectedLimit;
-                
+
                 // 🎯 ВАЖНО: Обрезаем временные границы до начала дня для упрощения работы с периодами
                 long originalFirstTimestamp = btcCandles.get(0).getTimestamp();
                 long originalLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                
+
                 expectedFirstTimestamp = truncateToStartOfDay(originalFirstTimestamp);
                 expectedLastTimestamp = truncateToStartOfDay(originalLastTimestamp);
-                
+
                 log.info("🎯 ЭТАЛОН: BTC-USDT-SWAP валиден - {} свечей (как запрошено), оригинал {} - {}, обрезано до {} - {}",
                         expectedCandleCount,
                         formatTimestamp(originalFirstTimestamp), formatTimestamp(originalLastTimestamp),
@@ -153,7 +153,7 @@ public class CandleCacheService {
                 if (!btcCandles.isEmpty()) {
                     long oldestTime = btcCandles.get(0).getTimestamp();
                     long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                    log.error("❌ ЭТАЛОН: BTC-USDT-SWAP невалиден - {} свечей вместо {} запрошенных! Диапазон {} - {}. Эталон должен иметь полный набор данных!", 
+                    log.error("❌ ЭТАЛОН: BTC-USDT-SWAP невалиден - {} свечей вместо {} запрошенных! Диапазон {} - {}. Эталон должен иметь полный набор данных!",
                             btcCandles.size(), expectedLimit, formatTimestamp(oldestTime), formatTimestamp(newestTime));
                 } else {
                     log.error("❌ ЭТАЛОН: BTC-USDT-SWAP невалиден - 0 свечей вместо {} запрошенных! Эталон должен иметь полный набор данных!", expectedLimit);
@@ -188,7 +188,7 @@ public class CandleCacheService {
             int candleCount = candles.size();
             long originalFirstTimestamp = candles.get(0).getTimestamp();
             long originalLastTimestamp = candles.get(candles.size() - 1).getTimestamp();
-            
+
             // 🎯 ВАЖНО: Обрезаем временные границы тикера до начала дня для сравнения с эталоном
             long firstTimestamp = truncateToStartOfDay(originalFirstTimestamp);
             long lastTimestamp = truncateToStartOfDay(originalLastTimestamp);
@@ -376,12 +376,12 @@ public class CandleCacheService {
             if (btcCandles.size() < candleLimit) {
                 long oldestTime = btcCandles.get(0).getTimestamp();
                 long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                log.warn("🔄 ЭТАЛОН НЕПОЛНЫЙ: BTC имеет {} свечей вместо {}, диапазон {} - {}, догружаем...", 
+                log.warn("🔄 ЭТАЛОН НЕПОЛНЫЙ: BTC имеет {} свечей вместо {}, диапазон {} - {}, догружаем...",
                         btcCandles.size(), candleLimit, formatTimestamp(oldestTime), formatTimestamp(newestTime));
             }
             if (isStale) {
                 long ageInSeconds = currentTimestamp - lastCandleTimestamp;
-                log.warn("🔄 ЭТАЛОН УСТАРЕЛ: BTC последняя свеча {} ({} сек назад, макс: {}), обновляем...", 
+                log.warn("🔄 ЭТАЛОН УСТАРЕЛ: BTC последняя свеча {} ({} сек назад, макс: {}), обновляем...",
                         formatTimestamp(lastCandleTimestamp), ageInSeconds, maxAllowedAge);
             }
 
@@ -401,7 +401,7 @@ public class CandleCacheService {
                     candlesMap.put(btcTicker, btcCandles); // Обновляем в общей карте
                     long oldestTime = btcCandles.get(0).getTimestamp();
                     long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                    log.info("✅ ЭТАЛОН ДОГРУЖЕН: BTC теперь имеет {} свечей (+{} добавлено), диапазон {} - {}", 
+                    log.info("✅ ЭТАЛОН ДОГРУЖЕН: BTC теперь имеет {} свечей (+{} добавлено), диапазон {} - {}",
                             btcCandles.size(), addedCount, formatTimestamp(oldestTime), formatTimestamp(newestTime));
                 } else {
                     log.error("❌ Не удалось догрузить BTC-USDT-SWAP до полного размера!");
@@ -419,7 +419,7 @@ public class CandleCacheService {
             if (!btcCandles.isEmpty()) {
                 long oldestTime = btcCandles.get(0).getTimestamp();
                 long newestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                log.error("❌ ЭТАЛОН ВСЕ ЕЩЕ НЕПОЛНЫЙ: BTC имеет {} свечей вместо требуемых {}, диапазон {} - {}!", 
+                log.error("❌ ЭТАЛОН ВСЕ ЕЩЕ НЕПОЛНЫЙ: BTC имеет {} свечей вместо требуемых {}, диапазон {} - {}!",
                         btcCandles.size(), candleLimit, formatTimestamp(oldestTime), formatTimestamp(newestTime));
             } else {
                 log.error("❌ ЭТАЛОН ВСЕ ЕЩЕ НЕПОЛНЫЙ: BTC имеет 0 свечей вместо требуемых {}!", candleLimit);
@@ -430,7 +430,7 @@ public class CandleCacheService {
         // 🎯 ВАЖНО: Обрезаем временные границы до начала дня для упрощения работы с периодами
         long originalFirstTimestamp = btcCandles.get(0).getTimestamp();
         long originalLastTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-        
+
         long expectedFirstTimestamp = truncateToStartOfDay(originalFirstTimestamp);
         long expectedLastTimestamp = truncateToStartOfDay(originalLastTimestamp);
 
@@ -447,7 +447,7 @@ public class CandleCacheService {
         int invalidCount = candlesMap.size() - validCount;
 
         if (invalidCount == 0) {
-            log.info("✨ ВСЕ ТИКЕРЫ ВАЛИДНЫ: Возвращаем {} тикеров с {} свечами, диапазон {} - {}", 
+            log.info("✨ ВСЕ ТИКЕРЫ ВАЛИДНЫ: Возвращаем {} тикеров с {} свечами, диапазон {} - {}",
                     validCount, candleLimit, formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
             return validCandlesMap;
         }
@@ -464,7 +464,7 @@ public class CandleCacheService {
         }
 
         if (tickersToReload.isEmpty()) {
-            log.info("i️ ВСЕ НЕВАЛИДНЫЕ ТИКЕРЫ - ЭТО BTC (уже догружен): Возвращаем {} валидных тикеров с {} свечами, диапазон {} - {}", 
+            log.info("i️ ВСЕ НЕВАЛИДНЫЕ ТИКЕРЫ - ЭТО BTC (уже догружен): Возвращаем {} валидных тикеров с {} свечами, диапазон {} - {}",
                     validCount, candleLimit, formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
             return validCandlesMap;
         }
@@ -565,7 +565,7 @@ public class CandleCacheService {
                             } else {
                                 long oldestTime = freshCandles.get(0).getTimestamp();
                                 long newestTime = freshCandles.get(freshCandles.size() - 1).getTimestamp();
-                                log.info("✅ ПОТОК: {} - loadCandlesInExactRange вернул {} свечей, диапазон {} - {}", 
+                                log.info("✅ ПОТОК: {} - loadCandlesInExactRange вернул {} свечей, диапазон {} - {}",
                                         ticker, freshCandles.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                             }
                         } else {
@@ -585,21 +585,21 @@ public class CandleCacheService {
                                 candlesToSave = freshCandles;
                                 long oldestTime = candlesToSave.get(0).getTimestamp();
                                 long newestTime = candlesToSave.get(candlesToSave.size() - 1).getTimestamp();
-                                log.info("📥 ПОТОК: {} - ЭТАЛОН, сохраняем все {} свечей, диапазон {} - {}", 
+                                log.info("📥 ПОТОК: {} - ЭТАЛОН, сохраняем все {} свечей, диапазон {} - {}",
                                         ticker, candlesToSave.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                             } else if (expectedFirstTimestamp != -1L && expectedLastTimestamp != -1L) {
                                 // ✅ Остальные тикеры уже загружены в точном диапазоне - сохраняем без фильтрации!
                                 candlesToSave = freshCandles;
                                 long oldestTime = candlesToSave.get(0).getTimestamp();
                                 long newestTime = candlesToSave.get(candlesToSave.size() - 1).getTimestamp();
-                                log.info("📥 ПОТОК: {} - ТОЧНЫЙ ДИАПАЗОН, сохраняем все {} свечей, диапазон {} - {}", 
+                                log.info("📥 ПОТОК: {} - ТОЧНЫЙ ДИАПАЗОН, сохраняем все {} свечей, диапазон {} - {}",
                                         ticker, candlesToSave.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                             } else {
                                 // Обычная загрузка без ограничений - сохраняем все полученные свечи
                                 candlesToSave = freshCandles;
                                 long oldestTime = candlesToSave.get(0).getTimestamp();
                                 long newestTime = candlesToSave.get(candlesToSave.size() - 1).getTimestamp();
-                                log.info("📥 ПОТОК: {} - БЕЗ ФИЛЬТРАЦИИ, сохраняем все {} свечей, диапазон {} - {}", 
+                                log.info("📥 ПОТОК: {} - БЕЗ ФИЛЬТРАЦИИ, сохраняем все {} свечей, диапазон {} - {}",
                                         ticker, candlesToSave.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                             }
 
@@ -627,13 +627,13 @@ public class CandleCacheService {
                                 if (!updatedCandles.isEmpty()) {
                                     long oldestTime = updatedCandles.get(0).getTimestamp();
                                     long newestTime = updatedCandles.get(updatedCandles.size() - 1).getTimestamp();
-                                    log.info("🔄 ПОТОК: {} - получено {} обновленных свечей из кэша для валидации, диапазон {} - {}", 
+                                    log.info("🔄 ПОТОК: {} - получено {} обновленных свечей из кэша для валидации, диапазон {} - {}",
                                             ticker, updatedCandles.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                                 } else {
                                     log.info("🔄 ПОТОК: {} - получено 0 обновленных свечей из кэша для валидации", ticker);
                                 }
                             } else {
-                                log.warn("⚠️ ПОТОК: {} - нет свечей в требуемом диапазоне {} - {}", ticker, 
+                                log.warn("⚠️ ПОТОК: {} - нет свечей в требуемом диапазоне {} - {}", ticker,
                                         formatTimestamp(expectedFirstTimestamp), formatTimestamp(expectedLastTimestamp));
                             }
                         } else {
@@ -651,7 +651,7 @@ public class CandleCacheService {
             // Ждем завершения всех потоков
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-            log.info("🏁 СПЕЦИАЛЬНАЯ ДОГРУЗКА: Завершена для {} тикеров, добавлено {} свечей в БД", 
+            log.info("🏁 СПЕЦИАЛЬНАЯ ДОГРУЗКА: Завершена для {} тикеров, добавлено {} свечей в БД",
                     tickers.size(), totalAddedCount[0]);
 
         } catch (Exception e) {
@@ -726,9 +726,9 @@ public class CandleCacheService {
                     .map(CachedCandle::toCandle)
                     .sorted(Comparator.comparing(Candle::getTimestamp))
                     .collect(Collectors.toList());
-            
+
             result.put(btcTicker, btcCandles);
-            
+
             // Если данных меньше запрошенного - добавляем в список для догрузки
             if (btcCachedCandles.size() < candleLimit) {
                 int missing = candleLimit - btcCachedCandles.size();
@@ -736,25 +736,25 @@ public class CandleCacheService {
                 // Получаем диапазон дат для более информативного лога
                 long originalOldestTime = btcCandles.get(0).getTimestamp();
                 long originalNewestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                
+
                 // 🎯 ВАЖНО: Показываем обрезку времени в логе
                 long truncatedOldestTime = truncateToStartOfDay(originalOldestTime);
                 long truncatedNewestTime = truncateToStartOfDay(originalNewestTime);
-                
-                log.info("🎯 ЭТАЛОН: BTC частично в кэше ({}/{} свечей), оригинал {} - {}, обрезано до {} - {}, догрузим {} свечей", 
-                        btcCachedCandles.size(), candleLimit, 
+
+                log.info("🎯 ЭТАЛОН: BTC частично в кэше ({}/{} свечей), оригинал {} - {}, обрезано до {} - {}, догрузим {} свечей",
+                        btcCachedCandles.size(), candleLimit,
                         formatTimestamp(originalOldestTime), formatTimestamp(originalNewestTime),
                         formatTimestamp(truncatedOldestTime), formatTimestamp(truncatedNewestTime), missing);
             } else {
                 long originalOldestTime = btcCandles.get(0).getTimestamp();
                 long originalNewestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                
+
                 // 🎯 ВАЖНО: Показываем обрезку времени в логе
                 long truncatedOldestTime = truncateToStartOfDay(originalOldestTime);
                 long truncatedNewestTime = truncateToStartOfDay(originalNewestTime);
-                
-                log.info("🎯 ЭТАЛОН: BTC полностью в кэше ({} свечей), оригинал {} - {}, обрезано до {} - {}", 
-                        btcCachedCandles.size(), 
+
+                log.info("🎯 ЭТАЛОН: BTC полностью в кэше ({} свечей), оригинал {} - {}, обрезано до {} - {}",
+                        btcCachedCandles.size(),
                         formatTimestamp(originalOldestTime), formatTimestamp(originalNewestTime),
                         formatTimestamp(truncatedOldestTime), formatTimestamp(truncatedNewestTime));
             }
@@ -767,14 +767,14 @@ public class CandleCacheService {
         // Если нужно догрузить BTC - делаем это СРАЗУ И БЛОКИРУЮЩЕ
         if (missingCandlesCount.containsKey(btcTicker)) {
             log.info("🚀 ЭТАЛОН: ПРИОРИТЕТНАЯ ЗАГРУЗКА BTC для создания эталона...");
-            
+
             Map<String, Object> btcLoadingResult = loadMissingCandles(
                     Map.of(btcTicker, missingCandlesCount.get(btcTicker)),
                     timeframe, exchange, requiredFromTimestamp);
-                    
+
             @SuppressWarnings("unchecked")
             Map<String, List<Candle>> btcLoadedCandles = (Map<String, List<Candle>>) btcLoadingResult.get("candles");
-            
+
             if (btcLoadedCandles.containsKey(btcTicker)) {
                 result.put(btcTicker, btcLoadedCandles.get(btcTicker));
                 log.info("✅ ЭТАЛОН: BTC успешно загружен и готов к использованию");
@@ -795,39 +795,39 @@ public class CandleCacheService {
             if (!btcCandles.isEmpty()) {
                 btcCandles.sort(Comparator.comparingLong(Candle::getTimestamp));
                 long lastCandleTimestamp = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                
+
                 long maxAllowedAge = calculateMaxAllowedAge(timeframe);
-                
+
                 long lastCandleTimestampInSeconds = lastCandleTimestamp;
                 if (lastCandleTimestamp > 9999999999L) {
                     lastCandleTimestampInSeconds = lastCandleTimestamp / 1000;
                 }
-                
+
                 long ageInSeconds = currentTimestamp - lastCandleTimestampInSeconds;
                 boolean isStale = ageInSeconds > maxAllowedAge;
-                
+
                 if (isStale) {
                     long ageInMinutes = ageInSeconds / 60;
                     long ageInHours = ageInMinutes / 60;
-                    
+
                     log.warn("🔄 ЭТАЛОН: BTC УСТАРЕЛ - {} ч. {} мин. назад, принудительно обновляем...",
                             ageInHours, ageInMinutes % 60);
-                    
+
                     try {
                         Map<String, Object> btcReloadResult = loadMissingCandlesForTickers(
                                 List.of(btcTicker), timeframe, candleLimit, exchange, -1L, -1L);
-                        
+
                         @SuppressWarnings("unchecked")
                         Map<String, List<Candle>> btcReloadedCandles =
                                 (Map<String, List<Candle>>) btcReloadResult.get("candlesMap");
-                        
+
                         if (btcReloadedCandles.containsKey(btcTicker)) {
                             List<Candle> updatedBtcCandles = btcReloadedCandles.get(btcTicker);
                             result.put(btcTicker, updatedBtcCandles);
                             if (!updatedBtcCandles.isEmpty()) {
                                 long oldestTime = updatedBtcCandles.get(0).getTimestamp();
                                 long newestTime = updatedBtcCandles.get(updatedBtcCandles.size() - 1).getTimestamp();
-                                log.info("✅ ЭТАЛОН: BTC критично обновлен и готов! ({} свечей), диапазон {} - {}", 
+                                log.info("✅ ЭТАЛОН: BTC критично обновлен и готов! ({} свечей), диапазон {} - {}",
                                         updatedBtcCandles.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                             }
                         }
@@ -837,13 +837,13 @@ public class CandleCacheService {
                 } else {
                     long originalOldestTime = btcCandles.get(0).getTimestamp();
                     long originalNewestTime = btcCandles.get(btcCandles.size() - 1).getTimestamp();
-                    
+
                     // 🎯 ВАЖНО: Показываем обрезку времени в логе
                     long truncatedOldestTime = truncateToStartOfDay(originalOldestTime);
                     long truncatedNewestTime = truncateToStartOfDay(originalNewestTime);
-                    
-                    log.info("✅ ЭТАЛОН: BTC свежий и готов к использованию ({} свечей), оригинал {} - {}, обрезано до {} - {}", 
-                            btcCandles.size(), 
+
+                    log.info("✅ ЭТАЛОН: BTC свежий и готов к использованию ({} свечей), оригинал {} - {}, обрезано до {} - {}",
+                            btcCandles.size(),
                             formatTimestamp(originalOldestTime), formatTimestamp(originalNewestTime),
                             formatTimestamp(truncatedOldestTime), formatTimestamp(truncatedNewestTime));
                 }
@@ -913,7 +913,7 @@ public class CandleCacheService {
                         if (!hitCandlesList.isEmpty()) {
                             long oldestTime = hitCandlesList.get(0).getTimestamp();
                             long newestTime = hitCandlesList.get(hitCandlesList.size() - 1).getTimestamp();
-                            log.info("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие), диапазон {} - {}", 
+                            log.info("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие), диапазон {} - {}",
                                     ticker, latestCandles.size(), formatTimestamp(oldestTime), formatTimestamp(newestTime));
                         } else {
                             log.info("✅ Кэш HIT: {} - {} свечей из кэша (полное покрытие)", ticker, latestCandles.size());
@@ -1402,16 +1402,16 @@ public class CandleCacheService {
             // timestamp в секундах
             timestampMillis = timestamp * 1000L;
         }
-        
+
         // Константа для миллисекунд в дне
         final long MILLIS_PER_DAY = 24L * 60L * 60L * 1000L;
-        
+
         // Вычисляем количество полных дней с Unix epoch (1 января 1970 00:00:00 UTC)
         long daysFromEpoch = timestampMillis / MILLIS_PER_DAY;
-        
+
         // Получаем начало этого дня в миллисекундах (00:00:00.000 UTC)
         long dayStartMillis = daysFromEpoch * MILLIS_PER_DAY;
-        
+
         // Возвращаем в той же единице, что и входящий timestamp
         long result;
         if (timestamp > 9999999999L) {
@@ -1419,13 +1419,13 @@ public class CandleCacheService {
         } else {
             result = dayStartMillis / 1000L; // Возвращаем в секундах
         }
-        
+
         // Добавляем отладочную информацию
-        log.info("🕒 ОБРЕЗКА ВРЕМЕНИ: {} ({}) → {} ({}) (разница {} единиц)", 
-                formatTimestamp(timestamp), timestamp, 
-                formatTimestamp(result), result, 
+        log.info("🕒 ОБРЕЗКА ВРЕМЕНИ: {} ({}) → {} ({}) (разница {} единиц)",
+                formatTimestamp(timestamp), timestamp,
+                formatTimestamp(result), result,
                 timestamp - result);
-        
+
         return result;
     }
 
@@ -1479,18 +1479,18 @@ public class CandleCacheService {
                     // Пауза между чанками для снижения нагрузки и освобождения памяти
                     Thread.sleep(1000); // Увеличил паузу для лучшей очистки памяти
 
-                    log.info("✅ ПОТОК CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{} свечей)", 
+                    log.info("✅ ПОТОК CHUNK {}/{} ЗАВЕРШЕН: {} - загружено {} свечей (прогресс: {}/{} свечей)",
                             chunkNum, totalChunks, ticker, actuallyLoaded, loadedSoFar, totalMissing);
 
                     // Если получили меньше данных чем ожидали - прерываем
                     if (actuallyLoaded < Math.min(currentChunkSize, 1000)) {
-                        log.warn("⚠️ ПОТОК CHUNK INCOMPLETE: {} - получено {} свечей из {} ожидаемых, завершаем загрузку", 
+                        log.warn("⚠️ ПОТОК CHUNK INCOMPLETE: {} - получено {} свечей из {} ожидаемых, завершаем загрузку",
                                 ticker, actuallyLoaded, currentChunkSize);
                         break;
                     }
                 }
 
-                log.info("🎉 ПОТОК CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} свечей из {} запрошенных", 
+                log.info("🎉 ПОТОК CHUNKED LOAD ЗАВЕРШЕН: {} - итого загружено {} свечей из {} запрошенных",
                         ticker, loadedSoFar, totalMissing);
 
             } catch (Exception e) {
@@ -1848,5 +1848,55 @@ public class CandleCacheService {
         }
 
         return result;
+    }
+
+    /**
+     * Очистка неактивных таймфреймов из кэша
+     * Удаляет все свечи таймфреймов, которые не входят в список активных
+     */
+    public long cleanupInactiveTimeframes(String exchange, Set<String> activeTimeframes) {
+        long deletedCount = 0;
+
+        try {
+            log.info("🧹 Начинаем очистку неактивных таймфреймов: биржа={}, активные ТФ={}", exchange, activeTimeframes);
+
+            if (activeTimeframes == null || activeTimeframes.isEmpty()) {
+                log.warn("⚠️ Список активных таймфреймов пуст - очистка отменена");
+                return 0;
+            }
+
+            // Получаем все таймфреймы в кэше для данной биржи
+            Set<String> allTimeframes = cachedCandleRepository.findDistinctTimeframes(exchange);
+            log.info("📊 Найдено таймфреймов в кэше: {}", allTimeframes);
+
+            // Определяем неактивные таймфреймы
+            Set<String> inactiveTimeframes = allTimeframes.stream()
+                    .filter(tf -> !activeTimeframes.contains(tf))
+                    .collect(Collectors.toSet());
+
+            if (inactiveTimeframes.isEmpty()) {
+                log.info("✅ Неактивные таймфреймы не найдены - очистка не требуется");
+                return 0;
+            }
+
+            log.info("🗑️ Неактивные таймфреймы для удаления: {}", inactiveTimeframes);
+
+            // Удаляем свечи неактивных таймфреймов
+            for (String timeframe : inactiveTimeframes) {
+                int timeframeDeletedCount = cachedCandleRepository.deleteByExchangeAndTimeframe(exchange, timeframe);
+                deletedCount += timeframeDeletedCount;
+
+                log.info("🗑️ Удалено {} свечей для таймфрейма {} на бирже {}",
+                        timeframeDeletedCount, timeframe, exchange);
+            }
+
+            log.info("✅ Очистка неактивных таймфреймов завершена: удалено {} свечей", deletedCount);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при очистке неактивных таймфреймов: {}", e.getMessage(), e);
+            throw new RuntimeException("Ошибка очистки неактивных таймфреймов: " + e.getMessage());
+        }
+
+        return deletedCount;
     }
 }

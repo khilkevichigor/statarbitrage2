@@ -98,9 +98,9 @@ public class CandleCacheController {
      */
     @PostMapping("/force-load")
     public ResponseEntity<Map<String, String>> forceLoadCandles(@RequestBody ForceLoadRequest request) {
-        log.info("🚀 Принудительная загрузка: биржа={}, таймфреймы={}, тикеров={}, потоки={}, период={} дней", 
-                request.getExchange(), request.getTimeframes(), 
-                request.getTickers() != null ? request.getTickers().size() : 0, 
+        log.info("🚀 Принудительная загрузка: биржа={}, таймфреймы={}, тикеров={}, потоки={}, период={} дней",
+                request.getExchange(), request.getTimeframes(),
+                request.getTickers() != null ? request.getTickers().size() : 0,
                 request.getThreadCount(), request.getPeriodDays());
 
         try {
@@ -108,9 +108,9 @@ public class CandleCacheController {
             new Thread(() -> {
                 try {
                     candleCacheService.forceLoadCandlesCustom(
-                            request.getExchange(), 
-                            request.getTimeframes(), 
-                            request.getTickers(), 
+                            request.getExchange(),
+                            request.getTimeframes(),
+                            request.getTickers(),
                             request.getThreadCount(),
                             request.getPeriodDays()
                     );
@@ -290,7 +290,7 @@ public class CandleCacheController {
             if (threadCount != null && threadCount > 0) {
                 candleCacheService.updateThreadPoolSize(threadCount);
                 log.info("✅ Обновлено количество потоков загрузки: {}", threadCount);
-                
+
                 Map<String, String> response = new HashMap<>();
                 response.put("status", "success");
                 response.put("message", "Количество потоков обновлено до " + threadCount);
@@ -321,7 +321,7 @@ public class CandleCacheController {
             if (periodDays != null && periodDays > 0) {
                 // TODO: Обновить период в CandleCacheService
                 log.info("✅ Обновлен период принудительной загрузки: {} дней", periodDays);
-                
+
                 Map<String, String> response = new HashMap<>();
                 response.put("status", "success");
                 response.put("message", "Период принудительной загрузки обновлен");
@@ -349,11 +349,11 @@ public class CandleCacheController {
         try {
             String preloadSchedule = (String) request.get("preloadSchedule");
             String dailyUpdateSchedule = (String) request.get("dailyUpdateSchedule");
-            
+
             if (preloadSchedule != null && dailyUpdateSchedule != null) {
                 // TODO: Обновить расписания в CandleCacheScheduler
                 log.info("✅ Обновлены расписания: предзагрузка='{}', обновление='{}'", preloadSchedule, dailyUpdateSchedule);
-                
+
                 Map<String, String> response = new HashMap<>();
                 response.put("status", "success");
                 response.put("message", "Расписания обновлены");
@@ -374,6 +374,56 @@ public class CandleCacheController {
     }
 
     /**
+     * Очистка неактивных таймфреймов из кэша
+     */
+    @PostMapping("/cleanup-inactive-timeframes")
+    public ResponseEntity<Map<String, String>> cleanupInactiveTimeframes(@RequestBody Map<String, Object> request) {
+        try {
+            String exchange = (String) request.get("exchange");
+            @SuppressWarnings("unchecked")
+            java.util.List<String> activeTimeframesList = (java.util.List<String>) request.get("activeTimeframes");
+            java.util.Set<String> activeTimeframes = activeTimeframesList != null ?
+                    new java.util.HashSet<>(activeTimeframesList) : new java.util.HashSet<>();
+
+            if (exchange == null || exchange.trim().isEmpty()) {
+                exchange = defaultExchange;
+            }
+
+            if (activeTimeframes == null || activeTimeframes.isEmpty()) {
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Не указаны активные таймфреймы");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            log.info("🧹 Начинаем очистку неактивных таймфреймов: биржа={}, активные ТФ={}", exchange, activeTimeframes);
+
+            // Запускаем очистку в отдельном потоке
+            String finalExchange = exchange;
+            new Thread(() -> {
+                try {
+                    long deletedCount = candleCacheService.cleanupInactiveTimeframes(finalExchange, activeTimeframes);
+                    log.info("✅ Очистка завершена: удалено {} свечей неактивных таймфреймов", deletedCount);
+                } catch (Exception e) {
+                    log.error("❌ Ошибка в фоновой очистке неактивных таймфреймов: {}", e.getMessage(), e);
+                }
+            }, "cleanup-inactive-timeframes").start();
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Очистка неактивных таймфреймов запущена в фоновом режиме");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка запуска очистки неактивных таймфреймов: {}", e.getMessage(), e);
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
      * DTO для принудительной загрузки
      */
     public static class ForceLoadRequest {
@@ -384,20 +434,45 @@ public class CandleCacheController {
         private Integer periodDays;
 
         // Getters and setters
-        public String getExchange() { return exchange; }
-        public void setExchange(String exchange) { this.exchange = exchange; }
-        
-        public java.util.Set<String> getTimeframes() { return timeframes; }
-        public void setTimeframes(java.util.Set<String> timeframes) { this.timeframes = timeframes; }
-        
-        public List<String> getTickers() { return tickers; }
-        public void setTickers(List<String> tickers) { this.tickers = tickers; }
-        
-        public Integer getThreadCount() { return threadCount; }
-        public void setThreadCount(Integer threadCount) { this.threadCount = threadCount; }
-        
-        public Integer getPeriodDays() { return periodDays; }
-        public void setPeriodDays(Integer periodDays) { this.periodDays = periodDays; }
+        public String getExchange() {
+            return exchange;
+        }
+
+        public void setExchange(String exchange) {
+            this.exchange = exchange;
+        }
+
+        public java.util.Set<String> getTimeframes() {
+            return timeframes;
+        }
+
+        public void setTimeframes(java.util.Set<String> timeframes) {
+            this.timeframes = timeframes;
+        }
+
+        public List<String> getTickers() {
+            return tickers;
+        }
+
+        public void setTickers(List<String> tickers) {
+            this.tickers = tickers;
+        }
+
+        public Integer getThreadCount() {
+            return threadCount;
+        }
+
+        public void setThreadCount(Integer threadCount) {
+            this.threadCount = threadCount;
+        }
+
+        public Integer getPeriodDays() {
+            return periodDays;
+        }
+
+        public void setPeriodDays(Integer periodDays) {
+            this.periodDays = periodDays;
+        }
     }
 
     /**
