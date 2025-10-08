@@ -181,8 +181,14 @@ public class CandleCacheView extends VerticalLayout {
 
         // Таблица статистики по таймфреймам
         statsGrid = new Grid<>(TimeframeStats.class, false);
-        statsGrid.setHeight("300px");
+        statsGrid.setHeightFull();
+        statsGrid.setMinHeight("400px");
         statsGrid.setColumnReorderingAllowed(true);
+        statsGrid.getStyle()
+                .set("border", "1px solid var(--lumo-contrast-20pct)")
+                .set("background-color", "var(--lumo-base-color)");
+        
+        // Таблица будет заполнена при вызове refreshStatistics()
 
         statsGrid.addColumn(TimeframeStats::getTimeframe)
                 .setHeader("Таймфрейм")
@@ -311,12 +317,22 @@ public class CandleCacheView extends VerticalLayout {
             String selectedExchange = exchangeSelect.getValue();
             if (selectedExchange == null) selectedExchange = "OKX";
 
+            log.info("🔄 Обновляем статистику для биржи: {}", selectedExchange);
+
             // Получаем статистику из сервиса
             Map<String, Object> stats = candleCacheManagementService.getCacheStatistics(selectedExchange);
+            log.info("📊 Получена статистика из сервиса: {}", stats);
 
             // Парсим статистику и создаем данные для таблицы
             List<TimeframeStats> parsedStats = parseStatisticsToTimeframeStats(stats);
+            log.info("📈 Распарсено {} записей статистики", parsedStats.size());
+
+            if (parsedStats.isEmpty()) {
+                log.warn("⚠️ Нет данных статистики");
+            }
+
             statsGrid.setItems(parsedStats);
+            log.info("✅ Данные загружены в таблицу: {} записей", parsedStats.size());
 
             // Подсчитываем общую статистику
             long totalCandles = parsedStats.stream().mapToLong(TimeframeStats::getTotalCandles).sum();
@@ -325,11 +341,15 @@ public class CandleCacheView extends VerticalLayout {
             totalCandlesSpan.setText(String.format("Всего свечей в кэше: %s", formatNumber(totalCandles)));
             todayAddedSpan.setText(String.format("За сегодня добавлено: +%s", formatNumber(totalTodayAdded)));
 
-            log.info("📊 Статистика обновлена: всего {} свечей, за сегодня +{}", totalCandles, totalTodayAdded);
+            log.info("📊 Статистика обновлена: всего {} свечей, за сегодня +{}, записей в таблице: {}", 
+                    totalCandles, totalTodayAdded, parsedStats.size());
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении статистики: {}", e.getMessage(), e);
             showNotification("Ошибка получения статистики: " + e.getMessage(), NotificationVariant.LUMO_ERROR);
+            
+            // Очищаем таблицу при ошибке
+            statsGrid.setItems();
         }
     }
 
@@ -479,15 +499,9 @@ public class CandleCacheView extends VerticalLayout {
                 }
             }
 
-            // Если нет данных, показываем пустую статистику
-            if (result.isEmpty()) {
-                generateMockStatistics().forEach(result::add);
-            }
-
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при парсинге статистики: {}", e.getMessage());
-            // В случае ошибки возвращаем mock данные
-            generateMockStatistics().forEach(result::add);
+            // В случае ошибки возвращаем пустой список
         }
 
         // Сортируем по таймфреймам для лучшего отображения
@@ -501,19 +515,6 @@ public class CandleCacheView extends VerticalLayout {
         return result;
     }
 
-    private List<TimeframeStats> generateMockStatistics() {
-        // Резервные данные для демонстрации
-        List<TimeframeStats> stats = new ArrayList<>();
-
-        stats.add(new TimeframeStats("1m", 1_205_500, 8_400, 1203, getCurrentTime()));
-        stats.add(new TimeframeStats("5m", 950_300, 5_200, 945, getCurrentTime()));
-        stats.add(new TimeframeStats("15m", 789_100, 2_800, 786, getCurrentTime()));
-        stats.add(new TimeframeStats("1H", 234_500, 1_400, 234, getCurrentTime()));
-        stats.add(new TimeframeStats("4H", 67_200, 350, 67, getCurrentTime()));
-        stats.add(new TimeframeStats("1D", 18_900, 89, 19, getCurrentTime()));
-
-        return stats;
-    }
 
     private String getCurrentTime() {
         return java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
