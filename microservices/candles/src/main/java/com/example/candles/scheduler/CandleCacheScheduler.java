@@ -35,7 +35,7 @@ public class CandleCacheScheduler {
     private boolean isFirstPreloadCompleted = false;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @EventListener(ApplicationReadyEvent.class)
+//    @EventListener(ApplicationReadyEvent.class) //todo пока отрубил что б не ждать при запуске
     public void onApplicationReady() {
         if (startupCheckEnabled) {
             log.info("🚀 Приложение готово. Проверяем состояние кэша свечей...");
