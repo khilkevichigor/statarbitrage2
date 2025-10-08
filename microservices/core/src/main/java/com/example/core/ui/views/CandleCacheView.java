@@ -2,6 +2,7 @@ package com.example.core.ui.views;
 
 import com.example.core.services.CandleCacheManagementService;
 import com.example.core.ui.layout.MainLayout;
+import com.example.core.ui.utils.PeriodOptions;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -18,12 +19,12 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public class CandleCacheView extends VerticalLayout {
     private ComboBox<String> exchangeSelect;
     private MultiSelectComboBox<String> timeframeSelect;
     private IntegerField threadCountField;
-    private IntegerField forceLoadPeriodField;
+    private Select<String> forceLoadPeriodField;
     
     // Принудительная загрузка
     private TextField tickersField;
@@ -101,7 +102,7 @@ public class CandleCacheView extends VerticalLayout {
         // Выбор таймфреймов
         timeframeSelect = new MultiSelectComboBox<>("Активные таймфреймы");
         timeframeSelect.setItems(availableTimeframes);
-        timeframeSelect.setValue(new HashSet<>(Arrays.asList("1m", "5m", "15m", "1H", "4H", "1D")));
+        timeframeSelect.setValue(new HashSet<>(Arrays.asList("15m")));
         timeframeSelect.setWidth("300px");
         
         // Количество потоков
@@ -113,13 +114,12 @@ public class CandleCacheView extends VerticalLayout {
         threadCountField.setStepButtonsVisible(true);
         
         // Период принудительной загрузки
-        forceLoadPeriodField = new IntegerField("Период загрузки (дни)");
-        forceLoadPeriodField.setValue(365);
-        forceLoadPeriodField.setMin(1);
-        forceLoadPeriodField.setMax(1825); // 5 лет максимум
+        forceLoadPeriodField = new Select<>();
+        forceLoadPeriodField.setLabel("Период");
+        forceLoadPeriodField.setItems(PeriodOptions.getAll().keySet());
+        forceLoadPeriodField.setValue(PeriodOptions.getDefault());
         forceLoadPeriodField.setWidth("200px");
-        forceLoadPeriodField.setStepButtonsVisible(true);
-        forceLoadPeriodField.setHelperText("За сколько дней назад загружать свечи");
+        forceLoadPeriodField.setHelperText("Выберите период для анализа данных");
         
         HorizontalLayout settingsLayout = new HorizontalLayout(exchangeSelect, timeframeSelect, threadCountField, forceLoadPeriodField);
         settingsLayout.setSpacing(true);
@@ -240,17 +240,20 @@ public class CandleCacheView extends VerticalLayout {
             Set<String> selectedTimeframes = timeframeSelect.getValue();
             String tickersInput = tickersField.getValue();
             Integer threadCount = threadCountField.getValue();
-            Integer forceLoadPeriod = forceLoadPeriodField.getValue();
+            String selectedPeriod = forceLoadPeriodField.getValue();
             
             if (selectedExchange == null || selectedTimeframes.isEmpty()) {
                 showNotification("Выберите биржу и таймфреймы!", NotificationVariant.LUMO_ERROR);
                 return;
             }
             
-            if (forceLoadPeriod == null || forceLoadPeriod <= 0) {
-                showNotification("Укажите корректный период загрузки!", NotificationVariant.LUMO_ERROR);
+            if (selectedPeriod == null || selectedPeriod.trim().isEmpty()) {
+                showNotification("Выберите период загрузки!", NotificationVariant.LUMO_ERROR);
                 return;
             }
+            
+            // Конвертируем период в количество дней
+            int forceLoadPeriod = PeriodOptions.calculateCandleLimit("1D", selectedPeriod);
             
             // Парсим тикеры
             List<String> tickersList = new ArrayList<>();
@@ -264,8 +267,8 @@ public class CandleCacheView extends VerticalLayout {
             forceLoadButton.setEnabled(false);
             forceLoadButton.setText("Загружаем...");
             
-            log.info("🚀 Принудительная загрузка: биржа={}, таймфреймы={}, тикеры={}, потоки={}, период={} дней", 
-                    selectedExchange, selectedTimeframes, tickersList.size(), threadCount, forceLoadPeriod);
+            log.info("🚀 Принудительная загрузка: биржа={}, таймфреймы={}, тикеры={}, потоки={}, период={} ({} дней)", 
+                    selectedExchange, selectedTimeframes, tickersList.size(), threadCount, selectedPeriod, forceLoadPeriod);
             
             // Вызов сервиса для принудительной загрузки
             candleCacheManagementService.forceLoadCandles(selectedExchange, selectedTimeframes, 
