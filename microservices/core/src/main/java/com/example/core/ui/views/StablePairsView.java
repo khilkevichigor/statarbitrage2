@@ -141,12 +141,12 @@ public class StablePairsView extends VerticalLayout {
 
         timeframeMultiSelect = new MultiSelectComboBox<>("Таймфрейм");
         timeframeMultiSelect.setItems(availableTimeframes);
-        timeframeMultiSelect.setValue(new HashSet<>(Arrays.asList("1H")));
+        timeframeMultiSelect.setValue(new HashSet<>(Arrays.asList("15m"))); //by default
         timeframeMultiSelect.setWidth("250px");
 
         periodMultiSelect = new MultiSelectComboBox<>("Период");
         periodMultiSelect.setItems(availablePeriods);
-        periodMultiSelect.setValue(new HashSet<>(Arrays.asList("1 год")));
+        periodMultiSelect.setValue(new HashSet<>(Arrays.asList("1 год"))); //by default
         periodMultiSelect.setWidth("250px");
 
         row1.add(timeframeMultiSelect, periodMultiSelect);
