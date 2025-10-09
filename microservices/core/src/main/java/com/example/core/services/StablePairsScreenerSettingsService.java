@@ -157,6 +157,10 @@ public class StablePairsScreenerSettingsService {
             searchSettings.put("maxPValue", settings.getMaxPValue());
         }
         
+        if (settings.isMinVolumeEnabled() && settings.getMinVolumeValue() != null) {
+            searchSettings.put("minVolume", settings.getMinVolumeValue());
+        }
+        
         if (settings.isSearchTickersEnabled() && !settings.getSearchTickersSet().isEmpty()) {
             searchSettings.put("searchTickers", settings.getSearchTickersSet());
         }
@@ -180,6 +184,7 @@ public class StablePairsScreenerSettingsService {
             boolean maxAdfValueEnabled, Double maxAdfValue,
             boolean minRSquaredEnabled, Double minRSquaredValue,
             boolean maxPValueEnabled, Double maxPValue,
+            boolean minVolumeEnabled, Double minVolumeValue,
             boolean searchTickersEnabled, Set<String> searchTickers,
             boolean runOnSchedule,
             Boolean useCache) {
@@ -200,6 +205,8 @@ public class StablePairsScreenerSettingsService {
         settings.setMinRSquaredValue(minRSquaredValue);
         settings.setMaxPValueEnabled(maxPValueEnabled);
         settings.setMaxPValue(maxPValue);
+        settings.setMinVolumeEnabled(minVolumeEnabled);
+        settings.setMinVolumeValue(minVolumeValue);
         settings.setSearchTickersEnabled(searchTickersEnabled);
         settings.setSearchTickersSet(searchTickers);
         settings.setRunOnSchedule(runOnSchedule);
@@ -245,6 +252,12 @@ public class StablePairsScreenerSettingsService {
             (settings.getMinWindowSizeValue() == null || 
              settings.getMinWindowSizeValue() <= 0)) {
             throw new IllegalArgumentException("Минимальный размер окна должен быть больше 0");
+        }
+        
+        if (settings.isMinVolumeEnabled() && 
+            (settings.getMinVolumeValue() == null || 
+             settings.getMinVolumeValue() <= 0)) {
+            throw new IllegalArgumentException("Минимальный объем должен быть больше 0");
         }
         
         // Валидация фильтра тикеров

@@ -69,6 +69,10 @@ public class StablePairsView extends VerticalLayout {
     private Checkbox maxPValueEnabled;
     private NumberField maxPValueField;
 
+    // Новое поле для фильтрации по минимальному объему
+    private Checkbox minVolumeEnabled;
+    private NumberField minVolumeField;
+
     // Новое поле для фильтрации по тикерам
     private Checkbox searchTickersEnabled;
     private TextArea searchTickersField;
@@ -305,6 +309,18 @@ public class StablePairsView extends VerticalLayout {
         maxPValueField.setEnabled(maxPValueEnabled.getValue());
         maxPValueEnabled.addValueChangeListener(e -> maxPValueField.setEnabled(e.getValue()));
 
+        // Фильтр по минимальному объему (переиспользуем код из настроек)
+        minVolumeEnabled = new Checkbox("Min Vol (млн $)");
+        minVolumeEnabled.setValue(false);
+        minVolumeField = new NumberField();
+        minVolumeField.setValue(1.0);
+        minVolumeField.setStep(1.0);
+        minVolumeField.setMin(0.0);
+        minVolumeField.setStepButtonsVisible(true);
+        minVolumeField.setWidth("120px");
+        minVolumeField.setEnabled(minVolumeEnabled.getValue());
+        minVolumeEnabled.addValueChangeListener(e -> minVolumeField.setEnabled(e.getValue()));
+
         HorizontalLayout rSquaredGroup = new HorizontalLayout(minRSquaredEnabled, minRSquaredField);
         rSquaredGroup.setSpacing(false);
         rSquaredGroup.setAlignItems(FlexComponent.Alignment.END);
@@ -312,13 +328,17 @@ public class StablePairsView extends VerticalLayout {
         HorizontalLayout pValueGroup = new HorizontalLayout(maxPValueEnabled, maxPValueField);
         pValueGroup.setSpacing(false);
         pValueGroup.setAlignItems(FlexComponent.Alignment.END);
+
+        HorizontalLayout minVolumeGroup = new HorizontalLayout(minVolumeEnabled, minVolumeField);
+        minVolumeGroup.setSpacing(false);
+        minVolumeGroup.setAlignItems(FlexComponent.Alignment.END);
         
         // Чекбокс для использования кэша
         useCacheCheckbox = new Checkbox("Использовать КЭШ");
         useCacheCheckbox.setValue(true);
         useCacheCheckbox.getElement().setAttribute("title", "Использовать кэшированные свечи из базы данных. Если выключено - загружать свечи напрямую с OKX (может занять несколько часов)");
 
-        row.add(rSquaredGroup, pValueGroup, useCacheCheckbox);
+        row.add(rSquaredGroup, pValueGroup, minVolumeGroup, useCacheCheckbox);
         return row;
     }
 
@@ -583,6 +603,12 @@ public class StablePairsView extends VerticalLayout {
         }
         if (maxPValueEnabled.getValue() && maxPValueField.getValue() != null) {
             settings.put("maxPValue", maxPValueField.getValue());
+        }
+
+        // Добавляем фильтрацию по минимальному объему
+        if (minVolumeEnabled.getValue() && minVolumeField.getValue() != null) {
+            settings.put("minVolume", minVolumeField.getValue());
+            log.info("💰 Добавлен фильтр по минимальному объему: {} млн $", minVolumeField.getValue());
         }
 
         // Добавляем фильтрацию по тикерам
@@ -985,6 +1011,11 @@ public class StablePairsView extends VerticalLayout {
             maxPValueField.setValue(settings.getMaxPValue());
             maxPValueField.setEnabled(settings.isMaxPValueEnabled());
 
+            // Загружаем настройки фильтрации по минимальному объему
+            minVolumeEnabled.setValue(settings.isMinVolumeEnabled());
+            minVolumeField.setValue(settings.getMinVolumeValue());
+            minVolumeField.setEnabled(settings.isMinVolumeEnabled());
+
             // Загружаем настройки фильтрации по тикерам
             searchTickersEnabled.setValue(settings.isSearchTickersEnabled());
             if (settings.getSearchTickers() != null && !settings.getSearchTickers().trim().isEmpty()) {
@@ -1043,6 +1074,7 @@ public class StablePairsView extends VerticalLayout {
                             maxAdfValueEnabled.getValue(), maxAdfValueField.getValue(),
                             minRSquaredEnabled.getValue(), minRSquaredField.getValue(),
                             maxPValueEnabled.getValue(), maxPValueField.getValue(),
+                            minVolumeEnabled.getValue(), minVolumeField.getValue(),
                             searchTickersEnabled.getValue(), getSearchTickersSet(),
                             runOnScheduleCheckbox.getValue(),
                             useCacheCheckbox.getValue()

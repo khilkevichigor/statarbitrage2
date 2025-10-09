@@ -124,6 +124,20 @@ public class StablePairsScreenerSettings {
     @Column(name = "max_p_value")
     private Double maxPValue = 0.1;
 
+    // ======== ФИЛЬТР ПО ОБЪЕМУ ========
+
+    /**
+     * Включен ли фильтр по минимальному объему торгов
+     */
+    @Column(name = "min_volume_enabled", nullable = false)
+    private boolean minVolumeEnabled = false;
+
+    /**
+     * Минимальный объем торгов в миллионах долларов
+     */
+    @Column(name = "min_volume_value")
+    private Double minVolumeValue = 1.0;
+
     // ======== ФИЛЬТР ПО ТИКЕРАМ ========
 
     /**
@@ -316,6 +330,8 @@ public class StablePairsScreenerSettings {
                 .minRSquaredValue(0.1)
                 .maxPValueEnabled(true)
                 .maxPValue(0.1)
+                .minVolumeEnabled(false)
+                .minVolumeValue(1.0)
                 .searchTickersEnabled(false)
                 .searchTickers("")
                 .runOnSchedule(false)

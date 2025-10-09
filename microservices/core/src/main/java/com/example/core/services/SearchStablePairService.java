@@ -61,7 +61,7 @@ public class SearchStablePairService {
 
                     try {
                         // Получаем свечи для конкретной комбинации с учетом фильтра тикеров
-                        Map<String, List<Candle>> candlesMap = getCandlesForAnalysis(settings, timeframe, period, searchTickers);
+                        Map<String, List<Candle>> candlesMap = getCandlesForAnalysis(settings, timeframe, period, searchTickers, searchSettings);
 
                         if (candlesMap.isEmpty()) {
                             log.warn("⚠️ Не удалось получить данные свечей для timeframe={}, period={}", timeframe, period);
@@ -255,7 +255,7 @@ public class SearchStablePairService {
 
     // ======== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ========
 
-    private Map<String, List<Candle>> getCandlesForAnalysis(Settings settings, String timeframe, String period, Set<String> searchTickers) {
+    private Map<String, List<Candle>> getCandlesForAnalysis(Settings settings, String timeframe, String period, Set<String> searchTickers, Map<String, Object> searchSettings) {
         try {
             // Рассчитываем количество свечей для запрошенного периода
             int candleLimit = calculateCandleLimit(timeframe, period);
@@ -268,8 +268,14 @@ public class SearchStablePairService {
                         candleLimit, timeframe, period);
             }
 
+            // Извлекаем minVolume из настроек поиска
+            Double minVolume = searchSettings != null ? (Double) searchSettings.get("minVolume") : null;
+            if (minVolume != null) {
+                log.info("💰 Применяется фильтр по минимальному объему: {} млн $", minVolume);
+            }
+            
             // Всегда используем расширенный запрос к candles микросервису с пагинацией
-            return getCandlesExtended(settings, timeframe, candleLimit, searchTickers, period);
+            return getCandlesExtended(settings, timeframe, candleLimit, searchTickers, period, minVolume);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при получении свечей: {}", e.getMessage(), e);
@@ -277,7 +283,7 @@ public class SearchStablePairService {
         }
     }
 
-    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, Set<String> searchTickers, String period) {
+    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, Set<String> searchTickers, String period, Double minVolume) {
         try {
             if (searchTickers != null && !searchTickers.isEmpty()) {
                 log.info("📊 Расширенный запрос {} свечей для таймфрейма {} через candles микросервис с фильтром по {} тикерам",
@@ -290,7 +296,7 @@ public class SearchStablePairService {
             ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
-                    .minVolume(settings.getMinVolume())
+                    .minVolume(minVolume != null ? minVolume : settings.getMinVolume())
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ? searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(Arrays.asList(settings.getMinimumLotBlacklist().split(",")))
                     .period(period)
