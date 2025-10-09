@@ -53,10 +53,23 @@ public class StablePairsView extends VerticalLayout {
 
     // Доступные варианты
     private final List<String> availableTimeframes = Arrays.asList(
-            "1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M"
+//            "1m",
+//            "5m",
+            "15m"
+//            "1H",
+//            "4H",
+//            "1D",
+//            "1W",
+//            "1M"
     );
     private final List<String> availablePeriods = Arrays.asList(
-            "день", "неделя", "месяц", "6 месяцев", "1 год", "2 года", "3 года"
+//            "день",
+//            "неделя",
+//            "месяц",
+//            "6 месяцев",
+            "1 год"
+//            "2 года",
+//            "3 года"
     );
     private Checkbox minCorrelationEnabled;
     private NumberField minCorrelationField;
