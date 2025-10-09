@@ -1212,6 +1212,7 @@ public class SettingsComponent extends VerticalLayout {
         // Создаем чекбоксы для управления шедуллерами
         Checkbox updateTradesSchedulerCheckbox = new Checkbox("UpdateTrades (каждую минуту)");
         Checkbox stablePairsSchedulerCheckbox = new Checkbox("StablePairs (поиск пар ночью)");
+        Checkbox monitoringPairsUpdateSchedulerCheckbox = new Checkbox("MonitoringPairs Update (обновление пар в мониторинге)");
         Checkbox portfolioSnapshotSchedulerCheckbox = new Checkbox("Portfolio Snapshot (каждые 15 минут)");
         Checkbox portfolioCleanupSchedulerCheckbox = new Checkbox("Portfolio Cleanup (очистка каждый день)");
         Checkbox candleCacheSyncSchedulerCheckbox = new Checkbox("CandleCache Sync (синхронизация)");
@@ -1221,12 +1222,15 @@ public class SettingsComponent extends VerticalLayout {
         // Создаем поля для отображения CRON выражений
         Span stablePairsCronSpan = new Span();
         stablePairsCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
+        Span monitoringPairsUpdateCronSpan = new Span();
+        monitoringPairsUpdateCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
         Span portfolioCleanupCronSpan = new Span();
         portfolioCleanupCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
 
         // Инициализируем значения чекбоксов из настроек (с проверкой на null)
         updateTradesSchedulerCheckbox.setValue(currentSettings.getSchedulerUpdateTradesEnabled() != null ? currentSettings.getSchedulerUpdateTradesEnabled() : true);
         stablePairsSchedulerCheckbox.setValue(currentSettings.getSchedulerStablePairsEnabled() != null ? currentSettings.getSchedulerStablePairsEnabled() : true);
+        monitoringPairsUpdateSchedulerCheckbox.setValue(currentSettings.getSchedulerMonitoringPairsUpdateEnabled() != null ? currentSettings.getSchedulerMonitoringPairsUpdateEnabled() : true);
         portfolioSnapshotSchedulerCheckbox.setValue(currentSettings.getSchedulerPortfolioSnapshotEnabled() != null ? currentSettings.getSchedulerPortfolioSnapshotEnabled() : true);
         portfolioCleanupSchedulerCheckbox.setValue(currentSettings.getSchedulerPortfolioCleanupEnabled() != null ? currentSettings.getSchedulerPortfolioCleanupEnabled() : true);
         candleCacheSyncSchedulerCheckbox.setValue(currentSettings.getSchedulerCandleCacheSyncEnabled() != null ? currentSettings.getSchedulerCandleCacheSyncEnabled() : true);
@@ -1235,8 +1239,10 @@ public class SettingsComponent extends VerticalLayout {
 
         // Отображаем CRON выражения
         String stablePairsCron = schedulerControlService.getStablePairsSchedulerCron();
+        String monitoringPairsUpdateCron = schedulerControlService.getMonitoringPairsUpdateSchedulerCron();
         String portfolioCleanupCron = schedulerControlService.getPortfolioCleanupSchedulerCron();
         stablePairsCronSpan.setText("CRON: " + stablePairsCron + " (02:10 каждый день)");
+        monitoringPairsUpdateCronSpan.setText("CRON: " + monitoringPairsUpdateCron + " (01:00 каждый день)");
         portfolioCleanupCronSpan.setText("CRON: " + portfolioCleanupCron + " (02:00 каждый день)");
 
         // Создаем вертикальные компоновки для шедуллеров с CRON
@@ -1244,6 +1250,11 @@ public class SettingsComponent extends VerticalLayout {
         stablePairsLayout.setSpacing(false);
         stablePairsLayout.setPadding(false);
         stablePairsLayout.add(stablePairsSchedulerCheckbox, stablePairsCronSpan);
+
+        VerticalLayout monitoringPairsUpdateLayout = new VerticalLayout();
+        monitoringPairsUpdateLayout.setSpacing(false);
+        monitoringPairsUpdateLayout.setPadding(false);
+        monitoringPairsUpdateLayout.add(monitoringPairsUpdateSchedulerCheckbox, monitoringPairsUpdateCronSpan);
 
         VerticalLayout portfolioCleanupLayout = new VerticalLayout();
         portfolioCleanupLayout.setSpacing(false);
@@ -1254,6 +1265,7 @@ public class SettingsComponent extends VerticalLayout {
         schedulerForm.add(
                 updateTradesSchedulerCheckbox,
                 stablePairsLayout,
+                monitoringPairsUpdateLayout,
                 portfolioSnapshotSchedulerCheckbox,
                 portfolioCleanupLayout,
                 candleCacheSyncSchedulerCheckbox,
@@ -1265,6 +1277,7 @@ public class SettingsComponent extends VerticalLayout {
         bindSchedulerControlFields(
                 updateTradesSchedulerCheckbox,
                 stablePairsSchedulerCheckbox,
+                monitoringPairsUpdateSchedulerCheckbox,
                 portfolioSnapshotSchedulerCheckbox,
                 portfolioCleanupSchedulerCheckbox,
                 candleCacheSyncSchedulerCheckbox,
@@ -1281,6 +1294,7 @@ public class SettingsComponent extends VerticalLayout {
      */
     private void bindSchedulerControlFields(Checkbox updateTradesSchedulerCheckbox,
                                             Checkbox stablePairsSchedulerCheckbox,
+                                            Checkbox monitoringPairsUpdateSchedulerCheckbox,
                                             Checkbox portfolioSnapshotSchedulerCheckbox,
                                             Checkbox portfolioCleanupSchedulerCheckbox,
                                             Checkbox candleCacheSyncSchedulerCheckbox,
@@ -1293,6 +1307,9 @@ public class SettingsComponent extends VerticalLayout {
 
         settingsBinder.forField(stablePairsSchedulerCheckbox)
                 .bind(Settings::getSchedulerStablePairsEnabled, Settings::setSchedulerStablePairsEnabled);
+
+        settingsBinder.forField(monitoringPairsUpdateSchedulerCheckbox)
+                .bind(Settings::getSchedulerMonitoringPairsUpdateEnabled, Settings::setSchedulerMonitoringPairsUpdateEnabled);
 
         settingsBinder.forField(portfolioSnapshotSchedulerCheckbox)
                 .bind(Settings::getSchedulerPortfolioSnapshotEnabled, Settings::setSchedulerPortfolioSnapshotEnabled);
@@ -1315,6 +1332,9 @@ public class SettingsComponent extends VerticalLayout {
 
         stablePairsSchedulerCheckbox.addValueChangeListener(event -> 
                 log.info("📅 StablePairsScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+
+        monitoringPairsUpdateSchedulerCheckbox.addValueChangeListener(event -> 
+                log.info("📅 MonitoringPairsUpdateScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
         portfolioSnapshotSchedulerCheckbox.addValueChangeListener(event -> 
                 log.info("📅 PortfolioSnapshotScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));

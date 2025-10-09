@@ -500,6 +500,11 @@ public class StablePairsView extends VerticalLayout {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
 
+        Button updateButton = new Button(VaadinIcon.REFRESH.create());
+        updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        updateButton.getElement().setAttribute("title", "Обновить данные пары");
+        updateButton.addClickListener(e -> updateMonitoringPair(pair));
+
         Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
         chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         chartButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
@@ -510,7 +515,7 @@ public class StablePairsView extends VerticalLayout {
         removeButton.getElement().setAttribute("title", "Удалить из мониторинга");
         removeButton.addClickListener(e -> removeFromMonitoring(pair));
 
-        actions.add(chartButton, removeButton);
+        actions.add(updateButton, chartButton, removeButton);
         return actions;
     }
 
@@ -1132,6 +1137,61 @@ public class StablePairsView extends VerticalLayout {
             log.error("Ошибка при загрузке выбранных настроек: {}", e.getMessage(), e);
             Notification.show("❌ Ошибка при загрузке: " + e.getMessage(),
                             3000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    /**
+     * Обновление данных пары в мониторинге
+     */
+    private void updateMonitoringPair(Pair pair) {
+        try {
+            log.info("🔄 Запуск обновления пары в мониторинге: {}", pair.getPairName());
+            
+            // Показываем уведомление о начале обновления
+            Notification.show(
+                    String.format("🔄 Обновление пары %s...", pair.getPairName()),
+                    2000, Notification.Position.BOTTOM_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+            
+            // Выполняем обновление в фоновом потоке
+            getUI().ifPresent(ui -> {
+                Thread updateThread = new Thread(() -> {
+                    try {
+                        boolean success = pairService.updateMonitoringPair(pair.getId());
+                        
+                        ui.access(() -> {
+                            if (success) {
+                                Notification.show(
+                                        String.format("✅ Пара %s обновлена", pair.getPairName()),
+                                        3000, Notification.Position.BOTTOM_CENTER)
+                                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                                
+                                // Перезагружаем данные мониторинга
+                                loadMonitoringPairs();
+                            } else {
+                                Notification.show(
+                                        String.format("❌ Не удалось обновить пару %s", pair.getPairName()),
+                                        3000, Notification.Position.TOP_CENTER)
+                                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                            }
+                        });
+                        
+                    } catch (Exception e) {
+                        log.error("Ошибка при обновлении пары {}: {}", pair.getPairName(), e.getMessage(), e);
+                        ui.access(() -> {
+                            Notification.show("❌ Ошибка обновления: " + e.getMessage(),
+                                    5000, Notification.Position.TOP_CENTER)
+                                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                        });
+                    }
+                });
+                updateThread.start();
+            });
+            
+        } catch (Exception e) {
+            log.error("Ошибка при инициации обновления пары {}: {}", pair.getPairName(), e.getMessage(), e);
+            Notification.show("❌ Ошибка: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }

@@ -111,6 +111,45 @@ public class SchedulerControlService {
     }
 
     /**
+     * Проверка включения MonitoringPairsUpdateScheduler (обновление пар в мониторинге каждую ночь)
+     */
+    public boolean isMonitoringPairsUpdateSchedulerEnabled() {
+        try {
+            Settings settings = settingsService.getSettings();
+            Boolean enabled = settings.getSchedulerMonitoringPairsUpdateEnabled();
+            boolean result = enabled != null ? enabled : true;
+            log.debug("📅 MonitoringPairsUpdateScheduler: {}", result ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
+            return result;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при проверке состояния MonitoringPairsUpdateScheduler: {}", e.getMessage());
+            return true; // По умолчанию включен при ошибке
+        }
+    }
+
+    /**
+     * Получить CRON выражение для MonitoringPairsUpdateScheduler
+     */
+    public String getMonitoringPairsUpdateSchedulerCron() {
+        try {
+            Settings settings = settingsService.getSettings();
+            String cron = settings.getSchedulerMonitoringPairsUpdateCron();
+            log.debug("📅 MonitoringPairsUpdateScheduler CRON: {}", cron);
+            return cron != null ? cron : "0 0 1 * * *"; // По умолчанию 01:00
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении CRON для MonitoringPairsUpdateScheduler: {}", e.getMessage());
+            return "0 0 1 * * *"; // По умолчанию
+        }
+    }
+
+    /**
+     * Глобальная проверка включения планирования задач
+     * Может использоваться для централизованного отключения всех шедуллеров
+     */
+    public boolean isSchedulingEnabled() {
+        return true; // Возвращаем true по умолчанию, можно добавить конфигурацию если нужно
+    }
+
+    /**
      * Логирование состояния всех шедуллеров
      */
     public void logSchedulersStatus() {
@@ -120,6 +159,9 @@ public class SchedulerControlService {
         log.info("📅 StablePairsScheduler ({}): {}", 
                 getStablePairsSchedulerCron(),
                 isStablePairsSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
+        log.info("📅 MonitoringPairsUpdateScheduler ({}): {}", 
+                getMonitoringPairsUpdateSchedulerCron(),
+                isMonitoringPairsUpdateSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
         log.info("📅 PortfolioSnapshotScheduler (каждые 15 минут): {}", 
                 isPortfolioSnapshotSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
         log.info("📅 PortfolioCleanupScheduler ({}): {}", 

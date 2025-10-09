@@ -332,6 +332,15 @@ public class Settings {
     @Column(name = "scheduler_candle_cache_stats_cron")
     private String schedulerCandleCacheStatsCron = "0 0 * * * ?";
 
+    // MonitoringPairsUpdateScheduler (обновление пар в мониторинге каждую ночь)
+    @Builder.Default
+    @Column(name = "scheduler_monitoring_pairs_update_enabled")
+    private Boolean schedulerMonitoringPairsUpdateEnabled = true;
+
+    @Builder.Default
+    @Column(name = "scheduler_monitoring_pairs_update_cron")
+    private String schedulerMonitoringPairsUpdateCron = "0 0 1 * * *";
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
@@ -444,6 +453,8 @@ public class Settings {
         this.schedulerCandleCacheUpdateEnabled = other.schedulerCandleCacheUpdateEnabled;
         this.schedulerCandleCacheStatsEnabled = other.schedulerCandleCacheStatsEnabled;
         this.schedulerCandleCacheStatsCron = other.schedulerCandleCacheStatsCron;
+        this.schedulerMonitoringPairsUpdateEnabled = other.schedulerMonitoringPairsUpdateEnabled;
+        this.schedulerMonitoringPairsUpdateCron = other.schedulerMonitoringPairsUpdateCron;
     }
 
     /**

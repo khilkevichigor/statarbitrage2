@@ -448,4 +448,142 @@ public class PairService {
     public void updateSettingsParam(Pair tradingPair, Settings settings) {
         updateSettingsParamService.updateSettingsParam(tradingPair, settings);
     }
+
+    /**
+     * Обновить пару в мониторинге
+     * Пересчитывает показатели стабильности для пары
+     */
+    @Transactional
+    public boolean updateMonitoringPair(Long pairId) {
+        try {
+            log.info("🔄 Начало обновления пары ID: {}", pairId);
+            
+            Pair pair = pairRepository.findById(pairId)
+                    .orElseThrow(() -> new RuntimeException("Пара не найдена: " + pairId));
+
+            if (!pair.getType().isStable()) {
+                log.error("❌ Попытка обновления не-стабильной пары ID: {}", pairId);
+                return false;
+            }
+
+            if (!pair.isInMonitoring()) {
+                log.error("❌ Пара ID: {} не находится в мониторинге", pairId);
+                return false;
+            }
+
+            log.info("📊 Обновление пары {}/{} [{}][{}]", 
+                    pair.getTickerA(), pair.getTickerB(), 
+                    pair.getTimeframe(), pair.getPeriod());
+
+            // Получаем настройки системы
+            Settings settings = settingsService.getSettings();
+
+            // Используем те же параметры что были при поиске пары
+            String timeframe = pair.getTimeframe() != null ? pair.getTimeframe() : settings.getTimeframe();
+            String period = pair.getPeriod() != null ? pair.getPeriod() : "1 год";
+            int candleLimit = pair.getCandleCount() != null ? pair.getCandleCount() : 1000;
+
+            log.info("🔧 Параметры обновления: timeframe={}, period={}, candleCount={}", 
+                    timeframe, period, candleLimit);
+
+            // Создаем запрос для получения свежих свечей
+            ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
+                    .timeframe(timeframe)
+                    .candleLimit(candleLimit)
+                    .minVolume(settings.getMinVolume())
+                    .tickers(List.of(pair.getTickerA(), pair.getTickerB()))
+                    .period(period)
+                    .build();
+
+            // Получаем свежие данные свечей
+            Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
+
+            if (candlesMap == null || candlesMap.size() != 2) {
+                log.error("❌ Не удалось получить данные для обоих тикеров пары {}. Получено: {}", 
+                        pair.getPairName(), candlesMap != null ? candlesMap.keySet() : "null");
+                return false;
+            }
+
+            List<Candle> longCandles = candlesMap.get(pair.getTickerA());
+            List<Candle> shortCandles = candlesMap.get(pair.getTickerB());
+
+            if (longCandles == null || longCandles.isEmpty() || 
+                shortCandles == null || shortCandles.isEmpty()) {
+                log.error("❌ Получены пустые данные свечей для пары {}", pair.getPairName());
+                return false;
+            }
+
+            if (longCandles.size() != shortCandles.size()) {
+                log.error("❌ Несоответствие количества свечей для пары {}: {} vs {}", 
+                        pair.getPairName(), longCandles.size(), shortCandles.size());
+                return false;
+            }
+
+            log.info("✅ Получено {} свечей для обоих тикеров пары {}", 
+                    longCandles.size(), pair.getPairName());
+
+            // Пересчитываем показатели стабильности через Python API
+            Map<String, Object> searchSettings = new HashMap<>();
+            searchSettings.put("minCorrelation", 0.1);
+            searchSettings.put("minWindowSize", 100);
+            searchSettings.put("maxAdfValue", 0.1);
+            searchSettings.put("minRSquared", 0.1);
+            searchSettings.put("maxPValue", 0.1);
+
+            try {
+                // Используем существующий сервис для поиска стабильных пар
+                StabilityResponseDto response = searchStablePairService.searchStablePairs(
+                        Set.of(timeframe), Set.of(period), searchSettings);
+
+                if (response != null && response.getSuccess() && response.getResults() != null) {
+                    // Ищем обновленные данные для нашей пары
+                    var updatedResult = response.getResults().stream()
+                            .filter(result -> 
+                                    (result.getTickerA().equals(pair.getTickerA()) && 
+                                     result.getTickerB().equals(pair.getTickerB())) ||
+                                    (result.getTickerA().equals(pair.getTickerB()) && 
+                                     result.getTickerB().equals(pair.getTickerA())))
+                            .findFirst();
+
+                    if (updatedResult.isPresent()) {
+                        var result = updatedResult.get();
+                        
+                        // Обновляем метрики стабильности
+                        pair.setTotalScore(result.getTotalScore());
+                        pair.setStabilityRating(result.getStabilityRating());
+                        pair.setTradeable(result.getIsTradeable());
+                        pair.setDataPoints(result.getDataPoints());
+                        pair.setCandleCount(longCandles.size());
+                        pair.setAnalysisTimeSeconds(result.getAnalysisTimeSeconds());
+                        
+                        // Обновляем время последнего обновления
+                        pair.setUpdatedTime(LocalDateTime.now());
+                        
+                        // Сохраняем обновленную пару
+                        pairRepository.save(pair);
+                        
+                        log.info("✅ Пара {} успешно обновлена. Новые метрики: score={}, rating={}, tradeable={}", 
+                                pair.getPairName(), result.getTotalScore(), result.getStabilityRating(), result.getIsTradeable());
+                        
+                        return true;
+                    } else {
+                        log.warn("⚠️ Пара {} больше не найдена в результатах анализа стабильности", pair.getPairName());
+                        return false;
+                    }
+                } else {
+                    log.error("❌ Анализ стабильности завершился неуспешно для пары {}", pair.getPairName());
+                    return false;
+                }
+                
+            } catch (Exception analysisEx) {
+                log.error("❌ Ошибка при анализе стабильности пары {}: {}", 
+                        pair.getPairName(), analysisEx.getMessage(), analysisEx);
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обновлении пары ID {}: {}", pairId, e.getMessage(), e);
+            return false;
+        }
+    }
 }
