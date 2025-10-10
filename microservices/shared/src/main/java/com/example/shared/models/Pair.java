@@ -158,7 +158,7 @@ public class Pair {
      */
     @CsvExportable(order = 14)
     @Column(name = "candle_count")
-    private Integer candleCount;
+    private Integer candleCount; //35040 для 15м
 
     /**
      * Время анализа в секундах

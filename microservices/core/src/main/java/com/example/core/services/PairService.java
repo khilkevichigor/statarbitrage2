@@ -481,7 +481,7 @@ public class PairService {
             // Используем те же параметры что были при поиске пары
             String timeframe = pair.getTimeframe() != null ? pair.getTimeframe() : settings.getTimeframe();
             String period = pair.getPeriod() != null ? pair.getPeriod() : "1 год";
-            int candleLimit = pair.getCandleCount() != null ? pair.getCandleCount() : 1000;
+            int candleLimit = pair.getCandleCount() != null ? pair.getCandleCount() : 35040;
 
             log.info("🔧 Параметры обновления: timeframe={}, period={}, candleCount={}", 
                     timeframe, period, candleLimit);
@@ -524,15 +524,16 @@ public class PairService {
 
             // Пересчитываем показатели стабильности через Python API
             Map<String, Object> searchSettings = new HashMap<>();
-            searchSettings.put("minCorrelation", 0.1);
+            searchSettings.put("minCorrelation", 0.1); //todo почему хардкодим???
             searchSettings.put("minWindowSize", 100);
             searchSettings.put("maxAdfValue", 0.1);
             searchSettings.put("minRSquared", 0.1);
             searchSettings.put("maxPValue", 0.1);
+            searchSettings.put("searchTickers", List.of(pair.getTickerA(), pair.getTickerB()));
 
             try {
                 // Используем существующий сервис для поиска стабильных пар
-                StabilityResponseDto response = searchStablePairService.searchStablePairs(
+                StabilityResponseDto response = searchStablePairService.searchStablePairs( //todo почему ищем все когда обновление только для конкретной
                         Set.of(timeframe), Set.of(period), searchSettings);
 
                 if (response != null && response.getSuccess() && response.getResults() != null) {

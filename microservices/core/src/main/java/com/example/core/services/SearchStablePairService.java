@@ -45,7 +45,7 @@ public class SearchStablePairService {
             Settings settings = settingsService.getSettings();
 
             // Извлекаем searchTickers из настроек для фильтрации
-            Set<String> searchTickers = extractSearchTickers(searchSettings);
+            List<String> searchTickers = extractSearchTickers(searchSettings);
 
             // Результаты для аккумуляции
             StabilityResponseDto aggregatedResponse = new StabilityResponseDto();
@@ -255,7 +255,7 @@ public class SearchStablePairService {
 
     // ======== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ========
 
-    private Map<String, List<Candle>> getCandlesForAnalysis(Settings settings, String timeframe, String period, Set<String> searchTickers, Map<String, Object> searchSettings) {
+    private Map<String, List<Candle>> getCandlesForAnalysis(Settings settings, String timeframe, String period, List<String> searchTickers, Map<String, Object> searchSettings) {
         try {
             // Рассчитываем количество свечей для запрошенного периода
             int candleLimit = calculateCandleLimit(timeframe, period);
@@ -283,7 +283,7 @@ public class SearchStablePairService {
         }
     }
 
-    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, Set<String> searchTickers, String period, Double minVolume) {
+    private Map<String, List<Candle>> getCandlesExtended(Settings settings, String timeframe, int candleLimit, List<String> searchTickers, String period, Double minVolume) {
         try {
             if (searchTickers != null && !searchTickers.isEmpty()) {
                 log.info("📊 Расширенный запрос {} свечей для таймфрейма {} через candles микросервис с фильтром по {} тикерам",
@@ -356,7 +356,7 @@ public class SearchStablePairService {
         Map<String, Object> settings = new HashMap<>();
 
         // Устанавливаем значения по умолчанию
-        settings.put("minWindowSize", 100);
+        settings.put("minWindowSize", 100); //todo тоже хардкодим почему-то
         settings.put("minCorrelation", 0.1);
         settings.put("maxPValue", 1.0);
         settings.put("maxAdfValue", 1.0);
@@ -497,7 +497,7 @@ public class SearchStablePairService {
      * Извлекает Set тикеров из настроек поиска
      */
     @SuppressWarnings("unchecked")
-    private Set<String> extractSearchTickers(Map<String, Object> searchSettings) {
+    private List<String> extractSearchTickers(Map<String, Object> searchSettings) {
         if (searchSettings == null || searchSettings.isEmpty()) {
             return null;
         }
@@ -507,15 +507,14 @@ public class SearchStablePairService {
             return null;
         }
 
-        if (searchTickersObj instanceof Set<?>) {
-            Set<?> tickersSet = (Set<?>) searchTickersObj;
-            if (tickersSet.isEmpty()) {
+        if (searchTickersObj instanceof List<?> tickersList) {
+            if (tickersList.isEmpty()) {
                 return null;
             }
 
             // Конвертируем в Set<String> с валидацией
-            Set<String> result = new HashSet<>();
-            for (Object ticker : tickersSet) {
+            List<String> result = new ArrayList<>();
+            for (Object ticker : tickersList) {
                 if (ticker instanceof String tickerStr) {
                     String trimmed = tickerStr.trim().toUpperCase();
                     if (!trimmed.isEmpty()) {
@@ -540,7 +539,7 @@ public class SearchStablePairService {
                 return null;
             }
 
-            Set<String> result = new HashSet<>();
+            List<String> result = new ArrayList<>();
             String[] tickerArray = trimmedStr.split(",");
             for (String ticker : tickerArray) {
                 String trimmed = ticker.trim().toUpperCase();
