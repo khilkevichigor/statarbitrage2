@@ -15,12 +15,12 @@ public class PeriodOptions {
      */
     public static Map<String, String> getAll() {
         Map<String, String> periods = new LinkedHashMap<>();
-        periods.put("день", "день");
-        periods.put("неделя", "неделя");
-        periods.put("месяц", "месяц");
+//        periods.put("день", "день");
+//        periods.put("неделя", "неделя");
+//        periods.put("месяц", "месяц");
         periods.put("1 год", "1 год");
-        periods.put("2 года", "2 года");
-        periods.put("3 года", "3 года");
+//        periods.put("2 года", "2 года");
+//        periods.put("3 года", "3 года");
         return periods;
     }
 
