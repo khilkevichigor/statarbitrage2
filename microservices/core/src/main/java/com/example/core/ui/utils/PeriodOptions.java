@@ -46,7 +46,6 @@ public class PeriodOptions {
         };
 
         int idealLimit = switch (timeframe) {
-            case "1m" -> multiplier * 24 * 60; // минуты в день
             case "5m" -> multiplier * 24 * 12; // 5-минутки в день
             case "15m" -> multiplier * 24 * 4; // 15-минутки в день
             case "1H" -> multiplier * 24; // часы в день

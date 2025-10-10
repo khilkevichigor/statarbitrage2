@@ -62,7 +62,14 @@ public class CandleCacheView extends VerticalLayout {
 
     // Доступные таймфреймы
     private final List<String> availableTimeframes = Arrays.asList(
-            "1m", "5m", "15m", "1H", "4H", "1D", "1W", "1M"
+//            "1m",
+//            "5m",
+            "15m"
+//            "1H",
+//            "4H",
+//            "1D",
+//            "1W",
+//            "1M"
     );
 
     // Доступные биржи
@@ -187,7 +194,7 @@ public class CandleCacheView extends VerticalLayout {
         statsGrid.getStyle()
                 .set("border", "1px solid var(--lumo-contrast-20pct)")
                 .set("background-color", "var(--lumo-base-color)");
-        
+
         // Таблица будет заполнена при вызове refreshStatistics()
 
         statsGrid.addColumn(TimeframeStats::getTimeframe)
@@ -341,13 +348,13 @@ public class CandleCacheView extends VerticalLayout {
             totalCandlesSpan.setText(String.format("Всего свечей в кэше: %s", formatNumber(totalCandles)));
             todayAddedSpan.setText(String.format("За сегодня добавлено: +%s", formatNumber(totalTodayAdded)));
 
-            log.info("📊 Статистика обновлена: всего {} свечей, за сегодня +{}, записей в таблице: {}", 
+            log.info("📊 Статистика обновлена: всего {} свечей, за сегодня +{}, записей в таблице: {}",
                     totalCandles, totalTodayAdded, parsedStats.size());
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обновлении статистики: {}", e.getMessage(), e);
             showNotification("Ошибка получения статистики: " + e.getMessage(), NotificationVariant.LUMO_ERROR);
-            
+
             // Очищаем таблицу при ошибке
             statsGrid.setItems();
         }

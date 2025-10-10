@@ -15,14 +15,14 @@ public class TimeframeOptions {
      */
     public static Map<String, String> getAll() {
         Map<String, String> timeframes = new LinkedHashMap<>();
-        timeframes.put("1 минута", "1m");
-        timeframes.put("5 минут", "5m");
+//        timeframes.put("1 минута", "1m");
+//        timeframes.put("5 минут", "5m");
         timeframes.put("15 минут", "15m");
-        timeframes.put("1 час", "1H");
-        timeframes.put("4 часа", "4H");
-        timeframes.put("1 день", "1D");
-        timeframes.put("1 неделя", "1W");
-        timeframes.put("1 месяц", "1M");
+//        timeframes.put("1 час", "1H");
+//        timeframes.put("4 часа", "4H");
+//        timeframes.put("1 день", "1D");
+//        timeframes.put("1 неделя", "1W");
+//        timeframes.put("1 месяц", "1M");
         return timeframes;
     }
 

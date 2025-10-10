@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 /**
  * Сервис для проверки необходимости пересчета Z-Score
@@ -45,7 +44,7 @@ public class CandleUpdateCheckService {
         Duration timeframeInterval = getTimeframeInterval(timeframe);
 
         if (timeframeInterval == null) {
-            log.warn("⚠️ Неизвестный таймфрейм {} для пары {} - требуется пересчет", 
+            log.warn("⚠️ Неизвестный таймфрейм {} для пары {} - требуется пересчет",
                     timeframe, pair.getPairName());
             return true;
         }
@@ -54,11 +53,11 @@ public class CandleUpdateCheckService {
 
         if (shouldRecalculate) {
             log.info("🔄 Пора пересчитывать Z-Score для пары {} (ТФ: {}, прошло: {} мин, интервал: {} мин)",
-                    pair.getPairName(), timeframe, 
+                    pair.getPairName(), timeframe,
                     timeSinceLastUpdate.toMinutes(), timeframeInterval.toMinutes());
         } else {
             log.debug("⏰ Z-Score для пары {} еще актуален (ТФ: {}, прошло: {} мин, интервал: {} мин)",
-                    pair.getPairName(), timeframe, 
+                    pair.getPairName(), timeframe,
                     timeSinceLastUpdate.toMinutes(), timeframeInterval.toMinutes());
         }
 
@@ -70,21 +69,13 @@ public class CandleUpdateCheckService {
      */
     private Duration getTimeframeInterval(String timeframe) {
         return switch (timeframe.toLowerCase()) {
-            case "1m" -> Duration.ofMinutes(1);
-//            case "3m" -> Duration.ofMinutes(3);
-            case "5m" -> Duration.ofMinutes(5);
+//            case "5m" -> Duration.ofMinutes(5);
             case "15m" -> Duration.ofMinutes(15);
-//            case "30m" -> Duration.ofMinutes(30);
-            case "1H" -> Duration.ofHours(1);
-//            case "2h" -> Duration.ofHours(2);
-            case "4H" -> Duration.ofHours(4);
-//            case "6h" -> Duration.ofHours(6);
-//            case "8h" -> Duration.ofHours(8);
-//            case "12h" -> Duration.ofHours(12);
-            case "1D" -> Duration.ofDays(1);
-//            case "3d" -> Duration.ofDays(3);
-            case "1W" -> Duration.ofDays(7);
-            case "1M" -> Duration.ofDays(30); // месяц
+//            case "1H" -> Duration.ofHours(1);
+//            case "4H" -> Duration.ofHours(4);
+//            case "1D" -> Duration.ofDays(1);
+//            case "1W" -> Duration.ofDays(7);
+//            case "1M" -> Duration.ofDays(30); // месяц
             default -> {
                 log.error("❌ Неизвестный таймфрейм: {}", timeframe);
                 yield null;
@@ -112,7 +103,7 @@ public class CandleUpdateCheckService {
 
         LocalDateTime lastUpdate = pair.getLastZScoreUpdateTime();
         Duration timeframeInterval = getTimeframeInterval(pair.getTimeframe());
-        
+
         if (timeframeInterval == null) {
             return "Неизвестно";
         }
@@ -125,15 +116,15 @@ public class CandleUpdateCheckService {
         }
 
         Duration timeUntilNext = Duration.between(now, nextUpdateTime);
-        
+
         if (timeUntilNext.toDays() > 0) {
-            return String.format("%d дн %d ч %d мин", 
-                    timeUntilNext.toDays(), 
-                    timeUntilNext.toHoursPart(), 
+            return String.format("%d дн %d ч %d мин",
+                    timeUntilNext.toDays(),
+                    timeUntilNext.toHoursPart(),
                     timeUntilNext.toMinutesPart());
         } else if (timeUntilNext.toHours() > 0) {
-            return String.format("%d ч %d мин", 
-                    timeUntilNext.toHours(), 
+            return String.format("%d ч %d мин",
+                    timeUntilNext.toHours(),
                     timeUntilNext.toMinutesPart());
         } else {
             return String.format("%d мин", timeUntilNext.toMinutes());
