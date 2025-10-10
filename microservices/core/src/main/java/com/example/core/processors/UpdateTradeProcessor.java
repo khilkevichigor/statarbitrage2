@@ -35,6 +35,7 @@ public class UpdateTradeProcessor {
     private final TradingProviderFactory tradingProviderFactory;
     private final CandlesFeignClient candlesFeignClient;
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
+    private final CandleUpdateCheckService candleUpdateCheckService;
 
 
     //todo сделать проверку zScore - что он пересекал +3 и -3 несколько раз - говорит о том что пара гуляет туда-сюда
@@ -139,6 +140,7 @@ public class UpdateTradeProcessor {
 
         try {
             final Settings settings = settingsService.getSettings();
+            // Применяем ту же оптимизацию для наблюдаемых пар
             final Map<String, Object> cointegrationData = updateZScoreDataForExistingPair(freshPair, settings);
             final ZScoreData zScoreData = (ZScoreData) cointegrationData.get("zScoreData");
             final Map<String, List<Candle>> candlesMap = (Map<String, List<Candle>>) cointegrationData.get("candlesMap");
@@ -238,7 +240,20 @@ public class UpdateTradeProcessor {
             throw new RuntimeException("Недостаточно данных свечей — пропуск анализа");
         }
 
-        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+        // Оптимизация: рассчитываем Z-Score только если появились новые свечи
+        ZScoreData zScoreData;
+        if (candleUpdateCheckService.shouldRecalculateZScore(tradingPair)) {
+            log.debug("🔄 Пересчитываем Z-Score для пары {} (ТФ: {})", 
+                    tradingPair.getPairName(), tradingPair.getTimeframe());
+            zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+            // Отмечаем время обновления Z-Score
+            candleUpdateCheckService.markZScoreUpdated(tradingPair);
+        } else {
+            log.debug("⏰ Z-Score актуален для пары {} - пропускаем пересчет", tradingPair.getPairName());
+            // Используем последний рассчитанный Z-Score - не пересчитываем
+            // Цены все равно будут обновляться в updatePositionPrices выше
+            zScoreData = createCurrentZScoreFromPair(tradingPair);
+        }
         Map<String, Object> result = new HashMap<>();
         result.put("candlesMap", candlesMap);
         result.put("zScoreData", zScoreData);
@@ -359,5 +374,58 @@ public class UpdateTradeProcessor {
         pairService.save(tradingPair);
         // не обновляем другие данные тк нужны реальные данные по сделкам!
         return tradingPair;
+    }
+
+    /**
+     * Создает ZScoreData объект из текущих данных пары без пересчета
+     * Используется когда Z-Score актуален и не требует пересчета
+     * Воссоздает данные по тому же принципу, что используется в UpdateZScoreDataCurrentService
+     */
+    private ZScoreData createCurrentZScoreFromPair(Pair pair) {
+        log.debug("📋 Создаем ZScoreData из существующих данных пары {}", pair.getPairName());
+        
+        ZScoreData zScoreData = new ZScoreData();
+        
+        // Устанавливаем тикеры (обратно к UpdateZScoreDataCurrentService)
+        zScoreData.setUnderValuedTicker(pair.getLongTicker());
+        zScoreData.setOverValuedTicker(pair.getShortTicker());
+        
+        // Создаем актуальный ZScoreParam из текущих данных пары
+        ZScoreParam currentParam = ZScoreParam.builder()
+                .zscore(pair.getZScoreCurrent() != null ? pair.getZScoreCurrent().doubleValue() : 0.0)
+                .pvalue(pair.getPValueCurrent() != null ? pair.getPValueCurrent().doubleValue() : 0.0)
+                .adfpvalue(pair.getAdfPvalueCurrent() != null ? pair.getAdfPvalueCurrent().doubleValue() : 0.0)
+                .correlation(pair.getCorrelationCurrent() != null ? pair.getCorrelationCurrent().doubleValue() : 0.0)
+                .mean(pair.getMeanCurrent() != null ? pair.getMeanCurrent().doubleValue() : 0.0)
+                .std(pair.getStdCurrent() != null ? pair.getStdCurrent().doubleValue() : 0.0)
+                .spread(pair.getSpreadCurrent() != null ? pair.getSpreadCurrent().doubleValue() : 0.0)
+                .alpha(pair.getAlphaCurrent() != null ? pair.getAlphaCurrent().doubleValue() : 0.0)
+                .beta(pair.getBetaCurrent() != null ? pair.getBetaCurrent().doubleValue() : 1.0)
+                .timestamp(System.currentTimeMillis())
+                .build();
+        
+        // Устанавливаем данные в ZScoreData (как в UpdateZScoreDataCurrentService)
+        zScoreData.setLatestZScore(currentParam.getZscore());
+        zScoreData.setJohansenCointPValue(currentParam.getPvalue());
+        zScoreData.setAvgAdfPvalue(currentParam.getAdfpvalue());
+        zScoreData.setPearsonCorr(currentParam.getCorrelation());
+        
+        // Добавляем текущий параметр в историю (как в UpdateZScoreDataCurrentService)
+        zScoreData.setZScoreHistory(java.util.List.of(currentParam));
+        
+        // Устанавливаем коинтеграцию как true (поскольку пара уже торгуется)
+        zScoreData.setJohansenIsCoint(true);
+        
+        // Базовые значения для совместимости
+        zScoreData.setAvgRSquared(0.8); // Значение по умолчанию для торгующей пары
+        zScoreData.setStablePeriods(100); // Значение по умолчанию
+        zScoreData.setTotalObservations(pair.getCandleCount() != null ? pair.getCandleCount() : 1000);
+        
+        log.debug("✅ ZScoreData создан из существующих данных: z={}, p={}, adf={}, corr={}, alpha={}, beta={}", 
+                zScoreData.getLatestZScore(), zScoreData.getJohansenCointPValue(), 
+                zScoreData.getAvgAdfPvalue(), zScoreData.getPearsonCorr(),
+                currentParam.getAlpha(), currentParam.getBeta());
+        
+        return zScoreData;
     }
 }

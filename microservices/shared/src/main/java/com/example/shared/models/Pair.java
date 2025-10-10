@@ -352,53 +352,61 @@ public class Pair {
     @Column(name = "updated_time")
     private LocalDateTime updatedTime;
 
+    /**
+     * Время последнего пересчета Z-Score
+     * Используется для оптимизации - пересчет только при появлении новых свечей
+     */
+    @CsvExportable(order = 46)
+    @Column(name = "last_zscore_update_time")
+    private LocalDateTime lastZScoreUpdateTime;
+
     // ======== ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ ДЛЯ ТОРГОВЫХ ПАР ========
     // Эти поля будут null для типа STABLE, заполнены для COINTEGRATED и TRADING
 
     // Торговые изменения
-    @CsvExportable(order = 46)
+    @CsvExportable(order = 47)
     @Column(name = "z_score_changes", precision = 18, scale = 8)
     private BigDecimal zScoreChanges;
 
-    @CsvExportable(order = 47)
+    @CsvExportable(order = 48)
     @Column(name = "long_usdt_changes", precision = 18, scale = 8)
     private BigDecimal longUSDTChanges;
 
-    @CsvExportable(order = 48)
+    @CsvExportable(order = 49)
     @Column(name = "long_percent_changes", precision = 18, scale = 8)
     private BigDecimal longPercentChanges;
 
-    @CsvExportable(order = 49)
+    @CsvExportable(order = 50)
     @Column(name = "short_usdt_changes", precision = 18, scale = 8)
     private BigDecimal shortUSDTChanges;
 
-    @CsvExportable(order = 50)
+    @CsvExportable(order = 51)
     @Column(name = "short_percent_changes", precision = 18, scale = 8)
     private BigDecimal shortPercentChanges;
 
     // Портфель и прибыль
-    @CsvExportable(order = 51)
+    @CsvExportable(order = 52)
     @Column(name = "portfolio_before_trade_usdt", precision = 18, scale = 8)
     private BigDecimal portfolioBeforeTradeUSDT;
 
-    @CsvExportable(order = 52)
+    @CsvExportable(order = 53)
     @Column(name = "profit_usdt_changes", precision = 18, scale = 8)
     private BigDecimal profitUSDTChanges;
 
-    @CsvExportable(order = 53)
+    @CsvExportable(order = 54)
     @Column(name = "portfolio_after_trade_usdt", precision = 18, scale = 8)
     private BigDecimal portfolioAfterTradeUSDT;
 
-    @CsvExportable(order = 54)
+    @CsvExportable(order = 55)
     @Column(name = "profit_percent_changes", precision = 18, scale = 8)
     private BigDecimal profitPercentChanges;
 
     // Время до экстремумов прибыли
-    @CsvExportable(order = 55)
+    @CsvExportable(order = 56)
     @Column(name = "minutes_to_min_profit_percent")
     private Long minutesToMinProfitPercent;
 
-    @CsvExportable(order = 56)
+    @CsvExportable(order = 57)
     @Column(name = "minutes_to_max_profit_percent")
     private Long minutesToMaxProfitPercent;
 
