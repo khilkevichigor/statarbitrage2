@@ -89,7 +89,7 @@ public class CandleCacheView extends VerticalLayout {
         createStatisticsSection();
         createSchedulerSection();
 
-        refreshStatistics();
+//        refreshStatistics();
     }
 
     private void createHeader() {
@@ -303,7 +303,7 @@ public class CandleCacheView extends VerticalLayout {
             getUI().ifPresent(ui -> ui.access(() -> {
                 try {
                     Thread.sleep(5000);
-                    refreshStatistics();
+//                    refreshStatistics();
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                 }
@@ -438,7 +438,7 @@ public class CandleCacheView extends VerticalLayout {
             cleanupButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
 
             // Обновляем статистику
-            refreshStatistics();
+//            refreshStatistics();
 
         } catch (Exception e) {
             log.error("❌ Ошибка при очистке кэша: {}", e.getMessage(), e);
