@@ -262,7 +262,8 @@ public class Settings {
 
     @Builder.Default
     @Column(name = "candle_cache_active_timeframes")
-    private String candleCacheActiveTimeframes = "1m,5m,15m,1H,4H,1D";
+//    private String candleCacheActiveTimeframes = "1m,5m,15m,1H,4H,1D";
+    private String candleCacheActiveTimeframes = "15m";
 
     @Builder.Default
     @Column(name = "candle_cache_preload_schedule")
@@ -467,24 +468,25 @@ public class Settings {
 
             // Приблизительный расчет периода
             int daysInPeriod = switch (timeframe) {
-                case "1m" -> candleLimit / (24 * 60);
-                case "5m" -> candleLimit / (24 * 12);
+//                case "1m" -> candleLimit / (24 * 60);
+//                case "5m" -> candleLimit / (24 * 12);
                 case "15m" -> candleLimit / (24 * 4);
-                case "1H" -> candleLimit / 24;
-                case "4H" -> candleLimit / 6;
-                case "1D" -> candleLimit;
-                case "1W" -> candleLimit * 7;
-                case "1M" -> candleLimit * 30;
-                default -> candleLimit / 24;
+//                case "1H" -> candleLimit / 24;
+//                case "4H" -> candleLimit / 6;
+//                case "1D" -> candleLimit;
+//                case "1W" -> candleLimit * 7;
+//                case "1M" -> candleLimit * 30;
+                default -> candleLimit /  (24 * 4);
             };
 
             // Определяем ближайший период
-            if (daysInPeriod <= 1) return "день";
-            if (daysInPeriod <= 7) return "неделя";
-            if (daysInPeriod <= 30) return "месяц";
+//            if (daysInPeriod <= 1) return "день";
+//            if (daysInPeriod <= 7) return "неделя";
+//            if (daysInPeriod <= 30) return "месяц";
             if (daysInPeriod <= 365) return "1 год";
-            if (daysInPeriod <= 730) return "2 года";
-            return "3 года";
+//            if (daysInPeriod <= 730) return "2 года";
+//            return "3 года";
+            return "1 год";
 
         } catch (Exception e) {
             log.warn("Ошибка при расчете текущего периода: {}", e.getMessage());

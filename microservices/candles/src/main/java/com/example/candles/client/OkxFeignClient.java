@@ -20,14 +20,14 @@ public interface OkxFeignClient {
     @GetMapping("/api/okx/candles")
     List<Candle> getCandles(
             @RequestParam String symbol,
-            @RequestParam(defaultValue = "1m") String timeFrame,
+            @RequestParam(defaultValue = "15m") String timeFrame,
             @RequestParam(defaultValue = "100") int limit
     );
 
     @PostMapping("/api/okx/candles/map")
     Map<String, List<Candle>> getCandlesMap(
             @RequestBody List<String> symbols,
-            @RequestParam(defaultValue = "1m") String timeFrame,
+            @RequestParam(defaultValue = "15m") String timeFrame,
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam(defaultValue = "false") boolean sorted
     );
@@ -38,7 +38,7 @@ public interface OkxFeignClient {
     @PostMapping("/api/okx/tickers/valid")
     List<String> getValidTickers(
             @RequestBody List<String> symbols,
-            @RequestParam(defaultValue = "1m") String timeFrame,
+            @RequestParam(defaultValue = "15m") String timeFrame,
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam(defaultValue = "1000000") double minQuoteVolume,
             @RequestParam(defaultValue = "false") boolean sorted
@@ -56,7 +56,7 @@ public interface OkxFeignClient {
     @GetMapping("/api/okx/candles/before")
     List<Candle> getCandlesBefore(
             @RequestParam String symbol,
-            @RequestParam(defaultValue = "1m") String timeFrame,
+            @RequestParam(defaultValue = "15m") String timeFrame,
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam long before
     );

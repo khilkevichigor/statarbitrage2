@@ -36,24 +36,24 @@ public class PeriodOptions {
      */
     public static int calculateCandleLimit(String timeframe, String period) {
         int multiplier = switch (period.toLowerCase()) {
-            case "день" -> 1;
-            case "неделя" -> 7;
-            case "месяц" -> 30;
+//            case "день" -> 1;
+//            case "неделя" -> 7;
+//            case "месяц" -> 30;
             case "1 год" -> 365;
-            case "2 года" -> 730;
-            case "3 года" -> 1095;
-            default -> 30;
+//            case "2 года" -> 730;
+//            case "3 года" -> 1095;
+            default -> 365;
         };
 
         int idealLimit = switch (timeframe) {
-            case "5m" -> multiplier * 24 * 12; // 5-минутки в день
+//            case "5m" -> multiplier * 24 * 12; // 5-минутки в день
             case "15m" -> multiplier * 24 * 4; // 15-минутки в день
-            case "1H" -> multiplier * 24; // часы в день
-            case "4H" -> multiplier * 6; // 4-часовки в день
-            case "1D" -> multiplier; // дни
-            case "1W" -> multiplier / 7; // недели
-            case "1M" -> multiplier / 30; // месяцы
-            default -> multiplier * 24; // По умолчанию часовки
+//            case "1H" -> multiplier * 24; // часы в день
+//            case "4H" -> multiplier * 6; // 4-часовки в день
+//            case "1D" -> multiplier; // дни
+//            case "1W" -> multiplier / 7; // недели
+//            case "1M" -> multiplier / 30; // месяцы
+            default -> multiplier * 24 * 4; // По умолчанию 15-минутки
         };
 
         // Минимум 100 свечей для качественного анализа
