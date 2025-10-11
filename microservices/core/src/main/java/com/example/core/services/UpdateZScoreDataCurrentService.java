@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -29,16 +30,32 @@ public class UpdateZScoreDataCurrentService {
         tradingPair.setAlphaCurrent(BigDecimal.valueOf(latestParam.getAlpha()));
         tradingPair.setBetaCurrent(BigDecimal.valueOf(latestParam.getBeta()));
 
-        // Добавляем новые точки в историю Z-Score при каждом обновлении
-        if (zScoreData.getZScoreHistory() != null && !zScoreData.getZScoreHistory().isEmpty()) {
-            // Добавляем всю новую историю из ZScoreData
-            for (ZScoreParam param : zScoreData.getZScoreHistory()) {
+        // ИСПРАВЛЕНИЕ: Добавляем только новые точки в историю Z-Score, избегая дубликатов
+        List<ZScoreParam> existingHistory = tradingPair.getZScoreHistory();
+        List<ZScoreParam> newHistory = zScoreData.getZScoreHistory();
+        
+        if (existingHistory.isEmpty()) {
+            // Если история пустая, добавляем всю новую историю (для новых пар)
+            log.info("📊 История Z-Score пустая для пары {} - добавляем {} новых точек",
+                    tradingPair.getPairName(), newHistory.size());
+            for (ZScoreParam param : newHistory) {
                 tradingPair.addZScorePoint(param);
             }
         } else {
-            // Если новой истории нет, добавляем хотя бы текущую точку
-            tradingPair.addZScorePoint(latestParam);
+            // Если история есть, добавляем только новые точки
+            long lastTimestamp = existingHistory.get(existingHistory.size() - 1).getTimestamp();
+            int addedCount = 0;
+            
+            for (ZScoreParam param : newHistory) {
+                if (param.getTimestamp() > lastTimestamp) {
+                    tradingPair.addZScorePoint(param);
+                    addedCount++;
+                }
+            }
+            
+            log.info("📊 Добавлено {} новых точек Z-Score для пары {} (было: {}, стало: {})",
+                    addedCount, tradingPair.getPairName(), existingHistory.size(), 
+                    tradingPair.getZScoreHistory().size());
         }
-
     }
 }
