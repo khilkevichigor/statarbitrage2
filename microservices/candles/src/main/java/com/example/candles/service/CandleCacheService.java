@@ -1038,32 +1038,24 @@ public class CandleCacheService {
         Map<String, Object> stats = new HashMap<>();
 
         try {
-            List<Object[]> rawStats = cachedCandleRepository.getCacheStatistics();
-
             // Вычисляем начало и конец текущего дня
             java.time.LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
             java.time.LocalDateTime startOfNextDay = startOfDay.plusDays(1);
 
-            List<Object[]> todayStats = cachedCandleRepository.getTodayCacheStatistics(startOfDay, startOfNextDay);
+            // 🚀 ОПТИМИЗАЦИЯ: Один запрос вместо двух для общей статистики
+            List<Object[]> optimizedStats = cachedCandleRepository.getOptimizedCacheStatistics(startOfDay, startOfNextDay);
 
             Map<String, Map<String, Long>> exchangeStats = new HashMap<>();
             Map<String, Map<String, Long>> exchangeTodayStats = new HashMap<>();
 
-            // Обрабатываем общую статистику
-            for (Object[] row : rawStats) {
+            // Обрабатываем объединенную статистику (exchange, timeframe, totalCount, todayCount)
+            for (Object[] row : optimizedStats) {
                 String ex = (String) row[0];
                 String tf = (String) row[1];
-                Long count = (Long) row[2];
+                Long totalCount = (Long) row[2];
+                Long todayCount = (Long) row[3];
 
-                exchangeStats.computeIfAbsent(ex, k -> new HashMap<>()).put(tf, count);
-            }
-
-            // Обрабатываем статистику за сегодня
-            for (Object[] row : todayStats) {
-                String ex = (String) row[0];
-                String tf = (String) row[1];
-                Long todayCount = (Long) row[2];
-
+                exchangeStats.computeIfAbsent(ex, k -> new HashMap<>()).put(tf, totalCount);
                 exchangeTodayStats.computeIfAbsent(ex, k -> new HashMap<>()).put(tf, todayCount);
             }
 
@@ -1072,13 +1064,17 @@ public class CandleCacheService {
 
             // Дополнительная статистика для конкретной биржи
             if (exchange != null) {
-                List<String> tickers = cachedCandleRepository.findDistinctTickersByExchange(exchange);
-                stats.put("totalTickers", tickers.size());
+                // 🚀 ОПТИМИЗАЦИЯ: COUNT(DISTINCT) вместо загрузки всех тикеров
+                Long tickersCount = cachedCandleRepository.countDistinctTickersByExchange(exchange);
+                stats.put("totalTickers", tickersCount);
 
+                // 🚀 ОПТИМИЗАЦИЯ: Один GROUP BY запрос вместо цикла COUNT запросов
+                List<Object[]> timeframeStatsRaw = cachedCandleRepository.getTimeframeStatistics(exchange);
                 Map<String, Long> timeframeStats = new HashMap<>();
-                for (String timeframe : defaultCachePeriods.keySet()) {
-                    Long count = cachedCandleRepository.countByTickerTimeframeExchange("", timeframe, exchange);
-                    timeframeStats.put(timeframe, count);
+                for (Object[] row : timeframeStatsRaw) {
+                    String tf = (String) row[0];
+                    Long count = (Long) row[1];
+                    timeframeStats.put(tf, count);
                 }
                 stats.put("timeframeStats", timeframeStats);
             }

@@ -149,6 +149,31 @@ public interface CachedCandleRepository extends JpaRepository<CachedCandle, Long
                                            @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     /**
+     * Оптимизированная статистика - объединяет общую и сегодняшнюю статистику в один запрос
+     */
+    @Query("SELECT cc.exchange, cc.timeframe, " +
+            "COUNT(cc) as totalCount, " +
+            "COUNT(CASE WHEN cc.createdAt >= :startOfDay AND cc.createdAt < :startOfNextDay THEN 1 END) as todayCount " +
+            "FROM CachedCandle cc WHERE cc.isValid = true " +
+            "GROUP BY cc.exchange, cc.timeframe ORDER BY cc.exchange, cc.timeframe")
+    List<Object[]> getOptimizedCacheStatistics(@Param("startOfDay") LocalDateTime startOfDay,
+                                              @Param("startOfNextDay") LocalDateTime startOfNextDay);
+
+    /**
+     * Оптимизированная статистика по таймфреймам для биржи - заменяет цикл COUNT запросов
+     */
+    @Query("SELECT cc.timeframe, COUNT(cc) as count " +
+            "FROM CachedCandle cc WHERE cc.exchange = :exchange AND cc.isValid = true " +
+            "GROUP BY cc.timeframe ORDER BY cc.timeframe")
+    List<Object[]> getTimeframeStatistics(@Param("exchange") String exchange);
+
+    /**
+     * Оптимизированный подсчет уникальных тикеров с лимитом
+     */
+    @Query("SELECT COUNT(DISTINCT cc.ticker) FROM CachedCandle cc WHERE cc.exchange = :exchange")
+    Long countDistinctTickersByExchange(@Param("exchange") String exchange);
+
+    /**
      * Получить все уникальные таймфреймы для биржи
      */
     @Query("SELECT DISTINCT cc.timeframe FROM CachedCandle cc WHERE cc.exchange = :exchange " +
