@@ -22,9 +22,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-/**
- * Контроллер для тестирования новых сервисов-процессоров
- */
 @RestController
 @RequestMapping("/api/candles-processor")
 @RequiredArgsConstructor
@@ -35,8 +32,6 @@ public class CandlesProcessorController {
     private final CacheValidatedCandlesProcessor cacheValidatedCandlesProcessor;
     private final CandlesLoaderProcessor candlesLoaderProcessor;
     private final OkxFeignClient okxFeignClient;
-
-    //todo главный новый эндпоинт который будет делать всю работу!!!
 
     /**
      * Получить валидированные свечи из кэша для множества тикеров (аналог /all-extended) с догрузкой и сохранением
