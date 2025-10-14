@@ -1,18 +1,18 @@
 package com.example.core.services;
 
+import com.example.core.repositories.SettingsRepository;
 import com.example.core.repositories.StablePairsScreenerSettingsRepository;
+import com.example.shared.models.Settings;
 import com.example.shared.models.StablePairsScreenerSettings;
+import com.example.shared.services.TimeframeAndPeriodService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Сервис для работы с настройками скриннера стабильных пар
@@ -23,6 +23,8 @@ import java.util.Set;
 public class StablePairsScreenerSettingsService {
 
     private final StablePairsScreenerSettingsRepository repository;
+    private final SettingsRepository settingsRepository;
+    private final TimeframeAndPeriodService timeframeAndPeriodService;
 
     /**
      * Получить все настройки, отсортированные по использованию
@@ -107,11 +109,141 @@ public class StablePairsScreenerSettingsService {
     }
 
     /**
-     * Получить настройки для автоматического запуска
+     * Получить настройки для автоматического запуска с применением глобальных ограничений таймфреймов и периодов
      */
     public List<StablePairsScreenerSettings> getScheduledSettings() {
         log.debug("⏰ Получение настроек для автоматического запуска");
-        return repository.findByRunOnScheduleTrue();
+        
+        try {
+            // Получаем все настройки с включенным автоматическим запуском
+            List<StablePairsScreenerSettings> originalSettings = repository.findByRunOnScheduleTrue();
+            
+            if (originalSettings.isEmpty()) {
+                log.debug("📋 Нет настроек с включенным автоматическим запуском");
+                return originalSettings;
+            }
+            
+            // Получаем глобальные активные таймфреймы и периоды
+            Settings globalSettings = settingsRepository.findAll().stream().findFirst()
+                    .orElse(new Settings());
+            List<String> allowedTimeframes = timeframeAndPeriodService.getActiveTimeframes(
+                    globalSettings.getGlobalActiveTimeframes());
+            List<String> allowedPeriods = timeframeAndPeriodService.getActivePeriods(
+                    globalSettings.getGlobalActivePeriods());
+            
+            log.info("🌐 Глобальные ограничения для шедуллера:");
+            log.info("📊 Разрешенные таймфреймы: {}", allowedTimeframes);
+            log.info("📅 Разрешенные периоды: {}", allowedPeriods);
+            
+            // Фильтруем настройки и ограничиваем их глобальными настройками
+            List<StablePairsScreenerSettings> filteredSettings = new ArrayList<>();
+            
+            for (StablePairsScreenerSettings setting : originalSettings) {
+                try {
+                    // Пересекаем таймфреймы настройки с глобально разрешенными
+                    Set<String> settingTimeframes = setting.getSelectedTimeframesSet();
+                    Set<String> validTimeframes = settingTimeframes.stream()
+                            .filter(allowedTimeframes::contains)
+                            .collect(Collectors.toSet());
+                    
+                    // Пересекаем периоды настройки с глобально разрешенными
+                    Set<String> settingPeriods = setting.getSelectedPeriodsSet();
+                    Set<String> validPeriods = settingPeriods.stream()
+                            .filter(allowedPeriods::contains)
+                            .collect(Collectors.toSet());
+                    
+                    // Если после фильтрации остались валидные таймфреймы и периоды
+                    if (!validTimeframes.isEmpty() && !validPeriods.isEmpty()) {
+                        // Создаем копию настройки с ограниченными таймфреймами и периодами
+                        StablePairsScreenerSettings filteredSetting = createFilteredCopy(setting, 
+                                validTimeframes, validPeriods);
+                        
+                        filteredSettings.add(filteredSetting);
+                        
+                        log.info("✅ Настройки '{}': {} тф → {}, {} периодов → {}",
+                                setting.getName(),
+                                settingTimeframes.size(), validTimeframes.size(),
+                                settingPeriods.size(), validPeriods.size());
+                        
+                        if (!settingTimeframes.equals(validTimeframes)) {
+                            log.info("🔄 Исключенные таймфреймы: {}", 
+                                    settingTimeframes.stream()
+                                            .filter(tf -> !validTimeframes.contains(tf))
+                                            .collect(Collectors.toSet()));
+                        }
+                        
+                        if (!settingPeriods.equals(validPeriods)) {
+                            log.info("🔄 Исключенные периоды: {}", 
+                                    settingPeriods.stream()
+                                            .filter(p -> !validPeriods.contains(p))
+                                            .collect(Collectors.toSet()));
+                        }
+                        
+                    } else {
+                        log.warn("⚠️ Настройки '{}' исключены: нет пересечений с глобальными настройками", 
+                                setting.getName());
+                        log.warn("   📊 Таймфреймы настройки: {} vs глобальные: {}", 
+                                settingTimeframes, allowedTimeframes);
+                        log.warn("   📅 Периоды настройки: {} vs глобальные: {}", 
+                                settingPeriods, allowedPeriods);
+                    }
+                    
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при фильтрации настройки '{}': {}", 
+                            setting.getName(), e.getMessage(), e);
+                }
+            }
+            
+            log.info("🏁 Итого для шедуллера: {} настроек из {} исходных прошли фильтрацию", 
+                    filteredSettings.size(), originalSettings.size());
+            
+            return filteredSettings;
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении настроек для шедуллера: {}", e.getMessage(), e);
+            // Возвращаем исходные настройки при ошибке
+            return repository.findByRunOnScheduleTrue();
+        }
+    }
+    
+    /**
+     * Создает копию настройки с ограниченными таймфреймами и периодами
+     */
+    private StablePairsScreenerSettings createFilteredCopy(StablePairsScreenerSettings original,
+                                                          Set<String> validTimeframes, Set<String> validPeriods) {
+        StablePairsScreenerSettings copy = new StablePairsScreenerSettings();
+        
+        // Копируем основные поля
+        copy.setId(original.getId());
+        copy.setName(original.getName());
+        copy.setDefault(original.isDefault());
+        copy.setRunOnSchedule(original.isRunOnSchedule());
+        copy.setLastUsedAt(original.getLastUsedAt());
+        copy.setCreatedAt(original.getCreatedAt());
+        copy.setUpdatedAt(original.getUpdatedAt());
+        
+        // Устанавливаем отфильтрованные таймфреймы и периоды
+        copy.setSelectedTimeframesSet(validTimeframes);
+        copy.setSelectedPeriodsSet(validPeriods);
+        
+        // Копируем настройки фильтров
+        copy.setMinCorrelationEnabled(original.isMinCorrelationEnabled());
+        copy.setMinCorrelationValue(original.getMinCorrelationValue());
+        copy.setMinWindowSizeEnabled(original.isMinWindowSizeEnabled());
+        copy.setMinWindowSizeValue(original.getMinWindowSizeValue());
+        copy.setMaxAdfValueEnabled(original.isMaxAdfValueEnabled());
+        copy.setMaxAdfValue(original.getMaxAdfValue());
+        copy.setMinRSquaredEnabled(original.isMinRSquaredEnabled());
+        copy.setMinRSquaredValue(original.getMinRSquaredValue());
+        copy.setMaxPValueEnabled(original.isMaxPValueEnabled());
+        copy.setMaxPValue(original.getMaxPValue());
+        copy.setMinVolumeEnabled(original.isMinVolumeEnabled());
+        copy.setMinVolumeValue(original.getMinVolumeValue());
+        copy.setSearchTickersEnabled(original.isSearchTickersEnabled());
+        copy.setSearchTickersSet(original.getSearchTickersSet());
+        copy.setUseCache(original.getUseCache());
+        
+        return copy;
     }
 
     /**

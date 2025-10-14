@@ -10,6 +10,7 @@ import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
+import com.example.shared.services.TimeframeAndPeriodService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class SearchStablePairService {
     private final StabilityAnalysisService stabilityAnalysisService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
+    private final TimeframeAndPeriodService timeframeAndPeriodService;
 
     /**
      * Поиск стабильных пар с множественными таймфреймами и периодами
@@ -325,31 +327,23 @@ public class SearchStablePairService {
     }
 
     private int calculateCandleLimit(String timeframe, String period) {
-        int multiplier = switch (period.toLowerCase()) {
-            case "день" -> 1;
-            case "неделя" -> 7;
-            case "месяц" -> 30;
-            case "6 месяцев" -> 180;  // 6 месяцев = 180 дней
-            case "1 год" -> 365;
-            case "2 года" -> 730;
-            case "3 года" -> 1095;
-            default -> 30;
-        };
-
-        int idealLimit = switch (timeframe) {
-            case "1m" -> multiplier * 24 * 60;
-            case "5m" -> multiplier * 24 * 12;
-            case "15m" -> multiplier * 24 * 4;
-            case "1H" -> multiplier * 24;
-            case "4H" -> multiplier * 6;
-            case "1D" -> multiplier;
-            case "1W" -> multiplier / 7;
-            case "1M" -> multiplier / 30;
-            default -> multiplier * 24;
-        };
-
-//        return Math.max(100, idealLimit); //todo пока отрубил тк для 1М и 3 года достаточно 36 свечей, 100 свечей для BTC тупо нет на окх почему-то
-        return idealLimit;
+        try {
+            // Используем централизованный сервис для расчета количества свечей
+            int candleLimit = timeframeAndPeriodService.calculateOptimalCandleCount(timeframe, period);
+            
+            log.debug("📊 Рассчитано количество свечей для {} за {}: {}", timeframe, period, candleLimit);
+            
+            return candleLimit;
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при расчете количества свечей для timeframe={}, period={}: {}", 
+                    timeframe, period, e.getMessage());
+            
+            // Fallback: возвращаем безопасное значение по умолчанию
+            int fallbackLimit = 1000;
+            log.warn("⚠️ Используется fallback значение: {} свечей", fallbackLimit);
+            return fallbackLimit;
+        }
     }
 
     private Map<String, Object> buildAnalysisSettings(Map<String, Object> searchSettings) {
