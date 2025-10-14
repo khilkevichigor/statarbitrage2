@@ -2,11 +2,15 @@ package com.example.core.ui.views;
 
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.services.PairService;
+import com.example.core.services.SettingsService;
 import com.example.core.services.StablePairsScreenerSettingsService;
 import com.example.core.ui.components.ZScoreChartDialog;
 import com.example.core.ui.layout.MainLayout;
+import com.example.shared.events.GlobalSettingsUpdatedEvent;
 import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
 import com.example.shared.models.StablePairsScreenerSettings;
+import com.example.shared.services.TimeframeAndPeriodService;
 import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -32,8 +36,10 @@ import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Скриннер стабильных коинтегрированных пар
@@ -46,31 +52,16 @@ public class StablePairsView extends VerticalLayout {
     private final PairService pairService;
     private final ZScoreChartDialog zScoreChartDialog;
     private final StablePairsScreenerSettingsService settingsService;
+    private final SettingsService globalSettingsService;
+    private final TimeframeAndPeriodService timeframeAndPeriodService;
 
     // Элементы формы поиска - мульти-селекты
     private MultiSelectComboBox<String> timeframeMultiSelect;
     private MultiSelectComboBox<String> periodMultiSelect;
 
-    // Доступные варианты
-    private final List<String> availableTimeframes = Arrays.asList(
-//            "1m",
-//            "5m",
-            "15m"
-//            "1H",
-//            "4H",
-//            "1D",
-//            "1W",
-//            "1M"
-    );
-    private final List<String> availablePeriods = Arrays.asList(
-//            "день",
-//            "неделя",
-//            "месяц",
-//            "6 месяцев",
-            "1 год"
-//            "2 года",
-//            "3 года"
-    );
+    // Доступные варианты - теперь берутся из глобальных настроек
+    private List<String> availableTimeframes;
+    private List<String> availablePeriods;
     private Checkbox minCorrelationEnabled;
     private NumberField minCorrelationField;
     private Checkbox minWindowSizeEnabled;
@@ -89,7 +80,7 @@ public class StablePairsView extends VerticalLayout {
     // Новое поле для фильтрации по тикерам
     private Checkbox searchTickersEnabled;
     private TextArea searchTickersField;
-    
+
     // Чекбокс для использования кэша
     private Checkbox useCacheCheckbox;
 
@@ -111,13 +102,40 @@ public class StablePairsView extends VerticalLayout {
     private Span statsLabel;
 
     public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog,
-                           StablePairsScreenerSettingsService settingsService) {
+                           StablePairsScreenerSettingsService settingsService,
+                           SettingsService globalSettingsService,
+                           TimeframeAndPeriodService timeframeAndPeriodService) {
         this.pairService = pairService;
         this.zScoreChartDialog = zScoreChartDialog;
         this.settingsService = settingsService;
+        this.globalSettingsService = globalSettingsService;
+        this.timeframeAndPeriodService = timeframeAndPeriodService;
 
+        initializeGlobalOptions();
         initializeLayout();
         loadData();
+    }
+
+    private void initializeGlobalOptions() {
+        try {
+            Settings globalSettings = globalSettingsService.getSettings();
+
+            // Получаем активные таймфреймы и периоды из глобальных настроек
+            this.availableTimeframes = timeframeAndPeriodService.getActiveTimeframes(
+                    globalSettings.getGlobalActiveTimeframes());
+            this.availablePeriods = timeframeAndPeriodService.getActivePeriods(
+                    globalSettings.getGlobalActivePeriods());
+
+            log.info("🔧 Инициализированы глобальные настройки для StablePairsView:");
+            log.info("📊 Доступные таймфреймы: {}", availableTimeframes);
+            log.info("📅 Доступные периоды: {}", availablePeriods);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при инициализации глобальных настроек: {}", e.getMessage(), e);
+            // Fallback к значениям по умолчанию
+            this.availableTimeframes = List.of("15m");
+            this.availablePeriods = List.of("1 год");
+        }
     }
 
     private void initializeLayout() {
@@ -158,12 +176,18 @@ public class StablePairsView extends VerticalLayout {
 
         timeframeMultiSelect = new MultiSelectComboBox<>("Таймфрейм");
         timeframeMultiSelect.setItems(availableTimeframes);
-        timeframeMultiSelect.setValue(new HashSet<>(Arrays.asList("15m"))); //by default
+        // Устанавливаем первый доступный таймфрейм по умолчанию
+        if (!availableTimeframes.isEmpty()) {
+            timeframeMultiSelect.setValue(new HashSet<>(Arrays.asList(availableTimeframes.get(0))));
+        }
         timeframeMultiSelect.setWidth("250px");
 
         periodMultiSelect = new MultiSelectComboBox<>("Период");
         periodMultiSelect.setItems(availablePeriods);
-        periodMultiSelect.setValue(new HashSet<>(Arrays.asList("1 год"))); //by default
+        // Устанавливаем первый доступный период по умолчанию
+        if (!availablePeriods.isEmpty()) {
+            periodMultiSelect.setValue(new HashSet<>(Arrays.asList(availablePeriods.get(0))));
+        }
         periodMultiSelect.setWidth("250px");
 
         row1.add(timeframeMultiSelect, periodMultiSelect);
@@ -345,7 +369,7 @@ public class StablePairsView extends VerticalLayout {
         HorizontalLayout minVolumeGroup = new HorizontalLayout(minVolumeEnabled, minVolumeField);
         minVolumeGroup.setSpacing(false);
         minVolumeGroup.setAlignItems(FlexComponent.Alignment.END);
-        
+
         // Чекбокс для использования кэша
         useCacheCheckbox = new Checkbox("Использовать КЭШ");
         useCacheCheckbox.setValue(true);
@@ -635,7 +659,7 @@ public class StablePairsView extends VerticalLayout {
             settings.put("searchTickers", tickers);
             log.info("🎯 Добавлен фильтр по тикерам: {}", tickers);
         }
-        
+
         // Добавляем настройку использования кэша
         boolean useCache = useCacheCheckbox.getValue();
         settings.put("useCache", useCache);
@@ -1045,7 +1069,7 @@ public class StablePairsView extends VerticalLayout {
 
             // Загружаем настройки автоматизации
             runOnScheduleCheckbox.setValue(settings.isRunOnSchedule());
-            
+
             // Загружаем настройку использования кэша (по умолчанию включено)
             useCacheCheckbox.setValue(settings.getUseCache() != null ? settings.getUseCache() : true);
 
@@ -1160,52 +1184,118 @@ public class StablePairsView extends VerticalLayout {
     private void updateMonitoringPair(Pair pair) {
         try {
             log.info("🔄 Запуск обновления пары в мониторинге: {}", pair.getPairName());
-            
+
             // Показываем уведомление о начале обновления
             Notification.show(
-                    String.format("🔄 Обновление пары %s...", pair.getPairName()),
-                    2000, Notification.Position.BOTTOM_CENTER)
+                            String.format("🔄 Обновление пары %s...", pair.getPairName()),
+                            2000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
-            
+
             // Выполняем обновление в фоновом потоке
             getUI().ifPresent(ui -> {
                 Thread updateThread = new Thread(() -> {
                     try {
                         boolean success = pairService.updateMonitoringPair(pair.getId());
-                        
+
                         ui.access(() -> {
                             if (success) {
                                 Notification.show(
-                                        String.format("✅ Пара %s обновлена", pair.getPairName()),
-                                        3000, Notification.Position.BOTTOM_CENTER)
+                                                String.format("✅ Пара %s обновлена", pair.getPairName()),
+                                                3000, Notification.Position.BOTTOM_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                                
+
                                 // Перезагружаем данные мониторинга
                                 loadMonitoringPairs();
                             } else {
                                 Notification.show(
-                                        String.format("❌ Не удалось обновить пару %s", pair.getPairName()),
-                                        3000, Notification.Position.TOP_CENTER)
+                                                String.format("❌ Не удалось обновить пару %s", pair.getPairName()),
+                                                3000, Notification.Position.TOP_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                             }
                         });
-                        
+
                     } catch (Exception e) {
                         log.error("Ошибка при обновлении пары {}: {}", pair.getPairName(), e.getMessage(), e);
                         ui.access(() -> {
                             Notification.show("❌ Ошибка обновления: " + e.getMessage(),
-                                    5000, Notification.Position.TOP_CENTER)
+                                            5000, Notification.Position.TOP_CENTER)
                                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
                         });
                     }
                 });
                 updateThread.start();
             });
-            
+
         } catch (Exception e) {
             log.error("Ошибка при инициации обновления пары {}: {}", pair.getPairName(), e.getMessage(), e);
             Notification.show("❌ Ошибка: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    /**
+     * Слушатель события обновления глобальных настроек
+     */
+    @EventListener
+    public void handleGlobalSettingsUpdated(GlobalSettingsUpdatedEvent event) {
+        try {
+            log.info("🔧 Получено событие обновления глобальных настроек в StablePairsView");
+            log.info("📊 Новые таймфреймы: {}", event.getUpdatedGlobalTimeframes());
+            log.info("📅 Новые периоды: {}", event.getUpdatedGlobalPeriods());
+
+            // Обновляем доступные таймфреймы и периоды
+            initializeGlobalOptions();
+
+            // Обновляем UI компоненты с новыми значениями
+            getUI().ifPresent(ui -> ui.access(() -> {
+                try {
+                    // Сохраняем текущие выбранные значения
+                    Set<String> currentTimeframes = timeframeMultiSelect.getValue();
+                    Set<String> currentPeriods = periodMultiSelect.getValue();
+
+                    // Обновляем доступные опции
+                    timeframeMultiSelect.setItems(availableTimeframes);
+                    periodMultiSelect.setItems(availablePeriods);
+
+                    // Восстанавливаем выбранные значения, если они все еще доступны
+                    Set<String> validTimeframes = currentTimeframes.stream()
+                            .filter(availableTimeframes::contains)
+                            .collect(Collectors.toSet());
+
+                    Set<String> validPeriods = currentPeriods.stream()
+                            .filter(availablePeriods::contains)
+                            .collect(Collectors.toSet());
+
+                    timeframeMultiSelect.setValue(validTimeframes);
+                    periodMultiSelect.setValue(validPeriods);
+
+                    // Если не осталось валидных значений, выбираем первые доступные
+                    if (validTimeframes.isEmpty() && !availableTimeframes.isEmpty()) {
+                        timeframeMultiSelect.setValue(new HashSet<>(Arrays.asList(availableTimeframes.get(0))));
+                    }
+
+                    if (validPeriods.isEmpty() && !availablePeriods.isEmpty()) {
+                        periodMultiSelect.setValue(new HashSet<>(Arrays.asList(availablePeriods.get(0))));
+                    }
+
+                    log.info("✅ StablePairsView: UI обновлен после изменения глобальных настроек");
+
+                    // Показываем уведомление пользователю
+                    Notification.show(
+                                    "🔄 Доступные таймфреймы и периоды обновлены согласно глобальным настройкам",
+                                    3000, Notification.Position.BOTTOM_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при обновлении UI StablePairsView после изменения глобальных настроек: {}", e.getMessage(), e);
+                    Notification.show("❌ Ошибка обновления интерфейса: " + e.getMessage(),
+                                    3000, Notification.Position.TOP_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                }
+            }));
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обработке события обновления глобальных настроек в StablePairsView: {}", e.getMessage(), e);
         }
     }
 }

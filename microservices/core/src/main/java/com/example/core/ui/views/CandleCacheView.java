@@ -1,8 +1,12 @@
 package com.example.core.ui.views;
 
 import com.example.core.services.CandleCacheManagementService;
+import com.example.core.services.SettingsService;
 import com.example.core.ui.layout.MainLayout;
 import com.example.core.ui.utils.PeriodOptions;
+import com.example.shared.events.GlobalSettingsUpdatedEvent;
+import com.example.shared.models.Settings;
+import com.example.shared.services.TimeframeAndPeriodService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -26,6 +30,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,6 +44,8 @@ import java.util.stream.Collectors;
 public class CandleCacheView extends VerticalLayout {
 
     private final CandleCacheManagementService candleCacheManagementService;
+    private final SettingsService globalSettingsService;
+    private final TimeframeAndPeriodService timeframeAndPeriodService;
 
     // Настройки
     private ComboBox<String> exchangeSelect;
@@ -60,29 +67,27 @@ public class CandleCacheView extends VerticalLayout {
     private TextField preloadScheduleField;
     private TextField dailyUpdateScheduleField;
 
-    // Доступные таймфреймы
-    private final List<String> availableTimeframes = Arrays.asList(
-//            "1m",
-//            "5m",
-            "15m"
-//            "1H",
-//            "4H",
-//            "1D",
-//            "1W",
-//            "1M"
-    );
+    // Доступные таймфреймы - теперь берутся из глобальных настроек
+    private List<String> availableTimeframes;
+    private List<String> availablePeriods;
 
     // Доступные биржи
     private final List<String> availableExchanges = Arrays.asList(
             "OKX", "BINANCE", "BYBIT"
     );
 
-    public CandleCacheView(CandleCacheManagementService candleCacheManagementService) {
+    public CandleCacheView(CandleCacheManagementService candleCacheManagementService,
+                           SettingsService globalSettingsService,
+                           TimeframeAndPeriodService timeframeAndPeriodService) {
         this.candleCacheManagementService = candleCacheManagementService;
+        this.globalSettingsService = globalSettingsService;
+        this.timeframeAndPeriodService = timeframeAndPeriodService;
+
         setSizeFull();
         setSpacing(true);
         setPadding(true);
 
+        initializeGlobalOptions();
         createHeader();
         createSettingsSection();
         createForceLoadSection();
@@ -90,6 +95,28 @@ public class CandleCacheView extends VerticalLayout {
         createSchedulerSection();
 
 //        refreshStatistics();
+    }
+
+    private void initializeGlobalOptions() {
+        try {
+            Settings globalSettings = globalSettingsService.getSettings();
+
+            // Получаем активные таймфреймы и периоды из глобальных настроек
+            this.availableTimeframes = timeframeAndPeriodService.getActiveTimeframes(
+                    globalSettings.getGlobalActiveTimeframes());
+            this.availablePeriods = timeframeAndPeriodService.getActivePeriods(
+                    globalSettings.getGlobalActivePeriods());
+
+            log.info("🔧 Инициализированы глобальные настройки для CandleCacheView:");
+            log.info("📊 Доступные таймфреймы: {}", availableTimeframes);
+            log.info("📅 Доступные периоды: {}", availablePeriods);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при инициализации глобальных настроек: {}", e.getMessage(), e);
+            // Fallback к значениям по умолчанию
+            this.availableTimeframes = List.of("15m");
+            this.availablePeriods = List.of("1 год");
+        }
     }
 
     private void createHeader() {
@@ -111,7 +138,10 @@ public class CandleCacheView extends VerticalLayout {
         // Выбор таймфреймов
         timeframeSelect = new MultiSelectComboBox<>("Активные таймфреймы");
         timeframeSelect.setItems(availableTimeframes);
-        timeframeSelect.setValue(new HashSet<>(Arrays.asList("15m")));
+        // Устанавливаем первый доступный таймфрейм по умолчанию
+        if (!availableTimeframes.isEmpty()) {
+            timeframeSelect.setValue(new HashSet<>(Arrays.asList(availableTimeframes.get(0))));
+        }
         timeframeSelect.setWidth("300px");
 
         // Количество потоков
@@ -125,8 +155,11 @@ public class CandleCacheView extends VerticalLayout {
         // Период принудительной загрузки
         forceLoadPeriodField = new Select<>();
         forceLoadPeriodField.setLabel("Период");
-        forceLoadPeriodField.setItems(PeriodOptions.getAll().keySet());
-        forceLoadPeriodField.setValue(PeriodOptions.getDefault());
+        forceLoadPeriodField.setItems(availablePeriods);
+        // Устанавливаем первый доступный период по умолчанию
+        if (!availablePeriods.isEmpty()) {
+            forceLoadPeriodField.setValue(availablePeriods.get(0));
+        }
         forceLoadPeriodField.setWidth("200px");
         forceLoadPeriodField.setHelperText("Выберите период для анализа данных");
 
@@ -648,6 +681,73 @@ public class CandleCacheView extends VerticalLayout {
 
         public String getLastUpdate() {
             return lastUpdate;
+        }
+    }
+
+    /**
+     * Обработчик события обновления глобальных настроек
+     * Обновляет доступные таймфреймы и периоды при изменении глобальных настроек
+     */
+    @EventListener
+    public void handleGlobalSettingsUpdated(GlobalSettingsUpdatedEvent event) {
+        try {
+            log.info("📡 CandleCacheView: Получено событие обновления глобальных настроек");
+            log.info("📊 Новые таймфреймы: {}", event.getUpdatedGlobalTimeframes());
+            log.info("📅 Новые периоды: {}", event.getUpdatedGlobalPeriods());
+
+            getUI().ifPresent(ui -> ui.access(() -> {
+                try {
+                    // Обновляем глобальные настройки
+                    initializeGlobalOptions();
+
+                    // Обновляем элементы UI
+                    timeframeSelect.setItems(availableTimeframes);
+                    forceLoadPeriodField.setItems(availablePeriods);
+
+                    // Обновляем выбранные таймфреймы, сохраняя только валидные
+                    Set<String> currentTimeframeSelection = timeframeSelect.getValue();
+                    Set<String> validTimeframeSelection = currentTimeframeSelection.stream()
+                            .filter(availableTimeframes::contains)
+                            .collect(Collectors.toSet());
+
+                    if (!validTimeframeSelection.equals(currentTimeframeSelection)) {
+                        timeframeSelect.setValue(validTimeframeSelection);
+                        log.info("🔄 Обновлены выбранные таймфреймы: {} -> {}", currentTimeframeSelection, validTimeframeSelection);
+                    }
+
+                    // Если не осталось валидных таймфреймов, выбираем первый доступный
+                    if (validTimeframeSelection.isEmpty() && !availableTimeframes.isEmpty()) {
+                        timeframeSelect.setValue(new HashSet<>(Arrays.asList(availableTimeframes.get(0))));
+                        log.info("🔄 Установлен таймфрейм по умолчанию: {}", availableTimeframes.get(0));
+                    }
+
+                    // Обновляем выбранный период загрузки
+                    String currentPeriod = forceLoadPeriodField.getValue();
+                    if (currentPeriod != null && !availablePeriods.contains(currentPeriod)) {
+                        if (!availablePeriods.isEmpty()) {
+                            forceLoadPeriodField.setValue(availablePeriods.get(0));
+                            log.info("🔄 Обновлен период загрузки: {} -> {}", currentPeriod, availablePeriods.get(0));
+                        }
+                    }
+
+                    log.info("✅ CandleCacheView: UI обновлен с новыми глобальными настройками");
+
+                    // Показываем уведомление пользователю
+                    Notification.show(
+                                    "🔄 Доступные таймфреймы и периоды обновлены согласно глобальным настройкам",
+                                    3000, Notification.Position.BOTTOM_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при обновлении UI CandleCacheView после изменения глобальных настроек: {}", e.getMessage(), e);
+                    Notification.show("❌ Ошибка обновления интерфейса: " + e.getMessage(),
+                                    3000, Notification.Position.TOP_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                }
+            }));
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обработке события обновления глобальных настроек в CandleCacheView: {}", e.getMessage(), e);
         }
     }
 }

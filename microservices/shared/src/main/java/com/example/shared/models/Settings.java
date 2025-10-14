@@ -277,6 +277,15 @@ public class Settings {
     @Column(name = "candle_cache_force_load_period_days")
     private int candleCacheForceLoadPeriodDays = 365;
 
+    // ===== Глобальные настройки таймфреймов и периодов =====
+    @Builder.Default
+    @Column(name = "global_active_timeframes", length = 200)
+    private String globalActiveTimeframes = "15m";
+
+    @Builder.Default
+    @Column(name = "global_active_periods", length = 500)
+    private String globalActivePeriods = "1 месяц,3 месяца,6 месяцев,1 год";
+
     // ===== Использование стабильных пар для мониторинга =====
     @Builder.Default
     @Column(name = "use_stable_pairs_for_monitoring")
@@ -352,7 +361,7 @@ public class Settings {
      */
     public void copyFrom(Settings other) {
         if (other == null) return;
-        
+
         this.timeframe = other.timeframe;
         this.candleLimit = other.candleLimit;
         this.minZ = other.minZ;
@@ -376,7 +385,7 @@ public class Settings {
         this.exitNegativeZMinProfitPercent = other.exitNegativeZMinProfitPercent;
         this.usePairs = other.usePairs;
         this.autoTradingEnabled = other.autoTradingEnabled;
-        
+
         // Флаги фильтров
         this.useMinZFilter = other.useMinZFilter;
         this.useMinRSquaredFilter = other.useMinRSquaredFilter;
@@ -384,7 +393,7 @@ public class Settings {
         this.useMaxAdfValueFilter = other.useMaxAdfValueFilter;
         this.useMinCorrelationFilter = other.useMinCorrelationFilter;
         this.useMinVolumeFilter = other.useMinVolumeFilter;
-        
+
         // Флаги стратегий выхода
         this.useExitTake = other.useExitTake;
         this.useExitStop = other.useExitStop;
@@ -395,11 +404,11 @@ public class Settings {
         this.useExitBreakEvenPercent = other.useExitBreakEvenPercent;
         this.useExitNegativeZMinProfitPercent = other.useExitNegativeZMinProfitPercent;
         this.useCointegrationStabilityFilter = other.useCointegrationStabilityFilter;
-        
+
         // Списки
         this.minimumLotBlacklist = other.minimumLotBlacklist;
         this.observedPairs = other.observedPairs;
-        
+
         // Флаги скоринга
         this.useZScoreScoring = other.useZScoreScoring;
         this.usePixelSpreadScoring = other.usePixelSpreadScoring;
@@ -407,7 +416,7 @@ public class Settings {
         this.useModelQualityScoring = other.useModelQualityScoring;
         this.useStatisticsScoring = other.useStatisticsScoring;
         this.useBonusScoring = other.useBonusScoring;
-        
+
         // Веса скоринга
         this.zScoreScoringWeight = other.zScoreScoringWeight;
         this.pixelSpreadScoringWeight = other.pixelSpreadScoringWeight;
@@ -415,21 +424,21 @@ public class Settings {
         this.modelQualityScoringWeight = other.modelQualityScoringWeight;
         this.statisticsScoringWeight = other.statisticsScoringWeight;
         this.bonusScoringWeight = other.bonusScoringWeight;
-        
+
         // Усреднение
         this.autoAveragingEnabled = other.autoAveragingEnabled;
         this.averagingDrawdownThreshold = other.averagingDrawdownThreshold;
         this.averagingVolumeMultiplier = other.averagingVolumeMultiplier;
         this.averagingDrawdownMultiplier = other.averagingDrawdownMultiplier;
         this.maxAveragingCount = other.maxAveragingCount;
-        
+
         // Автообъем
         this.autoVolumeEnabled = other.autoVolumeEnabled;
-        
+
         // Фильтр по пересечениям
         this.minIntersections = other.minIntersections;
         this.useMinIntersections = other.useMinIntersections;
-        
+
         // Настройки кэша свечей
         this.candleCacheEnabled = other.candleCacheEnabled;
         this.candleCacheDefaultExchange = other.candleCacheDefaultExchange;
@@ -438,10 +447,14 @@ public class Settings {
         this.candleCachePreloadSchedule = other.candleCachePreloadSchedule;
         this.candleCacheDailyUpdateSchedule = other.candleCacheDailyUpdateSchedule;
         this.candleCacheForceLoadPeriodDays = other.candleCacheForceLoadPeriodDays;
-        
+
+        // Глобальные настройки таймфреймов и периодов
+        this.globalActiveTimeframes = other.globalActiveTimeframes;
+        this.globalActivePeriods = other.globalActivePeriods;
+
         // Использование стабильных пар для мониторинга
         this.useStablePairsForMonitoring = other.useStablePairsForMonitoring;
-        
+
         // Управление шедуллерами
         this.schedulerUpdateTradesEnabled = other.schedulerUpdateTradesEnabled;
         this.schedulerStablePairsEnabled = other.schedulerStablePairsEnabled;
@@ -476,7 +489,7 @@ public class Settings {
 //                case "1D" -> candleLimit;
 //                case "1W" -> candleLimit * 7;
 //                case "1M" -> candleLimit * 30;
-                default -> candleLimit /  (24 * 4);
+                default -> candleLimit / (24 * 4);
             };
 
             // Определяем ближайший период

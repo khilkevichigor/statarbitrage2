@@ -1,14 +1,13 @@
 package com.example.core.ui.components;
 
 import com.example.core.schedulers.UpdateTradesScheduler;
-import com.example.core.services.AutoVolumeService;
-import com.example.core.services.CapitalCalculationService;
-import com.example.core.services.PortfolioService;
-import com.example.core.services.SchedulerControlService;
-import com.example.core.services.SettingsService;
+import com.example.core.services.*;
 import com.example.core.ui.utils.PeriodOptions;
 import com.example.core.ui.utils.TimeframeOptions;
+import com.example.shared.events.GlobalSettingsUpdatedEvent;
 import com.example.shared.models.Settings;
+import com.example.shared.services.GlobalSettingsEventPublisher;
+import com.example.shared.services.TimeframeAndPeriodService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -18,6 +17,7 @@ import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
@@ -33,6 +33,12 @@ import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @SpringComponent
@@ -45,6 +51,8 @@ public class SettingsComponent extends VerticalLayout {
     private final PortfolioService portfolioService;
     private final AutoVolumeService autoVolumeService;
     private final SchedulerControlService schedulerControlService;
+    private final TimeframeAndPeriodService timeframeAndPeriodService;
+    private final GlobalSettingsEventPublisher globalSettingsEventPublisher;
     private final Binder<Settings> settingsBinder;
 
     private Settings currentSettings;
@@ -56,18 +64,30 @@ public class SettingsComponent extends VerticalLayout {
     private NumberField autoVolumeLongField;
     private NumberField autoVolumeShortField;
 
+    // Чекбоксы для глобальных настроек свечей
+    private Map<String, Checkbox> globalTimeframeCheckboxes;
+    private Map<String, Checkbox> globalPeriodCheckboxes;
+
+    // Выпадающие списки в секции "Анализ и фильтры"
+    private Select<String> analysisTimeframeSelect;
+    private Select<String> analysisPeriodSelect;
+
     public SettingsComponent(SettingsService settingsService,
                              UpdateTradesScheduler updateTradesScheduler,
                              CapitalCalculationService capitalCalculationService,
                              PortfolioService portfolioService,
                              AutoVolumeService autoVolumeService,
-                             SchedulerControlService schedulerControlService) {
+                             SchedulerControlService schedulerControlService,
+                             TimeframeAndPeriodService timeframeAndPeriodService,
+                             GlobalSettingsEventPublisher globalSettingsEventPublisher) {
         this.settingsService = settingsService;
         this.updateTradesScheduler = updateTradesScheduler;
         this.capitalCalculationService = capitalCalculationService;
         this.portfolioService = portfolioService;
         this.autoVolumeService = autoVolumeService;
         this.schedulerControlService = schedulerControlService;
+        this.timeframeAndPeriodService = timeframeAndPeriodService;
+        this.globalSettingsEventPublisher = globalSettingsEventPublisher;
         this.settingsBinder = new Binder<>(Settings.class);
 
         initializeComponent();
@@ -267,6 +287,9 @@ public class SettingsComponent extends VerticalLayout {
         setNumberFieldProperties(minIntersectionsField, 1, 0);
 
         // Create sections
+        // СНАЧАЛА добавляем секцию Свечи в самом верху
+        add(createCandleGlobalSettingsSection());
+
         add(createAnalysisSection(timeframeField, periodField, minZField, minRSquaredField, minWindowSizeField,
                 minPValueField, maxAdfValueField, minCorrelationField, minVolumeField,
                 checkIntervalField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
@@ -383,19 +406,161 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     /**
+     * Создает секцию глобальных настроек свечей с чекбоксами для таймфреймов и периодов
+     */
+    private Details createCandleGlobalSettingsSection() {
+        FormLayout candleForm = createFormLayout();
+
+        // Создаем заголовки для групп чекбоксов
+        H4 timeframesTitle = new H4("🕒 Активные таймфреймы");
+        timeframesTitle.getStyle().set("margin", "0 0 0.5rem 0").set("color", "var(--lumo-primary-text-color)");
+
+        H4 periodsTitle = new H4("📅 Активные периоды");
+        periodsTitle.getStyle().set("margin", "1rem 0 0.5rem 0").set("color", "var(--lumo-primary-text-color)");
+
+        // Получаем все доступные таймфреймы и периоды из сервиса
+        Map<String, String> allTimeframes = timeframeAndPeriodService.getAllTimeframes();
+        Map<String, String> allPeriods = timeframeAndPeriodService.getAllPeriods();
+
+        // Получаем текущие активные таймфреймы и периоды
+        String currentTimeframes = currentSettings.getGlobalActiveTimeframes();
+        String currentPeriods = currentSettings.getGlobalActivePeriods();
+
+        List<String> activeTimeframes = currentTimeframes != null ?
+                List.of(currentTimeframes.split(",")) : List.of("15m");
+        List<String> activePeriods = currentPeriods != null ?
+                List.of(currentPeriods.split(",")) : List.of("1 месяц", "3 месяца", "6 месяцев", "1 год");
+
+        // Создаем чекбоксы для таймфреймов
+        VerticalLayout timeframeCheckboxes = new VerticalLayout();
+        timeframeCheckboxes.setSpacing(false);
+        timeframeCheckboxes.setPadding(false);
+
+        Map<String, Checkbox> timeframeCheckboxMap = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : allTimeframes.entrySet()) {
+            String displayName = entry.getKey();
+            String apiCode = entry.getValue();
+            Checkbox checkbox = new Checkbox(displayName);
+            checkbox.setValue(activeTimeframes.contains(apiCode));
+            checkbox.getStyle().set("margin", "0.2rem 0");
+
+            timeframeCheckboxMap.put(apiCode, checkbox);
+            timeframeCheckboxes.add(checkbox);
+        }
+
+        // Создаем чекбоксы для периодов
+        VerticalLayout periodCheckboxes = new VerticalLayout();
+        periodCheckboxes.setSpacing(false);
+        periodCheckboxes.setPadding(false);
+
+        Map<String, Checkbox> periodCheckboxMap = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : allPeriods.entrySet()) {
+            String periodName = entry.getKey();
+            Checkbox checkbox = new Checkbox(periodName);
+            checkbox.setValue(activePeriods.contains(periodName));
+            checkbox.getStyle().set("margin", "0.2rem 0");
+
+            periodCheckboxMap.put(periodName, checkbox);
+            periodCheckboxes.add(checkbox);
+        }
+
+        // Добавляем компоненты в форму
+        candleForm.add(timeframesTitle);
+        candleForm.add(timeframeCheckboxes);
+        candleForm.add(periodsTitle);
+        candleForm.add(periodCheckboxes);
+
+        // Привязываем чекбоксы к настройкам через отдельный метод
+        bindCandleGlobalSettings(timeframeCheckboxMap, periodCheckboxMap);
+
+        Details candleSection = createDetailsCard("🕯️ Свечи",
+                "Глобальные настройки активных таймфреймов и периодов для всей системы", candleForm);
+        candleSection.setOpened(true);
+        return candleSection;
+    }
+
+    /**
+     * Привязывает чекбоксы глобальных настроек свечей к полям Settings
+     */
+    private void bindCandleGlobalSettings(Map<String, Checkbox> timeframeCheckboxMap, Map<String, Checkbox> periodCheckboxMap) {
+        // Сохраняем ссылки на чекбоксы для обновления при сохранении настроек
+        this.globalTimeframeCheckboxes = timeframeCheckboxMap;
+        this.globalPeriodCheckboxes = periodCheckboxMap;
+
+        // Добавляем логирование изменений
+        for (Map.Entry<String, Checkbox> entry : timeframeCheckboxMap.entrySet()) {
+            String apiCode = entry.getKey();
+            Checkbox checkbox = entry.getValue();
+            checkbox.addValueChangeListener(event -> {
+                log.info("🕒 Таймфрейм {} {}", apiCode, event.getValue() ? "АКТИВИРОВАН" : "ДЕАКТИВИРОВАН");
+                updateGlobalTimeframes();
+            });
+        }
+
+        for (Map.Entry<String, Checkbox> entry : periodCheckboxMap.entrySet()) {
+            String periodName = entry.getKey();
+            Checkbox checkbox = entry.getValue();
+            checkbox.addValueChangeListener(event -> {
+                log.info("📅 Период '{}' {}", periodName, event.getValue() ? "АКТИВИРОВАН" : "ДЕАКТИВИРОВАН");
+                updateGlobalPeriods();
+            });
+        }
+    }
+
+    /**
+     * Обновляет глобальные таймфреймы на основе состояния чекбоксов
+     */
+    private void updateGlobalTimeframes() {
+        if (globalTimeframeCheckboxes != null) {
+            String activeTimeframes = globalTimeframeCheckboxes.entrySet().stream()
+                    .filter(entry -> entry.getValue().getValue())
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.joining(","));
+            currentSettings.setGlobalActiveTimeframes(activeTimeframes.isEmpty() ? "15m" : activeTimeframes);
+        }
+    }
+
+    /**
+     * Обновляет глобальные периоды на основе состояния чекбоксов
+     */
+    private void updateGlobalPeriods() {
+        if (globalPeriodCheckboxes != null) {
+            String activePeriods = globalPeriodCheckboxes.entrySet().stream()
+                    .filter(entry -> entry.getValue().getValue())
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.joining(","));
+            currentSettings.setGlobalActivePeriods(activePeriods.isEmpty() ? "1 год" : activePeriods);
+        }
+    }
+
+    /**
      * Создает выпадающий список для выбора таймфрейма
      */
     private Select<String> createTimeframeSelect() {
         Select<String> timeframeSelect = new Select<>();
         timeframeSelect.setLabel("Таймфрейм");
-        timeframeSelect.setItems(TimeframeOptions.getAll().keySet());
+
+        // Получаем активные таймфреймы из глобальных настроек
+        List<String> activeTimeframes = timeframeAndPeriodService.getActiveTimeframes(
+                currentSettings.getGlobalActiveTimeframes());
+        timeframeSelect.setItems(activeTimeframes);
 
         // Устанавливаем значение по умолчанию на основе текущих настроек
         String currentTimeframeApi = currentSettings.getTimeframe();
         String currentTimeframeDisplay = TimeframeOptions.getDisplayName(currentTimeframeApi);
-        timeframeSelect.setValue(currentTimeframeDisplay);
+
+        // Проверяем, что текущий таймфрейм доступен в активных
+        if (activeTimeframes.contains(currentTimeframeDisplay)) {
+            timeframeSelect.setValue(currentTimeframeDisplay);
+        } else if (!activeTimeframes.isEmpty()) {
+            // Если текущий таймфрейм недоступен, выбираем первый доступный
+            timeframeSelect.setValue(activeTimeframes.get(0));
+        }
 
         timeframeSelect.setHelperText("Выберите временной интервал для анализа");
+
+        // Сохраняем ссылку для обновления при изменении глобальных настроек
+        this.analysisTimeframeSelect = timeframeSelect;
 
         return timeframeSelect;
     }
@@ -406,13 +571,27 @@ public class SettingsComponent extends VerticalLayout {
     private Select<String> createPeriodSelect() {
         Select<String> periodSelect = new Select<>();
         periodSelect.setLabel("Период");
-        periodSelect.setItems(PeriodOptions.getAll().keySet());
+
+        // Получаем активные периоды из глобальных настроек
+        List<String> activePeriods = timeframeAndPeriodService.getActivePeriods(
+                currentSettings.getGlobalActivePeriods());
+        periodSelect.setItems(activePeriods);
 
         // Вычисляем текущий период на основе candleLimit и timeframe
         String currentPeriod = currentSettings.calculateCurrentPeriod();
-        periodSelect.setValue(currentPeriod);
+
+        // Проверяем, что текущий период доступен в активных
+        if (activePeriods.contains(currentPeriod)) {
+            periodSelect.setValue(currentPeriod);
+        } else if (!activePeriods.isEmpty()) {
+            // Если текущий период недоступен, выбираем первый доступный
+            periodSelect.setValue(activePeriods.get(0));
+        }
 
         periodSelect.setHelperText("Выберите период для анализа данных");
+
+        // Сохраняем ссылку для обновления при изменении глобальных настроек
+        this.analysisPeriodSelect = periodSelect;
 
         return periodSelect;
     }
@@ -993,6 +1172,12 @@ public class SettingsComponent extends VerticalLayout {
             //todo баг - когда ставишь/снимаешь Автотрейдинг и жмешь Сохранить настройки - чекбокс сбрасывается! Возможно при сохранении мы берем настройки до изменения чекбокса!
             settingsBinder.writeBean(currentSettings);
             settingsService.save(currentSettings);
+
+            // Публикуем событие обновления глобальных настроек после успешного сохранения
+            globalSettingsEventPublisher.publishGlobalSettingsUpdated(
+                    currentSettings.getGlobalActiveTimeframes(),
+                    currentSettings.getGlobalActivePeriods());
+
             Notification.show("Настройки сохранены успешно");
             log.info("Настройки сохранены успешно");
         } catch (ValidationException e) {
@@ -1015,6 +1200,32 @@ public class SettingsComponent extends VerticalLayout {
         loadCurrentSettings();
         autoTradingCheckbox.setValue(currentSettings.isAutoTradingEnabled());
         settingsBinder.readBean(currentSettings);
+
+        // Обновляем состояние чекбоксов глобальных настроек свечей
+        refreshGlobalCandleSettings();
+    }
+
+    /**
+     * Обновляет состояние чекбоксов глобальных настроек свечей из текущих настроек
+     */
+    private void refreshGlobalCandleSettings() {
+        if (globalTimeframeCheckboxes != null) {
+            String timeframes = currentSettings.getGlobalActiveTimeframes();
+            List<String> activeTimeframes = timeframes != null ?
+                    List.of(timeframes.split(",")) : List.of("15m");
+
+            globalTimeframeCheckboxes.forEach((apiCode, checkbox) ->
+                    checkbox.setValue(activeTimeframes.contains(apiCode)));
+        }
+
+        if (globalPeriodCheckboxes != null) {
+            String periods = currentSettings.getGlobalActivePeriods();
+            List<String> activePeriods = periods != null ?
+                    List.of(periods.split(",")) : List.of("1 месяц", "3 месяца", "6 месяцев", "1 год");
+
+            globalPeriodCheckboxes.forEach((periodName, checkbox) ->
+                    checkbox.setValue(activePeriods.contains(periodName)));
+        }
     }
 
     public void setAutoTradingChangeCallback(Runnable callback) {
@@ -1328,29 +1539,95 @@ public class SettingsComponent extends VerticalLayout {
                 .bind(Settings::getSchedulerCandleCacheStatsEnabled, Settings::setSchedulerCandleCacheStatsEnabled);
 
         // Добавляем логирование изменений
-        updateTradesSchedulerCheckbox.addValueChangeListener(event -> 
+        updateTradesSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 UpdateTradesScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        stablePairsSchedulerCheckbox.addValueChangeListener(event -> 
+        stablePairsSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 StablePairsScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        monitoringPairsUpdateSchedulerCheckbox.addValueChangeListener(event -> 
+        monitoringPairsUpdateSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 MonitoringPairsUpdateScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        portfolioSnapshotSchedulerCheckbox.addValueChangeListener(event -> 
+        portfolioSnapshotSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 PortfolioSnapshotScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        portfolioCleanupSchedulerCheckbox.addValueChangeListener(event -> 
+        portfolioCleanupSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 PortfolioCleanupScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        candleCacheSyncSchedulerCheckbox.addValueChangeListener(event -> 
+        candleCacheSyncSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 CandleCacheSyncScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        candleCacheUpdateSchedulerCheckbox.addValueChangeListener(event -> 
+        candleCacheUpdateSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 CandleCacheUpdateScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
 
-        candleCacheStatsSchedulerCheckbox.addValueChangeListener(event -> 
+        candleCacheStatsSchedulerCheckbox.addValueChangeListener(event ->
                 log.info("📅 CandleCacheStatsScheduler {}", event.getValue() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН"));
+    }
+
+    /**
+     * Слушатель события обновления глобальных настроек.
+     * Обновляет выпадающие списки в секции "Анализ и фильтры" согласно новым глобальным настройкам.
+     */
+    @EventListener
+    public void handleGlobalSettingsUpdated(GlobalSettingsUpdatedEvent event) {
+        try {
+            log.info("🔧 SettingsComponent: Получено событие обновления глобальных настроек");
+            log.info("📊 Новые таймфреймы: {}", event.getUpdatedGlobalTimeframes());
+            log.info("📅 Новые периоды: {}", event.getUpdatedGlobalPeriods());
+
+            getUI().ifPresent(ui -> ui.access(() -> {
+                try {
+                    // Обновляем активные списки из новых глобальных настроек
+                    List<String> newActiveTimeframes = timeframeAndPeriodService.getActiveTimeframes(
+                            event.getUpdatedGlobalTimeframes());
+                    List<String> newActivePeriods = timeframeAndPeriodService.getActivePeriods(
+                            event.getUpdatedGlobalPeriods());
+
+                    // Обновляем выпадающий список таймфреймов в секции "Анализ и фильтры"
+                    if (analysisTimeframeSelect != null) {
+                        String currentTimeframeValue = analysisTimeframeSelect.getValue();
+                        analysisTimeframeSelect.setItems(newActiveTimeframes);
+
+                        // Восстанавливаем выбранное значение если оно все еще доступно
+                        if (currentTimeframeValue != null && newActiveTimeframes.contains(currentTimeframeValue)) {
+                            analysisTimeframeSelect.setValue(currentTimeframeValue);
+                        } else if (!newActiveTimeframes.isEmpty()) {
+                            // Выбираем первый доступный таймфрейм
+                            analysisTimeframeSelect.setValue(newActiveTimeframes.get(0));
+                            log.info("🔄 Таймфрейм в секции 'Анализ и фильтры' изменен: {} -> {}",
+                                    currentTimeframeValue, newActiveTimeframes.get(0));
+                        }
+                    }
+
+                    // Обновляем выпадающий список периодов в секции "Анализ и фильтры"
+                    if (analysisPeriodSelect != null) {
+                        String currentPeriodValue = analysisPeriodSelect.getValue();
+                        analysisPeriodSelect.setItems(newActivePeriods);
+
+                        // Восстанавливаем выбранное значение если оно все еще доступно
+                        if (currentPeriodValue != null && newActivePeriods.contains(currentPeriodValue)) {
+                            analysisPeriodSelect.setValue(currentPeriodValue);
+                        } else if (!newActivePeriods.isEmpty()) {
+                            // Выбираем первый доступный период
+                            analysisPeriodSelect.setValue(newActivePeriods.get(0));
+                            log.info("🔄 Период в секции 'Анализ и фильтры' изменен: {} -> {}",
+                                    currentPeriodValue, newActivePeriods.get(0));
+                        }
+                    }
+
+                    log.info("✅ SettingsComponent: Выпадающие списки в секции 'Анализ и фильтры' обновлены");
+
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при обновлении UI SettingsComponent после изменения глобальных настроек: {}", e.getMessage(), e);
+                    Notification.show("❌ Ошибка обновления секции 'Анализ и фильтры': " + e.getMessage(),
+                                    3000, Notification.Position.TOP_CENTER)
+                            .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                }
+            }));
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обработке события обновления глобальных настроек в SettingsComponent: {}", e.getMessage(), e);
+        }
     }
 
 }
