@@ -34,7 +34,7 @@ public class UpdateTradesScheduler {
     public void updateTrades() {
         // Проверяем включен ли шедуллер через настройки
         if (!schedulerControlService.isUpdateTradesSchedulerEnabled()) {
-            log.info("📅 UpdateTradesScheduler отключен в настройках");
+            log.debug("📅 UpdateTradesScheduler отключен в настройках");
             return;
         }
         

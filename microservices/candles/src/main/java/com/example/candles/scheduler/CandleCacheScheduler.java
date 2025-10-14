@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -35,10 +36,11 @@ public class CandleCacheScheduler {
     private boolean isFirstPreloadCompleted = false;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @EventListener(ApplicationReadyEvent.class) //todo пока отрубил что б не ждать при запуске
+    @EventListener(ApplicationReadyEvent.class)
+    @Async // Делаем метод асинхронным чтобы не блокировать UI при запуске
     public void onApplicationReady() {
         if (startupCheckEnabled) {
-            log.info("🚀 Приложение готово. Проверяем состояние кэша свечей...");
+            log.info("🚀 Приложение готово. Асинхронно проверяем состояние кэша свечей...");
 
             try {
                 var stats = candleCacheService.getCacheStatistics(defaultExchange);

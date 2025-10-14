@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Slf4j
@@ -14,6 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaRepositories(basePackages = {"com.example.candles.repositories"})
 @EntityScan(basePackages = {"com.example.shared.models", "com.example.candles.model"})
 @EnableScheduling
+@EnableAsync
 public class CandlesApplication {
     public static void main(String[] args) {
         SpringApplication.run(CandlesApplication.class, args);
