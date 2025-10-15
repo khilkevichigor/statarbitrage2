@@ -471,6 +471,17 @@ public class StablePairsView extends VerticalLayout {
         grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Pair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Pair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new TextRenderer<>(pair -> {
+            if (pair.getMinVolMln() != null) {
+                // Если число целое, показываем без десятичной части
+                if (pair.getMinVolMln().stripTrailingZeros().scale() <= 0) {
+                    return pair.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                } else {
+                    return pair.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                }
+            }
+            return "-";
+        })).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getSearchDate() != null ? TimeFormatterUtil.formatDateTime(pair.getSearchDate()) : "-")).setHeader("Дата поиска").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         // Колонка действий
         grid.addColumn(new ComponentRenderer<>(this::createFoundPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -499,6 +510,17 @@ public class StablePairsView extends VerticalLayout {
         grid.addColumn(new TextRenderer<>(pair -> pair.getCandleCount() != null ? pair.getCandleCount().toString() : "-")).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Pair::getTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Pair::getPeriod).setHeader("Период").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new TextRenderer<>(pair -> {
+            if (pair.getMinVolMln() != null) {
+                // Если число целое, показываем без десятичной части
+                if (pair.getMinVolMln().stripTrailingZeros().scale() <= 0) {
+                    return pair.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                } else {
+                    return pair.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                }
+            }
+            return "-";
+        })).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCreatedAt() != null ? TimeFormatterUtil.formatDateTime(pair.getCreatedAt()) : "-")).setHeader("Добавлена").setAutoWidth(true).setFlexGrow(0);
         // Колонка действий
         grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);

@@ -115,6 +115,17 @@ public class TradingPairsComponent extends VerticalLayout {
 
         selectedPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         selectedPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        selectedPairsGrid.addColumn(p -> {
+            if (p.getMinVolMln() != null) {
+                // Если число целое, показываем без десятичной части
+                if (p.getMinVolMln().stripTrailingZeros().scale() <= 0) {
+                    return p.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                } else {
+                    return p.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                }
+            }
+            return "-";
+        }).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
 
         selectedPairsGrid.addColumn(p -> TimeFormatterUtil.formatFromMillis(p.getTimestamp())).setHeader("Дата/время").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
@@ -295,6 +306,17 @@ public class TradingPairsComponent extends VerticalLayout {
 
         observedPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         observedPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> {
+            if (p.getMinVolMln() != null) {
+                // Если число целое, показываем без десятичной части
+                if (p.getMinVolMln().stripTrailingZeros().scale() <= 0) {
+                    return p.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                } else {
+                    return p.getMinVolMln().stripTrailingZeros().toPlainString() + " млн $";
+                }
+            }
+            return "-";
+        }).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
 
         observedPairsGrid.addColumn(p -> {
             if (p.getUpdatedTime() != null) {

@@ -452,6 +452,10 @@ public class SearchStablePairService {
             detachedPair.setAnalysisTimeSeconds(pair.getAnalysisTimeSeconds());
             detachedPair.setSearchSettings(pair.getSearchSettings());
             detachedPair.setAnalysisResults(pair.getAnalysisResults());
+            detachedPair.setMinVolMln(pair.getMinVolMln()); // Копируем минимальный объем
+            
+            log.debug("💾 Сохраняем пару {}/{} с minVolMln = {}", 
+                    pair.getTickerA(), pair.getTickerB(), pair.getMinVolMln());
 
             // Копируем торговые данные если есть
             if (pair.getZScoreCurrent() != null) {

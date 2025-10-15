@@ -8,6 +8,7 @@ import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
+import com.example.shared.models.StablePairsScreenerSettings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class PairService {
     private final SettingsService settingsService;
     private final PythonAnalysisService pythonAnalysisService; // Заменили ZScoreService на PythonAnalysisService
     private final ChartService chartService;
+    private final StablePairsScreenerSettingsService stablePairsScreenerSettingsService;
 
     /**
      * Получить статистику по найденным парам
@@ -522,14 +524,15 @@ public class PairService {
             log.info("✅ Получено {} свечей для обоих тикеров пары {}", 
                     longCandles.size(), pair.getPairName());
 
-            // Пересчитываем показатели стабильности через Python API
-            Map<String, Object> searchSettings = new HashMap<>();
-            searchSettings.put("minCorrelation", 0.1); //todo почему хардкодим???
-            searchSettings.put("minWindowSize", 100);
-            searchSettings.put("maxAdfValue", 0.1);
-            searchSettings.put("minRSquared", 0.1);
-            searchSettings.put("maxPValue", 0.1);
+            // Пересчитываем показатели стабильности через Python API, используя настройки системы
+            StablePairsScreenerSettings screenerSettings = stablePairsScreenerSettingsService.getDefaultSettings();
+            Map<String, Object> searchSettings = stablePairsScreenerSettingsService.buildSearchSettingsMap(screenerSettings);
+            
+            // Добавляем фильтр по конкретным тикерам для обновления только нужной пары
             searchSettings.put("searchTickers", List.of(pair.getTickerA(), pair.getTickerB()));
+            
+            log.info("🔄 Обновление пары {} с настройками: minVolume={}", 
+                    pair.getPairName(), searchSettings.get("minVolume"));
 
             try {
                 // Используем существующий сервис для поиска стабильных пар

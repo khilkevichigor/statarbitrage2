@@ -528,6 +528,13 @@ public class Pair {
     @Column(name = "intersections_count")
     private Integer intersectionsCount;
 
+    /**
+     * Минимальный объем торгов в млн $ при котором была отобрана данная пара
+     */
+    @CsvExportable(order = 79)
+    @Column(name = "min_vol_mln", precision = 10, scale = 2)
+    private BigDecimal minVolMln;
+
     // ======== МЕТОДЫ ЖИЗНЕННОГО ЦИКЛА ========
 
     @PrePersist
@@ -710,20 +717,22 @@ public class Pair {
         pair.setTimeframe(timeframe);
         pair.setPeriod(period);
         pair.setSearchSettingsMap(searchSettings);
-
+        
         // Извлекаем данные из StabilityResultDto через рефлексию
+        String tickerA = null;
+        String tickerB = null;
         try {
             Class<?> dtoClass = stabilityResult.getClass();
 
             // Извлекаем ticker_a и ticker_b
             java.lang.reflect.Field tickerAField = dtoClass.getDeclaredField("tickerA");
             tickerAField.setAccessible(true);
-            String tickerA = (String) tickerAField.get(stabilityResult);
+            tickerA = (String) tickerAField.get(stabilityResult);
             pair.setTickerA(tickerA);
 
             java.lang.reflect.Field tickerBField = dtoClass.getDeclaredField("tickerB");
             tickerBField.setAccessible(true);
-            String tickerB = (String) tickerBField.get(stabilityResult);
+            tickerB = (String) tickerBField.get(stabilityResult);
             pair.setTickerB(tickerB);
 
             // Извлекаем остальные поля
@@ -777,6 +786,23 @@ public class Pair {
         } catch (Exception e) {
             log.error("❌ Ошибка при извлечении данных из StabilityResultDto: {}", e.getMessage(), e);
             throw new RuntimeException("Не удалось создать Pair из результата анализа", e);
+        }
+
+        // Извлекаем и сохраняем значение minVolume из настроек поиска (ПОСЛЕ извлечения тикеров)
+        log.debug("🔍 SearchSettings: {}", searchSettings);
+        if (searchSettings != null && searchSettings.containsKey("minVolume")) {
+            Object minVolumeObj = searchSettings.get("minVolume");
+            log.info("📊 Найден minVolume в searchSettings: {} (тип: {})", minVolumeObj, minVolumeObj != null ? minVolumeObj.getClass().getSimpleName() : "null");
+            if (minVolumeObj instanceof Number) {
+                BigDecimal minVolValue = BigDecimal.valueOf(((Number) minVolumeObj).doubleValue());
+                pair.setMinVolMln(minVolValue);
+                log.info("✅ Установлен minVolMln = {} для пары {}/{}", minVolValue, tickerA, tickerB);
+            } else {
+                log.warn("⚠️ minVolume не является Number: {}", minVolumeObj);
+            }
+        } else {
+            log.warn("⚠️ minVolume отсутствует в searchSettings для пары {}/{}. SearchSettings keys: {}", 
+                    tickerA, tickerB, searchSettings != null ? searchSettings.keySet() : "null");
         }
 
         return pair;
