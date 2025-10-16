@@ -290,9 +290,12 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
+            log.info("🔄 Итерация {}/{}: ищем лучшую пару из {} оставшихся", (i+1), topN, remainingPairs.size());
             Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs, candlesMap);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
+                log.info("✅ Найдена пара: {}/{} с Z-скором={}", 
+                        best.getUnderValuedTicker(), best.getOverValuedTicker(), best.getLatestZScore());
 
                 //смотрим что мы отобрали по тикерам
                 List<String> actualBestTickers = new ArrayList<>();
@@ -311,9 +314,29 @@ public class ZScoreService {
 
                 //детальная инфа
                 ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings);
+                
+                // Повторная проверка MinZ после пересчета через Python API
+                if (settings.isUseMinZFilter()) {
+                    double recalculatedZ = detailedZScoreData.getLatestZScore() != null ? 
+                            detailedZScoreData.getLatestZScore() : 0.0;
+                    if (recalculatedZ < settings.getMinZ()) {
+                        log.warn("⚠️ Пара {}/{} исключена после пересчета: Z-скор {} < MinZ {}", 
+                                best.getUnderValuedTicker(), best.getOverValuedTicker(), 
+                                recalculatedZ, settings.getMinZ());
+                        remainingPairs.remove(best); // исключаем только из remainingPairs
+                        continue; // пропускаем добавление в bestPairs
+                    }
+                    log.info("✅ Пара {}/{} прошла повторную проверку MinZ: {} >= {}", 
+                            best.getUnderValuedTicker(), best.getOverValuedTicker(), 
+                            recalculatedZ, settings.getMinZ());
+                }
 
                 bestPairs.add(detailedZScoreData);
                 remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
+                log.info("✅ Пара {}/{} добавлена в финальный список (всего: {})", 
+                        best.getUnderValuedTicker(), best.getOverValuedTicker(), bestPairs.size());
+            } else {
+                log.info("❌ Итерация {}: getBestZScoreData вернул пустой результат (возможно, все пары не прошли фильтрацию)", (i+1));
             }
         }
 
