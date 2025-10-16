@@ -26,13 +26,15 @@ public class PythonAnalysisService {
      * Анализирует пару и возвращает ZScore данные
      */
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
+        log.info("🐍 Вызываем Python API для анализа пары. Тикеры: {}", candlesMap.keySet());
         // Получаем результат из Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
-            log.warn("⚠️ Обновление трейда - zScoreData is null");
-            throw new IllegalStateException("⚠️ Обновление трейда - zScoreData is null");
+            log.warn("⚠️ Python API вернул null для тикеров: {}", candlesMap.keySet());
+            return null; // Возвращаем null вместо исключения для Z-Score расчетов
         }
 
+        log.info("✅ Python API успешно вернул ZScoreData для тикеров: {}", candlesMap.keySet());
         return zScoreData;
     }
 

@@ -159,7 +159,9 @@ public class PairService {
             tradingPair.setShortTickerCandles(shortCandles);
 
             // Рассчитываем Z-Score данные
+            log.info("🔍 Вызываем pythonAnalysisService.calculateZScoreData для пары {}", stablePair.getPairName());
             ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
+            log.info("📊 Результат calculateZScoreData для пары {}: {}", stablePair.getPairName(), zScoreData != null ? "OK" : "NULL");
 
             if (zScoreData != null) {
                 // Обновляем Z-Score данные в TradingPair

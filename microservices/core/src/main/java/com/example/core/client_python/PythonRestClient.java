@@ -49,17 +49,25 @@ public class PythonRestClient {
     }
 
     public ZScoreData analyzePair(Map<String, List<Candle>> pair, Settings settings, boolean includeFullZscoreHistory) {
+        log.info("🐍 Отправляем запрос в Python API для анализа пары: {}", pair.keySet());
         Map<String, Object> settingsMap = convertSettingsToMap(settings);
         Map<String, List<ApiCandle>> apiPair = convertCandlesMap(pair);
         PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZscoreHistory);
 
-        PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<PairAnalysisResponse>() {
-        });
+        try {
+            PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<PairAnalysisResponse>() {
+            });
 
-        if (response.isSuccess()) {
-            return convertPairAnalysisResultToZScoreData(response.getResult());
-        } else {
-            throw new RuntimeException("❌ Python API вернул success=false");
+            if (response.isSuccess()) {
+                log.info("✅ Python API успешно проанализировал пару: {}", pair.keySet());
+                return convertPairAnalysisResultToZScoreData(response.getResult());
+            } else {
+                log.warn("⚠️ Python API вернул success=false для пары: {}", pair.keySet());
+                return null; // Возвращаем null вместо исключения
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при вызове Python API для пары {}: {}", pair.keySet(), e.getMessage(), e);
+            return null; // Возвращаем null при ошибке соединения
         }
     }
 
