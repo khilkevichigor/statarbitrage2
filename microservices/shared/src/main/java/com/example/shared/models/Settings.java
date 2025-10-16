@@ -493,12 +493,18 @@ public class Settings {
             };
 
             // Определяем ближайший период
-//            if (daysInPeriod <= 1) return "день";
-//            if (daysInPeriod <= 7) return "неделя";
-//            if (daysInPeriod <= 30) return "месяц";
+            if (daysInPeriod <= 30) return "1 месяц";
+            if (daysInPeriod <= 60) return "2 месяца";
+            if (daysInPeriod <= 90) return "3 месяца";
+            if (daysInPeriod <= 120) return "4 месяца";
+            if (daysInPeriod <= 150) return "5 месяцев";
+            if (daysInPeriod <= 180) return "6 месяцев";
+            if (daysInPeriod <= 210) return "7 месяцев";
+            if (daysInPeriod <= 240) return "8 месяцев";
+            if (daysInPeriod <= 270) return "9 месяцев";
+            if (daysInPeriod <= 300) return "10 месяцев";
+            if (daysInPeriod <= 330) return "11 месяцев";
             if (daysInPeriod <= 365) return "1 год";
-//            if (daysInPeriod <= 730) return "2 года";
-//            return "3 года";
             return "1 год";
 
         } catch (Exception e) {

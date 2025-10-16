@@ -597,6 +597,38 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     /**
+     * Вычисляет период на основе candleLimit и timeframe
+     */
+    private String calculatePeriodFromCandleLimit(Integer candleLimit, String timeframe) {
+        try {
+            // Приблизительный расчет периода
+            int daysInPeriod = switch (timeframe) {
+                case "15m" -> candleLimit / (24 * 4);
+                default -> candleLimit / (24 * 4);
+            };
+
+            // Определяем ближайший период
+            if (daysInPeriod <= 30) return "1 месяц";
+            if (daysInPeriod <= 60) return "2 месяца";
+            if (daysInPeriod <= 90) return "3 месяца";
+            if (daysInPeriod <= 120) return "4 месяца";
+            if (daysInPeriod <= 150) return "5 месяцев";
+            if (daysInPeriod <= 180) return "6 месяцев";
+            if (daysInPeriod <= 210) return "7 месяцев";
+            if (daysInPeriod <= 240) return "8 месяцев";
+            if (daysInPeriod <= 270) return "9 месяцев";
+            if (daysInPeriod <= 300) return "10 месяцев";
+            if (daysInPeriod <= 330) return "11 месяцев";
+            if (daysInPeriod <= 365) return "1 год";
+            return "1 год";
+
+        } catch (Exception e) {
+            log.warn("Ошибка при расчете периода из candleLimit: {}", e.getMessage());
+            return "1 месяц";
+        }
+    }
+
+    /**
      * Вычисляет текущий период на основе candleLimit и timeframe
      */
     private String calculateCurrentPeriod() { //todo перенес в Settings, можно удалить
@@ -988,7 +1020,7 @@ public class SettingsComponent extends VerticalLayout {
                         displayPeriod -> PeriodOptions.calculateCandleLimit(
                                 TimeframeOptions.getApiCode(timeframeField.getValue()), displayPeriod),
                         // Конвертер из candleLimit обратно в отображаемый период
-                        candleLimit -> currentSettings.calculateCurrentPeriod()
+                        candleLimit -> calculatePeriodFromCandleLimit(candleLimit, TimeframeOptions.getApiCode(timeframeField.getValue()))
                 )
                 .bind(settings -> (int) settings.getCandleLimit(),
                         (settings, candleLimit) -> settings.setCandleLimit(candleLimit));
