@@ -44,7 +44,7 @@ public class CandlesProcessorController {
             // Устанавливаем значения по умолчанию
             String exchange = request.getExchange() != null ? request.getExchange() : "OKX";
             String timeframe = request.getTimeframe() != null ? request.getTimeframe() : "1H";
-            String period = request.getPeriod() != null ? request.getPeriod() : "1 год";
+            String period = request.getPeriod() != null ? request.getPeriod() : "1 месяц";
             String untilDate = request.getUntilDate() != null ? request.getUntilDate() : generateUntilDate();
             double minVolume = request.getMinVolume() != 0.0 ? request.getMinVolume() * 1_000_000.0 : 10_000_000.0;
 

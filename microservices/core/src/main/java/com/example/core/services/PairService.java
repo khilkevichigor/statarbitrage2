@@ -89,7 +89,7 @@ public class PairService {
 
             // ИСПРАВЛЕНИЕ: Используем точно те же параметры что и при поиске стабильных пар
             String timeframe = stablePair.getTimeframe() != null ? stablePair.getTimeframe() : settings.getTimeframe();
-            String period = stablePair.getPeriod() != null ? stablePair.getPeriod() : "1 год";
+            String period = stablePair.getPeriod() != null ? stablePair.getPeriod() : settings.calculateCurrentPeriod();
             // КРИТИЧНО: Используем реальное количество свечей из найденной пары!
             int candleLimit = stablePair.getCandleCount() != null ? stablePair.getCandleCount() : 1000; //todo 1000???
 
@@ -491,7 +491,7 @@ public class PairService {
 
             // Используем те же параметры что были при поиске пары
             String timeframe = pair.getTimeframe() != null ? pair.getTimeframe() : settings.getTimeframe();
-            String period = pair.getPeriod() != null ? pair.getPeriod() : "1 год";
+            String period = pair.getPeriod() != null ? pair.getPeriod() : settings.calculateCurrentPeriod();
             int candleLimit = pair.getCandleCount() != null ? pair.getCandleCount() : 35040;
 
             log.info("🔧 Параметры обновления: timeframe={}, period={}, candleCount={}", 

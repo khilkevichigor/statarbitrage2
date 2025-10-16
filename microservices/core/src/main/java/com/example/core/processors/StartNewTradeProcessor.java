@@ -86,7 +86,7 @@ public class StartNewTradeProcessor {
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume())
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
-                .period("1 год")
+                .period(settings.calculateCurrentPeriod())
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);

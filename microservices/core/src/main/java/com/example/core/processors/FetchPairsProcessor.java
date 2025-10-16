@@ -104,7 +104,7 @@ public class FetchPairsProcessor {
                 .minVolume(settings.getMinVolume())
                 .tickers(null) // Получаем все доступные тикеры
                 .excludeTickers(excludedTickers)
-                .period("1 год")
+                .period(settings.calculateCurrentPeriod())
                 .build();
 
         try {
@@ -243,7 +243,7 @@ public class FetchPairsProcessor {
                 .minVolume(settings.getMinVolume())
                 .tickers(tickers) // Передаем конкретные тикеры
                 .excludeTickers(Collections.emptyList())
-                .period("1 год")
+                .period(settings.calculateCurrentPeriod())
                 .build();
         
         try {
