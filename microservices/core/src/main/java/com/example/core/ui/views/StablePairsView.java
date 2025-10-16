@@ -496,8 +496,22 @@ public class StablePairsView extends VerticalLayout {
 
         // Основные колонки
         grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        
+        // Колонка "Скор entry" - изначальный скор при добавлении в мониторинг
+        Grid.Column<Pair> scoreEntryColumn = grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScoreEntry() != null ? pair.getTotalScoreEntry().toString() : "-"));
+        scoreEntryColumn.setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        scoreEntryColumn.setComparator((pair1, pair2) -> {
+            Integer score1 = pair1.getTotalScoreEntry();
+            Integer score2 = pair2.getTotalScoreEntry();
+            if (score1 == null && score2 == null) return 0;
+            if (score1 == null) return 1; // null values go to end
+            if (score2 == null) return -1; // null values go to end
+            return score2.compareTo(score1); // Descending order (higher scores first)
+        });
+        
+        // Колонка "Скор факт" - текущий/обновленный скор
         Grid.Column<Pair> scoreColumnMonitoring = grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-"));
-        scoreColumnMonitoring.setHeader("Скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        scoreColumnMonitoring.setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         scoreColumnMonitoring.setComparator((pair1, pair2) -> {
             Integer score1 = pair1.getTotalScore();
             Integer score2 = pair2.getTotalScore();

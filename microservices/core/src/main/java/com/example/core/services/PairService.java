@@ -249,6 +249,13 @@ public class PairService {
         }
 
         pair.setInMonitoring(true);
+        
+        // Сохраняем изначальный скор при добавлении в мониторинг (если ещё не сохранён)
+        if (pair.getTotalScoreEntry() == null && pair.getTotalScore() != null) {
+            pair.setTotalScoreEntry(pair.getTotalScore());
+            log.info("📊 Сохранён изначальный скор {} для пары {}/{}", pair.getTotalScore(), pair.getTickerA(), pair.getTickerB());
+        }
+        
         pairRepository.save(pair);
 
         log.info("➕ Пара {}/{} добавлена в мониторинг", pair.getTickerA(), pair.getTickerB());

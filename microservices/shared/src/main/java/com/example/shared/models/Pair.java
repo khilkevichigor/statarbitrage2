@@ -126,11 +126,18 @@ public class Pair {
     // ======== ПОЛЯ ИЗ STABLEPAIR ========
 
     /**
-     * Общий балл стабильности
+     * Общий балл стабильности (текущий/обновленный)
      */
     @CsvExportable(order = 10)
     @Column(name = "total_score")
     private Integer totalScore;
+
+    /**
+     * Общий балл стабильности при добавлении в мониторинг (изначальный)
+     */
+    @CsvExportable(order = 10)
+    @Column(name = "total_score_entry")
+    private Integer totalScoreEntry;
 
     /**
      * Рейтинг стабильности (EXCELLENT, GOOD, MARGINAL, POOR, REJECTED, FAILED)

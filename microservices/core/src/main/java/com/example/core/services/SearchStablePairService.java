@@ -453,6 +453,7 @@ public class SearchStablePairService {
             detachedPair.setSearchSettings(pair.getSearchSettings());
             detachedPair.setAnalysisResults(pair.getAnalysisResults());
             detachedPair.setMinVolMln(pair.getMinVolMln()); // Копируем минимальный объем
+            detachedPair.setTotalScoreEntry(pair.getTotalScoreEntry()); // Копируем изначальный скор
             
             log.debug("💾 Сохраняем пару {}/{} с minVolMln = {}", 
                     pair.getTickerA(), pair.getTickerB(), pair.getMinVolMln());
