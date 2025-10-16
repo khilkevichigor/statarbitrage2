@@ -53,7 +53,7 @@ public class UpdateZScoreDataCurrentService {
                 }
             }
             
-            log.info("📊 Добавлено {} новых точек Z-Score для пары {} (было: {}, стало: {})",
+            log.debug("📊 Добавлено {} новых точек Z-Score для пары {} (было: {}, стало: {})",
                     addedCount, tradingPair.getPairName(), existingHistory.size(), 
                     tradingPair.getZScoreHistory().size());
         }

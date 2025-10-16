@@ -536,6 +536,7 @@ public class StablePairsView extends VerticalLayout {
             return "-";
         })).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCreatedAt() != null ? TimeFormatterUtil.formatDateTime(pair.getCreatedAt()) : "-")).setHeader("Добавлена").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new TextRenderer<>(pair -> pair.getUpdatedTime() != null ? TimeFormatterUtil.formatDateTime(pair.getUpdatedTime()) : "-")).setHeader("Обновлено").setAutoWidth(true).setFlexGrow(0);
         // Колонка действий
         grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
