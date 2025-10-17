@@ -91,6 +91,9 @@ public class CreatePairDataService {
         tradingPair.setSettingsCandleLimit(BigDecimal.valueOf(settings.getCandleLimit()));
         tradingPair.setSettingsMinZ(BigDecimal.valueOf(settings.getMinZ()));
         
+        // Устанавливаем минимальный объем из настроек
+        tradingPair.setMinVolMln(BigDecimal.valueOf(settings.getMinVolume()));
+        
         updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
 
         // Рассчитываем пиксельный спред для новой пары

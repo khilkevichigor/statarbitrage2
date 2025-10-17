@@ -55,6 +55,7 @@ public class ObservedPairsService {
                         .timeframe(settings.getTimeframe())
                         .settingsCandleLimit(java.math.BigDecimal.valueOf(settings.getCandleLimit()))
                         .settingsMinZ(java.math.BigDecimal.valueOf(settings.getMinZ()))
+                        .minVolMln(java.math.BigDecimal.valueOf(settings.getMinVolume()))
                         .build();
                 tradingPair.setStatus(TradeStatus.OBSERVED);
                 tradingPairList.add(tradingPair);

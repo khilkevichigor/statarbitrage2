@@ -81,10 +81,16 @@ public class NewCointPairsEventHandler {
             if (!remainingCointPairs.isEmpty()) {
                 // Удаляем старые коинтеграционные пары
                 tradingPairRepository.deleteByTypeAndStatus(com.example.shared.enums.PairType.COINTEGRATED, TradeStatus.SELECTED);
+                
+                // Получаем текущие настройки для заполнения minVolMln
+                Settings settings = settingsService.getSettings();
+                
                 // Устанавливаем тип COINTEGRATED для оставшихся пар
                 remainingCointPairs.forEach(pair -> {
                     pair.setType(com.example.shared.enums.PairType.COINTEGRATED);
                     pair.setStatus(TradeStatus.SELECTED);
+                    // Устанавливаем минимальный объем из настроек
+                    pair.setMinVolMln(BigDecimal.valueOf(settings.getMinVolume()));
                 });
                 tradingPairRepository.saveAll(remainingCointPairs);
                 log.info("💾 Сохранили {} оставшихся коинтеграционных пар для работы через UI", remainingCointPairs.size());
@@ -243,6 +249,8 @@ public class NewCointPairsEventHandler {
 
     private List<Pair> convertToTradingPair(List<Pair> cointPairs) {
         List<Pair> convertedPairs = new ArrayList<>();
+        Settings settings = settingsService.getSettings();
+        
         cointPairs.forEach(pair -> {
             // Создаем копию пары с типом TRADING
             Pair converted = Pair.builder()
@@ -255,6 +263,8 @@ public class NewCointPairsEventHandler {
                 .settingsCandleLimit(pair.getSettingsCandleLimit())
                 .settingsMinZ(pair.getSettingsMinZ())
                 .timeframe(pair.getTimeframe())
+                // Устанавливаем минимальный объем из настроек
+                .minVolMln(BigDecimal.valueOf(settings.getMinVolume()))
                 .build();
             if (converted != null) {
                 tradingPairRepository.save(converted);
