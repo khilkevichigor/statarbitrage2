@@ -90,6 +90,7 @@ public class CreatePairDataService {
         Settings settings = settingsService.getSettings();
         tradingPair.setSettingsCandleLimit(BigDecimal.valueOf(settings.getCandleLimit()));
         tradingPair.setSettingsMinZ(BigDecimal.valueOf(settings.getMinZ()));
+        tradingPair.setTimeframe(settings.getTimeframe());
         
         // Устанавливаем минимальный объем из настроек
         tradingPair.setMinVolMln(BigDecimal.valueOf(settings.getMinVolume()));
