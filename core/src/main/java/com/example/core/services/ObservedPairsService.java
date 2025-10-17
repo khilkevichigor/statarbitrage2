@@ -1,0 +1,67 @@
+package com.example.core.services;
+
+import com.example.shared.enums.PairType;
+import com.example.shared.enums.TradeStatus;
+import com.example.shared.models.Pair;
+import com.example.shared.models.Settings;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ObservedPairsService {
+
+    private final PairService pairService;
+    private final SettingsService settingsService;
+
+    @Transactional
+    public void updateObservedPairs(String pairsString) {
+        Settings settings = settingsService.getSettings();
+        settings.setObservedPairs(pairsString);
+        settingsService.save(settings);
+
+        pairService.deleteAllByStatus(TradeStatus.OBSERVED);
+
+        if (pairsString == null || pairsString.isBlank()) {
+            return;
+        }
+
+        List<String> pairs = Arrays.asList(pairsString.split(","));
+        List<Pair> tradingPairList = new ArrayList<>();
+
+        for (String pair : pairs) {
+            String[] tickers = pair.split("/");
+            if (tickers.length == 2) {
+                String longTicker = tickers[0].trim();
+                String shortTicker = tickers[1].trim();
+
+                if (longTicker.equalsIgnoreCase(shortTicker)) {
+                    log.warn("⚠️ Пропускаем пару {}/{}: тикеры не могут быть одинаковыми.", longTicker, shortTicker);
+                    continue;
+                }
+
+                Pair tradingPair = Pair.builder()
+                        .type(PairType.TRADING)
+                        .tickerA(longTicker)
+                        .tickerB(shortTicker)
+                        .pairName(longTicker + "/" + shortTicker)
+                        .timeframe(settings.getTimeframe())
+                        .settingsCandleLimit(java.math.BigDecimal.valueOf(settings.getCandleLimit()))
+                        .settingsMinZ(java.math.BigDecimal.valueOf(settings.getMinZ()))
+                        .minVolMln(java.math.BigDecimal.valueOf(settings.getMinVolume()))
+                        .build();
+                tradingPair.setStatus(TradeStatus.OBSERVED);
+                tradingPairList.add(tradingPair);
+            }
+        }
+
+        pairService.saveAll(tradingPairList);
+    }
+}

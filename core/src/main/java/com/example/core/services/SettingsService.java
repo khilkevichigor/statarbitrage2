@@ -1,0 +1,48 @@
+package com.example.core.services;
+
+import com.example.core.repositories.SettingsRepository;
+import com.example.shared.models.Settings;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SettingsService {
+    private final SettingsRepository settingsRepository;
+    
+    @Lazy
+    private final AutoVolumeService autoVolumeService;
+
+    public Settings getSettings() {
+        List<Settings> allSettings = settingsRepository.findAll();
+        if (allSettings.isEmpty()) {
+            log.warn("⚠️ Настройки не найдены в базе данных. Возвращаем временные дефолтные настройки.");
+            return createTempDefaultSettings();
+        }
+        return allSettings.get(0);
+    }
+
+    private Settings createTempDefaultSettings() {
+        return new Settings();
+    }
+
+    @Transactional
+    public void save(Settings settings) {
+        settingsRepository.save(settings);
+        
+        // Логируем состояние автообъема после сохранения настроек
+        if (autoVolumeService != null) {
+            try {
+                autoVolumeService.logAutoVolumeStatus(settings);
+            } catch (Exception e) {
+                log.warn("⚠️ Не удалось залогировать состояние автообъема: {}", e.getMessage());
+            }
+        }
+    }
+}

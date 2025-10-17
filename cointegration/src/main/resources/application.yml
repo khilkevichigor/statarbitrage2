@@ -1,0 +1,89 @@
+server:
+  port: 8086
+  servlet:
+    session:
+      timeout: 30m
+
+spring:
+  application:
+    name: cointegration-service
+
+  profiles:
+    active: default
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/statarbitrage}
+    username: ${DB_USERNAME:statuser}
+    password: ${DB_PASSWORD:statpass123}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        validator.apply_to_ddl: false
+        hbm2ddl.auto: none
+        format_sql: true
+    show-sql: false
+
+  jackson:
+    time-zone: UTC
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    stream:
+      bindings:
+        cointegration-events-out-0:
+          destination: cointegration.events #пишем в свой топик cointegration
+          content-type: application/json
+          group: cointegration-group
+      rabbit:
+        bindings:
+          cointegration-events-out-0:
+            producer:
+              routing-key-expression: "'cointegration'"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.cointegration: INFO
+    com.vaadin.flow.spring.SpringInstantiator: WARN
+    root: INFO
+  file:
+    name: cointegration/logs/cointegration.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      clean-history-on-start: true
+  pattern:
+    file: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:-?} --- [%15.15t] %-40.40logger{39} : %m%n"
+
+# Cointegration Analysis API
+cointegration:
+  api:
+    url: http://localhost:8000
