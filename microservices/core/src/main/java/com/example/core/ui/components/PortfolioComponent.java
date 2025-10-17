@@ -622,6 +622,9 @@ public class PortfolioComponent extends VerticalLayout {
                 StreamResource chartResource = createStreamResource(chartImage, "pnl-chart.png");
                 pnlChartImage.setSrc(chartResource);
                 pnlChartImage.setAlt("График PnL за " + period.getDisplayName());
+                
+                // Добавляем crosshair функциональность
+                addCrosshairToPnLChart();
 
                 // Обновляем лейбл с изменением PnL
                 updatePnLChangeLabel(history);
@@ -766,6 +769,72 @@ public class PortfolioComponent extends VerticalLayout {
         } else {
             pnlChangeLabel.getStyle().remove("color");
         }
+    }
+
+    /**
+     * Добавляет crosshair функциональность к графику PnL
+     */
+    private void addCrosshairToPnLChart() {
+        pnlChartImage.getElement().executeJs("""
+            // Создаем контейнер с relative позиционированием для crosshair
+            const imageContainer = document.createElement('div');
+            imageContainer.style.position = 'relative';
+            imageContainer.style.display = 'inline-block';
+            imageContainer.style.width = '100%';
+            imageContainer.style.height = '100%';
+            
+            // Переносим image в контейнер
+            const img = this;
+            const parent = img.parentNode;
+            parent.insertBefore(imageContainer, img);
+            imageContainer.appendChild(img);
+            
+            // Создаем вертикальную линию crosshair
+            const verticalLine = document.createElement('div');
+            verticalLine.style.position = 'absolute';
+            verticalLine.style.top = '0';
+            verticalLine.style.width = '1px';
+            verticalLine.style.height = '100%';
+            verticalLine.style.backgroundColor = '#FF6B6B';
+            verticalLine.style.pointerEvents = 'none';
+            verticalLine.style.display = 'none';
+            verticalLine.style.zIndex = '1000';
+            imageContainer.appendChild(verticalLine);
+            
+            // Создаем горизонтальную линию crosshair
+            const horizontalLine = document.createElement('div');
+            horizontalLine.style.position = 'absolute';
+            horizontalLine.style.left = '0';
+            horizontalLine.style.width = '100%';
+            horizontalLine.style.height = '1px';
+            horizontalLine.style.backgroundColor = '#FF6B6B';
+            horizontalLine.style.pointerEvents = 'none';
+            horizontalLine.style.display = 'none';
+            horizontalLine.style.zIndex = '1000';
+            imageContainer.appendChild(horizontalLine);
+            
+            // Обработчики событий мыши для crosshair
+            img.addEventListener('mouseenter', function() {
+                verticalLine.style.display = 'block';
+                horizontalLine.style.display = 'block';
+            });
+            
+            img.addEventListener('mouseleave', function() {
+                verticalLine.style.display = 'none';
+                horizontalLine.style.display = 'none';
+            });
+            
+            img.addEventListener('mousemove', function(e) {
+                const rect = img.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                verticalLine.style.left = x + 'px';
+                horizontalLine.style.top = y + 'px';
+            });
+            
+            img.style.cursor = 'crosshair';
+            """);
     }
 
     /**

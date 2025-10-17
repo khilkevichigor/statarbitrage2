@@ -89,20 +89,22 @@ public class ZScoreChartDialog extends Dialog {
         // Создаем чекбоксы для выбора типов чартов
         createChartSelectionCheckboxes();
 
-        // Единая область для чартов
+        // Единая область для чартов с crosshair
         mainChartImage = new Image();
         mainChartImage.setWidth("100%");
         mainChartImage.setHeight("600px");
         mainChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
         mainChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        mainChartImage.getStyle().set("cursor", "crosshair");
 
-        // Чарт пересечений
+        // Чарт пересечений с crosshair
         intersectionsChartImage = new Image();
         intersectionsChartImage.setWidth("100%");
         intersectionsChartImage.setHeight("600px");
         intersectionsChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
         intersectionsChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
         intersectionsChartImage.getStyle().set("margin-top", "1rem");
+        intersectionsChartImage.getStyle().set("cursor", "crosshair");
 
         // Панель с информацией о данных
         dataInfoPanel = new Div();
@@ -282,6 +284,9 @@ public class ZScoreChartDialog extends Dialog {
                 StreamResource chartResource = createStreamResource(chartImage, "main-chart.png");
                 mainChartImage.setSrc(chartResource);
                 mainChartImage.setAlt("Chart for " + currentPair.getPairName());
+                
+                // Добавляем crosshair функциональность
+                addCrosshairToMainChart();
             } else {
                 mainChartImage.setSrc("");
                 mainChartImage.setAlt("Failed to generate chart");
@@ -605,6 +610,10 @@ public class ZScoreChartDialog extends Dialog {
                 StreamResource intersectionsResource = createStreamResource(intersectionsChart, "intersections-chart.png");
                 intersectionsChartImage.setSrc(intersectionsResource);
                 intersectionsChartImage.setAlt("Intersections Chart for " + currentPair.getPairName());
+                
+                // Добавляем crosshair функциональность
+                addCrosshairToIntersectionsChart();
+                
                 log.debug("✅ Чарт пересечений успешно создан");
             } else {
                 intersectionsChartImage.setSrc("");
@@ -996,6 +1005,138 @@ public class ZScoreChartDialog extends Dialog {
             log.error("❌ Ошибка при форматировании периода: {}", e.getMessage(), e);
             return String.format("%.0f свечей", candleLimit);
         }
+    }
+
+    /**
+     * Добавляет crosshair функциональность к главному чарту
+     */
+    private void addCrosshairToMainChart() {
+        mainChartImage.getElement().executeJs("""
+            // Создаем контейнер с relative позиционированием для crosshair
+            const imageContainer = document.createElement('div');
+            imageContainer.style.position = 'relative';
+            imageContainer.style.display = 'inline-block';
+            imageContainer.style.width = '100%';
+            imageContainer.style.height = '100%';
+            
+            // Переносим image в контейнер
+            const img = this;
+            const parent = img.parentNode;
+            parent.insertBefore(imageContainer, img);
+            imageContainer.appendChild(img);
+            
+            // Создаем вертикальную линию crosshair
+            const verticalLine = document.createElement('div');
+            verticalLine.style.position = 'absolute';
+            verticalLine.style.top = '0';
+            verticalLine.style.width = '1px';
+            verticalLine.style.height = '100%';
+            verticalLine.style.backgroundColor = '#FF6B6B';
+            verticalLine.style.pointerEvents = 'none';
+            verticalLine.style.display = 'none';
+            verticalLine.style.zIndex = '1000';
+            imageContainer.appendChild(verticalLine);
+            
+            // Создаем горизонтальную линию crosshair
+            const horizontalLine = document.createElement('div');
+            horizontalLine.style.position = 'absolute';
+            horizontalLine.style.left = '0';
+            horizontalLine.style.width = '100%';
+            horizontalLine.style.height = '1px';
+            horizontalLine.style.backgroundColor = '#FF6B6B';
+            horizontalLine.style.pointerEvents = 'none';
+            horizontalLine.style.display = 'none';
+            horizontalLine.style.zIndex = '1000';
+            imageContainer.appendChild(horizontalLine);
+            
+            // Обработчики событий мыши для crosshair
+            img.addEventListener('mouseenter', function() {
+                verticalLine.style.display = 'block';
+                horizontalLine.style.display = 'block';
+            });
+            
+            img.addEventListener('mouseleave', function() {
+                verticalLine.style.display = 'none';
+                horizontalLine.style.display = 'none';
+            });
+            
+            img.addEventListener('mousemove', function(e) {
+                const rect = img.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                verticalLine.style.left = x + 'px';
+                horizontalLine.style.top = y + 'px';
+            });
+            
+            img.style.cursor = 'crosshair';
+            """);
+    }
+
+    /**
+     * Добавляет crosshair функциональность к чарту пересечений
+     */
+    private void addCrosshairToIntersectionsChart() {
+        intersectionsChartImage.getElement().executeJs("""
+            // Создаем контейнер с relative позиционированием для crosshair
+            const imageContainer = document.createElement('div');
+            imageContainer.style.position = 'relative';
+            imageContainer.style.display = 'inline-block';
+            imageContainer.style.width = '100%';
+            imageContainer.style.height = '100%';
+            
+            // Переносим image в контейнер
+            const img = this;
+            const parent = img.parentNode;
+            parent.insertBefore(imageContainer, img);
+            imageContainer.appendChild(img);
+            
+            // Создаем вертикальную линию crosshair
+            const verticalLine = document.createElement('div');
+            verticalLine.style.position = 'absolute';
+            verticalLine.style.top = '0';
+            verticalLine.style.width = '1px';
+            verticalLine.style.height = '100%';
+            verticalLine.style.backgroundColor = '#FF6B6B';
+            verticalLine.style.pointerEvents = 'none';
+            verticalLine.style.display = 'none';
+            verticalLine.style.zIndex = '1000';
+            imageContainer.appendChild(verticalLine);
+            
+            // Создаем горизонтальную линию crosshair
+            const horizontalLine = document.createElement('div');
+            horizontalLine.style.position = 'absolute';
+            horizontalLine.style.left = '0';
+            horizontalLine.style.width = '100%';
+            horizontalLine.style.height = '1px';
+            horizontalLine.style.backgroundColor = '#FF6B6B';
+            horizontalLine.style.pointerEvents = 'none';
+            horizontalLine.style.display = 'none';
+            horizontalLine.style.zIndex = '1000';
+            imageContainer.appendChild(horizontalLine);
+            
+            // Обработчики событий мыши для crosshair
+            img.addEventListener('mouseenter', function() {
+                verticalLine.style.display = 'block';
+                horizontalLine.style.display = 'block';
+            });
+            
+            img.addEventListener('mouseleave', function() {
+                verticalLine.style.display = 'none';
+                horizontalLine.style.display = 'none';
+            });
+            
+            img.addEventListener('mousemove', function(e) {
+                const rect = img.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                verticalLine.style.left = x + 'px';
+                horizontalLine.style.top = y + 'px';
+            });
+            
+            img.style.cursor = 'crosshair';
+            """);
     }
 
 }
