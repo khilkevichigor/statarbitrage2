@@ -1,44 +1,6 @@
-HELP.md
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-**/frontend/
-node_modules/
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-.vaadin/
-webpack.config.js
-vite.config.ts
-tsconfig.json
-types.d.ts
+# Игнорировать все log-файлы
+*.log
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-*.sqlite
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
+# Игнорировать папки с логами
+logs/
+log/
