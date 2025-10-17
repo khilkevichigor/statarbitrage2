@@ -9,17 +9,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a statistical arbitrage trading application built with Spring Boot, Vaadin, and Python integration. The system identifies trading
-opportunities between correlated cryptocurrency pairs, executes trades via OKX API, and provides a web interface for monitoring and control.
+This is a statistical arbitrage trading system built with **microservices architecture** using Spring Cloud. The system identifies trading opportunities between correlated cryptocurrency pairs, executes trades via OKX API, and provides a web interface for monitoring and control.
+
+## Repository Information
+
+- **GitHub Repository**: https://github.com/khilkevichigor/statarbitrage2
+- **Architecture**: Spring Cloud microservices
+- **Database**: PostgreSQL with Docker Compose
+- **Message Broker**: RabbitMQ
+- **Deployment**: Docker Compose with separate services
 
 ## Build and Development Commands
 
 ### Java/Spring Boot
 
-- **Build**: `mvn clean install`
-- **Run application**: `mvn spring-boot:run`
+- **Build all**: `mvn clean install`
+- **Run core service**: `cd core && mvn spring-boot:run`
+- **Run with Docker**: `docker-compose up`
 - **Test**: `mvn test`
 - **Package**: `mvn clean package`
+
+### Docker Compose
+
+- **Start all services**: `docker-compose up -d`
+- **Stop all services**: `docker-compose down`
+- **View logs**: `docker-compose logs -f [service-name]`
+- **Rebuild**: `docker-compose up --build`
 
 ### Frontend (Vaadin)
 
@@ -29,20 +44,46 @@ opportunities between correlated cryptocurrency pairs, executes trades via OKX A
 
 ## Architecture Overview
 
-### Core Components
+### Microservices Architecture
 
-**Spring Boot Application** (`StatarbitrageApplication.java`)
+**Core Service** (`core/` - port 8181)
+- Main trading logic and Vaadin UI
+- Trading processors and schedulers
+- Portfolio management
+- Risk management and exit strategies
 
-- Main entry point with async and scheduling enabled
-- Runs on port 8181 by default
-- WAR packaging for deployment
+**Cointegration Service** (`cointegration/` - port 8182)
+- Statistical pair analysis
+- Z-score calculations
+- Pair discovery and validation
+
+**Candles Service** (`candles/` - port 8183)
+- Market data collection and caching
+- OKX API integration for price data
+- Candle data processing
+
+**Notification Service** (`notification/` - port 8184)
+- Telegram bot integration
+- Event-driven notifications
+- Message formatting and delivery
+
+**Analytics Service** (`analytics/` - port 8185)
+- Performance analytics
+- Trade statistics
+- Reporting functionality
+
+**Infrastructure Services**
+- PostgreSQL database (port 5432)
+- RabbitMQ message broker (port 5672, management 15672)
+- pgAdmin database management (port 8080)
 
 **Database Layer**
 
-- SQLite embedded database for persistence
+- PostgreSQL database for persistence
 - JPA repositories for data access
-- Database file located at `./data/sa-db.sqlite`
-- Uses Hibernate Community SQLite dialect
+- Database runs in Docker container
+- Connection: localhost:5432/statarbitrage (user: statuser, pass: statpass123)
+- Flyway migrations for schema management
 
 **Python Integration**
 
@@ -98,12 +139,14 @@ opportunities between correlated cryptocurrency pairs, executes trades via OKX A
 
 ### Configuration
 
-**Application Properties** (`application.properties`)
+**Application Configuration** (`application.yml`)
 
-- Database: SQLite file-based at `./data/sa-db.sqlite`
-- Telegram bot integration with configured token
-- Vaadin development mode settings
-- Cointegration API URL configuration
+- Database: PostgreSQL connection to Docker container
+- RabbitMQ messaging configuration
+- Service discovery and inter-service communication
+- Telegram bot integration
+- OKX API configuration
+- Flyway database migrations
 
 **Trading Settings**
 
@@ -116,9 +159,14 @@ opportunities between correlated cryptocurrency pairs, executes trades via OKX A
 ### Key Libraries
 
 - **Spring Boot 3.5.0**: Core framework
+- **Spring Cloud**: Microservices framework
+- **Spring Cloud Stream**: Event-driven messaging
 - **Vaadin 24.3.9**: Frontend framework
+- **PostgreSQL**: Primary database
+- **RabbitMQ**: Message broker
+- **Flyway**: Database migrations
+- **OpenFeign**: Inter-service communication
 - **OKX v5 Java SDK**: Exchange API integration
-- **SQLite Database**: Embedded database with Hibernate Community dialects
 - **Telegram Bots**: Bot integration
 - **OkHttp**: HTTP client
 - **Gson**: JSON serialization
@@ -135,78 +183,93 @@ opportunities between correlated cryptocurrency pairs, executes trades via OKX A
 ## Project Structure
 
 ```
-src/main/java/com/example/statarbitrage/
-├── StatarbitrageApplication.java          # Main application entry point
-├── ServletInitializer.java                # WAR deployment configuration
-├── bot/                                   # Telegram bot implementation
-│   ├── BotConfig.java
-│   ├── BotInitializer.java
-│   ├── BotMenu.java
-│   └── TelegramBot.java
-├── client_okx/                           # OKX exchange client
-│   └── OkxClient.java
-├── client_python/                        # Python API client
-│   ├── CointegrationApiHealthCheck.java
-│   └── PythonRestClient.java
-├── common/                               # Shared components
-│   ├── constant/Constants.java
-│   ├── dto/                             # Data transfer objects
-│   ├── events/                          # Event definitions
-│   ├── model/                           # Domain models
-│   └── utils/                           # Utility classes
-├── core/                                # Core business logic
-│   ├── processors/                      # Trading flow processors
-│   ├── repositories/                    # Data access layer
-│   ├── schedulers/                      # Scheduled tasks
-│   └── services/                        # Business services
-├── trading/                             # Trading system components
-│   ├── interfaces/                      # Trading provider interfaces
-│   ├── model/                          # Trading domain models
-│   ├── providers/                      # Trading provider implementations
-│   └── services/                       # Trading services (including GeolocationService)
-└── ui/                                  # Vaadin UI components
-    ├── AppShell.java
-    ├── MainView.java
-    ├── SettingsComponent.java
-    ├── StatisticsComponent.java
-    └── TradingPairsComponent.java
+├── shared/                              # Shared components across microservices
+│   ├── dto/                            # Data transfer objects
+│   ├── events/                         # Event definitions
+│   ├── models/                         # Domain models
+│   ├── enums/                          # Shared enums
+│   └── utils/                          # Utility classes
+├── core/                               # Core trading service (port 8181)
+│   ├── src/main/java/com/example/core/
+│   │   ├── CoreApplication.java        # Main application entry point
+│   │   ├── processors/                 # Trading flow processors
+│   │   ├── repositories/               # Data access layer
+│   │   ├── schedulers/                 # Scheduled tasks
+│   │   ├── services/                   # Business services
+│   │   ├── trading/                    # Trading system components
+│   │   └── ui/                         # Vaadin UI components
+│   └── src/main/resources/
+│       ├── application.yml
+│       └── db/migration/               # Flyway migrations
+├── cointegration/                      # Statistical analysis service (port 8182)
+│   ├── src/main/java/com/example/cointegration/
+│   │   ├── CointegrationApplication.java
+│   │   ├── processors/                 # Analysis processors
+│   │   ├── services/                   # Statistical services
+│   │   └── schedulers/                 # Analysis schedulers
+├── candles/                            # Market data service (port 8183)
+│   ├── src/main/java/com/example/candles/
+│   │   ├── CandlesApplication.java
+│   │   ├── client/                     # OKX API client
+│   │   ├── service/                    # Data processing services
+│   │   └── repositories/               # Cache repositories
+├── notification/                       # Notification service (port 8184)
+│   ├── src/main/java/com/example/notification/
+│   │   ├── NotificationApplication.java
+│   │   ├── bot/                        # Telegram bot implementation
+│   │   └── service/                    # Notification services
+├── analytics/                          # Analytics service (port 8185)
+│   ├── src/main/java/com/example/analytics/
+│   │   ├── AnalyticsApplication.java
+│   │   ├── controller/                 # Analytics endpoints
+│   │   └── service/                    # Analytics services
+├── docker-compose.yml                  # Docker services configuration
+├── application-global.yml              # Global configuration
+└── start-all.sh                        # Service startup script
 ```
 
 ## Common Development Patterns
 
 ### Adding New Trading Logic
 
-1. Create service classes in `src/main/java/com/example/statarbitrage/core/services/`
+1. Create service classes in `core/src/main/java/com/example/core/services/`
 2. Use existing patterns from `ExitStrategyService` and other services
 3. Integrate with the main trading flow via processors
+4. Use events for inter-service communication
 
 ### Database Entities
 
-- Follow existing patterns in `src/main/java/com/example/statarbitrage/common/model/`
+- Follow existing patterns in `shared/src/main/java/com/example/shared/models/`
 - Use JPA annotations and Lombok for boilerplate reduction
 - Repository interfaces extend Spring Data JPA
+- Use Flyway migrations for schema changes
 
-### API Integration
+### Inter-Service Communication
 
-- HTTP clients in `src/main/java/com/example/statarbitrage/client_*/`
-- Use OkHttp for REST calls
-- Gson for JSON serialization
+- Use OpenFeign for synchronous calls between services
+- Use RabbitMQ events for asynchronous communication
+- Follow event-driven architecture patterns
+- Use `shared` module for DTOs and events
 
 ### Frontend Development
 
-- Vaadin components in `src/main/java/com/example/statarbitrage/ui/`
+- Vaadin components in `core/src/main/java/com/example/core/ui/`
 - Real-time UI updates using scheduled executors
 - Grid-based data presentation
+- Integration with backend services via REST endpoints
 
 ## Important Notes
 
-- The application supports both live trading and simulation modes
-- All sensitive configuration (API keys, tokens) should be externalized
+- The system supports both live trading and simulation modes
+- All sensitive configuration (API keys, tokens) should be externalized via environment variables
 - The system uses statistical analysis to identify mean-reverting pairs
 - Risk management is built into the exit strategy logic
 - Python integration is handled via REST API calls rather than embedded Python
-- Database auto-creates schema on startup (ddl-auto=create)
+- Database schema managed by Flyway migrations (ddl-auto=update)
 - Vaadin frontend is automatically built during Spring Boot startup
+- Services communicate via RabbitMQ events and OpenFeign REST calls
+- Each microservice has its own responsibility and can be scaled independently
+- Docker Compose orchestrates all services for easy deployment
 
 ## GeolocationService Details
 
@@ -231,11 +294,9 @@ The `GeolocationService` is a critical security component that protects against 
 ```java
 // Check if current IP location allows OKX API calls
 if(!geolocationService.isGeolocationAllowed()){
-        log.
-
-error("❌ БЛОКИРОВКА: OKX API заблокирован из-за геолокации!");
+    log.error("❌ БЛОКИРОВКА: OKX API заблокирован из-за геолокации!");
     return;
-            }
+}
 ```
 
 ### Configuration
