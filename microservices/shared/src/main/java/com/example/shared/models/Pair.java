@@ -165,7 +165,7 @@ public class Pair {
      */
     @CsvExportable(order = 14)
     @Column(name = "candle_count")
-    private Integer candleCount; //35040 для 15м
+    private Integer candleCount; // Количество свечей рассчитывается на основе таймфрейма и периода
 
     /**
      * Время анализа в секундах

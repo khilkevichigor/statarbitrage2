@@ -492,7 +492,15 @@ public class PairService {
             // Используем те же параметры что были при поиске пары
             String timeframe = pair.getTimeframe() != null ? pair.getTimeframe() : settings.getTimeframe();
             String period = pair.getPeriod() != null ? pair.getPeriod() : settings.calculateCurrentPeriod();
-            int candleLimit = pair.getCandleCount() != null ? pair.getCandleCount() : 35040;
+            
+            // Рассчитываем правильное количество свечей на основе периода и таймфрейма
+            int candleLimit;
+            if (pair.getCandleCount() != null) {
+                candleLimit = pair.getCandleCount();
+            } else {
+                // Используем централизованный расчет вместо хардкода 35040
+                candleLimit = com.example.core.ui.utils.PeriodOptions.calculateCandleLimit(timeframe, period);
+            }
 
             log.info("🔧 Параметры обновления: timeframe={}, period={}, candleCount={}", 
                     timeframe, period, candleLimit);
