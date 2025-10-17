@@ -58,6 +58,13 @@ mvn clean install
 ```
 
 ### 4. Запуск микросервисов
+
+#### Через IntelliJ IDEA (рекомендуемый способ):
+1. **Запуск инфраструктуры**: Run Configuration `🐳 Start Infrastructure`
+2. **Сборка и запуск всех сервисов**: Run Configuration `🏗️ BUILD AND RUN ALL`
+3. **Остановка инфраструктуры**: Run Configuration `🛑 Stop Infrastructure`
+
+#### Через командную строку:
 ```bash
 # Core service (главный)
 cd core && mvn spring-boot:run
