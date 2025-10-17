@@ -80,7 +80,7 @@ public class StablePairsScreenerSettings {
      * Минимальный размер окна
      */
     @Column(name = "min_window_size_value")
-    private Double minWindowSizeValue = 100.0;
+    private Double minWindowSizeValue = 450.0;
 
     // ======== ФИЛЬТРЫ ADF ========
 
@@ -130,13 +130,13 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр по минимальному объему торгов
      */
     @Column(name = "min_volume_enabled", nullable = false)
-    private boolean minVolumeEnabled = false;
+    private boolean minVolumeEnabled = true;
 
     /**
      * Минимальный объем торгов в миллионах долларов
      */
     @Column(name = "min_volume_value")
-    private Double minVolumeValue = 1.0;
+    private Double minVolumeValue = 20.0;
 
     // ======== ФИЛЬТР ПО ТИКЕРАМ ========
 
@@ -323,15 +323,15 @@ public class StablePairsScreenerSettings {
                 .minCorrelationEnabled(true)
                 .minCorrelationValue(0.1)
                 .minWindowSizeEnabled(true)
-                .minWindowSizeValue(100.0)
+                .minWindowSizeValue(450.0)
                 .maxAdfValueEnabled(true)
                 .maxAdfValue(0.1)
                 .minRSquaredEnabled(true)
                 .minRSquaredValue(0.1)
                 .maxPValueEnabled(true)
                 .maxPValue(0.1)
-                .minVolumeEnabled(false)
-                .minVolumeValue(1.0)
+                .minVolumeEnabled(true)
+                .minVolumeValue(20.0)
                 .searchTickersEnabled(false)
                 .searchTickers("")
                 .runOnSchedule(false)
