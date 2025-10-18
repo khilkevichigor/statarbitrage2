@@ -1,12 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="🏗️ BUILD AND RUN ALL" type="CompoundRunConfigurationType">
+    <toRun name="🚀 All Microservices" type="CompoundRunConfigurationType" />
     <toRun name="1. Build All" type="MavenRunConfiguration" />
-    <toRun name="🚀 All Microservices" type="CompoundRunConfigurationType">
-      <condition>
-        <option name="type" value="CompletedSuccessfully" />
-        <option name="configuration" value="1. Build All" />
-      </condition>
-    </toRun>
     <method v="2" />
   </configuration>
 </component>
