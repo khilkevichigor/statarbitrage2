@@ -59,6 +59,12 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Pair> findStablePairsInMonitoring();
 
     /**
+     * Найти стабильные пары в мониторинге с указанными рейтингами
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.isInMonitoring = true AND p.stabilityRating IN :ratings ORDER BY p.createdAt DESC")
+    List<Pair> findStablePairsInMonitoringByRatings(@Param("ratings") List<String> ratings);
+
+    /**
      * Найти все найденные стабильные пары (не в мониторинге)
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.isInMonitoring = false ORDER BY p.searchDate DESC")
