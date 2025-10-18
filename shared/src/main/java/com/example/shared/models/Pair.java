@@ -68,6 +68,7 @@ public class Pair {
 
     @CsvExportable(order = 2)
     @Column(name = "uuid", columnDefinition = "uuid", nullable = false, updatable = false)
+    @Builder.Default
     private UUID uuid = UUID.randomUUID();
 
     @Version
@@ -83,6 +84,7 @@ public class Pair {
     @Enumerated(EnumType.STRING)
     @CsvExportable(order = 4)
     @Column(name = "type", nullable = false, length = 20)
+    @Builder.Default
     private PairType type = PairType.STABLE;
 
     /**
@@ -91,6 +93,7 @@ public class Pair {
     @Enumerated(EnumType.STRING)
     @CsvExportable(order = 5)
     @Column(name = "status")
+    @Builder.Default
     private TradeStatus status = TradeStatus.SELECTED;
 
     /**
@@ -151,6 +154,7 @@ public class Pair {
      */
     @CsvExportable(order = 12)
     @Column(name = "is_tradeable")
+    @Builder.Default
     private boolean isTradeable = false;
 
     /**
@@ -207,6 +211,7 @@ public class Pair {
      */
     @CsvExportable(order = 20)
     @Column(name = "is_in_monitoring", nullable = false)
+    @Builder.Default
     private boolean isInMonitoring = false;
 
     /**
@@ -486,6 +491,7 @@ public class Pair {
 
     @CsvExportable(order = 73)
     @Column(name = "close_at_breakeven")
+    @Builder.Default
     private boolean closeAtBreakeven = false;
 
     // Торговые настройки

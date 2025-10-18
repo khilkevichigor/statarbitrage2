@@ -38,6 +38,7 @@ public class StablePairsScreenerSettings {
      * Является ли настройка по умолчанию
      */
     @Column(name = "is_default", nullable = false)
+    @Builder.Default
     private boolean isDefault = false;
 
     // ======== ТАЙМФРЕЙМЫ И ПЕРИОДЫ ========
@@ -60,12 +61,14 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр минимальной корреляции
      */
     @Column(name = "min_correlation_enabled", nullable = false)
+    @Builder.Default
     private boolean minCorrelationEnabled = true;
 
     /**
      * Минимальная корреляция
      */
     @Column(name = "min_correlation_value")
+    @Builder.Default
     private Double minCorrelationValue = 0.1;
 
     // ======== ФИЛЬТРЫ РАЗМЕРА ОКНА ========
@@ -74,12 +77,14 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр минимального размера окна
      */
     @Column(name = "min_window_size_enabled", nullable = false)
+    @Builder.Default
     private boolean minWindowSizeEnabled = true;
 
     /**
      * Минимальный размер окна
      */
     @Column(name = "min_window_size_value")
+    @Builder.Default
     private Double minWindowSizeValue = 450.0;
 
     // ======== ФИЛЬТРЫ ADF ========
@@ -88,12 +93,14 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр максимального ADF значения
      */
     @Column(name = "max_adf_value_enabled", nullable = false)
+    @Builder.Default
     private boolean maxAdfValueEnabled = true;
 
     /**
      * Максимальное ADF значение
      */
     @Column(name = "max_adf_value")
+    @Builder.Default
     private Double maxAdfValue = 0.1;
 
     // ======== ФИЛЬТРЫ R2 ========
@@ -102,12 +109,14 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр минимального R2
      */
     @Column(name = "min_r_squared_enabled", nullable = false)
+    @Builder.Default
     private boolean minRSquaredEnabled = true;
 
     /**
      * Минимальное R2 значение
      */
     @Column(name = "min_r_squared_value")
+    @Builder.Default
     private Double minRSquaredValue = 0.1;
 
     // ======== ФИЛЬТРЫ P-VALUE ========
@@ -116,12 +125,14 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр максимального P-Value
      */
     @Column(name = "max_p_value_enabled", nullable = false)
+    @Builder.Default
     private boolean maxPValueEnabled = true;
 
     /**
      * Максимальное P-Value
      */
     @Column(name = "max_p_value")
+    @Builder.Default
     private Double maxPValue = 0.1;
 
     // ======== ФИЛЬТР ПО ОБЪЕМУ ========
@@ -130,12 +141,14 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр по минимальному объему торгов
      */
     @Column(name = "min_volume_enabled", nullable = false)
+    @Builder.Default
     private boolean minVolumeEnabled = true;
 
     /**
      * Минимальный объем торгов в миллионах долларов
      */
     @Column(name = "min_volume_value")
+    @Builder.Default
     private Double minVolumeValue = 20.0;
 
     // ======== ФИЛЬТР ПО ТИКЕРАМ ========
@@ -144,6 +157,7 @@ public class StablePairsScreenerSettings {
      * Включен ли фильтр по определенным тикерам
      */
     @Column(name = "search_tickers_enabled", nullable = false)
+    @Builder.Default
     private boolean searchTickersEnabled = false;
 
     /**
@@ -159,6 +173,7 @@ public class StablePairsScreenerSettings {
      * Запускать по расписанию
      */
     @Column(name = "run_on_schedule", nullable = false)
+    @Builder.Default
     private boolean runOnSchedule = false;
 
     /**
@@ -166,6 +181,7 @@ public class StablePairsScreenerSettings {
      * Если выключено - загружать свечи напрямую с OKX
      */
     @Column(name = "use_cache", nullable = false)
+    @Builder.Default
     private Boolean useCache = true;
 
     // ======== МЕТАДАННЫЕ ========

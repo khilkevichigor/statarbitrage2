@@ -119,21 +119,7 @@
         </dependency>
 
 
-        <!--        OLD DEPS      -->
-
-        <!-- HTTP-клиент -->
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>4.12.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.10.1</version>
-        </dependency>
-
+        <!-- Дополнительные зависимости -->
         <dependency>
             <groupId>com.vdurmont</groupId>
             <artifactId>emoji-java</artifactId>
@@ -148,41 +134,15 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-tomcat</artifactId>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+        
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.0</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.ta4j</groupId>
-            <artifactId>ta4j-core</artifactId>
-            <version>0.17</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <version>3.6.1</version>
         </dependency>
 
         <dependency>
@@ -196,15 +156,7 @@
             <artifactId>xchart</artifactId>
             <version>3.8.8</version>
         </dependency>
-        <dependency>
-            <groupId>xyz.felh</groupId>
-            <artifactId>okx-v5-java</artifactId>
-            <version>0.5.2024072701</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
+        
         <dependency>
             <groupId>org.parttio</groupId>
             <artifactId>line-awesome</artifactId>
