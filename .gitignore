@@ -101,6 +101,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# IntelliJ IDEA - exclude sensitive configurations
+.idea/runConfigurations/*_local.xml
+
 # Database
 *.db
 *.sqlite
@@ -148,7 +151,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.env
 .venv
 env/
 venv/
