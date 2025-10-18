@@ -3,6 +3,7 @@ package com.example.core.services;
 import com.example.core.client.CandlesFeignClient;
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.repositories.PairRepository;
+import com.example.core.utils.StringUtils;
 import com.example.shared.dto.*;
 import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
@@ -103,6 +104,7 @@ public class PairService {
                     .minVolume(settings.getMinVolume())
                     .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB()))
                     .period(period)
+                    .untilDate(StringUtils.getCurrentDateTimeWithZ())
                     .build();
 
             // Получаем свечи для пары
@@ -249,13 +251,13 @@ public class PairService {
         }
 
         pair.setInMonitoring(true);
-        
+
         // Сохраняем изначальный скор при добавлении в мониторинг (если ещё не сохранён)
         if (pair.getTotalScoreEntry() == null && pair.getTotalScore() != null) {
             pair.setTotalScoreEntry(pair.getTotalScore());
             log.info("📊 Сохранён изначальный скор {} для пары {}/{}", pair.getTotalScore(), pair.getTickerA(), pair.getTickerB());
         }
-        
+
         pairRepository.save(pair);
 
         log.info("➕ Пара {}/{} добавлена в мониторинг", pair.getTickerA(), pair.getTickerB());
@@ -468,7 +470,7 @@ public class PairService {
     public boolean updateMonitoringPair(Long pairId) {
         try {
             log.info("🔄 Начало обновления пары ID: {}", pairId);
-            
+
             Pair pair = pairRepository.findById(pairId)
                     .orElseThrow(() -> new RuntimeException("Пара не найдена: " + pairId));
 
@@ -482,8 +484,8 @@ public class PairService {
                 return false;
             }
 
-            log.info("📊 Обновление пары {}/{} [{}][{}]", 
-                    pair.getTickerA(), pair.getTickerB(), 
+            log.info("📊 Обновление пары {}/{} [{}][{}]",
+                    pair.getTickerA(), pair.getTickerB(),
                     pair.getTimeframe(), pair.getPeriod());
 
             // Получаем настройки системы
@@ -492,7 +494,7 @@ public class PairService {
             // Используем те же параметры что были при поиске пары
             String timeframe = pair.getTimeframe() != null ? pair.getTimeframe() : settings.getTimeframe();
             String period = pair.getPeriod() != null ? pair.getPeriod() : settings.calculateCurrentPeriod();
-            
+
             // Рассчитываем правильное количество свечей на основе периода и таймфрейма
             int candleLimit;
             if (pair.getCandleCount() != null) {
@@ -502,7 +504,7 @@ public class PairService {
                 candleLimit = com.example.core.ui.utils.PeriodOptions.calculateCandleLimit(timeframe, period);
             }
 
-            log.info("🔧 Параметры обновления: timeframe={}, period={}, candleCount={}", 
+            log.info("🔧 Параметры обновления: timeframe={}, period={}, candleCount={}",
                     timeframe, period, candleLimit);
 
             // Создаем запрос для получения свежих свечей
@@ -512,13 +514,14 @@ public class PairService {
                     .minVolume(settings.getMinVolume())
                     .tickers(List.of(pair.getTickerA(), pair.getTickerB()))
                     .period(period)
+                    .untilDate(StringUtils.getCurrentDateTimeWithZ())
                     .build();
 
             // Получаем свежие данные свечей
             Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
 
             if (candlesMap == null || candlesMap.size() != 2) {
-                log.error("❌ Не удалось получить данные для обоих тикеров пары {}. Получено: {}", 
+                log.error("❌ Не удалось получить данные для обоих тикеров пары {}. Получено: {}",
                         pair.getPairName(), candlesMap != null ? candlesMap.keySet() : "null");
                 return false;
             }
@@ -526,29 +529,29 @@ public class PairService {
             List<Candle> longCandles = candlesMap.get(pair.getTickerA());
             List<Candle> shortCandles = candlesMap.get(pair.getTickerB());
 
-            if (longCandles == null || longCandles.isEmpty() || 
-                shortCandles == null || shortCandles.isEmpty()) {
+            if (longCandles == null || longCandles.isEmpty() ||
+                    shortCandles == null || shortCandles.isEmpty()) {
                 log.error("❌ Получены пустые данные свечей для пары {}", pair.getPairName());
                 return false;
             }
 
             if (longCandles.size() != shortCandles.size()) {
-                log.error("❌ Несоответствие количества свечей для пары {}: {} vs {}", 
+                log.error("❌ Несоответствие количества свечей для пары {}: {} vs {}",
                         pair.getPairName(), longCandles.size(), shortCandles.size());
                 return false;
             }
 
-            log.info("✅ Получено {} свечей для обоих тикеров пары {}", 
+            log.info("✅ Получено {} свечей для обоих тикеров пары {}",
                     longCandles.size(), pair.getPairName());
 
             // Пересчитываем показатели стабильности через Python API, используя настройки системы
             StablePairsScreenerSettings screenerSettings = stablePairsScreenerSettingsService.getDefaultSettings();
             Map<String, Object> searchSettings = stablePairsScreenerSettingsService.buildSearchSettingsMap(screenerSettings);
-            
+
             // Добавляем фильтр по конкретным тикерам для обновления только нужной пары
             searchSettings.put("searchTickers", List.of(pair.getTickerA(), pair.getTickerB()));
-            
-            log.info("🔄 Обновление пары {} с настройками: minVolume={}", 
+
+            log.info("🔄 Обновление пары {} с настройками: minVolume={}",
                     pair.getPairName(), searchSettings.get("minVolume"));
 
             try {
@@ -559,16 +562,16 @@ public class PairService {
                 if (response != null && response.getSuccess() && response.getResults() != null) {
                     // Ищем обновленные данные для нашей пары
                     var updatedResult = response.getResults().stream()
-                            .filter(result -> 
-                                    (result.getTickerA().equals(pair.getTickerA()) && 
-                                     result.getTickerB().equals(pair.getTickerB())) ||
-                                    (result.getTickerA().equals(pair.getTickerB()) && 
-                                     result.getTickerB().equals(pair.getTickerA())))
+                            .filter(result ->
+                                    (result.getTickerA().equals(pair.getTickerA()) &&
+                                            result.getTickerB().equals(pair.getTickerB())) ||
+                                            (result.getTickerA().equals(pair.getTickerB()) &&
+                                                    result.getTickerB().equals(pair.getTickerA())))
                             .findFirst();
 
                     if (updatedResult.isPresent()) {
                         var result = updatedResult.get();
-                        
+
                         // Обновляем метрики стабильности
                         pair.setTotalScore(result.getTotalScore());
                         pair.setStabilityRating(result.getStabilityRating());
@@ -576,16 +579,16 @@ public class PairService {
                         pair.setDataPoints(result.getDataPoints());
                         pair.setCandleCount(longCandles.size());
                         pair.setAnalysisTimeSeconds(result.getAnalysisTimeSeconds());
-                        
+
                         // Обновляем время последнего обновления
                         pair.setUpdatedTime(LocalDateTime.now());
-                        
+
                         // Сохраняем обновленную пару
                         pairRepository.save(pair);
-                        
-                        log.info("✅ Пара {} успешно обновлена. Новые метрики: score={}, rating={}, tradeable={}", 
+
+                        log.info("✅ Пара {} успешно обновлена. Новые метрики: score={}, rating={}, tradeable={}",
                                 pair.getPairName(), result.getTotalScore(), result.getStabilityRating(), result.getIsTradeable());
-                        
+
                         return true;
                     } else {
                         log.warn("⚠️ Пара {} больше не найдена в результатах анализа стабильности", pair.getPairName());
@@ -595,9 +598,9 @@ public class PairService {
                     log.error("❌ Анализ стабильности завершился неуспешно для пары {}", pair.getPairName());
                     return false;
                 }
-                
+
             } catch (Exception analysisEx) {
-                log.error("❌ Ошибка при анализе стабильности пары {}: {}", 
+                log.error("❌ Ошибка при анализе стабильности пары {}: {}",
                         pair.getPairName(), analysisEx.getMessage(), analysisEx);
                 return false;
             }

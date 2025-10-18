@@ -6,6 +6,7 @@ import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.experemental.stability.dto.StabilityResultDto;
 import com.example.core.experemental.stability.service.StabilityAnalysisService;
 import com.example.core.repositories.PairRepository;
+import com.example.core.utils.StringUtils;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Pair;
@@ -275,7 +276,7 @@ public class SearchStablePairService {
             if (minVolume != null) {
                 log.info("💰 Применяется фильтр по минимальному объему: {} млн $", minVolume);
             }
-            
+
             // Всегда используем расширенный запрос к candles микросервису с пагинацией
             return getCandlesExtended(settings, timeframe, candleLimit, searchTickers, period, minVolume);
 
@@ -302,6 +303,7 @@ public class SearchStablePairService {
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ? searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(Arrays.asList(settings.getMinimumLotBlacklist().split(",")))
                     .period(period)
+                    .untilDate(StringUtils.getCurrentDateTimeWithZ())
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getValidatedCacheExtended(request);
@@ -330,15 +332,15 @@ public class SearchStablePairService {
         try {
             // Используем централизованный сервис для расчета количества свечей
             int candleLimit = timeframeAndPeriodService.calculateOptimalCandleCount(timeframe, period);
-            
+
             log.debug("📊 Рассчитано количество свечей для {} за {}: {}", timeframe, period, candleLimit);
-            
+
             return candleLimit;
-            
+
         } catch (Exception e) {
-            log.error("❌ Ошибка при расчете количества свечей для timeframe={}, period={}: {}", 
+            log.error("❌ Ошибка при расчете количества свечей для timeframe={}, period={}: {}",
                     timeframe, period, e.getMessage());
-            
+
             // Fallback: возвращаем безопасное значение по умолчанию
             int fallbackLimit = 1000;
             log.warn("⚠️ Используется fallback значение: {} свечей", fallbackLimit);
@@ -454,8 +456,8 @@ public class SearchStablePairService {
             detachedPair.setAnalysisResults(pair.getAnalysisResults());
             detachedPair.setMinVolMln(pair.getMinVolMln()); // Копируем минимальный объем
             detachedPair.setTotalScoreEntry(pair.getTotalScoreEntry()); // Копируем изначальный скор
-            
-            log.debug("💾 Сохраняем пару {}/{} с minVolMln = {}", 
+
+            log.debug("💾 Сохраняем пару {}/{} с minVolMln = {}",
                     pair.getTickerA(), pair.getTickerB(), pair.getMinVolMln());
 
             // Копируем торговые данные если есть

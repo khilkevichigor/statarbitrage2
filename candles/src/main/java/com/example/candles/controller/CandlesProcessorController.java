@@ -48,6 +48,7 @@ public class CandlesProcessorController {
             String untilDate = request.getUntilDate() != null ? request.getUntilDate() : generateUntilDate();
             double minVolume = request.getMinVolume() != 0.0 ? request.getMinVolume() * 1_000_000.0 : 10_000_000.0;
 
+            log.info("");
             log.info("📅 ДАТА ДО: {}", untilDate);
 
             // Получаем тикеры: используем переданный список или все доступные

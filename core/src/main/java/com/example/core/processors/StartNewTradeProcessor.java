@@ -3,6 +3,7 @@ package com.example.core.processors;
 import com.example.core.client.CandlesFeignClient;
 import com.example.core.services.*;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.core.utils.StringUtils;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Pair;
@@ -12,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -87,6 +90,7 @@ public class StartNewTradeProcessor {
                 .minVolume(settings.getMinVolume())
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
                 .period(settings.calculateCurrentPeriod())
+                .untilDate(StringUtils.getCurrentDateTimeWithZ())
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
