@@ -66,14 +66,6 @@ public class ExtendedCandlesRequest {
     private String untilDate;
 
     /**
-     * Использовать ли самые свежие данные без ограничения untilDate.
-     * Если true - игнорируется untilDate и загружаются самые актуальные свечи.
-     * Используется для UpdateTradeProcessor для получения актуального zScore.
-     */
-    @Builder.Default
-    private Boolean useFreshData = false;
-
-    /**
      * Период для получения исторических данных (1 год, 6 месяцев, 1 месяц).
      * Используется вместо candleLimit когда нужно получить данные за определенный период
      */

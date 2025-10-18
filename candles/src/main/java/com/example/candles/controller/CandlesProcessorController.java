@@ -45,25 +45,10 @@ public class CandlesProcessorController {
             String exchange = request.getExchange() != null ? request.getExchange() : "OKX";
             String timeframe = request.getTimeframe() != null ? request.getTimeframe() : "1H";
             String period = request.getPeriod() != null ? request.getPeriod() : "1 месяц";
-            
-            // Проверяем флаг useFreshData для получения самых свежих данных
-            String untilDate = null;
-            boolean useFreshData = Boolean.TRUE.equals(request.getUseFreshData());
-            
-            if (useFreshData) {
-                log.info("🔥 РЕЖИМ СВЕЖИХ ДАННЫХ: untilDate отключен, загружаем самые актуальные свечи");
-            } else {
-                // Если untilDate явно передан в запросе - используем его
-                // Иначе не используем untilDate вообще (получаем свежие данные)
-                untilDate = request.getUntilDate();
-                if (untilDate != null) {
-                    log.info("📅 ДАТА ДО (из запроса): {}", untilDate);
-                } else {
-                    log.info("🔥 ДАТА ДО не задана: загружаем самые актуальные свечи");
-                }
-            }
-            
+            String untilDate = request.getUntilDate() != null ? request.getUntilDate() : generateUntilDate();
             double minVolume = request.getMinVolume() != 0.0 ? request.getMinVolume() * 1_000_000.0 : 10_000_000.0;
+
+            log.info("📅 ДАТА ДО: {}", untilDate);
 
             // Получаем тикеры: используем переданный список или все доступные
             List<String> tickersToProcess;
@@ -124,11 +109,8 @@ public class CandlesProcessorController {
                 // Создаем задачи для каждого тикера
                 List<Future<Void>> futures = new ArrayList<>();
 
-                // Делаем переменные effectively final для использования в lambda
-                final String finalUntilDate = untilDate;
-                final List<String> finalTickersToProcess = tickersToProcess;
-                
                 for (String ticker : tickersToProcess) {
+                    List<String> finalTickersToProcess = tickersToProcess;
                     Future<Void> future = executor.submit(() -> {
                         int tickerNumber = processedTickers.incrementAndGet();
                         String threadName = Thread.currentThread().getName();
@@ -140,7 +122,7 @@ public class CandlesProcessorController {
                             long startTime = System.currentTimeMillis();
 
                             List<Candle> candles = cacheValidatedCandlesProcessor.getValidatedCandlesFromCache(
-                                    exchange, ticker, finalUntilDate, timeframe, period);
+                                    exchange, ticker, untilDate, timeframe, period);
 
                             long duration = System.currentTimeMillis() - startTime;
 
@@ -191,6 +173,7 @@ public class CandlesProcessorController {
                 }
             }
 
+            Map<String, List<Candle>> filteredResult;
             if (result != null && !result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = totalCandles / result.size();
@@ -199,7 +182,7 @@ public class CandlesProcessorController {
 
                 // Если были переданы конкретные тикеры, возвращаем только их
                 if (originalRequestedTickers != null) {
-                    Map<String, List<Candle>> filteredResult = result.entrySet().stream()
+                    filteredResult = result.entrySet().stream()
                             .filter(entry -> originalRequestedTickers.contains(entry.getKey()))
                             .collect(Collectors.toMap(
                                     Map.Entry::getKey,
@@ -208,9 +191,6 @@ public class CandlesProcessorController {
 
                     log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
                             filteredResult.size(), result.size());
-                    // Заменяем результат на отфильтрованный
-                    result.clear();
-                    result.putAll(filteredResult);
                 }
             } else {
                 log.warn("⚠️ Кэш не содержит данных - проверьте работу предзагрузки!");
