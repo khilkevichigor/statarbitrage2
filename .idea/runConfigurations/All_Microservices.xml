@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="🚀 All Microservices" type="CompoundRunConfigurationType">
     <toRun name="1. Okx Service" type="SpringBootApplicationConfigurationType" />
-    <toRun name="2. Core Service" type="SpringBootApplicationConfigurationType" />
-    <toRun name="3. Cointegration Service" type="SpringBootApplicationConfigurationType" />
-    <toRun name="4. Candles Service" type="SpringBootApplicationConfigurationType" />
-    <toRun name="5. Notification Service" type="SpringBootApplicationConfigurationType" />
-    <toRun name="6. Csv Service" type="SpringBootApplicationConfigurationType" />
+    <toRun name="2. Cointegration Service" type="SpringBootApplicationConfigurationType" />
+    <toRun name="3. Candles Service" type="SpringBootApplicationConfigurationType" />
+    <toRun name="4. Notification Service" type="SpringBootApplicationConfigurationType" />
+    <toRun name="5. Csv Service" type="SpringBootApplicationConfigurationType" />
+    <toRun name="6. Core Service" type="SpringBootApplicationConfigurationType" />
     <method v="2" />
   </configuration>
 </component>
