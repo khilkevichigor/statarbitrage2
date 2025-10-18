@@ -199,12 +199,14 @@ public class UpdateTradeProcessor {
     private Map<String, Object> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
 
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
+        // ВАЖНО: Используем useFreshData=true для UpdateTradeProcessor чтобы получить самые свежие данные
         ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit()) //todo check
-                .minVolume(0.001) //todo для уже торгуемой пары просто обновляем без фильтра по объему - сетим минималку
+                .minVolume(0.001) //todo для уже торгуемой пары просто обновляем без фильтра по объему - сетим минималка
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()))
                 .period(settings.calculateCurrentPeriod()) //todo берем из настроек
+                .useFreshData(true) // Отключаем untilDate для получения самых актуальных данных
                 .build();
 
         // Получаем все свечи через расширенный эндпоинт с пагинацией
