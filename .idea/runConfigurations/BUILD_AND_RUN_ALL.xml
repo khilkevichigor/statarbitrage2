@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="🏗️ BUILD AND RUN ALL" type="CompoundRunConfigurationType">
+    <toRun name="🚀 All Microservices" type="CompoundRunConfigurationType" />
+    <toRun name="1. Build All" type="MavenRunConfiguration" />
+    <method v="2" />
+  </configuration>
+</component>

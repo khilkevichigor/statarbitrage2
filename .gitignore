@@ -47,6 +47,7 @@ gradle-app.setting
 # IntelliJ IDEA
 .idea/
 !.idea/runConfigurations/
+!.idea/runConfigurations/*.xml
 *.iws
 *.iml
 *.ipr

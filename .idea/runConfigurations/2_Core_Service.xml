@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="2. Core Service" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <envs>
+      <env name="DB_PASSWORD" value="statpass123" />
+      <env name="DB_USERNAME" value="statuser" />
+      <env name="OKX_API_KEY" value="" />
+      <env name="OKX_API_PASSPHRASE" value="" />
+      <env name="OKX_API_SANDBOX" value="true" />
+      <env name="OKX_API_SECRET" value="" />
+      <env name="TELEGRAM_BOT_NAME" value="" />
+      <env name="TELEGRAM_BOT_OWNER_CHAT_ID" value="" />
+      <env name="TELEGRAM_BOT_TOKEN" value="" />
+    </envs>
+    <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+    <option name="MAIN_CLASS_NAME" value="com.example.core.CoreApplication" />
+    <module name="core" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.example.core.CoreApplication" />
+    <option name="UPDATE_ACTION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+    <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$/core" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
