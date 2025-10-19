@@ -49,7 +49,7 @@ public class MonitoringPairsUpdateScheduler {
     public void updateMonitoringPairsScheduled() {
         try {
             Settings settings = settingsService.getSettings();
-            
+
             // Проверяем включен ли шедуллер через настройки
             if (!settings.getSchedulerMonitoringPairsUpdateEnabled()) {
                 log.debug("📅 MonitoringPairsUpdateScheduler отключен в настройках");
@@ -65,7 +65,7 @@ public class MonitoringPairsUpdateScheduler {
             log.error("❌ Ошибка проверки настроек шедуллера: {}", e.getMessage());
             return;
         }
-        
+
         log.info("🌙 Запуск автоматического обновления пар в мониторинге в {}", LocalDateTime.now());
 
         try {
@@ -126,8 +126,8 @@ public class MonitoringPairsUpdateScheduler {
         log.info("🧵 Поток {}: Начало обновления пары {}", threadName, pairName);
 
         try {
-            boolean success = pairService.updateMonitoringPair(pair.getId());
-            
+            boolean success = pairService.updateMonitoringPairSync(pair.getId());
+
             if (success) {
                 successfulUpdates.incrementAndGet();
                 log.info("✅ Поток {}: Пара {} успешно обновлена", threadName, pairName);
@@ -167,8 +167,8 @@ public class MonitoringPairsUpdateScheduler {
     public boolean isSchedulerEnabled() {
         try {
             Settings settings = settingsService.getSettings();
-            return settings.getSchedulerMonitoringPairsUpdateEnabled() && 
-                   schedulerControlService.isSchedulingEnabled();
+            return settings.getSchedulerMonitoringPairsUpdateEnabled() &&
+                    schedulerControlService.isSchedulingEnabled();
         } catch (Exception e) {
             log.error("❌ Ошибка получения статуса шедуллера: {}", e.getMessage());
             return false;

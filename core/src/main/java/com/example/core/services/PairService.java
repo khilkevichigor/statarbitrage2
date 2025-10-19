@@ -12,6 +12,7 @@ import com.example.shared.models.Settings;
 import com.example.shared.models.StablePairsScreenerSettings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -466,8 +468,15 @@ public class PairService {
      * Обновить пару в мониторинге
      * Пересчитывает показатели стабильности для пары
      */
+    @Async
     @Transactional
-    public boolean updateMonitoringPair(Long pairId) {
+    public CompletableFuture<Boolean> updateMonitoringPairAsync(Long pairId) {
+        boolean result = updateMonitoringPairSync(pairId);
+        return CompletableFuture.completedFuture(result);
+    }
+
+    @Transactional
+    public boolean updateMonitoringPairSync(Long pairId) {
         try {
             log.info("🔄 Начало обновления пары ID: {}", pairId);
 

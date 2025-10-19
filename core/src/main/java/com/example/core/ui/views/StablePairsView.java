@@ -496,7 +496,7 @@ public class StablePairsView extends VerticalLayout {
 
         // Основные колонки
         grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        
+
         // Колонка "Скор entry" - изначальный скор при добавлении в мониторинг
         Grid.Column<Pair> scoreEntryColumn = grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScoreEntry() != null ? pair.getTotalScoreEntry().toString() : "-"));
         scoreEntryColumn.setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -508,7 +508,7 @@ public class StablePairsView extends VerticalLayout {
             if (score2 == null) return -1; // null values go to end
             return score2.compareTo(score1); // Descending order (higher scores first)
         });
-        
+
         // Колонка "Скор факт" - текущий/обновленный скор
         Grid.Column<Pair> scoreColumnMonitoring = grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-"));
         scoreColumnMonitoring.setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -1228,14 +1228,16 @@ public class StablePairsView extends VerticalLayout {
                             2000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
 
-            // Выполняем обновление в фоновом потоке
-            getUI().ifPresent(ui -> {
-                Thread updateThread = new Thread(() -> {
-                    try {
-                        boolean success = pairService.updateMonitoringPair(pair.getId());
-
-                        ui.access(() -> {
-                            if (success) {
+            // Выполняем обновление асинхронно через Spring
+            pairService.updateMonitoringPairAsync(pair.getId())
+                    .whenComplete((success, throwable) -> {
+                        getUI().ifPresent(ui -> ui.access(() -> {
+                            if (throwable != null) {
+                                log.error("Ошибка при обновлении пары {}: {}", pair.getPairName(), throwable.getMessage(), throwable);
+                                Notification.show("❌ Ошибка обновления: " + throwable.getMessage(),
+                                                5000, Notification.Position.TOP_CENTER)
+                                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                            } else if (success != null && success) {
                                 Notification.show(
                                                 String.format("✅ Пара %s обновлена", pair.getPairName()),
                                                 3000, Notification.Position.BOTTOM_CENTER)
@@ -1249,19 +1251,8 @@ public class StablePairsView extends VerticalLayout {
                                                 3000, Notification.Position.TOP_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                             }
-                        });
-
-                    } catch (Exception e) {
-                        log.error("Ошибка при обновлении пары {}: {}", pair.getPairName(), e.getMessage(), e);
-                        ui.access(() -> {
-                            Notification.show("❌ Ошибка обновления: " + e.getMessage(),
-                                            5000, Notification.Position.TOP_CENTER)
-                                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                        });
-                    }
-                });
-                updateThread.start();
-            });
+                        }));
+                    });
 
         } catch (Exception e) {
             log.error("Ошибка при инициации обновления пары {}: {}", pair.getPairName(), e.getMessage(), e);

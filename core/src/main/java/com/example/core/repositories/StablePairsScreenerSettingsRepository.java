@@ -15,9 +15,9 @@ import java.util.Optional;
 public interface StablePairsScreenerSettingsRepository extends JpaRepository<StablePairsScreenerSettings, Long> {
 
     /**
-     * Найти настройки по умолчанию
+     * Найти настройки по умолчанию (может возвращать несколько записей при нарушении целостности)
      */
-    Optional<StablePairsScreenerSettings> findByIsDefaultTrue();
+    List<StablePairsScreenerSettings> findByIsDefaultTrue();
 
     /**
      * Найти все настройки, отсортированные по времени последнего использования
