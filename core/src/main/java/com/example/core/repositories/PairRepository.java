@@ -1,6 +1,7 @@
 package com.example.core.repositories;
 
 import com.example.shared.enums.PairType;
+import com.example.shared.enums.StabilityRating;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Pair;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -59,8 +60,16 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Pair> findStablePairsInMonitoring();
 
     /**
-     * Найти стабильные пары в мониторинге с указанными рейтингами
+     * Найти стабильные пары в мониторинге с указанными рейтингами (enum)
      */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.isInMonitoring = true AND p.stabilityRating IN :ratings ORDER BY p.createdAt DESC")
+    List<Pair> findStablePairsInMonitoringByStabilityRatings(@Param("ratings") List<StabilityRating> ratings);
+
+    /**
+     * Найти стабильные пары в мониторинге с указанными рейтингами (строки - для обратной совместимости)
+     * @deprecated Используйте {@link #findStablePairsInMonitoringByStabilityRatings(List)}
+     */
+    @Deprecated
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.isInMonitoring = true AND p.stabilityRating IN :ratings ORDER BY p.createdAt DESC")
     List<Pair> findStablePairsInMonitoringByRatings(@Param("ratings") List<String> ratings);
 
@@ -71,8 +80,16 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Pair> findFoundStablePairs();
 
     /**
-     * Найти стабильные пары по рейтингу
+     * Найти стабильные пары по рейтингу (enum)
      */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.stabilityRating = :rating ORDER BY p.totalScore DESC")
+    List<Pair> findStablePairsByStabilityRating(@Param("rating") StabilityRating rating);
+
+    /**
+     * Найти стабильные пары по рейтингу (строка - для обратной совместимости)
+     * @deprecated Используйте {@link #findStablePairsByStabilityRating(StabilityRating)}
+     */
+    @Deprecated
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.stabilityRating = :rating ORDER BY p.totalScore DESC")
     List<Pair> findStablePairsByRating(@Param("rating") String rating);
 
@@ -121,8 +138,18 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Object[]> getStabilityRatingStats(@Param("fromDate") LocalDateTime fromDate);
 
     /**
-     * Найти топ стабильных пар по рейтингу
+     * Найти топ стабильных пар по рейтингу (enum)
      */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.stabilityRating IN :ratings " +
+           "ORDER BY p.totalScore DESC LIMIT :limit")
+    List<Pair> findTopStablePairsByStabilityRating(@Param("ratings") List<StabilityRating> ratings, 
+                                                  @Param("limit") int limit);
+
+    /**
+     * Найти топ стабильных пар по рейтингу (строки - для обратной совместимости)
+     * @deprecated Используйте {@link #findTopStablePairsByStabilityRating(List, int)}
+     */
+    @Deprecated
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.stabilityRating IN :ratings " +
            "ORDER BY p.totalScore DESC LIMIT :limit")
     List<Pair> findTopStablePairsByRating(@Param("ratings") List<String> ratings, 

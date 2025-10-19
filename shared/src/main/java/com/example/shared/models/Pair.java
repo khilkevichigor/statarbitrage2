@@ -5,6 +5,7 @@ import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.dto.ZScoreParam;
 import com.example.shared.enums.PairType;
+import com.example.shared.enums.StabilityRating;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.utils.BigDecimalUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -145,9 +146,10 @@ public class Pair {
     /**
      * Рейтинг стабильности (EXCELLENT, GOOD, MARGINAL, POOR, REJECTED, FAILED)
      */
+    @Enumerated(EnumType.STRING)
     @CsvExportable(order = 11)
     @Column(name = "stability_rating", length = 20)
-    private String stabilityRating;
+    private StabilityRating stabilityRating;
 
     /**
      * Торгуемая ли пара
@@ -756,8 +758,14 @@ public class Pair {
 
             java.lang.reflect.Field stabilityRatingField = dtoClass.getDeclaredField("stabilityRating");
             stabilityRatingField.setAccessible(true);
-            String stabilityRating = (String) stabilityRatingField.get(stabilityResult);
-            pair.setStabilityRating(stabilityRating);
+            Object stabilityRatingObj = stabilityRatingField.get(stabilityResult);
+            if (stabilityRatingObj instanceof StabilityRating) {
+                // Новый формат - уже enum
+                pair.setStabilityRating((StabilityRating) stabilityRatingObj);
+            } else if (stabilityRatingObj instanceof String) {
+                // Старый формат - строка, конвертируем в enum
+                pair.setStabilityRating(StabilityRating.fromString((String) stabilityRatingObj));
+            }
 
             java.lang.reflect.Field isTradeableField = dtoClass.getDeclaredField("isTradeable");
             isTradeableField.setAccessible(true);
@@ -782,7 +790,7 @@ public class Pair {
             analysisResultsMap.put("tickerA", tickerA);
             analysisResultsMap.put("tickerB", tickerB);
             analysisResultsMap.put("totalScore", totalScore);
-            analysisResultsMap.put("stabilityRating", stabilityRating);
+            analysisResultsMap.put("stabilityRating", stabilityRatingObj);
             analysisResultsMap.put("isTradeable", isTradeable);
             analysisResultsMap.put("dataPoints", dataPoints);
             analysisResultsMap.put("candleCount", dataPoints);

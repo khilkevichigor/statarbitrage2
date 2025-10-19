@@ -1,6 +1,8 @@
 package com.example.core.experemental.stability.dto;
 
+import com.example.shared.enums.StabilityRating;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -20,7 +22,15 @@ public class StabilityResultDto {
     private Integer totalScore;
     
     @JsonProperty("stability_rating")
-    private String stabilityRating; // EXCELLENT, GOOD, MARGINAL, POOR, REJECTED, FAILED
+    private StabilityRating stabilityRating;
+    
+    /**
+     * Для обратной совместимости - сеттер принимает строку и конвертирует в enum
+     */
+    @JsonSetter("stability_rating")
+    public void setStabilityRatingFromString(String value) {
+        this.stabilityRating = StabilityRating.fromString(value);
+    }
     
     @JsonProperty("is_tradeable")
     private Boolean isTradeable;

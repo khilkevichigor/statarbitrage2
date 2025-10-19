@@ -2,6 +2,7 @@ package com.example.core.services;
 
 import com.example.core.repositories.PairRepository;
 import com.example.shared.enums.PairType;
+import com.example.shared.enums.StabilityRating;
 import com.example.shared.models.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,14 +41,14 @@ public class StablePairsService {
     }
 
     /**
-     * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами
+     * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами (enum)
      * @param ratings список рейтингов для фильтрации
      * @return список пар в мониторинге с указанными рейтингами
      */
-    public List<Pair> getStablePairsInMonitoringByRatings(List<String> ratings) {
+    public List<Pair> getStablePairsInMonitoringByStabilityRatings(List<StabilityRating> ratings) {
         log.info("🔍 Получение стабильных пар из постоянного списка мониторинга с рейтингами: {}", ratings);
         
-        List<Pair> monitoringPairs = pairRepository.findStablePairsInMonitoringByRatings(ratings);
+        List<Pair> monitoringPairs = pairRepository.findStablePairsInMonitoringByStabilityRatings(ratings);
         
         log.info("✅ Найдено {} стабильных пар в постоянном списке мониторинга с рейтингами {}", 
                 monitoringPairs.size(), ratings);
@@ -56,14 +57,30 @@ public class StablePairsService {
     }
 
     /**
-     * Получить хорошие стабильные пары из постоянного списка мониторинга (GOOD и EXCELLENT)
+     * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами (строки) - для обратной совместимости
+     * @deprecated Используйте {@link #getStablePairsInMonitoringByStabilityRatings(List)} с enum
+     */
+    @Deprecated
+    public List<Pair> getStablePairsInMonitoringByRatings(List<String> ratings) {
+        List<StabilityRating> enumRatings = ratings.stream()
+                .map(StabilityRating::fromString)
+                .toList();
+        return getStablePairsInMonitoringByStabilityRatings(enumRatings);
+    }
+
+    /**
+     * Получить хорошие стабильные пары из постоянного списка мониторинга (MARGINAL, GOOD и EXCELLENT)
      * @return список пар в мониторинге с хорошими рейтингами
      */
     public List<Pair> getGoodStablePairsInMonitoring() {
-        List<String> goodRatings = List.of("MARGINAL", "GOOD", "EXCELLENT"); //todo сделать enum
+        List<StabilityRating> goodRatings = List.of(
+                StabilityRating.MARGINAL, 
+                StabilityRating.GOOD, 
+                StabilityRating.EXCELLENT
+        );
         log.info("🔍 Получение хороших стабильных пар из постоянного списка мониторинга: {}", goodRatings);
         
-        return getStablePairsInMonitoringByRatings(goodRatings);
+        return getStablePairsInMonitoringByStabilityRatings(goodRatings);
     }
 
     /**

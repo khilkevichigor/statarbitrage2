@@ -58,7 +58,9 @@ public class PairService {
 
         Map<String, Long> ratingStats = new HashMap<>();
         for (Object[] stat : stats) {
-            ratingStats.put((String) stat[0], (Long) stat[1]);
+            // Теперь stat[0] может быть StabilityRating enum, конвертируем в строку
+            String ratingString = stat[0] != null ? stat[0].toString() : "UNKNOWN";
+            ratingStats.put(ratingString, (Long) stat[1]);
         }
         result.put("ratingDistribution", ratingStats);
 
