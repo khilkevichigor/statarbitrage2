@@ -149,7 +149,7 @@ public class StablePairsScreenerSettings {
      */
     @Column(name = "min_volume_value")
     @Builder.Default
-    private Double minVolumeValue = 20.0;
+    private Double minVolumeValue = 50.0;
 
     // ======== ФИЛЬТР ПО ТИКЕРАМ ========
 
@@ -334,8 +334,8 @@ public class StablePairsScreenerSettings {
         return StablePairsScreenerSettings.builder()
                 .name("Настройки по умолчанию")
                 .isDefault(true)
-                .selectedTimeframes("1D")
-                .selectedPeriods("месяц")
+                .selectedTimeframes("15m")
+                .selectedPeriods("1 месяц")
                 .minCorrelationEnabled(true)
                 .minCorrelationValue(0.1)
                 .minWindowSizeEnabled(true)
@@ -347,7 +347,7 @@ public class StablePairsScreenerSettings {
                 .maxPValueEnabled(true)
                 .maxPValue(0.1)
                 .minVolumeEnabled(true)
-                .minVolumeValue(20.0)
+                .minVolumeValue(50.0)
                 .searchTickersEnabled(false)
                 .searchTickers("")
                 .runOnSchedule(false)

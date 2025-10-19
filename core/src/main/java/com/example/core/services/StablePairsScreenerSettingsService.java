@@ -67,11 +67,17 @@ public class StablePairsScreenerSettingsService {
 
                 log.info("✅ Исправлено нарушение целостности. Осталась одна настройка по умолчанию: {} (ID: {})",
                         keepAsDefault.getName(), keepAsDefault.getId());
+                
+                // Проверяем и обновляем значения по умолчанию до актуальных
+                updateDefaultSettingsIfNeeded(keepAsDefault);
                 return keepAsDefault;
             }
 
             StablePairsScreenerSettings defaultSettings = defaultSettingsList.get(0);
             log.debug("✅ Найдены существующие настройки по умолчанию: {}", defaultSettings.getName());
+            
+            // Проверяем и обновляем значения по умолчанию до актуальных
+            updateDefaultSettingsIfNeeded(defaultSettings);
             return defaultSettings;
         }
 
@@ -420,5 +426,55 @@ public class StablePairsScreenerSettingsService {
         }
 
         log.debug("✅ Валидация настроек прошла успешно");
+    }
+
+    /**
+     * Обновить настройки по умолчанию до актуальных значений, если нужно
+     */
+    private void updateDefaultSettingsIfNeeded(StablePairsScreenerSettings settings) {
+        boolean needsUpdate = false;
+        
+        // Проверяем, нужно ли обновить таймфрейм с "1D" на "15m"
+        Set<String> currentTimeframes = settings.getSelectedTimeframesSet();
+        if (currentTimeframes.contains("1D") || (currentTimeframes.size() == 1 && currentTimeframes.contains("1D"))) {
+            log.info("🔄 Обновляем таймфрейм по умолчанию с '{}' на '15m'", currentTimeframes);
+            settings.setSelectedTimeframesSet(Set.of("15m"));
+            needsUpdate = true;
+        }
+        
+        // Проверяем, нужно ли обновить период с "месяц" на "1 месяц"
+        Set<String> currentPeriods = settings.getSelectedPeriodsSet();
+        if (currentPeriods.contains("месяц") || (currentPeriods.size() == 1 && currentPeriods.contains("месяц"))) {
+            log.info("🔄 Обновляем период по умолчанию с '{}' на '1 месяц'", currentPeriods);
+            settings.setSelectedPeriodsSet(Set.of("1 месяц"));
+            needsUpdate = true;
+        }
+        
+        // Проверяем, нужно ли обновить Min Window Size со 100 на 450
+        if (settings.getMinWindowSizeValue() != null && settings.getMinWindowSizeValue().equals(100.0)) {
+            log.info("🔄 Обновляем Min Window Size по умолчанию с {} на 450", settings.getMinWindowSizeValue());
+            settings.setMinWindowSizeValue(450.0);
+            needsUpdate = true;
+        }
+        
+        // Проверяем, нужно ли включить Min Volume и обновить значение
+        if (!settings.isMinVolumeEnabled() || 
+            (settings.getMinVolumeValue() != null && settings.getMinVolumeValue() < 50.0)) {
+            log.info("🔄 Обновляем Min Volume: enabled={} -> true, value={} -> 50", 
+                    settings.isMinVolumeEnabled(), settings.getMinVolumeValue());
+            settings.setMinVolumeEnabled(true);
+            settings.setMinVolumeValue(50.0);
+            needsUpdate = true;
+        }
+        
+        // Сохраняем обновления, если они были
+        if (needsUpdate) {
+            try {
+                repository.save(settings);
+                log.info("✅ Настройки по умолчанию успешно обновлены до актуальных значений");
+            } catch (Exception e) {
+                log.error("❌ Ошибка при обновлении настроек по умолчанию: {}", e.getMessage(), e);
+            }
+        }
     }
 }
