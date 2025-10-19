@@ -60,7 +60,7 @@ public class StablePairsService {
      * @return список пар в мониторинге с хорошими рейтингами
      */
     public List<Pair> getGoodStablePairsInMonitoring() {
-        List<String> goodRatings = List.of("GOOD", "EXCELLENT");
+        List<String> goodRatings = List.of("MARGINAL", "GOOD", "EXCELLENT"); //todo сделать enum
         log.info("🔍 Получение хороших стабильных пар из постоянного списка мониторинга: {}", goodRatings);
         
         return getStablePairsInMonitoringByRatings(goodRatings);
