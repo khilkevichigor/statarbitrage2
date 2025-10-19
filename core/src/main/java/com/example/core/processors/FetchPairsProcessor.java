@@ -5,7 +5,7 @@ import com.example.core.services.PairService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.StablePairsService;
 import com.example.core.services.ZScoreService;
-import com.example.core.utils.StringUtils;
+import com.example.shared.utils.StringUtils;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.dto.FetchPairsRequest;

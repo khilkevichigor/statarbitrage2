@@ -6,7 +6,7 @@ import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.experemental.stability.dto.StabilityResultDto;
 import com.example.core.experemental.stability.service.StabilityAnalysisService;
 import com.example.core.repositories.PairRepository;
-import com.example.core.utils.StringUtils;
+import com.example.shared.utils.StringUtils;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Pair;

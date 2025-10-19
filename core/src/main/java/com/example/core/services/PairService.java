@@ -3,7 +3,7 @@ package com.example.core.services;
 import com.example.core.client.CandlesFeignClient;
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.repositories.PairRepository;
-import com.example.core.utils.StringUtils;
+import com.example.shared.utils.StringUtils;
 import com.example.shared.dto.*;
 import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;

@@ -6,7 +6,7 @@ import com.example.core.services.*;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.trading.services.TradingProviderFactory;
-import com.example.core.utils.StringUtils;
+import com.example.shared.utils.StringUtils;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.rabbit.CoreEvent;

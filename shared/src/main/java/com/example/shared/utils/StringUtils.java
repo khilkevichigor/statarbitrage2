@@ -1,4 +1,4 @@
-package com.example.core.utils;
+package com.example.shared.utils;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
