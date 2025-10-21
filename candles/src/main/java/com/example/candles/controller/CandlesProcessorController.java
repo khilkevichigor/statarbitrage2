@@ -89,10 +89,7 @@ public class CandlesProcessorController {
             // Определяем список тикеров для обработки
             if (tickersToProcess == null || tickersToProcess.isEmpty()) {
                 log.error("❌ API ОШИБКА: Список тикеров не может быть пустым для extended запроса");
-                return ResponseEntity.badRequest().body(Map.of(
-                        "success", false,
-                        "message", "Список тикеров не может быть пустым"
-                ));
+                return ResponseEntity.badRequest().body(Map.of());
             }
 
             // Результат будет thread-safe
@@ -205,11 +202,7 @@ public class CandlesProcessorController {
                     result, exchange, untilDate, timeframe, period, tickersToProcess);
             if (!consistencyResult.isValid) {
                 log.error("❌ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: {}", consistencyResult.reason);
-                return ResponseEntity.ok(Map.of(
-                        "success", false,
-                        "message", "Данные не прошли валидацию консистентности: " + consistencyResult.reason,
-                        "candlesCount", 0
-                ));
+                return ResponseEntity.ok(Map.of());
             }
 
             if (isStandardTickerBtcAdded) {
@@ -221,11 +214,7 @@ public class CandlesProcessorController {
 
         } catch (Exception e) {
             log.error("❌ API ОШИБКА: Ошибка при получении валидированных свечей (extended): {}", e.getMessage(), e);
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", "Ошибка при получении валидированных свечей: " + e.getMessage(),
-                    "candlesCount", 0
-            ));
+            return ResponseEntity.ok(Map.of());
         }
     }
 

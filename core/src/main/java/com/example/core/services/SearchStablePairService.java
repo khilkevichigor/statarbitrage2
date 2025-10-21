@@ -309,6 +309,16 @@ public class SearchStablePairService {
             Map<String, List<Candle>> result = candlesFeignClient.getValidatedCacheExtended(request);
 
             if (result != null && !result.isEmpty()) {
+                // Проверяем, что result является действительно Map<String, List<Candle>>
+                // а не Map с полями success/message из ошибочного ответа
+                boolean isValidResponse = result.entrySet().stream()
+                        .allMatch(entry -> entry.getValue() instanceof List);
+                
+                if (!isValidResponse) {
+                    log.error("❌ Получен некорректный ответ от candles микросервиса: {}", result);
+                    return new HashMap<>();
+                }
+                
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = result.values().stream().mapToInt(List::size).sum() / result.size();
                 if (searchTickers != null && !searchTickers.isEmpty()) {

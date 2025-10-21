@@ -26,7 +26,7 @@ public class FindCointPairsScheduler {
     public void maintainCointPairs() {
         long schedulerStart = System.currentTimeMillis();
 
-        log.info("🔄 Шедуллер поиска коинтегрированных пар запущен...");
+        log.debug("🔄 Шедуллер поиска коинтегрированных пар запущен...");
         Settings settings = settingsService.getSettings();
         if (settings == null || !settings.isAutoTradingEnabled()) {
             return;
