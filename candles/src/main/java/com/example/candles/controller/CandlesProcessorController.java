@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,7 +51,6 @@ public class CandlesProcessorController {
 
             log.info("");
             log.info("📅 ДАТА ДО: {}", untilDate);
-
             // Получаем тикеры: используем переданный список или все доступные
             List<String> tickersToProcess;
             final List<String> originalRequestedTickers; // Сохраняем оригинальный список для фильтрации результата
@@ -73,8 +73,14 @@ public class CandlesProcessorController {
 
                 originalRequestedTickers = null; // При загрузке всех тикеров фильтрация не нужна
 
-                tickersToProcess = okxFeignClient.getValidTickersByVolume(minVolume, true);
-                log.info("Получено валидных тикеров {}, minVolume={}", tickersToProcess.size(), minVolume);
+                try {
+                    tickersToProcess = retryOperation(() -> okxFeignClient.getValidTickersByVolume(minVolume, true), 
+                                                    "получение тикеров от OKX API", 3);
+                    log.info("Получено валидных тикеров {}, minVolume={}", tickersToProcess.size(), minVolume);
+                } catch (Exception e) {
+                    log.error("❌ СЕТЕВАЯ ОШИБКА: Не удалось получить тикеры от OKX API после повторных попыток: {}", e.getMessage());
+                    return ResponseEntity.status(503).body(Map.of("error", "Сервис временно недоступен - проблемы с получением тикеров"));
+                }
 
                 // Исключаем тикеры из excludeTickers если они указаны
                 if (request.getExcludeTickers() != null && !request.getExcludeTickers().isEmpty()) {
@@ -131,12 +137,13 @@ public class CandlesProcessorController {
                                 log.info("✅ [{}/{}] Поток {}: Получено {} свечей для тикера {} за {} мс",
                                         tickerNumber, finalTickersToProcess.size(), threadName, candles.size(), ticker, duration);
                             } else {
-                                log.warn("⚠️ [{}/{}] Поток {}: Пустой результат для тикера {} за {} мс",
+                                log.warn("⚠️ [{}/{}] Поток {}: Пустой результат для тикера {} - возможно неактивный/делистингованный тикер за {} мс",
                                         tickerNumber, finalTickersToProcess.size(), threadName, ticker, duration);
                             }
                         } catch (Exception e) {
-                            log.error("❌ [{}/{}] Поток {}: Ошибка при получении свечей для тикера {}: {}",
+                            log.error("❌ [{}/{}] Поток {}: Ошибка при получении свечей для тикера {}: {} - пропускаем тикер",
                                     tickerNumber, finalTickersToProcess.size(), threadName, ticker, e.getMessage());
+                            // НЕ прерываем обработку - просто пропускаем проблемный тикер
                         }
 
                         return null;
@@ -145,19 +152,32 @@ public class CandlesProcessorController {
                     futures.add(future);
                 }
 
-                // Ждем завершения всех задач (максимум 2 минуты на все тикеры)
+                // Ждем завершения всех задач (максимум 5 минут на все тикеры)
                 executor.shutdown();
-                if (!executor.awaitTermination(1, TimeUnit.HOURS)) {
-                    log.warn("⚠️ ТАЙМАУТ: Некоторые задачи не завершились за 1 час, принудительно завершаем");
+                if (!executor.awaitTermination(5, TimeUnit.MINUTES)) {
+                    log.warn("⚠️ ТАЙМАУТ: Некоторые задачи не завершились за 5 минут, принудительно завершаем");
                     executor.shutdownNow();
+                    // Даем время на корректное завершение
+                    try {
+                        if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                            log.error("❌ КРИТИЧНО: Не удалось корректно завершить все потоки");
+                        }
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.error("❌ Прервано при ожидании завершения потоков");
+                    }
                 }
 
-                // Проверяем результат всех задач
+                // Собираем результаты выполненных задач
                 for (Future<Void> future : futures) {
                     try {
-                        future.get(1, TimeUnit.SECONDS); // Короткий таймаут так как задачи уже должны быть завершены
-                    } catch (TimeoutException | ExecutionException e) {
-                        log.warn("⚠️ Одна из задач завершилась с ошибкой: {}", e.getMessage());
+                        if (future.isDone()) {
+                            future.get(); // Получаем результат без таймаута для завершенных задач
+                        } else {
+                            log.warn("⚠️ Задача не завершена после общего таймаута");
+                        }
+                    } catch (ExecutionException e) {
+                        log.error("❌ Критическая ошибка в задаче: {}", e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
                     }
                 }
 
@@ -171,25 +191,11 @@ public class CandlesProcessorController {
                 }
             }
 
-            Map<String, List<Candle>> filteredResult;
-            if (result != null && !result.isEmpty()) {
+            if (!result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = totalCandles / result.size();
                 log.info("💾 Запрос ИЗ КЭША завершен! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
                         result.size(), avgCandles, totalCandles);
-
-                // Если были переданы конкретные тикеры, возвращаем только их
-                if (originalRequestedTickers != null) {
-                    filteredResult = result.entrySet().stream()
-                            .filter(entry -> originalRequestedTickers.contains(entry.getKey()))
-                            .collect(Collectors.toMap(
-                                    Map.Entry::getKey,
-                                    Map.Entry::getValue
-                            ));
-
-                    log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
-                            filteredResult.size(), result.size());
-                }
             } else {
                 log.warn("⚠️ Кэш не содержит данных - проверьте работу предзагрузки!");
             }
@@ -197,20 +203,32 @@ public class CandlesProcessorController {
             log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
                     totalCandlesCount.get(), successfulTickers.get(), tickersToProcess.size());
 
-            // Валидация консистентности данных между тикерами с возможной догрузкой
-            ValidationResult consistencyResult = validateDataConsistencyBetweenTickersWithReload(
-                    result, exchange, untilDate, timeframe, period, tickersToProcess);
+            // Простая валидация консистентности без догрузки
+            ValidationResult consistencyResult = validateDataConsistencyBetweenTickers(result);
             if (!consistencyResult.isValid) {
-                log.error("❌ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: {}", consistencyResult.reason);
-                return ResponseEntity.ok(Map.of());
+                log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: {} - продолжаем с имеющимися данными", consistencyResult.reason);
             }
 
-            if (isStandardTickerBtcAdded) {
-                result.remove(STANDARD_TICKER_BTC);
+            // Применяем фильтрацию если были переданы конкретные тикеры
+            Map<String, List<Candle>> finalResult = result;
+            if (originalRequestedTickers != null) {
+                finalResult = result.entrySet().stream()
+                        .filter(entry -> originalRequestedTickers.contains(entry.getKey()))
+                        .collect(Collectors.toMap(
+                                Map.Entry::getKey,
+                                Map.Entry::getValue
+                        ));
+                log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
+                        finalResult.size(), result.size());
+            } else if (isStandardTickerBtcAdded) {
+                // Убираем BTC только если это загрузка всех тикеров
+                finalResult = new ConcurrentHashMap<>(result);
+                finalResult.remove(STANDARD_TICKER_BTC);
             }
+            
             // Для совместимости с существующим API возвращаем данные в том же формате
             // что и /all-extended: просто Map<String, List<Candle>>
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(finalResult);
 
         } catch (Exception e) {
             log.error("❌ API ОШИБКА: Ошибка при получении валидированных свечей (extended): {}", e.getMessage(), e);
@@ -510,6 +528,42 @@ public class CandlesProcessorController {
         } catch (Exception e) {
             return String.valueOf(timestamp);
         }
+    }
+
+    /**
+     * Выполняет операцию с повторными попытками в случае ошибки
+     */
+    private <T> T retryOperation(Supplier<T> operation, String operationName, int maxAttempts) throws Exception {
+        Exception lastException = null;
+        
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                log.info("🔄 RETRY #{}: Выполняем операцию '{}'", attempt, operationName);
+                T result = operation.get();
+                if (attempt > 1) {
+                    log.info("✅ RETRY: Операция '{}' успешна после {} попыток", operationName, attempt);
+                }
+                return result;
+            } catch (Exception e) {
+                lastException = e;
+                log.warn("⚠️ RETRY #{}: Ошибка в операции '{}': {}", attempt, operationName, e.getMessage());
+                
+                if (attempt < maxAttempts) {
+                    try {
+                        // Экспоненциальная задержка: 1, 2, 4 секунды
+                        long delay = 1000L * (1L << (attempt - 1));
+                        log.info("⏳ RETRY: Ожидание {} мс перед следующей попыткой", delay);
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new Exception("Прервано во время ожидания retry", ie);
+                    }
+                }
+            }
+        }
+        
+        log.error("❌ RETRY: Операция '{}' неуспешна после {} попыток", operationName, maxAttempts);
+        throw new Exception("Не удалось выполнить операцию '" + operationName + "' после " + maxAttempts + " попыток", lastException);
     }
 
     /**

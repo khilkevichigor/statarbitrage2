@@ -40,9 +40,9 @@ public class CacheValidatedCandlesProcessor {
 
     private final CachedCandleRepository cachedCandleRepository;
     private final CandlesLoaderProcessor candlesLoaderProcessor;
-
-    // Временное поле для хранения текущего таймфрейма во время валидации
-    private String currentTimeframe;
+    
+    // Синхронизация догрузки по тикерам для избежания дублирования запросов в многопоточной среде
+    private final java.util.concurrent.ConcurrentHashMap<String, Object> tickerLocks = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Главный публичный метод для получения валидированных свечей из кэша
@@ -51,8 +51,7 @@ public class CacheValidatedCandlesProcessor {
         log.info("🔍 КЭШ ЗАПРОС: Получаем свечи для тикера {} на бирже {}", ticker, exchange);
         log.info("📊 ПАРАМЕТРЫ: untilDate={}, timeframe={}, period={}", untilDate, timeframe, period);
 
-        // Сохраняем текущий таймфрейм для валидации
-        this.currentTimeframe = timeframe;
+        // Таймфрейм передается напрямую в методы для избежания race condition
 
         try {
             // Шаг 1: Вычисляем ожидаемое количество свечей С УЧЕТОМ untilDate
@@ -71,46 +70,62 @@ public class CacheValidatedCandlesProcessor {
             // Шаг 5: Валидируем консистентность таймштампов свечей
             TimestampValidationResult timestampValidation = validateCandlesConsistency(cachedCandles, timeframe, ticker);
 
-            // Шаг 6: Если данные некорректны по количеству или консистентности - догружаем
-            if (!validationResult.isValid || !timestampValidation.isValid) {
-                if (!validationResult.isValid) {
-                    log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА: {}", validationResult.reason);
-                }
-                if (!timestampValidation.isValid) {
-                    log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА: {}", timestampValidation.reason);
-                }
+            // Шаг 6: Если данные некорректны - пытаемся догрузить (максимум 2 попытки)
+            final int MAX_VALIDATION_ATTEMPTS = 2;
+            for (int attempt = 1; attempt <= MAX_VALIDATION_ATTEMPTS; attempt++) {
                 
-                log.info("🔄 ДОГРУЗКА: Запускаем загрузку свежих данных для тикера {}", ticker);
-
-                // Если есть пропуски в таймштампах - используем специальную догрузку
-                int loadedCount;
-                if (!timestampValidation.isValid && !timestampValidation.gaps.isEmpty()) {
-                    loadedCount = loadMissingCandlesForGaps(timestampValidation.gaps, exchange, ticker, timeframe, period, untilDate);
-                } else {
-                    // Обычная догрузка для проблем с количеством
-                    loadedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
-                }
-                
-                if (loadedCount > 0) {
-                    log.info("✅ ДОГРУЗКА ЗАВЕРШЕНА: Загружено {} свечей, повторно получаем из кэша", loadedCount);
-
-                    // Повторно получаем из кэша после догрузки ДО untilDate
-                    cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
-                    validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
-                    timestampValidation = validateCandlesConsistency(cachedCandles, timeframe, ticker);
-
+                if (!validationResult.isValid || !timestampValidation.isValid) {
                     if (!validationResult.isValid) {
-                        log.error("❌ ПОВТОРНАЯ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА: {} для тикера {}", validationResult.reason, ticker);
-                        return List.of(); // Возвращаем пустой список
+                        log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА (попытка {}/{}): {}", attempt, MAX_VALIDATION_ATTEMPTS, validationResult.reason);
+                    }
+                    if (!timestampValidation.isValid) {
+                        log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА (попытка {}/{}): {}", attempt, MAX_VALIDATION_ATTEMPTS, timestampValidation.reason);
                     }
                     
-                    if (!timestampValidation.isValid) {
-                        log.error("❌ ПОВТОРНАЯ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА: {} для тикера {}", timestampValidation.reason, ticker);
-                        return List.of(); // Возвращаем пустой список
+                    // Если это последняя попытка - не делаем догрузку
+                    if (attempt == MAX_VALIDATION_ATTEMPTS) {
+                        log.error("❌ ИСЧЕРПАНЫ ПОПЫТКИ: Максимум {} попыток валидации для тикера {} - возможно неактивный тикер", MAX_VALIDATION_ATTEMPTS, ticker);
+                        return List.of();
+                    }
+                    
+                    log.info("🔄 ДОГРУЗКА (попытка {}/{}): Запускаем загрузку свежих данных для тикера {}", attempt, MAX_VALIDATION_ATTEMPTS, ticker);
+
+                    // Синхронизируем догрузку по тикеру для избежания дублирующих запросов к OKX API
+                    String lockKey = ticker + ":" + timeframe + ":" + exchange;
+                    Object lock = tickerLocks.computeIfAbsent(lockKey, k -> new Object());
+                    
+                    int loadedCount;
+                    synchronized (lock) {
+                        log.info("🔒 СИНХРОНИЗАЦИЯ: Захватили блокировку для догрузки тикера {}", ticker);
+                        
+                        // Если есть пропуски в таймштампах - используем специальную догрузку
+                        if (!timestampValidation.isValid && !timestampValidation.gaps.isEmpty()) {
+                            loadedCount = loadMissingCandlesForGaps(timestampValidation.gaps, exchange, ticker, timeframe, period, untilDate);
+                        } else {
+                            // Обычная догрузка для проблем с количеством
+                            loadedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
+                        }
+                        
+                        log.info("🔓 СИНХРОНИЗАЦИЯ: Освободили блокировку для тикера {} (загружено {} свечей)", ticker, loadedCount);
+                    }
+                    
+                    if (loadedCount > 0) {
+                        log.info("✅ ДОГРУЗКА ЗАВЕРШЕНА (попытка {}/{}): Загружено {} свечей, повторно получаем из кэша", attempt, MAX_VALIDATION_ATTEMPTS, loadedCount);
+
+                        // Повторно получаем из кэша после догрузки ДО untilDate
+                        cachedCandles = getCandlesFromCacheByActualRange(exchange, ticker, timeframe, expectedCandlesCount, untilTimestamp);
+                        validationResult = validateCandlesByCount(cachedCandles, expectedCandlesCount, ticker, timeframe);
+                        timestampValidation = validateCandlesConsistency(cachedCandles, timeframe, ticker);
+
+                        // Проверяем результат повторной валидации - если все хорошо, цикл прервется на следующей итерации
+                        // Если плохо - попробуем еще раз (если есть попытки)
+                    } else {
+                        log.error("❌ ДОГРУЗКА ПРОВАЛЕНА (попытка {}/{}): Не удалось загрузить данные для тикера {} - возможно неактивный тикер", attempt, MAX_VALIDATION_ATTEMPTS, ticker);
+                        return List.of(); // Возвращаем пустой список сразу
                     }
                 } else {
-                    log.error("❌ ДОГРУЗКА ПРОВАЛЕНА: Не удалось загрузить данные для тикера {}", ticker);
-                    return List.of(); // Возвращаем пустой список
+                    // Валидация прошла успешно - выходим из цикла
+                    break;
                 }
             }
 
@@ -476,13 +491,12 @@ public class CacheValidatedCandlesProcessor {
     private ValidationResult validateCandlesByCount(List<Candle> candles, int expectedCount, String ticker, String timeframe) {
         log.info("🔍 ВАЛИДАЦИЯ КЭШа: Проверяем {} свечей для тикера {}", candles.size(), ticker);
 
-        // Используем увеличенную погрешность для случаев с untilDate фильтрацией
+        // Простая валидация с допустимым отклонением
         int allowedDifference = CandleCalculatorUtil.getAllowedDifferenceWithUntilDate(timeframe, expectedCount);
         int actualDifference = Math.abs(candles.size() - expectedCount);
         
         if (actualDifference > allowedDifference) {
             String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe) + " + untilDate буфер";
-
             String reason = String.format("Отклонение в количестве свечей превышает допустимое: ожидалось %d, получено %d (отклонение %d > допустимое %d, %s)",
                     expectedCount, candles.size(), actualDifference, allowedDifference, tolerance);
             log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
