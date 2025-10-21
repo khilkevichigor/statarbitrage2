@@ -42,6 +42,11 @@ public class CandlesProcessorController {
     @PostMapping("/validated-cache-extended")
     public ResponseEntity<?> getValidatedCandlesExtended(@RequestBody ExtendedCandlesRequest request) {
         try {
+            /*
+             * БЛОК 1: ПОДГОТОВКА ПАРАМЕТРОВ
+             * - Парсим запрос и устанавливаем значения по умолчанию
+             * - Готовим параметры для загрузки свечей
+             */
             // Устанавливаем значения по умолчанию
             String exchange = request.getExchange() != null ? request.getExchange() : "OKX";
             String timeframe = request.getTimeframe() != null ? request.getTimeframe() : "1H";
@@ -51,13 +56,19 @@ public class CandlesProcessorController {
 
             log.info("");
             log.info("📅 ДАТА ДО: {}", untilDate);
-            // Получаем тикеры: используем переданный список или все доступные
+            
+            /*
+             * БЛОК 2: ОПРЕДЕЛЕНИЕ СПИСКА ТИКЕРОВ
+             * Логика:
+             * - ЕСЛИ в запросе есть конкретные тикеры → используем их + добавляем BTC как эталон
+             * - ИНАЧЕ → загружаем все доступные тикеры с OKX по минимальному объему
+             */
             List<String> tickersToProcess;
             final List<String> originalRequestedTickers; // Сохраняем оригинальный список для фильтрации результата
-
             boolean isStandardTickerBtcAdded = false;
 
             if (request.getTickers() != null && !request.getTickers().isEmpty()) {
+                // ПУТЬ А: Используем конкретные тикеры из запроса
                 log.info("📝 Используем переданный список из {} тикеров", request.getTickers().size());
                 originalRequestedTickers = new ArrayList<>(request.getTickers()); // Сохраняем оригинальный список
                 tickersToProcess = new ArrayList<>(request.getTickers());
@@ -69,11 +80,12 @@ public class CandlesProcessorController {
                     log.info("🎯 Добавлен {} как эталон для валидации (всего {} тикеров для загрузки)", STANDARD_TICKER_BTC, tickersToProcess.size());
                 }
             } else {
+                // ПУТЬ Б: Загружаем все доступные тикеры с OKX
                 log.info("🌐 Получаем тикеры...");
-
                 originalRequestedTickers = null; // При загрузке всех тикеров фильтрация не нужна
 
                 try {
+                    // Получаем тикеры с повторными попытками (retry логика)
                     tickersToProcess = retryOperation(() -> okxFeignClient.getValidTickersByVolume(minVolume, true), 
                                                     "получение тикеров от OKX API", 3);
                     log.info("Получено валидных тикеров {}, minVolume={}", tickersToProcess.size(), minVolume);
@@ -92,13 +104,23 @@ public class CandlesProcessorController {
                 }
             }
 
-            // Определяем список тикеров для обработки
+            // Проверяем что есть тикеры для обработки
             if (tickersToProcess == null || tickersToProcess.isEmpty()) {
                 log.error("❌ API ОШИБКА: Список тикеров не может быть пустым для extended запроса");
                 return ResponseEntity.badRequest().body(Map.of());
             }
 
-            // Результат будет thread-safe
+            /*
+             * БЛОК 3: МНОГОПОТОЧНАЯ ОБРАБОТКА ТИКЕРОВ  
+             * Алгоритм:
+             * 1. Создаем пул из 5 потоков максимум
+             * 2. Для каждого тикера запускаем задачу: 
+             *    - Вызываем CacheValidatedCandlesProcessor.getValidatedCandlesFromCache()
+             *    - ЕСЛИ получили свечи → добавляем в результат
+             *    - ЕСЛИ пустой результат → пропускаем тикер (неактивный/новый)
+             * 3. Ждем завершения всех задач (максимум 5 минут)
+             */
+            // Подготавливаем thread-safe коллекции для результатов
             Map<String, List<Candle>> result = new ConcurrentHashMap<>();
             AtomicInteger totalCandlesCount = new AtomicInteger(0);
             AtomicInteger processedTickers = new AtomicInteger(0);
@@ -116,6 +138,16 @@ public class CandlesProcessorController {
                 for (String ticker : tickersToProcess) {
                     List<String> finalTickersToProcess = tickersToProcess;
                     Future<Void> future = executor.submit(() -> {
+                        /*
+                         * ЗАДАЧА ПОТОКА: ОБРАБОТКА ОДНОГО ТИКЕРА
+                         * 1. Вызываем CacheValidatedCandlesProcessor → получаем валидированные свечи из кэша
+                         * 2. Процессор внутри делает:
+                         *    - Проверка кэша
+                         *    - Валидация по количеству и консистентности
+                         *    - При необходимости - догрузка с OKX (максимум 2 попытки)
+                         *    - Возврат валидных свечей ИЛИ пустого списка (если тикер проблемный)
+                         * 3. Добавляем результат в общую коллекцию
+                         */
                         int tickerNumber = processedTickers.incrementAndGet();
                         String threadName = Thread.currentThread().getName();
 
@@ -125,22 +157,26 @@ public class CandlesProcessorController {
                         try {
                             long startTime = System.currentTimeMillis();
 
+                            // ОСНОВНОЙ ВЫЗОВ: получение валидированных свечей из кэша с автоматической догрузкой
                             List<Candle> candles = cacheValidatedCandlesProcessor.getValidatedCandlesFromCache(
                                     exchange, ticker, untilDate, timeframe, period);
 
                             long duration = System.currentTimeMillis() - startTime;
 
                             if (!candles.isEmpty()) {
+                                // УСПЕХ: добавляем тикер в результат
                                 result.put(ticker, candles);
                                 totalCandlesCount.addAndGet(candles.size());
                                 successfulTickers.incrementAndGet();
                                 log.info("✅ [{}/{}] Поток {}: Получено {} свечей для тикера {} за {} мс",
                                         tickerNumber, finalTickersToProcess.size(), threadName, candles.size(), ticker, duration);
                             } else {
+                                // ПРОПУСК: тикер не прошел валидацию (неактивный/новый/делистинг)
                                 log.warn("⚠️ [{}/{}] Поток {}: Пустой результат для тикера {} - возможно неактивный/делистингованный тикер за {} мс",
                                         tickerNumber, finalTickersToProcess.size(), threadName, ticker, duration);
                             }
                         } catch (Exception e) {
+                            // ОШИБКА: логируем и пропускаем тикер
                             log.error("❌ [{}/{}] Поток {}: Ошибка при получении свечей для тикера {}: {} - пропускаем тикер",
                                     tickerNumber, finalTickersToProcess.size(), threadName, ticker, e.getMessage());
                             // НЕ прерываем обработку - просто пропускаем проблемный тикер
@@ -152,7 +188,11 @@ public class CandlesProcessorController {
                     futures.add(future);
                 }
 
-                // Ждем завершения всех задач (максимум 5 минут на все тикеры)
+                /*
+                 * ОЖИДАНИЕ ЗАВЕРШЕНИЯ ВСЕХ ПОТОКОВ
+                 * - Максимум 5 минут на обработку всех тикеров
+                 * - Принудительное завершение при превышении таймаута
+                 */
                 executor.shutdown();
                 if (!executor.awaitTermination(5, TimeUnit.MINUTES)) {
                     log.warn("⚠️ ТАЙМАУТ: Некоторые задачи не завершились за 5 минут, принудительно завершаем");
@@ -191,6 +231,12 @@ public class CandlesProcessorController {
                 }
             }
 
+            /*
+             * БЛОК 4: ВАЛИДАЦИЯ И ФИНАЛИЗАЦИЯ РЕЗУЛЬТАТОВ
+             * 1. Проверяем что получили данные
+             * 2. Валидируем консистентность между тикерами (без повторной догрузки!)
+             * 3. Применяем фильтрацию по оригинальному запросу
+             */
             if (!result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = totalCandles / result.size();
@@ -203,15 +249,21 @@ public class CandlesProcessorController {
             log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
                     totalCandlesCount.get(), successfulTickers.get(), tickersToProcess.size());
 
-            // Простая валидация консистентности без догрузки
+            // Простая валидация консистентности без догрузки (только предупреждения)
             ValidationResult consistencyResult = validateDataConsistencyBetweenTickers(result);
             if (!consistencyResult.isValid) {
                 log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: {} - продолжаем с имеющимися данными", consistencyResult.reason);
             }
 
-            // Применяем фильтрацию если были переданы конкретные тикеры
+            /*
+             * БЛОК 5: ФИЛЬТРАЦИЯ РЕЗУЛЬТАТОВ ПО ОРИГИНАЛЬНОМУ ЗАПРОСУ
+             * Логика:
+             * - ЕСЛИ были переданы конкретные тикеры → возвращаем только их (убираем BTC-эталон)
+             * - ЕСЛИ загружали все тикеры → возвращаем все кроме BTC-эталона
+             */
             Map<String, List<Candle>> finalResult = result;
             if (originalRequestedTickers != null) {
+                // Фильтруем по оригинальному запросу (убираем BTC-эталон)
                 finalResult = result.entrySet().stream()
                         .filter(entry -> originalRequestedTickers.contains(entry.getKey()))
                         .collect(Collectors.toMap(
