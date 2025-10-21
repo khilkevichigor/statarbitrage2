@@ -638,7 +638,7 @@ public class StablePairsView extends VerticalLayout {
                                 loadFoundPairs();
                                 updateStatistics();
                             } else {
-                                Notification.show("❌ Ошибка при поиске пар", 3000, Notification.Position.TOP_CENTER)
+                                Notification.show("❌ Ошибка при поиске пар", 5000, Notification.Position.TOP_CENTER)
                                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                             }
                         });

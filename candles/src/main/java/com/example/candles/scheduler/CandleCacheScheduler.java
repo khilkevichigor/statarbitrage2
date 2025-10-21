@@ -125,6 +125,7 @@ public class CandleCacheScheduler {
         }
 
         String currentTime = LocalDateTime.now().format(formatter);
+        log.info("");
         log.info("🔄 Быстрое обновление кэша в {}", currentTime);
 
         try {
