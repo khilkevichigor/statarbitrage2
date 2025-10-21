@@ -34,12 +34,12 @@ public class ExtendedCandlesRequest {
     /**
      * Использовать ли фильтр по минимальному объему
      */
-//    private boolean useMinVolumeFilter; //todo выпилить после удаления неиспользуемых методов
+    private boolean useMinVolumeFilter;
 
-//    /**
-//     * Черный список тикеров для исключения
-//     */
-//    private String minimumLotBlacklist; //todo transfer to excludedTickers field
+    /**
+     * Черный список тикеров для исключения
+     */
+    private String minimumLotBlacklist;
 
     /**
      * Список конкретных тикеров для получения свечей.
@@ -57,7 +57,7 @@ public class ExtendedCandlesRequest {
      * Использовать ли кэш для получения свечей (по умолчанию true).
      * Если false - загружать свечи напрямую с OKX
      */
-//    private Boolean useCache; //todo выпилить после удаления неиспользуемых методов
+    private Boolean useCache;
 
     /**
      * Дата ДО которой нужно получить свечи в формате ISO 8601 (2025-09-28T00:00:00Z).
