@@ -151,7 +151,7 @@ public class CacheValidatedCandlesProcessor {
                     
                     // Если это последняя попытка - не делаем догрузку, возвращаем пустой список
                     if (attempt == MAX_VALIDATION_ATTEMPTS) {
-                        log.warn("❌ ИСЧЕРПАНЫ ПОПЫТКИ: {} Максимум {} попыток валидации - возможно неактивный тикер", ticker, MAX_VALIDATION_ATTEMPTS);
+                        log.debug("⚠️ ИСЧЕРПАНЫ ПОПЫТКИ: {} Максимум {} попыток валидации - возможно неактивный тикер", ticker, MAX_VALIDATION_ATTEMPTS);
                         return List.of();
                     }
                     

@@ -2,7 +2,6 @@ package com.example.candles.controller;
 
 import com.example.candles.client.OkxFeignClient;
 import com.example.candles.service.CacheValidatedCandlesProcessor;
-import com.example.candles.service.CandlesLoaderProcessor;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -335,7 +333,26 @@ public class CandlesProcessorController {
                 finalResult.remove(STANDARD_TICKER_BTC);
             }
 
-            log.info(""); //todo залогировать результат - тикер - кол-во свечей - период от и до
+            // Детальное логирование финального результата
+            if (finalResult.isEmpty()) {
+                log.warn("⚠️ ФИНАЛЬНЫЙ РЕЗУЛЬТАТ: Пустой результат - нет валидных тикеров");
+            } else {
+                log.info("📊 ФИНАЛЬНЫЙ РЕЗУЛЬТАТ: Возвращаем {} валидных тикеров:", finalResult.size());
+                finalResult.forEach((ticker, candles) -> {
+                    if (!candles.isEmpty()) {
+                        long firstTimestamp = candles.get(0).getTimestamp();
+                        long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+                        log.info("  ✅ {}: {} свечей, период с {} до {}", 
+                            ticker, 
+                            candles.size(),
+                            formatTimestamp(firstTimestamp),
+                            formatTimestamp(lastTimestamp));
+                    } else {
+                        log.warn("  ❌ {}: пустой список свечей", ticker);
+                    }
+                });
+            }
+            
             return ResponseEntity.ok(finalResult);
 
         } catch (IllegalArgumentException e) {
