@@ -209,6 +209,11 @@ public class UpdateTradeProcessor {
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()))
                 .period(settings.calculateCurrentPeriod()) //todo берем из настроек
                 .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                .excludeTickers(null)
+                .exchange("OKX")
+                .useCache(true)
+                .useMinVolumeFilter(true)
+                .minimumLotBlacklist(null)
                 .build();
 
         // Получаем все свечи через расширенный эндпоинт с пагинацией

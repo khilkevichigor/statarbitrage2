@@ -87,10 +87,15 @@ public class StartNewTradeProcessor {
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
-                .minVolume(settings.getMinVolume())
+                .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
                 .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker())) // Конкретные тикеры пары
                 .period(settings.calculateCurrentPeriod())
                 .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                .excludeTickers(null)
+                .exchange("OKX")
+                .useCache(true)
+                .useMinVolumeFilter(true)
+                .minimumLotBlacklist(null)
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);

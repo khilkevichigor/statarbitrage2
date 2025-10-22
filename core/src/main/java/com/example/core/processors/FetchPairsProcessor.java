@@ -102,11 +102,15 @@ public class FetchPairsProcessor {
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
-                .minVolume(settings.getMinVolume())
+                .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
                 .tickers(null) // Получаем все доступные тикеры
                 .excludeTickers(excludedTickers)
                 .period(settings.calculateCurrentPeriod())
                 .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                .exchange("OKX")
+                .useCache(true)
+                .useMinVolumeFilter(true)
+                .minimumLotBlacklist(null)
                 .build();
 
         try {
@@ -244,11 +248,15 @@ public class FetchPairsProcessor {
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
-                .minVolume(settings.getMinVolume())
+                .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
                 .tickers(tickers) // Передаем конкретные тикеры
                 .excludeTickers(Collections.emptyList())
                 .period(settings.calculateCurrentPeriod())
                 .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                .exchange("OKX")
+                .useCache(true)
+                .useMinVolumeFilter(true)
+                .minimumLotBlacklist(null)
                 .build();
 
         try {

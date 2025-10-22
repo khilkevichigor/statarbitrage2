@@ -105,10 +105,15 @@ public class PairService {
             ExtendedCandlesRequest extendedRequest = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
-                    .minVolume(settings.getMinVolume())
+                    .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
                     .tickers(List.of(stablePair.getTickerA(), stablePair.getTickerB()))
                     .period(period)
                     .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                    .excludeTickers(null)
+                    .exchange("OKX")
+                    .useCache(true)
+                    .useMinVolumeFilter(true)
+                    .minimumLotBlacklist(null)
                     .build();
 
             // Получаем свечи для пары
@@ -522,10 +527,15 @@ public class PairService {
             ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
-                    .minVolume(settings.getMinVolume())
+                    .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
                     .tickers(List.of(pair.getTickerA(), pair.getTickerB()))
                     .period(period)
                     .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                    .excludeTickers(null)
+                    .exchange("OKX")
+                    .useCache(true)
+                    .useMinVolumeFilter(true)
+                    .minimumLotBlacklist(null)
                     .build();
 
             // Получаем свежие данные свечей

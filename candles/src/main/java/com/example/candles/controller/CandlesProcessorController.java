@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import java.util.Objects;
+
 @RestController
 @RequestMapping("/api/candles-processor")
 @RequiredArgsConstructor
@@ -43,19 +45,63 @@ public class CandlesProcessorController {
     public ResponseEntity<?> getValidatedCandlesExtended(@RequestBody ExtendedCandlesRequest request) {
         try {
             /*
-             * БЛОК 1: ПОДГОТОВКА ПАРАМЕТРОВ
-             * - Парсим запрос и устанавливаем значения по умолчанию
-             * - Готовим параметры для загрузки свечей
+             * БЛОК 0: СТРОГАЯ ВАЛИДАЦИЯ ВХОДНЫХ ПАРАМЕТРОВ
+             * - Все обязательные поля должны быть переданы корректно
+             * - Валидируем значения на корректность
+             * - Предотвращаем ошибки из-за некорректных запросов
              */
-            // Устанавливаем значения по умолчанию
-            String exchange = request.getExchange() != null ? request.getExchange() : "OKX";
-            String timeframe = request.getTimeframe() != null ? request.getTimeframe() : "15m";
-            String period = request.getPeriod() != null ? request.getPeriod() : "1 месяц";
-            String untilDate = request.getUntilDate() != null ? request.getUntilDate() : generateUntilDate();
-            double minVolume = request.getMinVolume() != 0.0 ? request.getMinVolume() * 1_000_000.0 : 10_000_000.0;
+            // Валидация самого запроса
+            Objects.requireNonNull(request, "Request body не может быть null");
+            
+            // Валидация обязательных полей
+            Objects.requireNonNull(request.getExchange(), "exchange обязательное поле");
+            Objects.requireNonNull(request.getTimeframe(), "timeframe обязательное поле");
+            Objects.requireNonNull(request.getPeriod(), "period обязательное поле");
+            Objects.requireNonNull(request.getUntilDate(), "untilDate обязательное поле");
+            Objects.requireNonNull(request.getUseCache(), "useCache обязательное поле");
+
+            // Валидация значений на корректность
+            if (request.getExchange().trim().isEmpty()) {
+                throw new IllegalArgumentException("exchange не может быть пустым");
+            }
+            if (request.getTimeframe().trim().isEmpty()) {
+                throw new IllegalArgumentException("timeframe не может быть пустым");
+            }
+            if (request.getPeriod().trim().isEmpty()) {
+                throw new IllegalArgumentException("period не может быть пустым");
+            }
+            if (request.getUntilDate().trim().isEmpty()) {
+                throw new IllegalArgumentException("untilDate не может быть пустым");
+            }
+            
+            // Валидация minVolume должна быть уже в правильных единицах (не требует умножения)
+            if (request.getMinVolume() < 0) {
+                throw new IllegalArgumentException("minVolume не может быть отрицательным");
+            }
+            
+            log.info("✅ ВАЛИДАЦИЯ ЗАПРОСА: Все обязательные поля корректно переданы");
+            
+            /*
+             * БЛОК 1: ПОДГОТОВКА ПАРАМЕТРОВ (БЕЗ ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ)
+             * - Используем строго переданные значения
+             * - НЕ устанавливаем fallback значения - все должно быть передано клиентом
+             */
+            // Используем переданные значения БЕЗ fallback логики
+            String exchange = request.getExchange();
+            String timeframe = request.getTimeframe();
+            String period = request.getPeriod();
+            String untilDate = request.getUntilDate();
+            double minVolume = request.getMinVolume(); // Уже в правильных единицах, не умножаем
+            boolean useCache = request.getUseCache();
 
             log.info("");
-            log.info("📅 ДАТА ДО: {}", untilDate);
+            log.info("📋 ПАРАМЕТРЫ ЗАПРОСА:");
+            log.info("  📅 exchange: {}", exchange);
+            log.info("  📅 timeframe: {}", timeframe);
+            log.info("  📅 period: {}", period);
+            log.info("  📅 untilDate: {}", untilDate);
+            log.info("  📅 minVolume: {}", minVolume);
+            log.info("  📅 useCache: {}", useCache);
             
             /*
              * БЛОК 2: ОПРЕДЕЛЕНИЕ СПИСКА ТИКЕРОВ
@@ -194,8 +240,8 @@ public class CandlesProcessorController {
                  * - Принудительное завершение при превышении таймаута
                  */
                 executor.shutdown();
-                if (!executor.awaitTermination(5, TimeUnit.MINUTES)) {
-                    log.warn("⚠️ ТАЙМАУТ: Некоторые задачи не завершились за 5 минут, принудительно завершаем");
+                if (!executor.awaitTermination(10, TimeUnit.MINUTES)) {
+                    log.warn("⚠️ ТАЙМАУТ: Некоторые задачи не завершились за 10 минут, принудительно завершаем");
                     executor.shutdownNow();
                     // Даем время на корректное завершение
                     try {
@@ -282,6 +328,9 @@ public class CandlesProcessorController {
             // что и /all-extended: просто Map<String, List<Candle>>
             return ResponseEntity.ok(finalResult);
 
+        } catch (IllegalArgumentException e) {
+            log.error("❌ ВАЛИДАЦИЯ ОШИБКА: Некорректные параметры запроса: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Некорректные параметры: " + e.getMessage()));
         } catch (Exception e) {
             log.error("❌ API ОШИБКА: Ошибка при получении валидированных свечей (extended): {}", e.getMessage(), e);
             return ResponseEntity.ok(Map.of());

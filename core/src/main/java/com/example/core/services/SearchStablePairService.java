@@ -299,11 +299,15 @@ public class SearchStablePairService {
             ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                     .timeframe(timeframe)
                     .candleLimit(candleLimit)
-                    .minVolume(minVolume != null ? minVolume : settings.getMinVolume())
+                    .minVolume(minVolume != null ? minVolume * 1_000_000 : 50_000_000)
                     .tickers(searchTickers != null && !searchTickers.isEmpty() ? searchTickers.stream().toList() : null) // Передаем полные названия инструментов
                     .excludeTickers(Arrays.asList(settings.getMinimumLotBlacklist().split(",")))
                     .period(period)
                     .untilDate(StringUtils.getCurrentDateTimeWithZ())
+                    .exchange("OKX")
+                    .useCache(true)
+                    .useMinVolumeFilter(true)
+                    .minimumLotBlacklist(null)
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getValidatedCacheExtended(request);
