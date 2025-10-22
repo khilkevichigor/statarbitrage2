@@ -126,9 +126,9 @@ public class StablePairsView extends VerticalLayout {
             this.availablePeriods = timeframeAndPeriodService.getActivePeriods(
                     globalSettings.getGlobalActivePeriods());
 
-            log.info("🔧 Инициализированы глобальные настройки для StablePairsView:");
-            log.info("📊 Доступные таймфреймы: {}", availableTimeframes);
-            log.info("📅 Доступные периоды: {}", availablePeriods);
+            log.debug("🔧 Инициализированы глобальные настройки для StablePairsView:");
+            log.debug("📊 Доступные таймфреймы: {}", availableTimeframes);
+            log.debug("📅 Доступные периоды: {}", availablePeriods);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при инициализации глобальных настроек: {}", e.getMessage(), e);
@@ -615,7 +615,7 @@ public class StablePairsView extends VerticalLayout {
 
             Map<String, Object> searchSettings = buildSearchSettings();
 
-            log.info("🔍 Запуск поиска стабильных пар: TF={}, Period={}", timeframes, periods);
+            log.debug("🔍 Запуск поиска стабильных пар: TF={}, Period={}", timeframes, periods);
 
             // Выполняем поиск в фоновом потоке
             getUI().ifPresent(ui -> {
@@ -687,7 +687,7 @@ public class StablePairsView extends VerticalLayout {
         // Добавляем фильтрацию по минимальному объему
         if (minVolumeEnabled.getValue() && minVolumeField.getValue() != null) {
             settings.put("minVolume", minVolumeField.getValue());
-            log.info("💰 Добавлен фильтр по минимальному объему: {} млн $", minVolumeField.getValue());
+            log.debug("💰 Добавлен фильтр по минимальному объему: {} млн $", minVolumeField.getValue());
         }
 
         // Добавляем фильтрацию по тикерам
@@ -700,7 +700,7 @@ public class StablePairsView extends VerticalLayout {
         // Добавляем настройку использования кэша
         boolean useCache = useCacheCheckbox.getValue();
         settings.put("useCache", useCache);
-        log.info("💾 Использование кэша: {}", useCache ? "включено" : "выключено");
+        log.debug("💾 Использование кэша: {}", useCache ? "включено" : "выключено");
 
         return settings;
     }
@@ -1110,7 +1110,7 @@ public class StablePairsView extends VerticalLayout {
             // Загружаем настройку использования кэша (по умолчанию включено)
             useCacheCheckbox.setValue(settings.getUseCache() != null ? settings.getUseCache() : true);
 
-            log.info("✅ Настройки '{}' загружены в UI", settings.getName());
+            log.debug("✅ Настройки '{}' загружены в UI", settings.getName());
 
         } catch (Exception e) {
             log.error("Ошибка при загрузке настроек в UI: {}", e.getMessage(), e);

@@ -4,14 +4,12 @@ import com.example.core.experemental.stability.dto.StabilityRequestDto;
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import jakarta.annotation.PostConstruct;
-import java.time.Duration;
 
 @Service
 @Slf4j
@@ -22,19 +20,19 @@ public class StabilityAnalysisService {
 
     @Value("${cointegration.api.url:http://localhost:8000}")
     private String pythonApiBaseUrl;
-    
+
     @Value("${cointegration.api.timeout.connect:30000}")
     private int connectTimeout;
-    
+
     @Value("${cointegration.api.timeout.read:300000}")
     private int readTimeout;
-    
+
     @PostConstruct
     public void initRestTemplate() {
         // Создаем RestTemplate с увеличенными таймаутами
         this.restTemplate = new RestTemplate();
-        
-        log.info("🔧 Настроен RestTemplate для Python API: connectTimeout={}ms, readTimeout={}ms", 
+
+        log.info("🔧 Настроен RestTemplate для Python API: connectTimeout={}ms, readTimeout={}ms",
                 connectTimeout, readTimeout);
         log.info("⚠️  Для полной настройки таймаутов нужно настроить HTTP клиент на уровне сервера");
     }
@@ -45,9 +43,9 @@ public class StabilityAnalysisService {
     public StabilityResponseDto analyzeStability(StabilityRequestDto request) {
         String endpoint = "/analyze-stability";
         String fullUrl = pythonApiBaseUrl + endpoint;
-        
+
         log.info("📤 Отправляем запрос анализа стабильности в Python API: {}", fullUrl);
-        log.info("📊 Анализируем {} тикеров для поиска стабильных пар", 
+        log.debug("📊 Анализируем {} тикеров для поиска стабильных пар",
                 request.getCandlesMap().size());
 
         try {
@@ -55,7 +53,7 @@ public class StabilityAnalysisService {
             String requestJson = objectMapper.writeValueAsString(request);
             double sizeInMB = requestJson.length() / (1024.0 * 1024.0);
             log.info("📦 Размер JSON запроса: {} MB ({} байт)", String.format("%.2f", sizeInMB), requestJson.length());
-            log.debug("📝 JSON запрос: {}", requestJson.length() > 1000 ? 
+            log.debug("📝 JSON запрос: {}", requestJson.length() > 1000 ?
                     requestJson.substring(0, 1000) + "..." : requestJson);
 
             // Настраиваем заголовки
@@ -76,12 +74,12 @@ public class StabilityAnalysisService {
             );
 
             long requestTime = System.currentTimeMillis() - startTime;
-            log.info("📥 Получен ответ от Python API за {} сек, статус: {}", 
+            log.info("📥 Получен ответ от Python API за {} сек, статус: {}",
                     String.format("%.2f", requestTime / 1000.0), response.getStatusCode());
 
             // Проверяем статус ответа
             if (response.getStatusCode() != HttpStatus.OK) {
-                String errorMsg = String.format("❌ Ошибка Python API: %s - %s", 
+                String errorMsg = String.format("❌ Ошибка Python API: %s - %s",
                         response.getStatusCode(), response.getBody());
                 log.error(errorMsg);
                 throw new RuntimeException(errorMsg);
@@ -93,11 +91,12 @@ public class StabilityAnalysisService {
                 throw new RuntimeException("❌ Пустой ответ от Python API");
             }
 
-            log.debug("📄 JSON ответ: {}", responseBody.length() > 1000 ? 
+            log.debug("📄 JSON ответ: {}", responseBody.length() > 1000 ?
                     responseBody.substring(0, 1000) + "..." : responseBody);
 
-            StabilityResponseDto stabilityResponse = objectMapper.readValue(responseBody, 
-                    new TypeReference<StabilityResponseDto>() {});
+            StabilityResponseDto stabilityResponse = objectMapper.readValue(responseBody,
+                    new TypeReference<StabilityResponseDto>() {
+                    });
 
             // Логируем результаты анализа
             logAnalysisResults(stabilityResponse);
@@ -105,7 +104,7 @@ public class StabilityAnalysisService {
             return stabilityResponse;
 
         } catch (Exception e) {
-            String errorMsg = String.format("❌ Ошибка при вызове Python API анализа стабильности: %s", 
+            String errorMsg = String.format("❌ Ошибка при вызове Python API анализа стабильности: %s",
                     e.getMessage());
             log.error(errorMsg, e);
             throw new RuntimeException(errorMsg, e);
@@ -125,12 +124,12 @@ public class StabilityAnalysisService {
         log.info("📊 Всего проанализировано пар: {}", response.getTotalPairsAnalyzed());
         log.info("✅ Торгуемых пар найдено: {}", response.getTradeablePairsFound());
         log.info("⭐ Отличных пар найдено: {}", response.getExcellentPairsFound());
-        log.info("⏱️ Время анализа: {} сек", 
+        log.info("⏱️ Время анализа: {} сек",
                 String.format("%.2f", response.getAnalysisTimeSeconds()));
 
         if (response.getSummaryStats() != null) {
             log.info("📈 Лучший результат: {} баллов", response.getSummaryStats().getBestScore());
-            log.info("📊 Средний балл: {}", 
+            log.info("📊 Средний балл: {}",
                     String.format("%.1f", response.getSummaryStats().getAverageScore()));
 
             if (response.getSummaryStats().getPairsByRating() != null) {
@@ -159,7 +158,7 @@ public class StabilityAnalysisService {
                                 Boolean.TRUE.equals(result.getIsTradeable()) ? "✅ ТОРГУЕМАЯ" : "❌");
                     });
         }
-        
+
         log.info("🎯 === КОНЕЦ РЕЗУЛЬТАТОВ АНАЛИЗА ===");
     }
 }

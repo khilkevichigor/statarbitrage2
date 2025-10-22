@@ -6,12 +6,12 @@ import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.experemental.stability.dto.StabilityResultDto;
 import com.example.core.experemental.stability.service.StabilityAnalysisService;
 import com.example.core.repositories.PairRepository;
-import com.example.shared.utils.StringUtils;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ExtendedCandlesRequest;
 import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
 import com.example.shared.services.TimeframeAndPeriodService;
+import com.example.shared.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -60,7 +60,7 @@ public class SearchStablePairService {
             // Выполняем поиск для каждой комбинации timeframe + period
             for (String timeframe : timeframes) {
                 for (String period : periods) {
-                    log.info("🔍 Поиск для комбинации: timeframe={}, period={}", timeframe, period);
+                    log.debug("🔍 Поиск для комбинации: timeframe={}, period={}", timeframe, period);
 
                     try {
                         // Получаем свечи для конкретной комбинации с учетом фильтра тикеров
@@ -162,7 +162,7 @@ public class SearchStablePairService {
             return new HashMap<>();
         }
 
-        log.info("🔍 ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Проверяем {} тикеров (таймфрейм: {})",
+        log.debug("🔍 ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Проверяем {} тикеров (таймфрейм: {})",
                 candlesMap.size(), timeframe);
 
         // Определяем эталонный тикер (BTC-USDT-SWAP или первый доступный)
@@ -174,7 +174,7 @@ public class SearchStablePairService {
         long referenceStart = referenceCandles.get(0).getTimestamp();
         long referenceEnd = referenceCandles.get(referenceCandles.size() - 1).getTimestamp();
 
-        log.info("🎯 ЭТАЛОН: {} - {} свечей, {}-{}",
+        log.debug("🎯 ЭТАЛОН: {} - {} свечей, {}-{}",
                 referenceTicker, referenceCount,
                 formatTimestamp(referenceStart), formatTimestamp(referenceEnd));
 
@@ -218,8 +218,8 @@ public class SearchStablePairService {
         int validCount = validatedCandles.size();
         double validPercent = (double) validCount / candlesMap.size() * 100;
 
-        log.info("📊 ВАЛИДАЦИЯ РЕЗУЛЬТАТ:");
-        log.info("   ✅ Валидные тикеры: {} из {} ({}%)", validCount, candlesMap.size(), String.format("%.1f", validPercent));
+        log.debug("📊 ВАЛИДАЦИЯ РЕЗУЛЬТАТ:");
+        log.debug("   ✅ Валидные тикеры: {} из {} ({}%)", validCount, candlesMap.size(), String.format("%.1f", validPercent));
 
         if (!invalidTickers.isEmpty()) {
             log.warn("   ❌ Невалидные тикеры ({}): {}", invalidTickers.size(), String.join(", ", invalidTickers));
@@ -264,17 +264,17 @@ public class SearchStablePairService {
             int candleLimit = calculateCandleLimit(timeframe, period);
 
             if (searchTickers != null && !searchTickers.isEmpty()) {
-                log.info("📊 Запрашиваем {} свечей для таймфрейма {} и периода {} с фильтром по {} тикерам: {}",
+                log.debug("📊 Запрашиваем {} свечей для таймфрейма {} и периода {} с фильтром по {} тикерам: {}",
                         candleLimit, timeframe, period, searchTickers.size(), searchTickers);
             } else {
-                log.info("📊 Запрашиваем {} свечей для таймфрейма {} и периода {} без фильтра тикеров",
+                log.debug("📊 Запрашиваем {} свечей для таймфрейма {} и периода {} без фильтра тикеров",
                         candleLimit, timeframe, period);
             }
 
             // Извлекаем minVolume из настроек поиска
             Double minVolume = searchSettings != null ? (Double) searchSettings.get("minVolume") : null;
             if (minVolume != null) {
-                log.info("💰 Применяется фильтр по минимальному объему: {} млн $", minVolume);
+                log.debug("💰 Применяется фильтр по минимальному объему: {} млн $", minVolume);
             }
 
             // Всегда используем расширенный запрос к candles микросервису с пагинацией
@@ -317,12 +317,12 @@ public class SearchStablePairService {
                 // а не Map с полями success/message из ошибочного ответа
                 boolean isValidResponse = result.entrySet().stream()
                         .allMatch(entry -> entry.getValue() instanceof List);
-                
+
                 if (!isValidResponse) {
                     log.error("❌ Получен некорректный ответ от candles микросервиса: {}", result);
                     return new HashMap<>();
                 }
-                
+
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = result.values().stream().mapToInt(List::size).sum() / result.size();
                 if (searchTickers != null && !searchTickers.isEmpty()) {
