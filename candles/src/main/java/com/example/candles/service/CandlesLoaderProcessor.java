@@ -69,7 +69,7 @@ public class CandlesLoaderProcessor {
             }
 
             // Шаг 4: Валидируем загруженные данные
-            boolean isValid = validateLoadedCandles(candles, untilDate, timeframe, period, candlesCount);
+            boolean isValid = validateLoadedCandles(ticker, candles, untilDate, timeframe, period, candlesCount);
             if (!isValid) {
                 log.error("❌ ВАЛИДАЦИЯ для {}: Загруженные свечи не прошли валидацию", ticker);
                 return 0;
@@ -212,13 +212,13 @@ public class CandlesLoaderProcessor {
     /**
      * Валидирует загруженные свечи
      */
-    private boolean validateLoadedCandles(List<Candle> candles, String untilDate, String timeframe, String period, int expectedCount) {
+    private boolean validateLoadedCandles(String ticker, List<Candle> candles, String untilDate, String timeframe, String period, int expectedCount) {
         log.debug("🔍 ВАЛИДАЦИЯ: Проверяем {} свечей", candles.size());
 
         // Проверка 1: Количество свечей
         if (candles.size() != expectedCount) {
-            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Ожидалось {} свечей, получено {}. Может быть недостаточно исторических данных.",
-                    expectedCount, candles.size());
+            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {} Ожидалось {} свечей, получено {}. Может быть недостаточно исторических данных.",
+                    ticker, expectedCount, candles.size());
             // Не блокируем, может быть недостаточно данных на бирже
         }
 
@@ -242,12 +242,12 @@ public class CandlesLoaderProcessor {
                 long maxAllowedDiff = getMaxAllowedTimeDifference(timeframe);
 
                 if (timeDiff > maxAllowedDiff) {
-                    log.warn("⚠️ ВАЛИДАЦИЯ ВРЕМЕНИ: Новейшая свеча {} не соответствует ожидаемой дате {} (разница {} мс)",
-                            formatTimestamp(newestTime), untilDate, timeDiff);
+                    log.debug("⚠️ ВАЛИДАЦИЯ ВРЕМЕНИ: {} Новейшая свеча {} не соответствует ожидаемой дате {} (разница {} мс)",
+                            ticker, formatTimestamp(newestTime), untilDate, timeDiff);
                 }
 
             } catch (Exception e) {
-                log.warn("⚠️ ВАЛИДАЦИЯ ВРЕМЕНИ: Ошибка парсинга даты {}: {}", untilDate, e.getMessage());
+                log.debug("⚠️ ВАЛИДАЦИЯ ВРЕМЕНИ: {} Ошибка парсинга даты {}: {}", ticker, untilDate, e.getMessage());
             }
         }
 

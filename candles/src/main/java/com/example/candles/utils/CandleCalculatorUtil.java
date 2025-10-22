@@ -204,25 +204,25 @@ public class CandleCalculatorUtil {
         };
     }
 
-    /**
-     * Проверяет, находится ли количество свечей в допустимых пределах
-     */
-    public static boolean isValidCandlesCount(String timeframe, int expectedCount, int actualCount) {
-        int allowedDifference = getAllowedDifference(timeframe, expectedCount);
-        int actualDifference = Math.abs(actualCount - expectedCount);
-
-        boolean isValid = actualDifference <= allowedDifference;
-
-        if (!isValid) {
-            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} превышает допустимое {} для таймфрейма {}",
-                    actualDifference, allowedDifference, timeframe);
-        } else if (actualDifference > 0) {
-            log.debug("i️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} в пределах нормы (допустимо {}) для таймфрейма {}",
-                    actualDifference, allowedDifference, timeframe);
-        }
-
-        return isValid;
-    }
+//    /**
+//     * Проверяет, находится ли количество свечей в допустимых пределах
+//     */
+//    public static boolean isValidCandlesCount(String timeframe, int expectedCount, int actualCount) {
+//        int allowedDifference = getAllowedDifference(timeframe, expectedCount);
+//        int actualDifference = Math.abs(actualCount - expectedCount);
+//
+//        boolean isValid = actualDifference <= allowedDifference;
+//
+//        if (!isValid) {
+//            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} превышает допустимое {} для таймфрейма {}",
+//                    actualDifference, allowedDifference, timeframe);
+//        } else if (actualDifference > 0) {
+//            log.debug("i️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: Отклонение {} в пределах нормы (допустимо {}) для таймфрейма {}",
+//                    actualDifference, allowedDifference, timeframe);
+//        }
+//
+//        return isValid;
+//    }
 
     /**
      * Возвращает описание допустимой погрешности для таймфрейма

@@ -143,15 +143,15 @@ public class CacheValidatedCandlesProcessor {
                 if (!validationResult.isValid || !timestampValidation.isValid) {
                     // Логируем причины провала валидации
                     if (!validationResult.isValid) {
-                        log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА (попытка {}/{}): {}", attempt, MAX_VALIDATION_ATTEMPTS, validationResult.reason);
+                        log.debug("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА ПРОВАЛЕНА (попытка {}/{}): {} {}", attempt, MAX_VALIDATION_ATTEMPTS, ticker, validationResult.reason);
                     }
                     if (!timestampValidation.isValid) {
-                        log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА (попытка {}/{}): {}", attempt, MAX_VALIDATION_ATTEMPTS, timestampValidation.reason);
+                        log.debug("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ ПРОВАЛЕНА (попытка {}/{}): {} {}", attempt, MAX_VALIDATION_ATTEMPTS, ticker, timestampValidation.reason);
                     }
                     
                     // Если это последняя попытка - не делаем догрузку, возвращаем пустой список
                     if (attempt == MAX_VALIDATION_ATTEMPTS) {
-                        log.error("❌ ИСЧЕРПАНЫ ПОПЫТКИ: Максимум {} попыток валидации для тикера {} - возможно неактивный тикер", MAX_VALIDATION_ATTEMPTS, ticker);
+                        log.warn("❌ ИСЧЕРПАНЫ ПОПЫТКИ: {} Максимум {} попыток валидации - возможно неактивный тикер", ticker, MAX_VALIDATION_ATTEMPTS);
                         return List.of();
                     }
                     
@@ -598,7 +598,7 @@ public class CacheValidatedCandlesProcessor {
             String tolerance = CandleCalculatorUtil.getToleranceDescription(timeframe) + " + untilDate буфер";
             String reason = String.format("Отклонение в количестве свечей превышает допустимое: ожидалось %d, получено %d (отклонение %d > допустимое %d, %s)",
                     expectedCount, candles.size(), actualDifference, allowedDifference, tolerance);
-            log.warn("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
+            log.debug("⚠️ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {} {}", ticker, reason);
             return new ValidationResult(false, reason);
         }
 
