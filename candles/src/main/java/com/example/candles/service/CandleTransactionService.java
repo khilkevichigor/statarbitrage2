@@ -77,7 +77,7 @@ public class CandleTransactionService {
                     return 0;
                 }
                 
-                log.info("💾 BATCH SAVED: {} - обработано {} свечей за {} сек", 
+                log.debug("💾 BATCH SAVED: {} - обработано {} свечей за {} сек",
                         ticker, processedCount, (System.currentTimeMillis() - batchStartTime) / 1000);
 
                 totalProcessedCount += processedCount; // Добавляем к общему счетчику

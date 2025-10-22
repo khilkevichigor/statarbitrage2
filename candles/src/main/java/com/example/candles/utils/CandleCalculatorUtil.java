@@ -41,7 +41,7 @@ public class CandleCalculatorUtil {
             int periodDays = parsePeriodToDays(period);
             int candlesCount = calculateCandlesByTimeframe(timeframe, periodDays);
 
-            log.info("✅ РЕЗУЛЬТАТ РАСЧЕТА для {}: {} свечей для периода '{}' ({} дней) с таймфреймом {}",
+            log.debug("✅ РЕЗУЛЬТАТ РАСЧЕТА для {}: {} свечей для периода '{}' ({} дней) с таймфреймом {}",
                     ticker, candlesCount, period, periodDays, timeframe);
             return candlesCount;
 
@@ -87,7 +87,7 @@ public class CandleCalculatorUtil {
             // Валидация будет использовать увеличенную погрешность через getAllowedDifferenceWithUntilDate
             int baseCandlesCount = calculateCandlesCount(ticker, timeframe, period);
             
-            log.info("✅ РЕЗУЛЬТАТ РАСЧЕТА С UNTILDATE для {}: {} свечей (базовый расчет) для периода '{}' до {} (увеличенная погрешность при валидации)",
+            log.debug("✅ РЕЗУЛЬТАТ РАСЧЕТА С UNTILDATE для {}: {} свечей (базовый расчет) для периода '{}' до {} (увеличенная погрешность при валидации)",
                     ticker, baseCandlesCount, period, untilDate);
             
             return baseCandlesCount;

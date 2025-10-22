@@ -33,7 +33,7 @@ public class CandlesProcessorController {
 
     private static final String STANDARD_TICKER_BTC = "BTC-USDT-SWAP";
     private final CacheValidatedCandlesProcessor cacheValidatedCandlesProcessor;
-    private final CandlesLoaderProcessor candlesLoaderProcessor;
+//    private final CandlesLoaderProcessor candlesLoaderProcessor;
     private final OkxFeignClient okxFeignClient;
 
     /**
@@ -43,6 +43,8 @@ public class CandlesProcessorController {
      */
     @PostMapping("/validated-cache-extended")
     public ResponseEntity<?> getValidatedCandlesExtended(@RequestBody ExtendedCandlesRequest request) {
+        log.info("");
+        log.info("Получен запрос ExtendedCandlesRequest на поиск стабильных пар...");
         try {
             /*
              * БЛОК 0: СТРОГАЯ ВАЛИДАЦИЯ ВХОДНЫХ ПАРАМЕТРОВ
@@ -79,7 +81,7 @@ public class CandlesProcessorController {
                 throw new IllegalArgumentException("minVolume не может быть отрицательным");
             }
             
-            log.info("✅ ВАЛИДАЦИЯ ЗАПРОСА: Все обязательные поля корректно переданы");
+            log.debug("✅ ВАЛИДАЦИЯ ЗАПРОСА: Все обязательные поля корректно переданы");
             
             /*
              * БЛОК 1: ПОДГОТОВКА ПАРАМЕТРОВ (БЕЗ ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ)
@@ -94,7 +96,6 @@ public class CandlesProcessorController {
             double minVolume = request.getMinVolume(); // Уже в правильных единицах, не умножаем
             boolean useCache = request.getUseCache();
 
-            log.info("");
             log.info("📋 ПАРАМЕТРЫ ЗАПРОСА:");
             log.info("  📅 exchange: {}", exchange);
             log.info("  📅 timeframe: {}", timeframe);
@@ -134,7 +135,7 @@ public class CandlesProcessorController {
                     // Получаем тикеры с повторными попытками (retry логика)
                     tickersToProcess = retryOperation(() -> okxFeignClient.getValidTickersByVolume(minVolume, true), 
                                                     "получение тикеров от OKX API", 3);
-                    log.info("Получено валидных тикеров {}, minVolume={}", tickersToProcess.size(), minVolume);
+                    log.info("Получено валидных тикеров {}", tickersToProcess.size());
                 } catch (Exception e) {
                     log.error("❌ СЕТЕВАЯ ОШИБКА: Не удалось получить тикеры от OKX API после повторных попыток: {}", e.getMessage());
                     return ResponseEntity.status(503).body(Map.of("error", "Сервис временно недоступен - проблемы с получением тикеров"));
@@ -142,11 +143,11 @@ public class CandlesProcessorController {
 
                 // Исключаем тикеры из excludeTickers если они указаны
                 if (request.getExcludeTickers() != null && !request.getExcludeTickers().isEmpty()) {
-                    log.info("❌ Исключаем {} тикеров из результата", request.getExcludeTickers().size());
+                    log.debug("❌ Исключаем {} тикеров из результата", request.getExcludeTickers().size());
                     tickersToProcess = tickersToProcess.stream()
                             .filter(ticker -> !request.getExcludeTickers().contains(ticker))
                             .toList();
-                    log.info("✅ После исключения осталось {} тикеров", tickersToProcess.size());
+                    log.debug("✅ После исключения осталось {} тикеров", tickersToProcess.size());
                 }
             }
 
@@ -172,7 +173,7 @@ public class CandlesProcessorController {
             AtomicInteger processedTickers = new AtomicInteger(0);
             AtomicInteger successfulTickers = new AtomicInteger(0);
 
-            log.info("🚀 МНОГОПОТОЧНОСТЬ: Запускаем обработку {} тикеров в {} потоках",
+            log.debug("🚀 МНОГОПОТОЧНОСТЬ: Запускаем обработку {} тикеров в {} потоках",
                     tickersToProcess.size(), Math.min(5, tickersToProcess.size()));
 
             // Создаем пул потоков (максимум 5 потоков)
@@ -197,7 +198,7 @@ public class CandlesProcessorController {
                         int tickerNumber = processedTickers.incrementAndGet();
                         String threadName = Thread.currentThread().getName();
 
-                        log.info("🔄 [{}/{}] Поток {}: Обрабатываем тикер {}",
+                        log.debug("🔄 [{}/{}] Поток {}: Обрабатываем тикер {}",
                                 tickerNumber, finalTickersToProcess.size(), threadName, ticker);
 
                         try {
@@ -214,7 +215,7 @@ public class CandlesProcessorController {
                                 result.put(ticker, candles);
                                 totalCandlesCount.addAndGet(candles.size());
                                 successfulTickers.incrementAndGet();
-                                log.info("✅ [{}/{}] Поток {}: Получено {} свечей для тикера {} за {} мс",
+                                log.debug("✅ [{}/{}] Поток {}: Получено {} свечей для тикера {} за {} мс",
                                         tickerNumber, finalTickersToProcess.size(), threadName, candles.size(), ticker, duration);
                             } else {
                                 // ПРОПУСК: тикер не прошел валидацию (неактивный/новый/делистинг)
@@ -286,13 +287,13 @@ public class CandlesProcessorController {
             if (!result.isEmpty()) {
                 int totalCandles = result.values().stream().mapToInt(List::size).sum();
                 int avgCandles = totalCandles / result.size();
-                log.info("💾 Запрос ИЗ КЭША завершен! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
+                log.debug("💾 Запрос ИЗ КЭША завершен! Получено {} тикеров со средним количеством {} свечей (всего {} свечей)",
                         result.size(), avgCandles, totalCandles);
             } else {
                 log.warn("⚠️ Кэш не содержит данных - проверьте работу предзагрузки!");
             }
 
-            log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
+            log.debug("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
                     totalCandlesCount.get(), successfulTickers.get(), tickersToProcess.size());
 
             /*
@@ -326,16 +327,15 @@ public class CandlesProcessorController {
                                 Map.Entry::getKey,
                                 Map.Entry::getValue
                         ));
-                log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
+                log.debug("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
                         finalResult.size(), validatedResult.size());
             } else if (isStandardTickerBtcAdded) {
                 // Убираем BTC только если это загрузка всех тикеров
                 finalResult = new ConcurrentHashMap<>(validatedResult);
                 finalResult.remove(STANDARD_TICKER_BTC);
             }
-            
-            // Для совместимости с существующим API возвращаем данные в том же формате
-            // что и /all-extended: просто Map<String, List<Candle>>
+
+            log.info(""); //todo залогировать результат - тикер - кол-во свечей - период от и до
             return ResponseEntity.ok(finalResult);
 
         } catch (IllegalArgumentException e) {
@@ -347,289 +347,290 @@ public class CandlesProcessorController {
         }
     }
 
-    /**
-     * Генерирует дату "до" как начало текущего дня в формате 2025-09-27T00:00:00Z
-     */
-    private String generateUntilDate() {
-        return LocalDate.now().atStartOfDay() + ":00Z";
-    }
+//    /**
+//     * Генерирует дату "до" как начало текущего дня в формате 2025-09-27T00:00:00Z
+//     */
+//    private String generateUntilDate() {
+//        return LocalDate.now().atStartOfDay() + ":00Z";
+//    }
 
-    /**
-     * Валидирует консистентность данных между тикерами с возможностью догрузки недостающих данных
-     */
-    private ValidationResult validateDataConsistencyBetweenTickersWithReload(
-            Map<String, List<Candle>> tickerData, String exchange, String untilDate,
-            String timeframe, String period, List<String> allTickers) {
+//    /**
+//     * Валидирует консистентность данных между тикерами с возможностью догрузки недостающих данных
+//     */
+//    private ValidationResult validateDataConsistencyBetweenTickersWithReload(
+//            Map<String, List<Candle>> tickerData, String exchange, String untilDate,
+//            String timeframe, String period, List<String> allTickers) {
+//
+//        log.info("🔍 ВАЛИДАЦИЯ С ДОГРУЗКОЙ: Проверяем {} тикеров на соответствие данных", tickerData.size());
+//
+//        if (tickerData.isEmpty()) {
+//            return new ValidationResult(false, "Нет данных для валидации");
+//        }
+//
+//        // Максимум 2 попытки догрузки
+//        for (int attempt = 1; attempt <= 2; attempt++) {
+//            log.info("🔄 ПОПЫТКА #{}: Валидация консистентности", attempt);
+//
+//            ValidationResult basicResult = validateDataConsistencyBetweenTickers(tickerData);
+//
+//            if (basicResult.isValid) {
+//                log.info("✅ ВАЛИДАЦИЯ С ДОГРУЗКОЙ: Все тикеры консистентны после {} попыток", attempt);
+//                return basicResult;
+//            }
+//
+//            if (attempt == 2) {
+//                log.error("❌ ВАЛИДАЦИЯ С ДОГРУЗКОЙ: Не удалось добиться консистентности после 2 попыток");
+//                return basicResult; // Возвращаем последнюю ошибку
+//            }
+//
+//            log.warn("⚠️ ПОПЫТКА #{}: Обнаружены несоответствия, запускаем догрузку", attempt);
+//
+//            // Находим тикеры с недостаточным количеством данных
+//            List<String> tickersToReload = findTickersNeedingReload(tickerData);
+//
+//            if (tickersToReload.isEmpty()) {
+//                log.error("❌ ДОГРУЗКА: Не удалось определить тикеры для догрузки");
+//                return basicResult;
+//            }
+//
+//            log.info("🔄 ДОГРУЗКА: Перезагружаем данные для {} тикеров: {}",
+//                    tickersToReload.size(), tickersToReload);
+//
+//            // Догружаем данные для проблемных тикеров
+//            boolean reloadSuccess = reloadDataForTickers(tickersToReload, exchange, untilDate, timeframe, period);
+//
+//            if (!reloadSuccess) {
+//                log.error("❌ ДОГРУЗКА: Не удалось догрузить данные");
+//                return new ValidationResult(false, "Не удалось догрузить недостающие данные");
+//            }
+//
+//            // Заново получаем данные для всех тикеров
+//            log.info("🔄 ПОВТОРНАЯ ЗАГРУЗКА: Заново получаем данные для всех тикеров");
+//            tickerData.clear();
+//            tickerData.putAll(reloadAllTickersData(allTickers, exchange, untilDate, timeframe, period));
+//
+//            if (tickerData.isEmpty()) {
+//                log.error("❌ ПОВТОРНАЯ ЗАГРУЗКА: Не удалось получить данные");
+//                return new ValidationResult(false, "Не удалось получить данные после догрузки");
+//            }
+//        }
+//
+//        return new ValidationResult(false, "Неожиданная ошибка в валидации с догрузкой");
+//    }
 
-        log.info("🔍 ВАЛИДАЦИЯ С ДОГРУЗКОЙ: Проверяем {} тикеров на соответствие данных", tickerData.size());
+//    /**
+//     * Находит тикеры, которым нужна догрузка данных
+//     */
+//    private List<String> findTickersNeedingReload(Map<String, List<Candle>> tickerData) {
+//        if (tickerData.isEmpty()) {
+//            return List.of();
+//        }
+//
+//        // Находим максимальное количество свечей среди всех тикеров
+//        int maxCandles = tickerData.values().stream()
+//                .mapToInt(List::size)
+//                .max()
+//                .orElse(0);
+//
+//        // Находим самый широкий временной диапазон (самую старую первую свечу и самую новую последнюю свечу)
+//        long oldestFirstTimestamp = Long.MAX_VALUE;
+//        long newestLastTimestamp = Long.MIN_VALUE;
+//
+//        for (List<Candle> candles : tickerData.values()) {
+//            if (!candles.isEmpty()) {
+//                long firstTimestamp = candles.get(0).getTimestamp();
+//                long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+//                oldestFirstTimestamp = Math.min(oldestFirstTimestamp, firstTimestamp);
+//                newestLastTimestamp = Math.max(newestLastTimestamp, lastTimestamp);
+//            }
+//        }
+//
+//        // Делаем переменные effectively final для использования в lambda
+//        final long finalOldestFirstTimestamp = oldestFirstTimestamp;
+//        final long finalNewestLastTimestamp = newestLastTimestamp;
+//
+//        log.debug("🔍 АНАЛИЗ: Максимальное количество свечей: {}", maxCandles);
+//        log.debug("🔍 АНАЛИЗ: Эталонный диапазон: {} - {}",
+//                formatTimestamp(finalOldestFirstTimestamp), formatTimestamp(finalNewestLastTimestamp));
+//
+//        // Возвращаем тикеры, которым нужна догрузка (меньше свечей ИЛИ неполный временной диапазон)
+//        return tickerData.entrySet().stream()
+//                .filter(entry -> {
+//                    List<Candle> candles = entry.getValue();
+//                    if (candles.isEmpty()) return true;
+//
+//                    // Проверяем количество свечей
+//                    boolean needsMoreCandles = candles.size() < maxCandles;
+//
+//                    // Проверяем временной диапазон
+//                    long firstTimestamp = candles.get(0).getTimestamp();
+//                    long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+//                    boolean needsOlderData = firstTimestamp > finalOldestFirstTimestamp;
+//                    boolean needsNewerData = lastTimestamp < finalNewestLastTimestamp;
+//
+//                    return needsMoreCandles || needsOlderData || needsNewerData;
+//                })
+//                .map(Map.Entry::getKey)
+//                .peek(ticker -> {
+//                    List<Candle> candles = tickerData.get(ticker);
+//                    if (!candles.isEmpty()) {
+//                        long firstTimestamp = candles.get(0).getTimestamp();
+//                        long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+//                        log.debug(
+//                                "🎯 ДОГРУЗКА НУЖНА: {} ({} свечей, диапазон {} - {})",
+//                                ticker, candles.size(),
+//                                formatTimestamp(firstTimestamp), formatTimestamp(lastTimestamp));
+//                    } else {
+//                        log.debug("🎯 ДОГРУЗКА НУЖНА: {} (нет данных)", ticker);
+//                    }
+//                })
+//                .toList();
+//    }
 
-        if (tickerData.isEmpty()) {
-            return new ValidationResult(false, "Нет данных для валидации");
-        }
+//    /**
+//     * Догружает данные для указанных тикеров
+//     */
+//    private boolean reloadDataForTickers(List<String> tickers, String exchange,
+//                                         String untilDate, String timeframe, String period) {
+//        log.debug("🚀 ДОГРУЗКА ДАННЫХ: Запускаем догрузку для {} тикеров", tickers.size());
+//
+//        boolean allSuccess = true;
+//        for (String ticker : tickers) {
+//            try {
+//                log.debug("🔄 ДОГРУЗКА: Обрабатываем тикер {}", ticker);
+//                int savedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
+//
+//                if (savedCount > 0) {
+//                    log.debug("✅ ДОГРУЗКА: Успешно загружено {} свечей для тикера {}", savedCount, ticker);
+//                } else {
+//                    log.warn("⚠️ ДОГРУЗКА: Не загружено новых свечей для тикера {}", ticker);
+//                    // Не считаем это критической ошибкой
+//                }
+//            } catch (Exception e) {
+//                log.error("❌ ДОГРУЗКА: Ошибка при догрузке тикера {}: {}", ticker, e.getMessage(), e);
+//                allSuccess = false;
+//            }
+//        }
+//
+//        return allSuccess;
+//    }
 
-        // Максимум 2 попытки догрузки
-        for (int attempt = 1; attempt <= 2; attempt++) {
-            log.info("🔄 ПОПЫТКА #{}: Валидация консистентности", attempt);
+//    /**
+//     * Заново получает данные для всех тикеров после догрузки
+//     */
+//    private Map<String, List<Candle>> reloadAllTickersData(List<String> tickers, String exchange,
+//                                                           String untilDate, String timeframe, String period) {
+//        log.debug("🔄 ПЕРЕЗАГРУЗКА: Получаем свежие данные для {} тикеров", tickers.size());
+//
+//        Map<String, List<Candle>> result = new ConcurrentHashMap<>();
+//
+//        for (String ticker : tickers) {
+//            try {
+//                List<Candle> candles = cacheValidatedCandlesProcessor.getValidatedCandlesFromCache(
+//                        exchange, ticker, untilDate, timeframe, period);
+//
+//                if (!candles.isEmpty()) {
+//                    result.put(ticker, candles);
+//                    log.debug("✅ ПЕРЕЗАГРУЗКА: Получено {} свечей для тикера {}", candles.size(), ticker);
+//                } else {
+//                    log.warn("⚠️ ПЕРЕЗАГРУЗКА: Пустой результат для тикера {}", ticker);
+//                }
+//            } catch (Exception e) {
+//                log.error("❌ ПЕРЕЗАГРУЗКА: Ошибка получения данных для тикера {}: {}", ticker, e.getMessage(), e);
+//            }
+//        }
+//
+//        log.debug("✅ ПЕРЕЗАГРУЗКА: Получены данные для {}/{} тикеров", result.size(), tickers.size());
+//        return result;
+//    }
 
-            ValidationResult basicResult = validateDataConsistencyBetweenTickers(tickerData);
-
-            if (basicResult.isValid) {
-                log.info("✅ ВАЛИДАЦИЯ С ДОГРУЗКОЙ: Все тикеры консистентны после {} попыток", attempt);
-                return basicResult;
-            }
-
-            if (attempt == 2) {
-                log.error("❌ ВАЛИДАЦИЯ С ДОГРУЗКОЙ: Не удалось добиться консистентности после 2 попыток");
-                return basicResult; // Возвращаем последнюю ошибку
-            }
-
-            log.warn("⚠️ ПОПЫТКА #{}: Обнаружены несоответствия, запускаем догрузку", attempt);
-
-            // Находим тикеры с недостаточным количеством данных
-            List<String> tickersToReload = findTickersNeedingReload(tickerData);
-
-            if (tickersToReload.isEmpty()) {
-                log.error("❌ ДОГРУЗКА: Не удалось определить тикеры для догрузки");
-                return basicResult;
-            }
-
-            log.info("🔄 ДОГРУЗКА: Перезагружаем данные для {} тикеров: {}",
-                    tickersToReload.size(), tickersToReload);
-
-            // Догружаем данные для проблемных тикеров
-            boolean reloadSuccess = reloadDataForTickers(tickersToReload, exchange, untilDate, timeframe, period);
-
-            if (!reloadSuccess) {
-                log.error("❌ ДОГРУЗКА: Не удалось догрузить данные");
-                return new ValidationResult(false, "Не удалось догрузить недостающие данные");
-            }
-
-            // Заново получаем данные для всех тикеров
-            log.info("🔄 ПОВТОРНАЯ ЗАГРУЗКА: Заново получаем данные для всех тикеров");
-            tickerData.clear();
-            tickerData.putAll(reloadAllTickersData(allTickers, exchange, untilDate, timeframe, period));
-
-            if (tickerData.isEmpty()) {
-                log.error("❌ ПОВТОРНАЯ ЗАГРУЗКА: Не удалось получить данные");
-                return new ValidationResult(false, "Не удалось получить данные после догрузки");
-            }
-        }
-
-        return new ValidationResult(false, "Неожиданная ошибка в валидации с догрузкой");
-    }
-
-    /**
-     * Находит тикеры, которым нужна догрузка данных
-     */
-    private List<String> findTickersNeedingReload(Map<String, List<Candle>> tickerData) {
-        if (tickerData.isEmpty()) {
-            return List.of();
-        }
-
-        // Находим максимальное количество свечей среди всех тикеров
-        int maxCandles = tickerData.values().stream()
-                .mapToInt(List::size)
-                .max()
-                .orElse(0);
-
-        // Находим самый широкий временной диапазон (самую старую первую свечу и самую новую последнюю свечу)
-        long oldestFirstTimestamp = Long.MAX_VALUE;
-        long newestLastTimestamp = Long.MIN_VALUE;
-
-        for (List<Candle> candles : tickerData.values()) {
-            if (!candles.isEmpty()) {
-                long firstTimestamp = candles.get(0).getTimestamp();
-                long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
-                oldestFirstTimestamp = Math.min(oldestFirstTimestamp, firstTimestamp);
-                newestLastTimestamp = Math.max(newestLastTimestamp, lastTimestamp);
-            }
-        }
-
-        // Делаем переменные effectively final для использования в lambda
-        final long finalOldestFirstTimestamp = oldestFirstTimestamp;
-        final long finalNewestLastTimestamp = newestLastTimestamp;
-
-        log.info("🔍 АНАЛИЗ: Максимальное количество свечей: {}", maxCandles);
-        log.info("🔍 АНАЛИЗ: Эталонный диапазон: {} - {}",
-                formatTimestamp(finalOldestFirstTimestamp), formatTimestamp(finalNewestLastTimestamp));
-
-        // Возвращаем тикеры, которым нужна догрузка (меньше свечей ИЛИ неполный временной диапазон)
-        return tickerData.entrySet().stream()
-                .filter(entry -> {
-                    List<Candle> candles = entry.getValue();
-                    if (candles.isEmpty()) return true;
-
-                    // Проверяем количество свечей
-                    boolean needsMoreCandles = candles.size() < maxCandles;
-
-                    // Проверяем временной диапазон
-                    long firstTimestamp = candles.get(0).getTimestamp();
-                    long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
-                    boolean needsOlderData = firstTimestamp > finalOldestFirstTimestamp;
-                    boolean needsNewerData = lastTimestamp < finalNewestLastTimestamp;
-
-                    return needsMoreCandles || needsOlderData || needsNewerData;
-                })
-                .map(Map.Entry::getKey)
-                .peek(ticker -> {
-                    List<Candle> candles = tickerData.get(ticker);
-                    if (!candles.isEmpty()) {
-                        long firstTimestamp = candles.get(0).getTimestamp();
-                        long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
-                        log.info("🎯 ДОГРУЗКА НУЖНА: {} ({} свечей, диапазон {} - {})",
-                                ticker, candles.size(),
-                                formatTimestamp(firstTimestamp), formatTimestamp(lastTimestamp));
-                    } else {
-                        log.info("🎯 ДОГРУЗКА НУЖНА: {} (нет данных)", ticker);
-                    }
-                })
-                .toList();
-    }
-
-    /**
-     * Догружает данные для указанных тикеров
-     */
-    private boolean reloadDataForTickers(List<String> tickers, String exchange,
-                                         String untilDate, String timeframe, String period) {
-        log.info("🚀 ДОГРУЗКА ДАННЫХ: Запускаем догрузку для {} тикеров", tickers.size());
-
-        boolean allSuccess = true;
-        for (String ticker : tickers) {
-            try {
-                log.info("🔄 ДОГРУЗКА: Обрабатываем тикер {}", ticker);
-                int savedCount = candlesLoaderProcessor.loadAndSaveCandles(exchange, ticker, untilDate, timeframe, period);
-
-                if (savedCount > 0) {
-                    log.info("✅ ДОГРУЗКА: Успешно загружено {} свечей для тикера {}", savedCount, ticker);
-                } else {
-                    log.warn("⚠️ ДОГРУЗКА: Не загружено новых свечей для тикера {}", ticker);
-                    // Не считаем это критической ошибкой
-                }
-            } catch (Exception e) {
-                log.error("❌ ДОГРУЗКА: Ошибка при догрузке тикера {}: {}", ticker, e.getMessage(), e);
-                allSuccess = false;
-            }
-        }
-
-        return allSuccess;
-    }
-
-    /**
-     * Заново получает данные для всех тикеров после догрузки
-     */
-    private Map<String, List<Candle>> reloadAllTickersData(List<String> tickers, String exchange,
-                                                           String untilDate, String timeframe, String period) {
-        log.info("🔄 ПЕРЕЗАГРУЗКА: Получаем свежие данные для {} тикеров", tickers.size());
-
-        Map<String, List<Candle>> result = new ConcurrentHashMap<>();
-
-        for (String ticker : tickers) {
-            try {
-                List<Candle> candles = cacheValidatedCandlesProcessor.getValidatedCandlesFromCache(
-                        exchange, ticker, untilDate, timeframe, period);
-
-                if (!candles.isEmpty()) {
-                    result.put(ticker, candles);
-                    log.info("✅ ПЕРЕЗАГРУЗКА: Получено {} свечей для тикера {}", candles.size(), ticker);
-                } else {
-                    log.warn("⚠️ ПЕРЕЗАГРУЗКА: Пустой результат для тикера {}", ticker);
-                }
-            } catch (Exception e) {
-                log.error("❌ ПЕРЕЗАГРУЗКА: Ошибка получения данных для тикера {}: {}", ticker, e.getMessage(), e);
-            }
-        }
-
-        log.info("✅ ПЕРЕЗАГРУЗКА: Получены данные для {}/{} тикеров", result.size(), tickers.size());
-        return result;
-    }
-
-    /**
-     * Валидирует консистентность данных между тикерами (базовая версия)
-     * Проверяет, что у всех тикеров одинаковые диапазоны дат и количество свечей
-     */
-    private ValidationResult validateDataConsistencyBetweenTickers(Map<String, List<Candle>> tickerData) {
-        log.info("🔍 ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Проверяем {} тикеров на соответствие данных", tickerData.size());
-
-        if (tickerData.isEmpty()) {
-            return new ValidationResult(false, "Нет данных для валидации");
-        }
-
-        // Переменные для хранения эталонных значений (первого тикера)
-        String referenceTicker = null;
-        int referenceCount = -1;
-        long referenceFirstTimestamp = -1;
-        long referenceLastTimestamp = -1;
-
-        for (Map.Entry<String, List<Candle>> entry : tickerData.entrySet()) {
-            String ticker = entry.getKey();
-            List<Candle> candles = entry.getValue();
-
-            if (candles.isEmpty()) {
-                log.warn("⚠️ ВАЛИДАЦИЯ: Тикер {} имеет пустой список свечей", ticker);
-                continue;
-            }
-
-            int currentCount = candles.size();
-            long currentFirstTimestamp = candles.get(0).getTimestamp();
-            long currentLastTimestamp = candles.get(candles.size() - 1).getTimestamp();
-
-            log.info("📊 ВАЛИДАЦИЯ: Тикер {}: {} свечей, диапазон {} - {}",
-                    ticker, currentCount,
-                    formatTimestamp(currentFirstTimestamp),
-                    formatTimestamp(currentLastTimestamp));
-
-            // Устанавливаем эталонные значения с первого тикера
-            if (referenceTicker == null) {
-                referenceTicker = ticker;
-                referenceCount = currentCount;
-                referenceFirstTimestamp = currentFirstTimestamp;
-                referenceLastTimestamp = currentLastTimestamp;
-                log.info("🎯 ЭТАЛОН: Тикер {} установлен как эталон: {} свечей, диапазон {} - {}",
-                        referenceTicker, referenceCount,
-                        formatTimestamp(referenceFirstTimestamp),
-                        formatTimestamp(referenceLastTimestamp));
-                continue;
-            }
-
-            // Проверяем количество свечей
-            if (currentCount != referenceCount) {
-                String reason = String.format("Несоответствие количества свечей: %s имеет %d свечей, а эталон %s имеет %d свечей",
-                        ticker, currentCount, referenceTicker, referenceCount);
-                log.error("❌ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
-                return new ValidationResult(false, reason);
-            }
-
-            // Проверяем первую свечу
-            if (currentFirstTimestamp != referenceFirstTimestamp) {
-                String reason = String.format("Несоответствие первой свечи: %s начинается с %s, а эталон %s с %s",
-                        ticker, formatTimestamp(currentFirstTimestamp),
-                        referenceTicker, formatTimestamp(referenceFirstTimestamp));
-                log.error("❌ ВАЛИДАЦИЯ ПЕРВОЙ СВЕЧИ: {}", reason);
-                return new ValidationResult(false, reason);
-            }
-
-            // Проверяем последнюю свечу
-            if (currentLastTimestamp != referenceLastTimestamp) {
-                String reason = String.format("Несоответствие последней свечи: %s заканчивается на %s, а эталон %s на %s",
-                        ticker, formatTimestamp(currentLastTimestamp),
-                        referenceTicker, formatTimestamp(referenceLastTimestamp));
-                log.error("❌ ВАЛИДАЦИЯ ПОСЛЕДНЕЙ СВЕЧИ: {}", reason);
-                return new ValidationResult(false, reason);
-            }
-
-            log.info("✅ ВАЛИДАЦИЯ: Тикер {} соответствует эталону", ticker);
-        }
-
-        log.info("✅ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Все {} тикеров имеют идентичные диапазоны и количество свечей", tickerData.size());
-        return new ValidationResult(true, "Все тикеры имеют одинаковые диапазоны дат и количество свечей");
-    }
+//    /**
+//     * Валидирует консистентность данных между тикерами (базовая версия)
+//     * Проверяет, что у всех тикеров одинаковые диапазоны дат и количество свечей
+//     */
+//    private ValidationResult validateDataConsistencyBetweenTickers(Map<String, List<Candle>> tickerData) {
+//        log.debug("🔍 ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Проверяем {} тикеров на соответствие данных", tickerData.size());
+//
+//        if (tickerData.isEmpty()) {
+//            return new ValidationResult(false, "Нет данных для валидации");
+//        }
+//
+//        // Переменные для хранения эталонных значений (первого тикера)
+//        String referenceTicker = null;
+//        int referenceCount = -1;
+//        long referenceFirstTimestamp = -1;
+//        long referenceLastTimestamp = -1;
+//
+//        for (Map.Entry<String, List<Candle>> entry : tickerData.entrySet()) {
+//            String ticker = entry.getKey();
+//            List<Candle> candles = entry.getValue();
+//
+//            if (candles.isEmpty()) {
+//                log.warn("⚠️ ВАЛИДАЦИЯ: Тикер {} имеет пустой список свечей", ticker);
+//                continue;
+//            }
+//
+//            int currentCount = candles.size();
+//            long currentFirstTimestamp = candles.get(0).getTimestamp();
+//            long currentLastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+//
+//            log.debug("📊 ВАЛИДАЦИЯ: Тикер {}: {} свечей, диапазон {} - {}",
+//                    ticker, currentCount,
+//                    formatTimestamp(currentFirstTimestamp),
+//                    formatTimestamp(currentLastTimestamp));
+//
+//            // Устанавливаем эталонные значения с первого тикера
+//            if (referenceTicker == null) {
+//                referenceTicker = ticker;
+//                referenceCount = currentCount;
+//                referenceFirstTimestamp = currentFirstTimestamp;
+//                referenceLastTimestamp = currentLastTimestamp;
+//                log.debug("🎯 ЭТАЛОН: Тикер {} установлен как эталон: {} свечей, диапазон {} - {}",
+//                        referenceTicker, referenceCount,
+//                        formatTimestamp(referenceFirstTimestamp),
+//                        formatTimestamp(referenceLastTimestamp));
+//                continue;
+//            }
+//
+//            // Проверяем количество свечей
+//            if (currentCount != referenceCount) {
+//                String reason = String.format("Несоответствие количества свечей: %s имеет %d свечей, а эталон %s имеет %d свечей",
+//                        ticker, currentCount, referenceTicker, referenceCount);
+//                log.error("❌ ВАЛИДАЦИЯ КОЛИЧЕСТВА: {}", reason);
+//                return new ValidationResult(false, reason);
+//            }
+//
+//            // Проверяем первую свечу
+//            if (currentFirstTimestamp != referenceFirstTimestamp) {
+//                String reason = String.format("Несоответствие первой свечи: %s начинается с %s, а эталон %s с %s",
+//                        ticker, formatTimestamp(currentFirstTimestamp),
+//                        referenceTicker, formatTimestamp(referenceFirstTimestamp));
+//                log.error("❌ ВАЛИДАЦИЯ ПЕРВОЙ СВЕЧИ: {}", reason);
+//                return new ValidationResult(false, reason);
+//            }
+//
+//            // Проверяем последнюю свечу
+//            if (currentLastTimestamp != referenceLastTimestamp) {
+//                String reason = String.format("Несоответствие последней свечи: %s заканчивается на %s, а эталон %s на %s",
+//                        ticker, formatTimestamp(currentLastTimestamp),
+//                        referenceTicker, formatTimestamp(referenceLastTimestamp));
+//                log.error("❌ ВАЛИДАЦИЯ ПОСЛЕДНЕЙ СВЕЧИ: {}", reason);
+//                return new ValidationResult(false, reason);
+//            }
+//
+//            log.debug("✅ ВАЛИДАЦИЯ: Тикер {} соответствует эталону", ticker);
+//        }
+//
+//        log.debug("✅ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Все {} тикеров имеют идентичные диапазоны и количество свечей", tickerData.size());
+//        return new ValidationResult(true, "Все тикеры имеют одинаковые диапазоны дат и количество свечей");
+//    }
 
     /**
      * Фильтрует невалидные тикеры, оставляя только те, которые соответствуют эталону
      * по количеству свечей и временным диапазонам
      */
     private Map<String, List<Candle>> filterInvalidTickers(Map<String, List<Candle>> tickerData) {
-        log.info("🔍 ФИЛЬТРАЦИЯ НЕВАЛИДНЫХ ТИКЕРОВ: Анализируем {} тикеров", tickerData.size());
+        log.debug("🔍 ФИЛЬТРАЦИЯ НЕВАЛИДНЫХ ТИКЕРОВ: Анализируем {} тикеров", tickerData.size());
         
         if (tickerData.isEmpty()) {
             return tickerData;
@@ -663,7 +664,7 @@ public class CandlesProcessorController {
             return tickerData;
         }
         
-        log.info("🎯 ЭТАЛОН ДЛЯ ФИЛЬТРАЦИИ: {} - {} свечей, диапазон {} - {}",
+        log.debug("🎯 ЭТАЛОН ДЛЯ ФИЛЬТРАЦИИ: {} - {} свечей, диапазон {} - {}",
                 referenceTicker, maxCandlesCount, 
                 formatTimestamp(referenceFirstTimestamp),
                 formatTimestamp(referenceLastTimestamp));
@@ -744,10 +745,10 @@ public class CandlesProcessorController {
         
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                log.info("🔄 RETRY #{}: Выполняем операцию '{}'", attempt, operationName);
+                log.debug("🔄 RETRY #{}: Выполняем операцию '{}'", attempt, operationName);
                 T result = operation.get();
                 if (attempt > 1) {
-                    log.info("✅ RETRY: Операция '{}' успешна после {} попыток", operationName, attempt);
+                    log.debug("✅ RETRY: Операция '{}' успешна после {} попыток", operationName, attempt);
                 }
                 return result;
             } catch (Exception e) {
@@ -772,16 +773,16 @@ public class CandlesProcessorController {
         throw new Exception("Не удалось выполнить операцию '" + operationName + "' после " + maxAttempts + " попыток", lastException);
     }
 
-    /**
-     * Класс для хранения результата валидации
-     */
-    private static class ValidationResult {
-        final boolean isValid;
-        final String reason;
-
-        ValidationResult(boolean isValid, String reason) {
-            this.isValid = isValid;
-            this.reason = reason;
-        }
-    }
+//    /**
+//     * Класс для хранения результата валидации
+//     */
+//    private static class ValidationResult {
+//        final boolean isValid;
+//        final String reason;
+//
+//        ValidationResult(boolean isValid, String reason) {
+//            this.isValid = isValid;
+//            this.reason = reason;
+//        }
+//    }
 }
