@@ -295,10 +295,20 @@ public class CandlesProcessorController {
             log.info("✅ API РЕЗУЛЬТАТ: Возвращаем {} свечей для {}/{} тикеров (обработано успешно)",
                     totalCandlesCount.get(), successfulTickers.get(), tickersToProcess.size());
 
-            // Простая валидация консистентности без догрузки (только предупреждения)
-            ValidationResult consistencyResult = validateDataConsistencyBetweenTickers(result);
-            if (!consistencyResult.isValid) {
-                log.warn("⚠️ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: {} - продолжаем с имеющимися данными", consistencyResult.reason);
+            /*
+             * КРИТИЧЕСКАЯ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ С ФИЛЬТРАЦИЕЙ
+             * - Находим эталонный тикер (с максимальным количеством свечей)
+             * - Удаляем все тикеры, которые не соответствуют эталону по количеству и временным диапазонам
+             * - Core service должен получить ТОЛЬКО 100% валидные данные
+             */
+            Map<String, List<Candle>> validatedResult = filterInvalidTickers(result);
+            
+            if (validatedResult.size() < result.size()) {
+                int removedCount = result.size() - validatedResult.size();
+                log.warn("🗑️ ФИЛЬТРАЦИЯ КОНСИСТЕНТНОСТИ: Удалено {} невалидных тикеров из {}, осталось {} валидных", 
+                        removedCount, result.size(), validatedResult.size());
+            } else {
+                log.info("✅ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Все {} тикеров имеют идентичные диапазоны и количество свечей", result.size());
             }
 
             /*
@@ -307,20 +317,20 @@ public class CandlesProcessorController {
              * - ЕСЛИ были переданы конкретные тикеры → возвращаем только их (убираем BTC-эталон)
              * - ЕСЛИ загружали все тикеры → возвращаем все кроме BTC-эталона
              */
-            Map<String, List<Candle>> finalResult = result;
+            Map<String, List<Candle>> finalResult = validatedResult;
             if (originalRequestedTickers != null) {
                 // Фильтруем по оригинальному запросу (убираем BTC-эталон)
-                finalResult = result.entrySet().stream()
+                finalResult = validatedResult.entrySet().stream()
                         .filter(entry -> originalRequestedTickers.contains(entry.getKey()))
                         .collect(Collectors.toMap(
                                 Map.Entry::getKey,
                                 Map.Entry::getValue
                         ));
                 log.info("🎯 Отфильтрованы результаты: возвращаем {} из {} тикеров",
-                        finalResult.size(), result.size());
+                        finalResult.size(), validatedResult.size());
             } else if (isStandardTickerBtcAdded) {
                 // Убираем BTC только если это загрузка всех тикеров
-                finalResult = new ConcurrentHashMap<>(result);
+                finalResult = new ConcurrentHashMap<>(validatedResult);
                 finalResult.remove(STANDARD_TICKER_BTC);
             }
             
@@ -612,6 +622,101 @@ public class CandlesProcessorController {
 
         log.info("✅ ВАЛИДАЦИЯ КОНСИСТЕНТНОСТИ: Все {} тикеров имеют идентичные диапазоны и количество свечей", tickerData.size());
         return new ValidationResult(true, "Все тикеры имеют одинаковые диапазоны дат и количество свечей");
+    }
+
+    /**
+     * Фильтрует невалидные тикеры, оставляя только те, которые соответствуют эталону
+     * по количеству свечей и временным диапазонам
+     */
+    private Map<String, List<Candle>> filterInvalidTickers(Map<String, List<Candle>> tickerData) {
+        log.info("🔍 ФИЛЬТРАЦИЯ НЕВАЛИДНЫХ ТИКЕРОВ: Анализируем {} тикеров", tickerData.size());
+        
+        if (tickerData.isEmpty()) {
+            return tickerData;
+        }
+        
+        // Находим эталонный тикер с максимальным количеством свечей
+        String referenceTicker = null;
+        int maxCandlesCount = 0;
+        long referenceFirstTimestamp = -1;
+        long referenceLastTimestamp = -1;
+        
+        // Первый проход: находим эталон
+        for (Map.Entry<String, List<Candle>> entry : tickerData.entrySet()) {
+            String ticker = entry.getKey();
+            List<Candle> candles = entry.getValue();
+            
+            if (candles.isEmpty()) {
+                continue;
+            }
+            
+            if (candles.size() > maxCandlesCount) {
+                maxCandlesCount = candles.size();
+                referenceTicker = ticker;
+                referenceFirstTimestamp = candles.get(0).getTimestamp();
+                referenceLastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+            }
+        }
+        
+        if (referenceTicker == null) {
+            log.warn("⚠️ ФИЛЬТРАЦИЯ: Не найден валидный эталонный тикер");
+            return tickerData;
+        }
+        
+        log.info("🎯 ЭТАЛОН ДЛЯ ФИЛЬТРАЦИИ: {} - {} свечей, диапазон {} - {}",
+                referenceTicker, maxCandlesCount, 
+                formatTimestamp(referenceFirstTimestamp),
+                formatTimestamp(referenceLastTimestamp));
+        
+        // Второй проход: фильтруем тикеры по эталону
+        Map<String, List<Candle>> validTickers = new ConcurrentHashMap<>();
+        List<String> invalidTickers = new ArrayList<>();
+        
+        for (Map.Entry<String, List<Candle>> entry : tickerData.entrySet()) {
+            String ticker = entry.getKey();
+            List<Candle> candles = entry.getValue();
+            
+            if (candles.isEmpty()) {
+                invalidTickers.add(ticker + "(пустой)");
+                continue;
+            }
+            
+            boolean isValid = true;
+            List<String> issues = new ArrayList<>();
+            
+            // Проверка количества свечей
+            if (candles.size() != maxCandlesCount) {
+                isValid = false;
+                issues.add("свечей:" + candles.size() + "≠" + maxCandlesCount);
+            }
+            
+            // Проверка временных диапазонов
+            long firstTimestamp = candles.get(0).getTimestamp();
+            long lastTimestamp = candles.get(candles.size() - 1).getTimestamp();
+            
+            if (firstTimestamp != referenceFirstTimestamp) {
+                isValid = false;
+                issues.add("начало:" + formatTimestamp(firstTimestamp) + "≠" + formatTimestamp(referenceFirstTimestamp));
+            }
+            
+            if (lastTimestamp != referenceLastTimestamp) {
+                isValid = false;
+                issues.add("конец:" + formatTimestamp(lastTimestamp) + "≠" + formatTimestamp(referenceLastTimestamp));
+            }
+            
+            if (isValid) {
+                validTickers.put(ticker, candles);
+            } else {
+                invalidTickers.add(ticker + "(" + String.join(", ", issues) + ")");
+            }
+        }
+        
+        log.info("✅ ФИЛЬТРАЦИЯ РЕЗУЛЬТАТ: {} валидных тикеров из {}", validTickers.size(), tickerData.size());
+        if (!invalidTickers.isEmpty()) {
+            log.warn("🗑️ УДАЛЕНЫ НЕВАЛИДНЫЕ ТИКЕРЫ ({}): {}", invalidTickers.size(), String.join(", ", invalidTickers));
+        }
+        
+        return validTickers;
     }
 
     /**
