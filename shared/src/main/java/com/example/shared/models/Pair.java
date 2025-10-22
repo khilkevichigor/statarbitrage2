@@ -813,11 +813,11 @@ public class Pair {
         log.debug("🔍 SearchSettings: {}", searchSettings);
         if (searchSettings != null && searchSettings.containsKey("minVolume")) {
             Object minVolumeObj = searchSettings.get("minVolume");
-            log.info("📊 Найден minVolume в searchSettings: {} (тип: {})", minVolumeObj, minVolumeObj != null ? minVolumeObj.getClass().getSimpleName() : "null");
+            log.debug("📊 Найден minVolume в searchSettings: {} (тип: {})", minVolumeObj, minVolumeObj != null ? minVolumeObj.getClass().getSimpleName() : "null");
             if (minVolumeObj instanceof Number) {
                 BigDecimal minVolValue = BigDecimal.valueOf(((Number) minVolumeObj).doubleValue());
                 pair.setMinVolMln(minVolValue);
-                log.info("✅ Установлен minVolMln = {} для пары {}/{}", minVolValue, tickerA, tickerB);
+                log.debug("✅ Установлен minVolMln = {} для пары {}/{}", minVolValue, tickerA, tickerB);
             } else {
                 log.warn("⚠️ minVolume не является Number: {}", minVolumeObj);
             }
