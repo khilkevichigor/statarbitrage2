@@ -18,6 +18,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -721,6 +722,7 @@ public class Pair {
 
     // ======== СТАТИЧЕСКИЕ МЕТОДЫ ДЛЯ СОЗДАНИЯ ИЗ СТАБИЛЬНЫХ ПАР ========
 
+    //todo что это за монстр с рефлексией?!!!
     /**
      * Создание Pair из результата анализа стабильности
      */
@@ -740,23 +742,23 @@ public class Pair {
             Class<?> dtoClass = stabilityResult.getClass();
 
             // Извлекаем ticker_a и ticker_b
-            java.lang.reflect.Field tickerAField = dtoClass.getDeclaredField("tickerA");
+            Field tickerAField = dtoClass.getDeclaredField("tickerA");
             tickerAField.setAccessible(true);
             tickerA = (String) tickerAField.get(stabilityResult);
             pair.setTickerA(tickerA);
 
-            java.lang.reflect.Field tickerBField = dtoClass.getDeclaredField("tickerB");
+            Field tickerBField = dtoClass.getDeclaredField("tickerB");
             tickerBField.setAccessible(true);
             tickerB = (String) tickerBField.get(stabilityResult);
             pair.setTickerB(tickerB);
 
             // Извлекаем остальные поля
-            java.lang.reflect.Field totalScoreField = dtoClass.getDeclaredField("totalScore");
+            Field totalScoreField = dtoClass.getDeclaredField("totalScore");
             totalScoreField.setAccessible(true);
             Integer totalScore = (Integer) totalScoreField.get(stabilityResult);
             pair.setTotalScore(totalScore);
 
-            java.lang.reflect.Field stabilityRatingField = dtoClass.getDeclaredField("stabilityRating");
+            Field stabilityRatingField = dtoClass.getDeclaredField("stabilityRating");
             stabilityRatingField.setAccessible(true);
             Object stabilityRatingObj = stabilityRatingField.get(stabilityResult);
             if (stabilityRatingObj instanceof StabilityRating) {

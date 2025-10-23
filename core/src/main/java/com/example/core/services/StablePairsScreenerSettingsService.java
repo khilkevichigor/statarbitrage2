@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StablePairsScreenerSettingsService {
 
-    private final StablePairsScreenerSettingsRepository repository;
+    private final StablePairsScreenerSettingsRepository stablePairsScreenerSettingsRepository;
     private final SettingsRepository settingsRepository;
     private final TimeframeAndPeriodService timeframeAndPeriodService;
 
@@ -31,7 +31,7 @@ public class StablePairsScreenerSettingsService {
      */
     public List<StablePairsScreenerSettings> getAllSettings() {
         log.debug("📋 Получение всех настроек скриннера");
-        return repository.findAllOrderedByUsage();
+        return stablePairsScreenerSettingsRepository.findAllOrderedByUsage();
     }
 
     /**
@@ -39,7 +39,7 @@ public class StablePairsScreenerSettingsService {
      */
     public Optional<StablePairsScreenerSettings> getSettingsById(Long id) {
         log.debug("🔍 Поиск настроек по ID: {}", id);
-        return repository.findById(id);
+        return stablePairsScreenerSettingsRepository.findById(id);
     }
 
     /**
@@ -49,7 +49,7 @@ public class StablePairsScreenerSettingsService {
     public StablePairsScreenerSettings getDefaultSettings() {
         log.debug("⚙️ Получение настроек по умолчанию");
 
-        List<StablePairsScreenerSettings> defaultSettingsList = repository.findByIsDefaultTrue();
+        List<StablePairsScreenerSettings> defaultSettingsList = stablePairsScreenerSettingsRepository.findByIsDefaultTrue();
 
         if (!defaultSettingsList.isEmpty()) {
             // Если найдено несколько записей с isDefault=true, исправляем это
@@ -61,7 +61,7 @@ public class StablePairsScreenerSettingsService {
                 for (int i = 1; i < defaultSettingsList.size(); i++) {
                     StablePairsScreenerSettings duplicate = defaultSettingsList.get(i);
                     duplicate.setDefault(false);
-                    repository.save(duplicate);
+                    stablePairsScreenerSettingsRepository.save(duplicate);
                     log.info("🔧 Сброшен флаг default для настройки: {} (ID: {})", duplicate.getName(), duplicate.getId());
                 }
 
@@ -84,7 +84,7 @@ public class StablePairsScreenerSettingsService {
         // Создаем настройки по умолчанию
         log.info("🆕 Создание новых настроек скриннера по умолчанию");
         StablePairsScreenerSettings newDefault = StablePairsScreenerSettings.createDefault();
-        StablePairsScreenerSettings saved = repository.save(newDefault);
+        StablePairsScreenerSettings saved = stablePairsScreenerSettingsRepository.save(newDefault);
 
         log.info("✅ Настройки по умолчанию созданы с ID: {}", saved.getId());
         return saved;
@@ -103,10 +103,10 @@ public class StablePairsScreenerSettingsService {
         // Если устанавливается флаг "по умолчанию", сбрасываем его у остальных
         if (settings.isDefault()) {
             log.debug("🔄 Сброс флага 'по умолчанию' у других настроек");
-            repository.resetAllDefaultFlags();
+            stablePairsScreenerSettingsRepository.resetAllDefaultFlags();
         }
 
-        StablePairsScreenerSettings saved = repository.save(settings);
+        StablePairsScreenerSettings saved = stablePairsScreenerSettingsRepository.save(settings);
         log.info("✅ Настройки сохранены с ID: {}", saved.getId());
         return saved;
     }
@@ -118,7 +118,7 @@ public class StablePairsScreenerSettingsService {
     public void deleteSettings(Long id) {
         log.info("🗑️ Удаление настроек с ID: {}", id);
 
-        Optional<StablePairsScreenerSettings> settings = repository.findById(id);
+        Optional<StablePairsScreenerSettings> settings = stablePairsScreenerSettingsRepository.findById(id);
         if (settings.isEmpty()) {
             log.warn("⚠️ Настройки с ID {} не найдены", id);
             throw new IllegalArgumentException("Настройки не найдены: " + id);
@@ -129,7 +129,7 @@ public class StablePairsScreenerSettingsService {
             throw new IllegalStateException("Нельзя удалить настройки по умолчанию");
         }
 
-        repository.deleteById(id);
+        stablePairsScreenerSettingsRepository.deleteById(id);
         log.info("✅ Настройки с ID {} удалены", id);
     }
 
@@ -141,7 +141,7 @@ public class StablePairsScreenerSettingsService {
 
         try {
             // Получаем все настройки с включенным автоматическим запуском
-            List<StablePairsScreenerSettings> originalSettings = repository.findByRunOnScheduleTrue();
+            List<StablePairsScreenerSettings> originalSettings = stablePairsScreenerSettingsRepository.findByRunOnScheduleTrue();
 
             if (originalSettings.isEmpty()) {
                 log.debug("📋 Нет настроек с включенным автоматическим запуском");
@@ -227,7 +227,7 @@ public class StablePairsScreenerSettingsService {
         } catch (Exception e) {
             log.error("❌ Ошибка при получении настроек для шедуллера: {}", e.getMessage(), e);
             // Возвращаем исходные настройки при ошибке
-            return repository.findByRunOnScheduleTrue();
+            return stablePairsScreenerSettingsRepository.findByRunOnScheduleTrue();
         }
     }
 
@@ -278,11 +278,11 @@ public class StablePairsScreenerSettingsService {
     public void markAsUsed(Long settingsId) {
         log.debug("🕒 Отметка использования настроек ID: {}", settingsId);
 
-        Optional<StablePairsScreenerSettings> settings = repository.findById(settingsId);
+        Optional<StablePairsScreenerSettings> settings = stablePairsScreenerSettingsRepository.findById(settingsId);
         if (settings.isPresent()) {
             StablePairsScreenerSettings s = settings.get();
             s.markAsUsed();
-            repository.save(s);
+            stablePairsScreenerSettingsRepository.save(s);
         }
     }
 
@@ -383,7 +383,7 @@ public class StablePairsScreenerSettingsService {
         }
 
         // Проверка уникальности названия
-        if (repository.existsByNameIgnoreCaseAndIdNot(settings.getName(), settings.getId())) {
+        if (stablePairsScreenerSettingsRepository.existsByNameIgnoreCaseAndIdNot(settings.getName(), settings.getId())) {
             throw new IllegalArgumentException("Настройки с таким названием уже существуют");
         }
 
@@ -470,7 +470,7 @@ public class StablePairsScreenerSettingsService {
         // Сохраняем обновления, если они были
         if (needsUpdate) {
             try {
-                repository.save(settings);
+                stablePairsScreenerSettingsRepository.save(settings);
                 log.info("✅ Настройки по умолчанию успешно обновлены до актуальных значений");
             } catch (Exception e) {
                 log.error("❌ Ошибка при обновлении настроек по умолчанию: {}", e.getMessage(), e);
