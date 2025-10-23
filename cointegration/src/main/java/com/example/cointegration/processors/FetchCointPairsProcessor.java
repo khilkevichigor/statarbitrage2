@@ -41,14 +41,13 @@ public class FetchCointPairsProcessor {
 
         Settings settings = settingsService.getSettings();
         List<String> usedTickers = getUsedTickers(); //в candles ms отфильтрем из общего числа тикеров
-        Map<String, List<Candle>> candlesMap = getCandles(settings, usedTickers);
+        Map<String, List<Candle>> candlesMap = getCandles(settings, usedTickers); //todo старый способ получения свечей!
 
         if (candlesMap.isEmpty()) {
             log.warn("⚠️ Данные свечей не получены — пропуск поиска.");
             return Collections.emptyList();
         }
 
-        //todo вынести в мс и брать из бд?
         List<ZScoreData> zScoreDataList = computeZScoreData(settings, candlesMap);
         if (zScoreDataList.isEmpty()) {
             return Collections.emptyList();

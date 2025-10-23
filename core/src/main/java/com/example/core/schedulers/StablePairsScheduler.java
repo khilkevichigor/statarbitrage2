@@ -46,7 +46,7 @@ public class StablePairsScheduler {
      * Автоматический поиск стабильных пар по расписанию (многопоточный)
      * Запускается каждую ночь в 2:00 по местному времени
      */
-    @Scheduled(cron = "0 10 1 * * *") // каждый день в 2:00
+    @Scheduled(cron = "0 10 1 * * *")
     public void searchStablePairsScheduled() {
         // Проверяем включен ли шедуллер через настройки
         if (!schedulerControlService.isStablePairsSchedulerEnabled()) {

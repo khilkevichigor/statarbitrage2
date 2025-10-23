@@ -193,7 +193,7 @@ public class CandleCacheScheduler {
     /**
      * Получение статуса шедуллера
      */
-    public java.util.Map<String, Object> getSchedulerStatus() {
+    public Map<String, Object> getSchedulerStatus() {
         java.util.Map<String, Object> status = new java.util.HashMap<>();
 
         status.put("preloadEnabled", preloadEnabled);

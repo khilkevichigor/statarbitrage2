@@ -21,14 +21,14 @@ public class FindCointPairsScheduler {
     private final FetchCointPairsProcessor fetchCointPairsProcessor;
     private final SendEventService sendEventService;
 
-    //todo 1раз/мин но если ТФ=15ми то 15 раз один и тот же лог с тем же zScore! Можно добавить условие по ТФ из настроек и пропускать лишние заходы шедуллера
-    @Scheduled(cron = "0 */1 * * * *")
+    //todo по-моему это можно удалить, старый код
+//    @Scheduled(cron = "0 */1 * * * *")
     public void maintainCointPairs() {
         long schedulerStart = System.currentTimeMillis();
 
         log.debug("🔄 Шедуллер поиска коинтегрированных пар запущен...");
         Settings settings = settingsService.getSettings();
-        if (settings == null || !settings.isAutoTradingEnabled()) {
+        if (settings == null || !settings.isAutoTradingEnabled()) { //todo будет авторежим - будут проблемы, нужно выпиливать походу весь шедуллер
             return;
         }
 
