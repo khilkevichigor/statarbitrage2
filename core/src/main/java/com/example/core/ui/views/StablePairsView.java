@@ -54,7 +54,6 @@ public class StablePairsView extends VerticalLayout {
     private final StablePairsScreenerSettingsService settingsService;
     private final SettingsService globalSettingsService;
     private final TimeframeAndPeriodService timeframeAndPeriodService;
-
     // Элементы формы поиска - мульти-селекты
     private MultiSelectComboBox<String> timeframeMultiSelect;
     private MultiSelectComboBox<String> periodMultiSelect;
@@ -244,7 +243,7 @@ public class StablePairsView extends VerticalLayout {
         // TextArea для ввода инструментов
         searchTickersField = new TextArea();
         searchTickersField.setPlaceholder("Введите названия инструментов через запятую (например: BTC-USDT-SWAP,ETH-USDT-SWAP,BTCUSDT,ETHUSDT)");
-        searchTickersField.setWidth("500px");
+        searchTickersField.setWidth("400px");
         searchTickersField.setHeight("80px");
         searchTickersField.setEnabled(searchTickersEnabled.getValue());
         searchTickersField.getStyle().set("font-family", "monospace");

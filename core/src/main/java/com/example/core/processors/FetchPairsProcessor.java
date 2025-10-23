@@ -44,8 +44,27 @@ public class FetchPairsProcessor {
 
         // Проверяем, нужно ли использовать стабильные пары из постоянного списка мониторинга
         if (settings.isUseStablePairsForMonitoring()) {
-            log.info("🔄 Используем стабильные пары из постоянного списка мониторинга");
-            return fetchPairsFromStableMonitoring(settings, request);
+            log.info("🔄 Проверяем стабильные пары из постоянного списка мониторинга");
+            if (stablePairsService.hasStablePairsInMonitoring()) {
+                log.info("✅ Используем стабильные пары из постоянного списка мониторинга");
+                return fetchPairsFromStableMonitoring(settings, request);
+            } else {
+                log.warn("⚠️ В постоянном списке мониторинга нет подходящих стабильных пар");
+                
+                // Если включен fallback к найденным парам
+                if (settings.isUseFoundStablePairs()) {
+                    log.info("🔄 Переключаемся на найденные стабильные пары как fallback");
+                    return fetchPairsFromFoundStablePairs(settings, request);
+                } else {
+                    throw new IllegalStateException("❌ Постоянный список для мониторинга пуст. Добавьте стабильные пары в мониторинг или включите опцию 'Искать из Найденные стабильные пары' как fallback");
+                }
+            }
+        }
+
+        // Проверяем, нужно ли использовать найденные стабильные пары
+        if (settings.isUseFoundStablePairs()) {
+            log.info("🔍 Используем найденные стабильные пары (не в мониторинге)");
+            return fetchPairsFromFoundStablePairs(settings, request);
         }
 
         // Стандартный путь - получение всех тикеров и их анализ
@@ -178,11 +197,7 @@ public class FetchPairsProcessor {
     private List<Pair> fetchPairsFromStableMonitoring(Settings settings, FetchPairsRequest request) {
         long start = System.currentTimeMillis();
 
-        // Проверяем наличие стабильных пар в мониторинге
-        if (!stablePairsService.hasStablePairsInMonitoring()) {
-            log.warn("⚠️ В постоянном списке мониторинга нет стабильных пар");
-            throw new IllegalStateException("❌ Постоянный список для мониторинга пуст. Добавьте стабильные пары в мониторинг или отключите опцию 'Искать из Постоянный список для мониторинга'");
-        }
+        log.info("🔄 Получение пар из постоянного списка мониторинга...");
 
         // Получаем названия пар для загрузки свечей
         List<String> pairNames = stablePairsService.getPairNamesForZScoreAnalysis();
@@ -299,6 +314,100 @@ public class FetchPairsProcessor {
             return zScoreService.getTopNZScoreData(settings, candlesMap, count);
         } catch (Exception e) {
             log.error("❌ Ошибка при расчете Z-Score для стабильных пар: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Получение пар из найденных стабильных пар (не в мониторинге)
+     *
+     * @param settings настройки системы
+     * @param request  запрос на получение пар
+     * @return список торговых пар
+     */
+    private List<Pair> fetchPairsFromFoundStablePairs(Settings settings, FetchPairsRequest request) {
+        long start = System.currentTimeMillis();
+
+        log.info("🔍 Получение найденных стабильных пар для поиска торговых возможностей...");
+
+        // Получаем все найденные стабильные пары (не в мониторинге)
+        List<Pair> foundStablePairs = pairService.getAllFoundPairs();
+
+        if (foundStablePairs.isEmpty()) {
+            log.warn("⚠️ Нет найденных стабильных пар для анализа");
+            return Collections.emptyList();
+        }
+
+        log.info("📋 Найдено {} стабильных пар для анализа", foundStablePairs.size());
+
+        // Извлекаем названия пар и уникальные тикеры
+        List<String> pairNames = foundStablePairs.stream()
+                .map(Pair::getPairName)
+                .toList();
+
+        Set<String> uniqueTickersSet = new HashSet<>();
+        for (Pair pair : foundStablePairs) {
+            if (pair.getLongTicker() != null) uniqueTickersSet.add(pair.getLongTicker());
+            if (pair.getShortTicker() != null) uniqueTickersSet.add(pair.getShortTicker());
+        }
+
+        List<String> uniqueTickers = new ArrayList<>(uniqueTickersSet);
+
+        if (uniqueTickers.isEmpty()) {
+            log.warn("⚠️ Не удалось извлечь тикеры из найденных стабильных пар");
+            return Collections.emptyList();
+        }
+
+        log.info("📊 Извлечено {} уникальных тикеров для загрузки свечей: {}",
+                uniqueTickers.size(), uniqueTickers);
+
+        // Получаем свечи только для нужных тикеров
+        Map<String, List<Candle>> candlesMap = getCandlesForSpecificTickers(settings, uniqueTickers);
+
+        if (candlesMap.isEmpty()) {
+            log.warn("⚠️ Данные свечей для найденных стабильных пар не получены — пропуск поиска.");
+            throw new IllegalStateException("❌ Не удалось получить данные свечей для найденных стабильных пар");
+        }
+
+        int count = Optional.ofNullable(request.getCountOfPairs())
+                .orElse((int) settings.getUsePairs());
+
+        // Рассчитываем Z-Score только для найденных стабильных пар
+        List<ZScoreData> zScoreDataList = computeZScoreDataForFoundStablePairs(settings, candlesMap, pairNames, count);
+        if (zScoreDataList.isEmpty()) {
+            log.warn("⚠️ Z-Score данные для найденных стабильных пар не получены");
+            return Collections.emptyList();
+        }
+
+        logZScoreResults(zScoreDataList);
+
+        List<Pair> pairs = createPairs(zScoreDataList, candlesMap);
+
+        log.info("✅ Создано {} пар из найденных стабильных пар", pairs.size());
+        pairs.forEach(p -> log.info("📈 {}", p.getPairName()));
+        log.info("🕒 Время выполнения (найденные стабильные пары): {} сек",
+                String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
+
+        return pairs;
+    }
+
+    /**
+     * Вычисление Z-Score данных для найденных стабильных пар
+     *
+     * @param settings   настройки
+     * @param candlesMap карта свечей
+     * @param pairNames  названия пар
+     * @param count      количество пар
+     * @return список Z-Score данных
+     */
+    private List<ZScoreData> computeZScoreDataForFoundStablePairs(Settings settings, Map<String, List<Candle>> candlesMap,
+                                                                  List<String> pairNames, int count) {
+        try {
+            log.info("📊 Расчет Z-Score для {} найденных стабильных пар", pairNames.size());
+            // Используем существующий метод getTopNZScoreData - он автоматически фильтрует по доступным тикерам
+            return zScoreService.getTopNZScoreData(settings, candlesMap, count);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при расчете Z-Score для найденных стабильных пар: {}", e.getMessage());
             return Collections.emptyList();
         }
     }

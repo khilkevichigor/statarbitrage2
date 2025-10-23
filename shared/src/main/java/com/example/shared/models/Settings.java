@@ -291,6 +291,10 @@ public class Settings {
     @Column(name = "use_stable_pairs_for_monitoring")
     private boolean useStablePairsForMonitoring = false;
 
+    @Builder.Default
+    @Column(name = "use_found_stable_pairs")
+    private boolean useFoundStablePairs = false;
+
     // ===== Управление шедуллерами =====
 
     // UpdateTradesScheduler (обновление торговых пар каждую минуту)

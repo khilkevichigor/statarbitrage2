@@ -225,6 +225,7 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
         Checkbox useMinIntersectionsFilterCheckbox = new Checkbox("Использовать фильтр по пересечениям цен");
         Checkbox useStablePairsForMonitoringCheckbox = new Checkbox("Искать из Постоянный список для мониторинга");
+        Checkbox useFoundStablePairsCheckbox = new Checkbox("Искать из Найденные стабильные пары");
 
         // Min intersections field
         NumberField minIntersectionsField = new NumberField("Мин. пересечений");
@@ -295,7 +296,7 @@ public class SettingsComponent extends VerticalLayout {
                 checkIntervalField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
                 useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
                 useMinVolumeFilterCheckbox, useMinIntersectionsFilterCheckbox, minIntersectionsField,
-                useStablePairsForMonitoringCheckbox));
+                useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox));
 
         // Создаем поля для усреднения (депозит берется из OKX через PortfolioService)
 
@@ -386,6 +387,7 @@ public class SettingsComponent extends VerticalLayout {
                 useMinIntersectionsFilterCheckbox,
                 minIntersectionsField,
                 useStablePairsForMonitoringCheckbox,
+                useFoundStablePairsCheckbox,
                 useExitTakeCheckbox,
                 useExitStopCheckbox,
                 useExitZMinCheckbox,
@@ -714,7 +716,8 @@ public class SettingsComponent extends VerticalLayout {
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
                                           Checkbox useMinVolumeFilterCheckbox, Checkbox useMinIntersectionsFilterCheckbox,
-                                          NumberField minIntersectionsField, Checkbox useStablePairsForMonitoringCheckbox) {
+                                          NumberField minIntersectionsField, Checkbox useStablePairsForMonitoringCheckbox,
+                                          Checkbox useFoundStablePairsCheckbox) {
 
         FormLayout analysisForm = createFormLayout();
 
@@ -731,7 +734,7 @@ public class SettingsComponent extends VerticalLayout {
                 timeframeField, periodField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
                 maxAdfValueLayout, minCorrelationLayout, minVolumeLayout,
-                minIntersectionsLayout, useStablePairsForMonitoringCheckbox, minimumLotBlacklistField
+                minIntersectionsLayout, useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox, minimumLotBlacklistField
         );
 
         Details analysisSection = createDetailsCard("🔍 Анализ и фильтры",
@@ -999,6 +1002,7 @@ public class SettingsComponent extends VerticalLayout {
                             Checkbox useMinIntersectionsFilterCheckbox,
                             NumberField minIntersectionsField,
                             Checkbox useStablePairsForMonitoringCheckbox,
+                            Checkbox useFoundStablePairsCheckbox,
                             Checkbox useExitTakeCheckbox,
                             Checkbox useExitStopCheckbox,
                             Checkbox useExitZMinCheckbox,
@@ -1070,6 +1074,9 @@ public class SettingsComponent extends VerticalLayout {
 
         // Bind stable pairs for monitoring checkbox
         settingsBinder.forField(useStablePairsForMonitoringCheckbox).bind(Settings::isUseStablePairsForMonitoring, Settings::setUseStablePairsForMonitoring);
+        
+        // Bind found stable pairs checkbox
+        settingsBinder.forField(useFoundStablePairsCheckbox).bind(Settings::isUseFoundStablePairs, Settings::setUseFoundStablePairs);
 
         // Bind exit strategy checkboxes
         settingsBinder.forField(useExitTakeCheckbox).bind(Settings::isUseExitTake, Settings::setUseExitTake);
