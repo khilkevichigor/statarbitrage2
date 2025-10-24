@@ -1,12 +1,11 @@
 package com.example.core.ui.components;
 
-import com.example.core.services.ChartService;
-import com.example.core.services.ChartSettingsService;
 import com.example.core.services.PixelSpreadService;
 import com.example.core.services.SettingsService;
+import com.example.core.services.chart.ChartService;
+import com.example.core.services.chart.ChartSettingsService;
 import com.example.shared.models.ChartSettings;
 import com.example.shared.models.Pair;
-import com.example.shared.models.Settings;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -49,14 +48,7 @@ public class ZScoreChartDialog extends Dialog {
     private Div dataInfoPanel; // Панель с информацией о данных
     private H3 pairTitle;
     private Div detailsPanel;
-    // Чекбоксы для выбора типов чартов
-    private Checkbox showZScoreCheckbox;
-    private Checkbox showCombinedPriceCheckbox;
-    private Checkbox showPixelSpreadCheckbox;
-    // Чекбоксы для дополнительных индикаторов на Z-Score
-    private Checkbox showEmaCheckbox;
-    private Checkbox showStochRsiCheckbox;
-    private Checkbox showProfitCheckbox;
+    // 🎯 УПРОЩЕНИЕ: Убираем ВСЕ чекбоксы! Только один для точек входа
     private Checkbox showEntryPointCheckbox;
     private Pair currentPair;
 
@@ -128,175 +120,63 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
-     * Создает чекбоксы для выбора типов чартов
+     * 🎯 УПРОЩЕНИЕ: Создает ЕДИНСТВЕННЫЙ чекбокс для точек входа
+     * Все остальные секции отображаются ВСЕГДА!
      */
     private void createChartSelectionCheckboxes() {
-        Settings settings = settingsService.getSettings();
-
         // Загружаем сохраненные настройки чарта
         ChartSettings chartSettings = chartSettingsService.getChartSettings(CHART_TYPE);
 
-        // Основные чекбоксы для выбора типов чартов
-        showZScoreCheckbox = new Checkbox("📊 Z-Score график");
-        showZScoreCheckbox.setValue(chartSettings.isShowZScore());
-        showZScoreCheckbox.addValueChangeListener(e -> {
-            chartSettingsService.updateChartSetting(CHART_TYPE, "showZScore", e.getValue());
-            refreshMainChart();
-        });
-
-        showCombinedPriceCheckbox = new Checkbox("💰 Наложенные цены");
-        showCombinedPriceCheckbox.setValue(chartSettings.isShowCombinedPrice());
-        showCombinedPriceCheckbox.addValueChangeListener(e -> {
-            chartSettingsService.updateChartSetting(CHART_TYPE, "showCombinedPrice", e.getValue());
-            refreshMainChart();
-        });
-
-        showPixelSpreadCheckbox = new Checkbox("📏 Пиксельный спред");
-        showPixelSpreadCheckbox.setValue(chartSettings.isShowPixelSpread());
-        showPixelSpreadCheckbox.addValueChangeListener(e -> {
-            chartSettingsService.updateChartSetting(CHART_TYPE, "showPixelSpread", e.getValue());
-            refreshMainChart();
-        });
-
-        // Дополнительные индикаторы для Z-Score (только если Z-Score выбран)
-        showEmaCheckbox = new Checkbox("+ EMA (" + getEmaPeriodFromTimeframe(settings.getTimeframe()) + ")");
-        showEmaCheckbox.setValue(chartSettings.isShowEma());
-        showEmaCheckbox.addValueChangeListener(e -> {
-            chartSettingsService.updateChartSetting(CHART_TYPE, "showEma", e.getValue());
-            refreshMainChart();
-        });
-        showEmaCheckbox.setEnabled(chartSettings.isShowZScore()); // Отключен пока Z-Score не выбран
-
-        showStochRsiCheckbox = new Checkbox("+ StochRSI");
-        showStochRsiCheckbox.setValue(chartSettings.isShowStochRsi());
-        showStochRsiCheckbox.addValueChangeListener(e -> {
-            chartSettingsService.updateChartSetting(CHART_TYPE, "showStochRsi", e.getValue());
-            refreshMainChart();
-        });
-        showStochRsiCheckbox.setEnabled(chartSettings.isShowZScore()); // Отключен пока Z-Score не выбран
-
-        showProfitCheckbox = new Checkbox("💹 Профит");
-        showProfitCheckbox.setValue(chartSettings.isShowProfit());
-        showProfitCheckbox.addValueChangeListener(e -> {
-            chartSettingsService.updateChartSetting(CHART_TYPE, "showProfit", e.getValue());
-            refreshMainChart();
-        });
-
-        showEntryPointCheckbox = new Checkbox("🎯 Показать точку входа");
+        // 🎯 УПРОЩЕНИЕ: Только один чекбокс для точек входа
+        showEntryPointCheckbox = new Checkbox("🎯 Показать точки входа");
         showEntryPointCheckbox.setValue(chartSettings.isShowEntryPoint());
         showEntryPointCheckbox.addValueChangeListener(e -> {
             chartSettingsService.updateChartSetting(CHART_TYPE, "showEntryPoint", e.getValue());
             refreshMainChart();
         });
 
-        log.debug("📊 Загружены настройки чарта: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}, EntryPoint={}",
-                chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
-                chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(),
+        log.debug("🎯 УПРОЩЕНИЕ: Загружена настройка единственного чекбокса: EntryPoint={}",
                 chartSettings.isShowEntryPoint());
     }
 
-    /**
-     * Получает период EMA в зависимости от таймфрейма
-     */
-    private int getEmaPeriodFromTimeframe(String timeframe) {
-        return switch (timeframe) {
-            case "1m" -> 20;
-            case "5m" -> 20;
-            case "15m" -> 14;
-            case "1H" -> 14;
-            case "4H" -> 12;
-            case "1d" -> 10;
-            default -> 14;
-        };
-    }
+    // Удален метод getEmaPeriodFromTimeframe - больше не нужен
 
     /**
-     * Обновляет главный чарт с учетом выбранных типов
+     * 🏗️ УПРОЩЁННОЕ обновление главного чарта
+     * 🎯 УПРОЩЕНИЕ: Все секции отображаются ВСЕГДА! Только EntryPoint можно включать/отключать!
      */
     private void refreshMainChart() {
         if (currentPair == null) return;
 
         try {
-            boolean showZScore = showZScoreCheckbox.getValue();
-            boolean showCombinedPrice = showCombinedPriceCheckbox.getValue();
-            boolean showPixelSpread = showPixelSpreadCheckbox.getValue();
+            // 🎯 УПРОЩЕНИЕ: Получаем состояние ЕДИНСТВЕННОГО чекбокса
             boolean showEntryPoint = showEntryPointCheckbox.getValue();
 
-            // Управляем доступностью индикаторов Z-Score (но НЕ профит!)
-            boolean zScoreEnabled = showZScore;
-            showEmaCheckbox.setEnabled(zScoreEnabled);
-            showStochRsiCheckbox.setEnabled(zScoreEnabled);
+            log.debug("🏗️ УПРОЩЁННОЕ создание ПОЛНОГО вертикального чарта (EntryPoint: {})",
+                    showEntryPoint);
 
-            // Если Z-Score отключен, отключаем его индикаторы (но НЕ профит!)
-            if (!zScoreEnabled) {
-                showEmaCheckbox.setValue(false);
-                showStochRsiCheckbox.setValue(false);
-            }
-
-            // Проверяем, что хотя бы один чарт выбран
-            if (!showZScore && !showCombinedPrice && !showPixelSpread) {
-                // Если ни один не выбран, очищаем изображение
-                mainChartImage.setSrc("");
-                mainChartImage.setAlt("Выберите тип чарта для отображения");
-                log.debug("📊 Все чекбоксы отключены - чарт очищен");
-                return;
-            }
-
-            BufferedImage chartImage = null;
-
-            // Создаем чарт в зависимости от выбранного типа
-            if (showZScore && !showCombinedPrice && !showPixelSpread) {
-                // Только Z-Score чарт с индикаторами
-                Settings settings = settingsService.getSettings();
-                boolean showEma = showEmaCheckbox.getValue();
-                boolean showStochRsi = showStochRsiCheckbox.getValue();
-                boolean showProfit = showProfitCheckbox.getValue();
-                int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
-
-                chartImage = chartService.createZScoreChart(currentPair, showEma, emaPeriod, showStochRsi, showProfit, false, false, showEntryPoint);
-                log.debug("📊 Создан Z-Score чарт с индикаторами: EMA={}, StochRSI={}, Profit={}", showEma, showStochRsi, showProfit);
-
-            } else if (showCombinedPrice && !showZScore && !showPixelSpread) {
-                // Только Price чарт с профитом
-                boolean showProfit = showProfitCheckbox.getValue();
-                chartImage = chartService.createPriceChartWithProfit(currentPair, false, showProfit, showEntryPoint);
-                log.debug("📊 Создан Price чарт с Profit={}", showProfit);
-
-            } else if (showPixelSpread && !showZScore && !showCombinedPrice) {
-                // Только Pixel Spread чарт с профитом
-                boolean showProfit = showProfitCheckbox.getValue();
-                chartImage = chartService.createPixelSpreadChartWithProfit(currentPair, showProfit, showEntryPoint);
-                log.debug("📊 Создан Pixel Spread чарт с Profit={}", showProfit);
-
-            } else {
-                // Комбинированный чарт - создаем комбинированный Z-Score чарт
-                Settings settings = settingsService.getSettings();
-                boolean showEma = showEmaCheckbox.getValue();
-                boolean showStochRsi = showStochRsiCheckbox.getValue();
-                boolean showProfit = showProfitCheckbox.getValue();
-                int emaPeriod = getEmaPeriodFromTimeframe(settings.getTimeframe());
-
-                chartImage = chartService.createCombinedChart(currentPair, showZScore, showCombinedPrice, showPixelSpread, showEma, emaPeriod, showStochRsi, showProfit, showEntryPoint);
-                log.debug("📊 Создан комбинированный чарт: ZScore={}, Price={}, PixelSpread={}", showZScore, showCombinedPrice, showPixelSpread);
-            }
+            // Используем УПРОЩЁННЫЙ метод createVerticalChart с ЕДИНСТВЕННЫМ параметром
+            BufferedImage chartImage = chartService.createVerticalChart(currentPair, showEntryPoint);
 
             if (chartImage != null) {
-                StreamResource chartResource = createStreamResource(chartImage, "main-chart.png");
+                StreamResource chartResource = createStreamResource(chartImage, "vertical-chart.png");
                 mainChartImage.setSrc(chartResource);
-                mainChartImage.setAlt("Chart for " + currentPair.getPairName());
-                
+                mainChartImage.setAlt("Vertical Chart for " + currentPair.getPairName());
+
                 // Добавляем crosshair функциональность
                 addCrosshairToMainChart();
+
+                log.debug("✅ Вертикальный чарт успешно создан и отображен");
             } else {
                 mainChartImage.setSrc("");
-                mainChartImage.setAlt("Failed to generate chart");
-                log.warn("⚠️ Не удалось создать чарт для пары: {}", currentPair.getPairName());
+                mainChartImage.setAlt("Failed to generate vertical chart");
+                log.warn("⚠️ Не удалось создать вертикальный чарт для пары: {}", currentPair.getPairName());
             }
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении главного чарта", e);
+            log.error("❌ Ошибка при обновлении вертикального чарта", e);
             mainChartImage.setSrc("");
-            mainChartImage.setAlt("Chart generation error");
+            mainChartImage.setAlt("Vertical chart generation error");
         }
     }
 
@@ -328,20 +208,19 @@ public class ZScoreChartDialog extends Dialog {
 
         HorizontalLayout mainChartsRow = new HorizontalLayout();
         mainChartsRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        mainChartsRow.add(showZScoreCheckbox, showCombinedPriceCheckbox, showPixelSpreadCheckbox, showProfitCheckbox, showEntryPointCheckbox);
+        // 🎯 УПРОЩЕНИЕ: Только один чекбокс для точек входа
+        mainChartsRow.add(showEntryPointCheckbox);
 
-        HorizontalLayout indicatorsRow = new HorizontalLayout();
-        indicatorsRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        indicatorsRow.getStyle().set("margin-top", "0.5rem");
+        // Добавляем пояснительный текст
+        Span infoSpan = new Span("💡 Все секции (цены, Z-Score, пиксельный спред, профит) отображаются всегда");
+        infoSpan.getStyle().set("font-size", "0.9rem");
+        infoSpan.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        infoSpan.getStyle().set("font-style", "italic");
+        infoSpan.getStyle().set("margin-top", "0.5rem");
 
-        Span indicatorsLabel = new Span("📈 Индикаторы Z-Score:");
-        indicatorsLabel.getStyle().set("font-size", "0.9rem");
-        indicatorsLabel.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        indicatorsLabel.getStyle().set("margin-right", "1rem");
+        // Индикаторы EMA и StochRSI убраны для упрощения
 
-        indicatorsRow.add(indicatorsLabel, showEmaCheckbox, showStochRsiCheckbox);
-
-        chartSelectionPanel.add(chartsLabel, mainChartsRow, indicatorsRow);
+        chartSelectionPanel.add(chartsLabel, mainChartsRow, infoSpan);
 
         // Заголовок для чарта пересечений
         H3 intersectionsTitle = new H3("📈 Чарт пересечений цен");
@@ -372,23 +251,14 @@ public class ZScoreChartDialog extends Dialog {
             // Устанавливаем заголовок
             pairTitle.setText(String.format("📊 Z-Score Chart: %s", tradingPair.getPairName()));
 
-            // Загружаем сохраненные настройки чекбоксов из базы данных
+            // 🎯 УПРОЩЕНИЕ: Загружаем настройку ЕДИНСТВЕННОГО чекбокса из базы данных
             ChartSettings chartSettings = chartSettingsService.getChartSettings(CHART_TYPE);
-            showZScoreCheckbox.setValue(chartSettings.isShowZScore());
-            showCombinedPriceCheckbox.setValue(chartSettings.isShowCombinedPrice());
-            showPixelSpreadCheckbox.setValue(chartSettings.isShowPixelSpread());
-            showEmaCheckbox.setValue(chartSettings.isShowEma());
-            showStochRsiCheckbox.setValue(chartSettings.isShowStochRsi());
-            showProfitCheckbox.setValue(chartSettings.isShowProfit());
             showEntryPointCheckbox.setValue(chartSettings.isShowEntryPoint());
 
-            // Управляем доступностью индикаторов Z-Score
-            showEmaCheckbox.setEnabled(chartSettings.isShowZScore());
-            showStochRsiCheckbox.setEnabled(chartSettings.isShowZScore());
+            // 🎯 УПРОЩЕНИЕ: Все секции (цены, Z-Score, пиксельный спред, профит) отображаются ВСЕГДА!
+            // Только точки входа можно включать/отключать через единственный чекбокс
 
-            log.debug("📊 Восстановлены настройки чекбоксов: ZScore={}, Price={}, Pixel={}, EMA={}, StochRSI={}, Profit={}, EntryPoint={}",
-                    chartSettings.isShowZScore(), chartSettings.isShowCombinedPrice(), chartSettings.isShowPixelSpread(),
-                    chartSettings.isShowEma(), chartSettings.isShowStochRsi(), chartSettings.isShowProfit(),
+            log.debug("🎯 УПРОЩЕНИЕ: Восстановлена настройка единственного чекбокса: EntryPoint={}",
                     chartSettings.isShowEntryPoint());
 
             // Вычисляем пиксельный спред независимо от чекбокса объединенных цен используя PixelSpreadService
@@ -610,10 +480,10 @@ public class ZScoreChartDialog extends Dialog {
                 StreamResource intersectionsResource = createStreamResource(intersectionsChart, "intersections-chart.png");
                 intersectionsChartImage.setSrc(intersectionsResource);
                 intersectionsChartImage.setAlt("Intersections Chart for " + currentPair.getPairName());
-                
+
                 // Добавляем crosshair функциональность
                 addCrosshairToIntersectionsChart();
-                
+
                 log.debug("✅ Чарт пересечений успешно создан");
             } else {
                 intersectionsChartImage.setSrc("");
@@ -711,19 +581,19 @@ public class ZScoreChartDialog extends Dialog {
 
             // Информация о Long тикере (используем реальные данные свечей)
             String longInfo = formatRealTickerInfo(
-                tradingPair.getLongTicker(),
-                tradingPair.getLongTickerCandles()
+                    tradingPair.getLongTicker(),
+                    tradingPair.getLongTickerCandles()
             );
 
             // Информация о Short тикере (используем реальные данные свечей)
             String shortInfo = formatRealTickerInfo(
-                tradingPair.getShortTicker(),
-                tradingPair.getShortTickerCandles()
+                    tradingPair.getShortTicker(),
+                    tradingPair.getShortTickerCandles()
             );
 
             // Выравниваем тикеры по двоеточию
             java.util.List<String> alignedTickerInfos = alignTickersByColon(
-                java.util.List.of(longInfo, shortInfo)
+                    java.util.List.of(longInfo, shortInfo)
             );
             String alignedLongInfo = alignedTickerInfos.get(0);
             String alignedShortInfo = alignedTickerInfos.get(1);
@@ -731,13 +601,13 @@ public class ZScoreChartDialog extends Dialog {
             // Подсчитываем пересечения
             int intersectionsCount = calculateIntersections(tradingPair.getLongTickerCandles(), tradingPair.getShortTickerCandles());
             int totalPoints = Math.min(
-                tradingPair.getLongTickerCandles() != null ? tradingPair.getLongTickerCandles().size() : 0,
-                tradingPair.getShortTickerCandles() != null ? tradingPair.getShortTickerCandles().size() : 0
+                    tradingPair.getLongTickerCandles() != null ? tradingPair.getLongTickerCandles().size() : 0,
+                    tradingPair.getShortTickerCandles() != null ? tradingPair.getShortTickerCandles().size() : 0
             );
-            
+
             double intersectionPercent = totalPoints > 0 ? (double) intersectionsCount / totalPoints * 100 : 0;
-            String intersectionInfo = String.format("Пересечений: %.1f%% (%d)", 
-                intersectionPercent, intersectionsCount);
+            String intersectionInfo = String.format("Пересечений: %.1f%% (%d)",
+                    intersectionPercent, intersectionsCount);
 
             // Создаем текстовые элементы
             Span longSpan = new Span(alignedLongInfo);
@@ -778,34 +648,34 @@ public class ZScoreChartDialog extends Dialog {
         if (tickers == null || tickers.isEmpty()) {
             return tickers;
         }
-        
+
         // Находим максимальную длину тикера (до двоеточия)
         int maxTickerLength = tickers.stream()
-            .mapToInt(info -> {
-                int colonIndex = info.indexOf(':');
-                return colonIndex > 0 ? colonIndex : info.length();
-            })
-            .max()
-            .orElse(0);
-        
+                .mapToInt(info -> {
+                    int colonIndex = info.indexOf(':');
+                    return colonIndex > 0 ? colonIndex : info.length();
+                })
+                .max()
+                .orElse(0);
+
         // Выравниваем каждую строку
         return tickers.stream()
-            .map(info -> {
-                int colonIndex = info.indexOf(':');
-                if (colonIndex > 0) {
-                    String tickerPart = info.substring(0, colonIndex);
-                    String restPart = info.substring(colonIndex);
-                    
-                    // Добавляем пробелы для выравнивания
-                    int spacesToAdd = maxTickerLength - tickerPart.length();
-                    String padding = " ".repeat(Math.max(0, spacesToAdd));
-                    
-                    return tickerPart + padding + restPart;
-                } else {
-                    return info; // Если нет двоеточия, возвращаем как есть
-                }
-            })
-            .toList();
+                .map(info -> {
+                    int colonIndex = info.indexOf(':');
+                    if (colonIndex > 0) {
+                        String tickerPart = info.substring(0, colonIndex);
+                        String restPart = info.substring(colonIndex);
+
+                        // Добавляем пробелы для выравнивания
+                        int spacesToAdd = maxTickerLength - tickerPart.length();
+                        String padding = " ".repeat(Math.max(0, spacesToAdd));
+
+                        return tickerPart + padding + restPart;
+                    } else {
+                        return info; // Если нет двоеточия, возвращаем как есть
+                    }
+                })
+                .toList();
     }
 
     /**
@@ -819,8 +689,8 @@ public class ZScoreChartDialog extends Dialog {
         try {
             // Сортируем свечи по времени
             var sortedCandles = candles.stream()
-                .sorted(java.util.Comparator.comparing(com.example.shared.dto.Candle::getTimestamp))
-                .toList();
+                    .sorted(java.util.Comparator.comparing(com.example.shared.dto.Candle::getTimestamp))
+                    .toList();
 
             int totalCandles = sortedCandles.size();
             long firstCandleTime = sortedCandles.get(0).getTimestamp();
@@ -829,7 +699,7 @@ public class ZScoreChartDialog extends Dialog {
             // Определяем реальный ТФ на основе разности времени между свечами
             String realTimeframe = "N/A";
             String realPeriod = "N/A";
-            
+
             if (totalCandles >= 2) {
                 long timeDiffMs = sortedCandles.get(1).getTimestamp() - sortedCandles.get(0).getTimestamp();
                 realTimeframe = determineTimeframeFromDiff(timeDiffMs);
@@ -845,7 +715,7 @@ public class ZScoreChartDialog extends Dialog {
             String lastDate = formatter.format(new java.util.Date(lastCandleTime));
 
             return String.format("%s: %s, %s, %d точек, с %s по %s",
-                ticker, realTimeframe, realPeriod, totalCandles, firstDate, lastDate);
+                    ticker, realTimeframe, realPeriod, totalCandles, firstDate, lastDate);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при форматировании реальной информации о тикере {}: {}", ticker, e.getMessage());
@@ -858,7 +728,7 @@ public class ZScoreChartDialog extends Dialog {
      */
     private String determineTimeframeFromDiff(long timeDiffMs) {
         long minutes = timeDiffMs / (1000 * 60);
-        
+
         if (minutes == 1) return "1m";
         else if (minutes == 5) return "5m";
         else if (minutes == 15) return "15m";
@@ -875,7 +745,7 @@ public class ZScoreChartDialog extends Dialog {
     private String calculateRealPeriod(long startTime, long endTime) {
         long durationMs = endTime - startTime;
         long days = durationMs / (1000 * 60 * 60 * 24);
-        
+
         if (days >= 365) {
             int years = (int) (days / 365);
             int remainingDays = (int) (days % 365);
@@ -1008,135 +878,115 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     /**
-     * Добавляет crosshair функциональность к главному чарту
+     * Добавляет crosshair функциональность к главному вертикальному чарту
+     * 🎯 ТОЛЬКО вертикальные линии! Горизонтальные линии только для Z-Score секции!
      */
     private void addCrosshairToMainChart() {
         mainChartImage.getElement().executeJs("""
-            // Создаем контейнер с relative позиционированием для crosshair
-            const imageContainer = document.createElement('div');
-            imageContainer.style.position = 'relative';
-            imageContainer.style.display = 'inline-block';
-            imageContainer.style.width = '100%';
-            imageContainer.style.height = '100%';
-            
-            // Переносим image в контейнер
-            const img = this;
-            const parent = img.parentNode;
-            parent.insertBefore(imageContainer, img);
-            imageContainer.appendChild(img);
-            
-            // Создаем вертикальную линию crosshair
-            const verticalLine = document.createElement('div');
-            verticalLine.style.position = 'absolute';
-            verticalLine.style.top = '0';
-            verticalLine.style.width = '1px';
-            verticalLine.style.height = '100%';
-            verticalLine.style.backgroundColor = '#FF6B6B';
-            verticalLine.style.pointerEvents = 'none';
-            verticalLine.style.display = 'none';
-            verticalLine.style.zIndex = '1000';
-            imageContainer.appendChild(verticalLine);
-            
-            // Создаем горизонтальную линию crosshair
-            const horizontalLine = document.createElement('div');
-            horizontalLine.style.position = 'absolute';
-            horizontalLine.style.left = '0';
-            horizontalLine.style.width = '100%';
-            horizontalLine.style.height = '1px';
-            horizontalLine.style.backgroundColor = '#FF6B6B';
-            horizontalLine.style.pointerEvents = 'none';
-            horizontalLine.style.display = 'none';
-            horizontalLine.style.zIndex = '1000';
-            imageContainer.appendChild(horizontalLine);
-            
-            // Обработчики событий мыши для crosshair
-            img.addEventListener('mouseenter', function() {
-                verticalLine.style.display = 'block';
-                horizontalLine.style.display = 'block';
-            });
-            
-            img.addEventListener('mouseleave', function() {
-                verticalLine.style.display = 'none';
-                horizontalLine.style.display = 'none';
-            });
-            
-            img.addEventListener('mousemove', function(e) {
-                const rect = img.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                // Создаем контейнер с relative позиционированием для crosshair
+                const imageContainer = document.createElement('div');
+                imageContainer.style.position = 'relative';
+                imageContainer.style.display = 'inline-block';
+                imageContainer.style.width = '100%';
+                imageContainer.style.height = '100%';
                 
-                verticalLine.style.left = x + 'px';
-                horizontalLine.style.top = y + 'px';
-            });
-            
-            img.style.cursor = 'crosshair';
-            """);
+                // Переносим image в контейнер
+                const img = this;
+                const parent = img.parentNode;
+                parent.insertBefore(imageContainer, img);
+                imageContainer.appendChild(img);
+                
+                // Создаем ТОЛЬКО вертикальную линию crosshair
+                const verticalLine = document.createElement('div');
+                verticalLine.style.position = 'absolute';
+                verticalLine.style.top = '0';
+                verticalLine.style.width = '1px';
+                verticalLine.style.height = '100%';
+                verticalLine.style.backgroundColor = '#FF6B6B';
+                verticalLine.style.pointerEvents = 'none';
+                verticalLine.style.display = 'none';
+                verticalLine.style.zIndex = '1000';
+                imageContainer.appendChild(verticalLine);
+                
+                // 🎯 Горизонтальные линии НЕ создаем - только для Z-Score секции!
+                
+                // Обработчики событий мыши для crosshair
+                img.addEventListener('mouseenter', function() {
+                    verticalLine.style.display = 'block';
+                    // 🎯 Горизонтальные линии НЕ показываем - только для Z-Score секции!
+                });
+                
+                img.addEventListener('mouseleave', function() {
+                    verticalLine.style.display = 'none';
+                    // 🎯 Горизонтальные линии НЕ скрываем - только для Z-Score секции!
+                });
+                
+                img.addEventListener('mousemove', function(e) {
+                    const rect = img.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                
+                    verticalLine.style.left = x + 'px';
+                    // 🎯 Горизонтальные линии НЕ перемещаем - только для Z-Score секции!
+                });
+                
+                img.style.cursor = 'crosshair';
+                """);
     }
 
     /**
      * Добавляет crosshair функциональность к чарту пересечений
+     * 🎯 ТОЛЬКО вертикальные линии! Горизонтальные линии только для Z-Score секции!
      */
     private void addCrosshairToIntersectionsChart() {
         intersectionsChartImage.getElement().executeJs("""
-            // Создаем контейнер с relative позиционированием для crosshair
-            const imageContainer = document.createElement('div');
-            imageContainer.style.position = 'relative';
-            imageContainer.style.display = 'inline-block';
-            imageContainer.style.width = '100%';
-            imageContainer.style.height = '100%';
-            
-            // Переносим image в контейнер
-            const img = this;
-            const parent = img.parentNode;
-            parent.insertBefore(imageContainer, img);
-            imageContainer.appendChild(img);
-            
-            // Создаем вертикальную линию crosshair
-            const verticalLine = document.createElement('div');
-            verticalLine.style.position = 'absolute';
-            verticalLine.style.top = '0';
-            verticalLine.style.width = '1px';
-            verticalLine.style.height = '100%';
-            verticalLine.style.backgroundColor = '#FF6B6B';
-            verticalLine.style.pointerEvents = 'none';
-            verticalLine.style.display = 'none';
-            verticalLine.style.zIndex = '1000';
-            imageContainer.appendChild(verticalLine);
-            
-            // Создаем горизонтальную линию crosshair
-            const horizontalLine = document.createElement('div');
-            horizontalLine.style.position = 'absolute';
-            horizontalLine.style.left = '0';
-            horizontalLine.style.width = '100%';
-            horizontalLine.style.height = '1px';
-            horizontalLine.style.backgroundColor = '#FF6B6B';
-            horizontalLine.style.pointerEvents = 'none';
-            horizontalLine.style.display = 'none';
-            horizontalLine.style.zIndex = '1000';
-            imageContainer.appendChild(horizontalLine);
-            
-            // Обработчики событий мыши для crosshair
-            img.addEventListener('mouseenter', function() {
-                verticalLine.style.display = 'block';
-                horizontalLine.style.display = 'block';
-            });
-            
-            img.addEventListener('mouseleave', function() {
-                verticalLine.style.display = 'none';
-                horizontalLine.style.display = 'none';
-            });
-            
-            img.addEventListener('mousemove', function(e) {
-                const rect = img.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                // Создаем контейнер с relative позиционированием для crosshair
+                const imageContainer = document.createElement('div');
+                imageContainer.style.position = 'relative';
+                imageContainer.style.display = 'inline-block';
+                imageContainer.style.width = '100%';
+                imageContainer.style.height = '100%';
                 
-                verticalLine.style.left = x + 'px';
-                horizontalLine.style.top = y + 'px';
-            });
-            
-            img.style.cursor = 'crosshair';
-            """);
+                // Переносим image в контейнер
+                const img = this;
+                const parent = img.parentNode;
+                parent.insertBefore(imageContainer, img);
+                imageContainer.appendChild(img);
+                
+                // Создаем ТОЛЬКО вертикальную линию crosshair
+                const verticalLine = document.createElement('div');
+                verticalLine.style.position = 'absolute';
+                verticalLine.style.top = '0';
+                verticalLine.style.width = '1px';
+                verticalLine.style.height = '100%';
+                verticalLine.style.backgroundColor = '#FF6B6B';
+                verticalLine.style.pointerEvents = 'none';
+                verticalLine.style.display = 'none';
+                verticalLine.style.zIndex = '1000';
+                imageContainer.appendChild(verticalLine);
+                
+                // 🎯 Горизонтальные линии НЕ создаем - только для Z-Score секции!
+                
+                // Обработчики событий мыши для crosshair
+                img.addEventListener('mouseenter', function() {
+                    verticalLine.style.display = 'block';
+                    // 🎯 Горизонтальные линии НЕ показываем - только для Z-Score секции!
+                });
+                
+                img.addEventListener('mouseleave', function() {
+                    verticalLine.style.display = 'none';
+                    // 🎯 Горизонтальные линии НЕ скрываем - только для Z-Score секции!
+                });
+                
+                img.addEventListener('mousemove', function(e) {
+                    const rect = img.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                
+                    verticalLine.style.left = x + 'px';
+                    // 🎯 Горизонтальные линии НЕ перемещаем - только для Z-Score секции!
+                });
+                
+                img.style.cursor = 'crosshair';
+                """);
     }
 
 }

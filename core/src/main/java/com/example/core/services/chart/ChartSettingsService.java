@@ -1,4 +1,4 @@
-package com.example.core.services;
+package com.example.core.services.chart;
 
 import com.example.core.repositories.ChartSettingsRepository;
 import com.example.shared.models.ChartSettings;

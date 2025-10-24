@@ -1,5 +1,6 @@
 package com.example.core.services;
 
+import com.example.core.services.chart.ChartService;
 import com.example.shared.dto.Candle;
 import com.example.shared.models.Pair;
 import lombok.AllArgsConstructor;
