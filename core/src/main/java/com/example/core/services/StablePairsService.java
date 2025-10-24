@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Сервис для работы с постоянным списком стабильных пар для мониторинга
@@ -28,36 +27,39 @@ public class StablePairsService {
 
     /**
      * Получить все стабильные пары из постоянного списка мониторинга
+     *
      * @return список пар в мониторинге
      */
     public List<Pair> getStablePairsInMonitoring() {
         log.info("🔍 Получение стабильных пар из постоянного списка мониторинга");
-        
+
         List<Pair> monitoringPairs = pairRepository.findStablePairsInMonitoring();
-        
+
         log.info("✅ Найдено {} стабильных пар в постоянном списке мониторинга", monitoringPairs.size());
-        
+
         return monitoringPairs;
     }
 
     /**
      * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами (enum)
+     *
      * @param ratings список рейтингов для фильтрации
      * @return список пар в мониторинге с указанными рейтингами
      */
     public List<Pair> getStablePairsInMonitoringByStabilityRatings(List<StabilityRating> ratings) {
         log.info("🔍 Получение стабильных пар из постоянного списка мониторинга с рейтингами: {}", ratings);
-        
+
         List<Pair> monitoringPairs = pairRepository.findStablePairsInMonitoringByStabilityRatings(ratings);
-        
-        log.info("✅ Найдено {} стабильных пар в постоянном списке мониторинга с рейтингами {}", 
+
+        log.info("✅ Найдено {} стабильных пар в постоянном списке мониторинга с рейтингами {}",
                 monitoringPairs.size(), ratings);
-        
+
         return monitoringPairs;
     }
 
     /**
      * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами (строки) - для обратной совместимости
+     *
      * @deprecated Используйте {@link #getStablePairsInMonitoringByStabilityRatings(List)} с enum
      */
     @Deprecated
@@ -70,45 +72,48 @@ public class StablePairsService {
 
     /**
      * Получить хорошие стабильные пары из постоянного списка мониторинга (MARGINAL, GOOD и EXCELLENT)
+     *
      * @return список пар в мониторинге с хорошими рейтингами
      */
     public List<Pair> getGoodStablePairsInMonitoring() {
         List<StabilityRating> goodRatings = List.of(
-                StabilityRating.MARGINAL, 
-                StabilityRating.GOOD, 
+                StabilityRating.MARGINAL,
+                StabilityRating.GOOD,
                 StabilityRating.EXCELLENT
         );
         log.info("🔍 Получение хороших стабильных пар из постоянного списка мониторинга: {}", goodRatings);
-        
+
         return getStablePairsInMonitoringByStabilityRatings(goodRatings);
     }
 
     /**
      * Создать зеркальные пары для списка исходных пар
+     *
      * @param originalPairs исходные пары
      * @return список всех пар (исходные + зеркальные)
      */
     public List<Pair> createPairsWithMirrors(List<Pair> originalPairs) {
         log.info("🪞 Создание зеркальных пар для {} исходных пар", originalPairs.size());
-        
+
         List<Pair> allPairs = new ArrayList<>(originalPairs);
-        
+
         for (Pair originalPair : originalPairs) {
             Pair mirrorPair = createMirrorPair(originalPair);
             allPairs.add(mirrorPair);
-            
+
             log.info("🪞 Создана зеркальная пара: {} -> {}",
                     originalPair.getPairName(), mirrorPair.getPairName());
         }
-        
-        log.info("✅ Создано {} пар с зеркальными (исходных: {}, зеркальных: {})", 
+
+        log.info("✅ Создано {} пар с зеркальными (исходных: {}, зеркальных: {})",
                 allPairs.size(), originalPairs.size(), originalPairs.size());
-        
+
         return allPairs;
     }
 
     /**
      * Создать зеркальную пару для исходной пары
+     *
      * @param originalPair исходная пара
      * @return зеркальная пара
      */
@@ -135,64 +140,41 @@ public class StablePairsService {
     }
 
     /**
-     * Получить названия пар для использования в анализе zScore (только с хорошими рейтингами)
-     * @return список названий пар (исходные + зеркальные)
+     * Универсальный метод получения стабильных пар с фильтрами
+     *
+     * @param includeMonitoring включать ли пары в мониторинге
+     * @param includeFound      включать ли найденные пары (не в мониторинге)
+     * @param ratings           список рейтингов для фильтрации (null для всех рейтингов)
+     * @return список стабильных пар с учетом фильтров
      */
-    public List<String> getPairNamesForZScoreAnalysis() {
-        log.info("📊 Получение названий пар для анализа zScore (только GOOD и EXCELLENT)");
-        
-        List<Pair> monitoringPairs = getGoodStablePairsInMonitoring();
-        List<Pair> allPairs = createPairsWithMirrors(monitoringPairs);
-        
-        List<String> pairNames = allPairs.stream()
-                .map(Pair::getPairName)
-                .collect(Collectors.toList());
-        
-        log.info("📊 Подготовлено {} названий пар для анализа zScore: {}", 
-                pairNames.size(), pairNames);
-        
-        return pairNames;
+    public List<Pair> getStablePairsWithFilters(boolean includeMonitoring, boolean includeFound, List<StabilityRating> ratings) {
+        log.info("🔍 Получение стабильных пар с фильтрами: мониторинг={}, найденные={}, рейтинги={}",
+                includeMonitoring, includeFound, ratings);
+
+        List<Pair> filteredPairs = pairRepository.findStablePairsWithFilters(includeMonitoring, includeFound, ratings);
+
+        log.info("✅ Найдено {} стабильных пар с указанными фильтрами", filteredPairs.size());
+
+        return filteredPairs;
     }
 
     /**
-     * Получить все пары (исходные + зеркальные) для анализа zScore (только с хорошими рейтингами)
-     * @return список всех пар для анализа
+     * Получить хорошие стабильные пары на основе настроек чекбоксов
+     *
+     * @param useMonitoring использовать ли пары в мониторинге
+     * @param useFound      использовать ли найденные пары
+     * @return список стабильных пар с хорошими рейтингами
      */
-    public List<Pair> getPairsForZScoreAnalysis() {
-        log.info("📊 Получение всех пар для анализа zScore (только GOOD и EXCELLENT)");
-        
-        List<Pair> monitoringPairs = getGoodStablePairsInMonitoring();
-        List<Pair> allPairs = createPairsWithMirrors(monitoringPairs);
-        
-        log.info("📊 Подготовлено {} пар для анализа zScore (исходных: {}, зеркальных: {})", 
-                allPairs.size(), monitoringPairs.size(), monitoringPairs.size());
-        
-        return allPairs;
-    }
+    public List<Pair> getGoodStablePairsBySettings(boolean useMonitoring, boolean useFound) {
+        List<StabilityRating> goodRatings = List.of(
+                StabilityRating.MARGINAL,
+                StabilityRating.GOOD,
+                StabilityRating.EXCELLENT
+        );
 
-    /**
-     * Проверить, есть ли стабильные пары в мониторинге (с хорошими рейтингами)
-     * @return true если есть пары в мониторинге с рейтингами GOOD или EXCELLENT
-     */
-    public boolean hasStablePairsInMonitoring() {
-        List<Pair> monitoringPairs = getGoodStablePairsInMonitoring();
-        boolean hasPairs = !monitoringPairs.isEmpty();
-        
-        log.info("🔍 Проверка наличия хороших стабильных пар в мониторинге: {}", hasPairs);
-        
-        return hasPairs;
-    }
+        log.info("🔍 Получение хороших стабильных пар по настройкам: мониторинг={}, найденные={}, рейтинги={}",
+                useMonitoring, useFound, goodRatings);
 
-    /**
-     * Получить количество стабильных пар в мониторинге
-     * @return количество пар в мониторинге
-     */
-    public int getStablePairsInMonitoringCount() {
-        List<Pair> monitoringPairs = getStablePairsInMonitoring();
-        int count = monitoringPairs.size();
-        
-        log.info("📊 Количество стабильных пар в мониторинге: {}", count);
-        
-        return count;
+        return getStablePairsWithFilters(useMonitoring, useFound, goodRatings);
     }
 }

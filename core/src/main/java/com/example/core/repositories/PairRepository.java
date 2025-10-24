@@ -270,4 +270,16 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      */
     @Query("SELECT COUNT(p) FROM Pair p WHERE p.type = :type AND p.status = :status")
     int countByTypeAndStatus(@Param("type") PairType type, @Param("status") TradeStatus status);
+
+    /**
+     * Универсальный метод для поиска стабильных пар с фильтрами
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' " +
+           "AND ((:includeMonitoring = true AND p.isInMonitoring = true) " +
+           "     OR (:includeFound = true AND p.isInMonitoring = false)) " +
+           "AND (:ratings IS NULL OR p.stabilityRating IN :ratings) " +
+           "ORDER BY p.totalScore DESC NULLS LAST, p.createdAt DESC")
+    List<Pair> findStablePairsWithFilters(@Param("includeMonitoring") boolean includeMonitoring,
+                                          @Param("includeFound") boolean includeFound,
+                                          @Param("ratings") List<StabilityRating> ratings);
 }
