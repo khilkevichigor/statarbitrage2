@@ -4,6 +4,7 @@ import com.example.core.repositories.PairRepository;
 import com.example.shared.enums.PairType;
 import com.example.shared.enums.StabilityRating;
 import com.example.shared.models.Pair;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,75 +17,9 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class StablePairsService {
-
     private final PairRepository pairRepository;
-
-    @Autowired
-    public StablePairsService(PairRepository pairRepository) {
-        this.pairRepository = pairRepository;
-    }
-
-    /**
-     * Получить все стабильные пары из постоянного списка мониторинга
-     *
-     * @return список пар в мониторинге
-     */
-    public List<Pair> getStablePairsInMonitoring() {
-        log.info("🔍 Получение стабильных пар из постоянного списка мониторинга");
-
-        List<Pair> monitoringPairs = pairRepository.findStablePairsInMonitoring();
-
-        log.info("✅ Найдено {} стабильных пар в постоянном списке мониторинга", monitoringPairs.size());
-
-        return monitoringPairs;
-    }
-
-    /**
-     * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами (enum)
-     *
-     * @param ratings список рейтингов для фильтрации
-     * @return список пар в мониторинге с указанными рейтингами
-     */
-    public List<Pair> getStablePairsInMonitoringByStabilityRatings(List<StabilityRating> ratings) {
-        log.info("🔍 Получение стабильных пар из постоянного списка мониторинга с рейтингами: {}", ratings);
-
-        List<Pair> monitoringPairs = pairRepository.findStablePairsInMonitoringByStabilityRatings(ratings);
-
-        log.info("✅ Найдено {} стабильных пар в постоянном списке мониторинга с рейтингами {}",
-                monitoringPairs.size(), ratings);
-
-        return monitoringPairs;
-    }
-
-    /**
-     * Получить стабильные пары из постоянного списка мониторинга с указанными рейтингами (строки) - для обратной совместимости
-     *
-     * @deprecated Используйте {@link #getStablePairsInMonitoringByStabilityRatings(List)} с enum
-     */
-    @Deprecated
-    public List<Pair> getStablePairsInMonitoringByRatings(List<String> ratings) {
-        List<StabilityRating> enumRatings = ratings.stream()
-                .map(StabilityRating::fromString)
-                .toList();
-        return getStablePairsInMonitoringByStabilityRatings(enumRatings);
-    }
-
-    /**
-     * Получить хорошие стабильные пары из постоянного списка мониторинга (MARGINAL, GOOD и EXCELLENT)
-     *
-     * @return список пар в мониторинге с хорошими рейтингами
-     */
-    public List<Pair> getGoodStablePairsInMonitoring() {
-        List<StabilityRating> goodRatings = List.of(
-                StabilityRating.MARGINAL,
-                StabilityRating.GOOD,
-                StabilityRating.EXCELLENT
-        );
-        log.info("🔍 Получение хороших стабильных пар из постоянного списка мониторинга: {}", goodRatings);
-
-        return getStablePairsInMonitoringByStabilityRatings(goodRatings);
-    }
 
     /**
      * Создать зеркальные пары для списка исходных пар
