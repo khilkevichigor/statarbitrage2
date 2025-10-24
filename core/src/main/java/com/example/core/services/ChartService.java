@@ -264,11 +264,21 @@ public class ChartService {
     private void addEmaToChart(XYChart chart, List<Date> timeAxis, List<Double> zScores, int period) {
         List<Double> emaValues = calculateEMA(zScores, period);
 
-        List<Date> emaTimeAxis = timeAxis.subList(period - 1, timeAxis.size());
+        if (emaValues.isEmpty()) {
+            log.warn("⚠️ Не удалось рассчитать EMA({}) - недостаточно данных", period);
+            return;
+        }
 
-        log.debug("Добавляем EMA({}) линию: {} точек", period, emaValues.size());
+        // 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем точные Z-Score таймштампы
+        // Индекс начала EMA соответствует периоду ожидания
+        int emaStartIndex = period - 1;
+        List<Date> synchronizedEmaTimeAxis = timeAxis.subList(emaStartIndex, timeAxis.size());
 
-        XYSeries emaSeries = chart.addSeries("EMA(" + period + ")", emaTimeAxis, emaValues);
+        log.info("🎯 Добавляем синхронизированную EMA({}) линию: {} точек (с {} по {})",
+                period, emaValues.size(), synchronizedEmaTimeAxis.get(0), 
+                synchronizedEmaTimeAxis.get(synchronizedEmaTimeAxis.size() - 1));
+
+        XYSeries emaSeries = chart.addSeries("EMA(" + period + ") sync", synchronizedEmaTimeAxis, emaValues);
         emaSeries.setLineColor(Color.CYAN);
         emaSeries.setMarker(new None());
         emaSeries.setLineStyle(new BasicStroke(2.0f));
@@ -307,7 +317,10 @@ public class ChartService {
             return;
         }
 
-        List<Date> stochRsiTimeAxis = timeAxis.subList(timeAxis.size() - stochRsiValues.size(), timeAxis.size());
+        // 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем точные Z-Score таймштампы
+        // StochRSI начинается с конца тайм-аксиса (т.к. использует RSI период + stoch период + smooth)
+        int stochRsiStartIndex = timeAxis.size() - stochRsiValues.size();
+        List<Date> synchronizedStochRsiTimeAxis = timeAxis.subList(stochRsiStartIndex, timeAxis.size());
 
         double minZScore = zScores.stream().min(Double::compareTo).orElse(-3.0);
         double maxZScore = zScores.stream().max(Double::compareTo).orElse(3.0);
@@ -317,10 +330,11 @@ public class ChartService {
                 .map(value -> minZScore + (value / 100.0) * range)
                 .collect(Collectors.toList());
 
-        log.debug("Добавляем StochRSI линию: {} точек (масштабированы в диапазон {}-{})",
-                stochRsiValues.size(), minZScore, maxZScore);
+        log.info("🎯 Добавляем синхронизированную StochRSI линию: {} точек (с {} по {})",
+                stochRsiValues.size(), synchronizedStochRsiTimeAxis.get(0), 
+                synchronizedStochRsiTimeAxis.get(synchronizedStochRsiTimeAxis.size() - 1));
 
-        XYSeries stochRsiSeries = chart.addSeries("StochRSI", stochRsiTimeAxis, scaledStochRsi);
+        XYSeries stochRsiSeries = chart.addSeries("StochRSI sync", synchronizedStochRsiTimeAxis, scaledStochRsi);
         stochRsiSeries.setLineColor(Color.ORANGE);
         stochRsiSeries.setMarker(new None());
         stochRsiSeries.setLineStyle(new BasicStroke(1.5f));
@@ -328,6 +342,7 @@ public class ChartService {
         double overboughtLevel = minZScore + (80.0 / 100.0) * range;
         double oversoldLevel = minZScore + (20.0 / 100.0) * range;
 
+        // Используем полный timeAxis для горизонтальных линий (80/20 уровни)
         addHorizontalLine(chart, timeAxis, overboughtLevel, Color.RED);
         addHorizontalLine(chart, timeAxis, oversoldLevel, Color.GREEN);
     }
@@ -413,57 +428,42 @@ public class ChartService {
 
     private void addProfitToChart(XYChart chart, Pair tradingPair) {
         List<ProfitHistoryItem> profitHistory = tradingPair.getProfitHistory();
+        List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
+
         if (profitHistory == null || profitHistory.isEmpty()) {
             log.debug("📊 История профита пуста для пары {}, график профита не будет добавлен.", tradingPair.getPairName());
             return;
         }
 
-        List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
         if (zScoreHistory == null || zScoreHistory.isEmpty()) {
-            log.debug("📊 История Z-Score пуста - используем все данные профита без синхронизации");
-            // Fallback к старой логике с фильтрацией по времени входа
-            long entryTimestamp = tradingPair.getEntryTime() != null ?
-                    tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
-                    (tradingPair.getTimestamp() != null ? tradingPair.getTimestamp() : System.currentTimeMillis());
-
-            List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
-                    .filter(item -> item.getTimestamp() >= entryTimestamp)
-                    .collect(Collectors.toList());
-
-            if (filteredProfitHistory.isEmpty()) {
-                log.debug("📊 Нет данных профита с момента входа для пары {}, используя все данные", tradingPair.getPairName());
-                filteredProfitHistory = profitHistory;
-            }
-
-            if (filteredProfitHistory.isEmpty()) {
-                log.debug("📊 История профита все еще пуста после всех проверок для пары {}", tradingPair.getPairName());
-                return;
-            }
-            
-            addProfitSeriesToChart(chart, filteredProfitHistory);
+            log.warn("⚠️ История Z-Score пуста - невозможно синхронизировать профит");
+            // Fallback к старой логике
+            addProfitSeriesToChart(chart, profitHistory);
             return;
         }
 
-        // Синхронизируем профит с Z-Score периодом
-        long zScoreStartTime = zScoreHistory.get(0).getTimestamp();
-        long zScoreEndTime = zScoreHistory.get(zScoreHistory.size() - 1).getTimestamp();
-        
-        log.debug("📊 Синхронизируем профит с Z-Score периодом: {} - {} ({} записей Z-Score)",
-                new Date(zScoreStartTime), new Date(zScoreEndTime), zScoreHistory.size());
+        // Сортируем по времени
+        profitHistory.sort(Comparator.comparing(ProfitHistoryItem::getTimestamp));
 
-        List<ProfitHistoryItem> filteredProfitHistory = profitHistory.stream()
-                .filter(item -> item.getTimestamp() >= zScoreStartTime && item.getTimestamp() <= zScoreEndTime)
+        // 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем точные временные метки Z-Score
+        List<Long> zScoreTimestamps = zScoreHistory.stream()
+                .map(ZScoreParam::getTimestamp)
                 .collect(Collectors.toList());
+        List<Date> zScoreTimeAxis = zScoreTimestamps.stream().map(Date::new).collect(Collectors.toList());
 
-        if (filteredProfitHistory.isEmpty()) {
-            log.debug("📊 Нет данных профита в периоде Z-Score для пары {}", tradingPair.getPairName());
-            return;
+        log.info("🎯 Синхронизируем профит строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
+
+        // Интерполируем профит на точные временные метки Z-Score
+        List<Double> interpolatedProfitValues = new ArrayList<>();
+        for (Long zTimestamp : zScoreTimestamps) {
+            Double profitValue = interpolateProfit(profitHistory, zTimestamp);
+            interpolatedProfitValues.add(profitValue != null ? profitValue : 0.0);
         }
 
-        log.debug("✅ Синхронизированный профит: {} точек (было: {} в полной истории)",
-                filteredProfitHistory.size(), profitHistory.size());
+        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированный профит: {} точек", interpolatedProfitValues.size());
 
-        addProfitSeriesToChart(chart, filteredProfitHistory);
+        // Добавляем синхронизированный профит на чарт
+        addSynchronizedProfitSeriesToChart(chart, zScoreTimeAxis, interpolatedProfitValues);
     }
 
     /**
@@ -765,76 +765,69 @@ public class ChartService {
         longCandles.sort(Comparator.comparing(Candle::getTimestamp));
         shortCandles.sort(Comparator.comparing(Candle::getTimestamp));
 
-        // Получаем временной диапазон Z-Score истории
-        long zScoreStartTime = history.get(0).getTimestamp();
-        long zScoreEndTime = history.get(history.size() - 1).getTimestamp();
-
-        log.info("📊 Синхронизируем цены с Z-Score периодом: {} - {} ({} записей Z-Score)",
-                new Date(zScoreStartTime), new Date(zScoreEndTime), history.size());
-
-        // Фильтруем свечи по временному диапазону Z-Score истории
-        List<Candle> filteredLongCandles = longCandles.stream()
-                .filter(c -> c.getTimestamp() >= zScoreStartTime && c.getTimestamp() <= zScoreEndTime)
+        // 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем точные временные метки Z-Score как основу
+        List<Long> zScoreTimestamps = history.stream()
+                .map(ZScoreParam::getTimestamp)
                 .collect(Collectors.toList());
-        
-        List<Candle> filteredShortCandles = shortCandles.stream()
-                .filter(c -> c.getTimestamp() >= zScoreStartTime && c.getTimestamp() <= zScoreEndTime)
-                .collect(Collectors.toList());
+        List<Date> zScoreTimeAxis = zScoreTimestamps.stream().map(Date::new).collect(Collectors.toList());
 
-        if (filteredLongCandles.isEmpty() || filteredShortCandles.isEmpty()) {
-            log.warn("⚠️ Нет свечей в периоде Z-Score истории для синхронизации");
-            return;
+        log.info("🎯 Синхронизируем цены строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
+
+        // Интерполируем цены Long на точные временные метки Z-Score
+        List<Double> interpolatedLongPrices = new ArrayList<>(); 
+        for (Long zTimestamp : zScoreTimestamps) {
+            Double longPrice = interpolatePrice(longCandles, zTimestamp);
+            interpolatedLongPrices.add(longPrice != null ? longPrice : 0.0);
         }
 
-        // Получение времени и цен для синхронизированного периода
-        List<Date> timeLong = filteredLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> longPrices = filteredLongCandles.stream().map(Candle::getClose).toList();
-
-        List<Date> timeShort = filteredShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Double> shortPrices = filteredShortCandles.stream().map(Candle::getClose).toList();
+        // Интерполируем цены Short на точные временные метки Z-Score  
+        List<Double> interpolatedShortPrices = new ArrayList<>();
+        for (Long zTimestamp : zScoreTimestamps) {
+            Double shortPrice = interpolatePrice(shortCandles, zTimestamp);
+            interpolatedShortPrices.add(shortPrice != null ? shortPrice : 0.0);
+        }
 
         // Найти диапазон Z-Score для масштабирования цен
         double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
         double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
         double zRange = maxZScore - minZScore;
 
-        // Найти диапазон цен для нормализации (только для синхронизированного периода)
-        double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
-        double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
+        // Найти диапазон интерполированных цен для нормализации
+        double minLongPrice = interpolatedLongPrices.stream().filter(p -> p != 0.0).min(Double::compareTo).orElse(0.0);
+        double maxLongPrice = interpolatedLongPrices.stream().max(Double::compareTo).orElse(1.0);
         double longPriceRange = maxLongPrice - minLongPrice;
 
-        double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
-        double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
+        double minShortPrice = interpolatedShortPrices.stream().filter(p -> p != 0.0).min(Double::compareTo).orElse(0.0);
+        double maxShortPrice = interpolatedShortPrices.stream().max(Double::compareTo).orElse(1.0);
         double shortPriceRange = maxShortPrice - minShortPrice;
 
-        // Нормализация long цен в диапазон Z-Score
-        List<Double> scaledLongPrices = longPrices.stream()
+        // Нормализация интерполированных цен в диапазон Z-Score
+        List<Double> scaledLongPrices = interpolatedLongPrices.stream()
                 .map(price -> longPriceRange != 0 ?
                         minZScore + ((price - minLongPrice) / longPriceRange) * zRange : minZScore)
-                .toList();
+                .collect(Collectors.toList());
 
-        // Нормализация short цен в диапазон Z-Score
-        List<Double> scaledShortPrices = shortPrices.stream()
+        List<Double> scaledShortPrices = interpolatedShortPrices.stream()
                 .map(price -> shortPriceRange != 0 ?
                         minZScore + ((price - minShortPrice) / shortPriceRange) * zRange : minZScore)
-                .toList();
+                .collect(Collectors.toList());
 
-        log.info("✅ Добавляем синхронизированные цены на Z-Score чарт: LONG {} точек, SHORT {} точек",
-                scaledLongPrices.size(), scaledShortPrices.size());
+        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированные цены: {} точек (точно совпадают с Z-Score)",
+                scaledLongPrices.size());
 
         // Добавляем long цены как полупрозрачную зеленую линию
-        XYSeries longPriceSeries = chart.addSeries("LONG Price (sync): " + longTicker, timeLong, scaledLongPrices);
+        XYSeries longPriceSeries = chart.addSeries("LONG Price (sync): " + longTicker, zScoreTimeAxis, scaledLongPrices);
         longPriceSeries.setLineColor(new Color(0, 255, 0, 120)); // Полупрозрачный зеленый
         longPriceSeries.setMarker(new None());
         longPriceSeries.setLineStyle(new BasicStroke(1.5f));
 
         // Добавляем short цены как полупрозрачную красную линию
-        XYSeries shortPriceSeries = chart.addSeries("SHORT Price (sync): " + shortTicker, timeShort, scaledShortPrices);
+        XYSeries shortPriceSeries = chart.addSeries("SHORT Price (sync): " + shortTicker, zScoreTimeAxis, scaledShortPrices);
         shortPriceSeries.setLineColor(new Color(255, 0, 0, 120)); // Полупрозрачный красный
         shortPriceSeries.setMarker(new None());
         shortPriceSeries.setLineStyle(new BasicStroke(1.5f));
 
-        log.debug("✅ Синхронизированные цены успешно добавлены на Z-Score чарт!");
+        log.debug("🎯 ИДЕАЛЬНО синхронизированные цены добавлены на Z-Score чарт!");
     }
 
     /**
@@ -990,47 +983,61 @@ public class ChartService {
      */
     private void addPixelSpreadToZScoreChart(XYChart chart, Pair tradingPair) {
         List<PixelSpreadHistoryItem> pixelHistory = tradingPair.getPixelSpreadHistory();
+        List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
 
         if (pixelHistory == null || pixelHistory.isEmpty()) {
             log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Z-Score чарт", tradingPair.getPairName());
             return;
         }
 
+        if (zScoreHistory == null || zScoreHistory.isEmpty()) {
+            log.warn("⚠️ История Z-Score пуста - невозможно синхронизировать пиксельный спред");
+            return;
+        }
+
         // Сортируем по времени
         pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
 
-        List<Date> timeAxis = pixelHistory.stream()
-                .map(item -> new Date(item.getTimestamp()))
+        // 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем точные временные метки Z-Score
+        List<Long> zScoreTimestamps = zScoreHistory.stream()
+                .map(ZScoreParam::getTimestamp)
                 .collect(Collectors.toList());
-        List<Double> pixelDistances = pixelHistory.stream()
-                .map(PixelSpreadHistoryItem::getPixelDistance)
-                .collect(Collectors.toList());
+        List<Date> zScoreTimeAxis = zScoreTimestamps.stream().map(Date::new).collect(Collectors.toList());
 
-        // Найти диапазон Z-Score для масштабирования пиксельного спреда
-        List<ZScoreParam> history = tradingPair.getZScoreHistory();
-        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
-        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
+        log.info("🎯 Синхронизируем пиксельный спред строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
+
+        // Интерполируем пиксельные расстояния на точные временные метки Z-Score
+        List<Double> interpolatedPixelDistances = new ArrayList<>();
+        for (Long zTimestamp : zScoreTimestamps) {
+            Double pixelDistance = interpolatePixelSpread(pixelHistory, zTimestamp);
+            interpolatedPixelDistances.add(pixelDistance != null ? pixelDistance : 0.0);
+        }
+
+        // Найти диапазон Z-Score для масштабирования
+        double minZScore = zScoreHistory.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
+        double maxZScore = zScoreHistory.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
         double zRange = maxZScore - minZScore;
 
-        // Найти диапазон пиксельного спреда
-        double minPixelDistance = pixelDistances.stream().min(Double::compareTo).orElse(0.0);
-        double maxPixelDistance = pixelDistances.stream().max(Double::compareTo).orElse(100.0);
+        // Найти диапазон интерполированных пиксельных расстояний
+        double minPixelDistance = interpolatedPixelDistances.stream().filter(p -> p != 0.0).min(Double::compareTo).orElse(0.0);
+        double maxPixelDistance = interpolatedPixelDistances.stream().max(Double::compareTo).orElse(100.0);
         double pixelRange = maxPixelDistance - minPixelDistance;
 
-        // Масштабируем пиксельный спред в диапазон Z-Score
-        List<Double> scaledPixelSpread = pixelDistances.stream()
+        // Масштабируем в диапазон Z-Score
+        List<Double> scaledPixelSpread = interpolatedPixelDistances.stream()
                 .map(pixel -> pixelRange != 0 ?
                         minZScore + ((pixel - minPixelDistance) / pixelRange) * zRange : minZScore)
                 .collect(Collectors.toList());
 
-        log.debug("✅ Добавляем пиксельный спред на Z-Score чарт: {} точек (диапазон: {}-{})",
-                scaledPixelSpread.size(), minPixelDistance, maxPixelDistance);
+        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированный пиксельный спред: {} точек", scaledPixelSpread.size());
 
         // Добавляем пиксельный спред как полупрозрачную фиолетовую линию
-        XYSeries pixelSpreadSeries = chart.addSeries("Pixel Spread (scaled)", timeAxis, scaledPixelSpread);
+        XYSeries pixelSpreadSeries = chart.addSeries("Pixel Spread (sync)", zScoreTimeAxis, scaledPixelSpread);
         pixelSpreadSeries.setLineColor(new Color(128, 0, 128, 150)); // Полупрозрачный фиолетовый
         pixelSpreadSeries.setMarker(new None());
         pixelSpreadSeries.setLineStyle(new BasicStroke(2.0f));
+
+        log.debug("🎯 ИДЕАЛЬНО синхронизированный пиксельный спред добавлен!");
     }
 
     /**
@@ -1206,6 +1213,197 @@ public class ChartService {
         }
 
         return prices.get(bestIndex);
+    }
+
+    /**
+     * 🎯 Интерполирует цену свечи на точный таймштамп Z-Score
+     * Использует линейную интерполяцию между ближайшими свечами
+     */
+    private Double interpolatePrice(List<Candle> candles, long targetTimestamp) {
+        if (candles.isEmpty()) return null;
+
+        // Ищем ближайшие свечи до и после целевого времени
+        Candle beforeCandle = null;
+        Candle afterCandle = null;
+
+        for (Candle candle : candles) {
+            if (candle.getTimestamp() <= targetTimestamp) {
+                if (beforeCandle == null || candle.getTimestamp() > beforeCandle.getTimestamp()) {
+                    beforeCandle = candle;
+                }
+            }
+            if (candle.getTimestamp() >= targetTimestamp) {
+                if (afterCandle == null || candle.getTimestamp() < afterCandle.getTimestamp()) {
+                    afterCandle = candle;
+                }
+            }
+        }
+
+        // Если точное совпадение
+        if (beforeCandle != null && beforeCandle.getTimestamp() == targetTimestamp) {
+            return beforeCandle.getClose();
+        }
+        if (afterCandle != null && afterCandle.getTimestamp() == targetTimestamp) {
+            return afterCandle.getClose();
+        }
+
+        // Линейная интерполяция между двумя свечами
+        if (beforeCandle != null && afterCandle != null && !beforeCandle.equals(afterCandle)) {
+            long timeDiff = afterCandle.getTimestamp() - beforeCandle.getTimestamp();
+            double priceDiff = afterCandle.getClose() - beforeCandle.getClose();
+            long targetDiff = targetTimestamp - beforeCandle.getTimestamp();
+            
+            double interpolatedPrice = beforeCandle.getClose() + (priceDiff * targetDiff / (double) timeDiff);
+            log.trace("🎯 Интерполяция: {} -> {} (между {} и {})", 
+                    new Date(targetTimestamp), interpolatedPrice, beforeCandle.getClose(), afterCandle.getClose());
+            return interpolatedPrice;
+        }
+
+        // Fallback: ближайшая доступная цена
+        if (beforeCandle != null) {
+            return beforeCandle.getClose();
+        }
+        if (afterCandle != null) {
+            return afterCandle.getClose();
+        }
+
+        return null;
+    }
+
+    /**
+     * 🎯 Интерполирует пиксельное расстояние на точный таймштамп Z-Score
+     */
+    private Double interpolatePixelSpread(List<PixelSpreadHistoryItem> pixelHistory, long targetTimestamp) {
+        if (pixelHistory.isEmpty()) return null;
+
+        // Ищем ближайшие записи до и после целевого времени
+        PixelSpreadHistoryItem beforeItem = null;
+        PixelSpreadHistoryItem afterItem = null;
+
+        for (PixelSpreadHistoryItem item : pixelHistory) {
+            if (item.getTimestamp() <= targetTimestamp) {
+                if (beforeItem == null || item.getTimestamp() > beforeItem.getTimestamp()) {
+                    beforeItem = item;
+                }
+            }
+            if (item.getTimestamp() >= targetTimestamp) {
+                if (afterItem == null || item.getTimestamp() < afterItem.getTimestamp()) {
+                    afterItem = item;
+                }
+            }
+        }
+
+        // Если точное совпадение
+        if (beforeItem != null && beforeItem.getTimestamp() == targetTimestamp) {
+            return beforeItem.getPixelDistance();
+        }
+        if (afterItem != null && afterItem.getTimestamp() == targetTimestamp) {
+            return afterItem.getPixelDistance();
+        }
+
+        // Линейная интерполяция между двумя записями
+        if (beforeItem != null && afterItem != null && !beforeItem.equals(afterItem)) {
+            long timeDiff = afterItem.getTimestamp() - beforeItem.getTimestamp();
+            double pixelDiff = afterItem.getPixelDistance() - beforeItem.getPixelDistance();
+            long targetDiff = targetTimestamp - beforeItem.getTimestamp();
+            
+            double interpolatedPixel = beforeItem.getPixelDistance() + (pixelDiff * targetDiff / (double) timeDiff);
+            log.trace("🎯 Интерполяция пиксельного спреда: {} -> {} (между {} и {})", 
+                    new Date(targetTimestamp), interpolatedPixel, beforeItem.getPixelDistance(), afterItem.getPixelDistance());
+            return interpolatedPixel;
+        }
+
+        // Fallback: ближайшее доступное значение
+        if (beforeItem != null) {
+            return beforeItem.getPixelDistance();
+        }
+        if (afterItem != null) {
+            return afterItem.getPixelDistance();
+        }
+
+        return null;
+    }
+
+    /**
+     * 🎯 Интерполирует профит на точный таймштамп Z-Score
+     */
+    private Double interpolateProfit(List<ProfitHistoryItem> profitHistory, long targetTimestamp) {
+        if (profitHistory.isEmpty()) return null;
+
+        // Ищем ближайшие записи до и после целевого времени
+        ProfitHistoryItem beforeItem = null;
+        ProfitHistoryItem afterItem = null;
+
+        for (ProfitHistoryItem item : profitHistory) {
+            if (item.getTimestamp() <= targetTimestamp) {
+                if (beforeItem == null || item.getTimestamp() > beforeItem.getTimestamp()) {
+                    beforeItem = item;
+                }
+            }
+            if (item.getTimestamp() >= targetTimestamp) {
+                if (afterItem == null || item.getTimestamp() < afterItem.getTimestamp()) {
+                    afterItem = item;
+                }
+            }
+        }
+
+        // Если точное совпадение
+        if (beforeItem != null && beforeItem.getTimestamp() == targetTimestamp) {
+            return beforeItem.getProfitPercent();
+        }
+        if (afterItem != null && afterItem.getTimestamp() == targetTimestamp) {
+            return afterItem.getProfitPercent();
+        }
+
+        // Линейная интерполяция между двумя записями
+        if (beforeItem != null && afterItem != null && !beforeItem.equals(afterItem)) {
+            long timeDiff = afterItem.getTimestamp() - beforeItem.getTimestamp();
+            double profitDiff = afterItem.getProfitPercent() - beforeItem.getProfitPercent();
+            long targetDiff = targetTimestamp - beforeItem.getTimestamp();
+            
+            double interpolatedProfit = beforeItem.getProfitPercent() + (profitDiff * targetDiff / (double) timeDiff);
+            log.trace("🎯 Интерполяция профита: {} -> {}% (между {}% и {}%)", 
+                    new Date(targetTimestamp), interpolatedProfit, beforeItem.getProfitPercent(), afterItem.getProfitPercent());
+            return interpolatedProfit;
+        }
+
+        // Fallback: ближайшее доступное значение
+        if (beforeItem != null) {
+            return beforeItem.getProfitPercent();
+        }
+        if (afterItem != null) {
+            return afterItem.getProfitPercent();
+        }
+
+        return null;
+    }
+
+    /**
+     * 🎯 Добавляет синхронизированные данные профита на чарт
+     */
+    private void addSynchronizedProfitSeriesToChart(XYChart chart, List<Date> zScoreTimeAxis, List<Double> profitValues) {
+        XYSeries profitSeries = chart.addSeries("Profit % (sync)", zScoreTimeAxis, profitValues);
+        profitSeries.setYAxisGroup(1);
+        profitSeries.setLineColor(Color.ORANGE);
+        profitSeries.setMarker(new None());
+        profitSeries.setLineStyle(new BasicStroke(2.0f));
+
+        // Последняя точка профита
+        if (!zScoreTimeAxis.isEmpty() && !profitValues.isEmpty()) {
+            Date lastTime = zScoreTimeAxis.get(zScoreTimeAxis.size() - 1);
+            Double lastValue = profitValues.get(profitValues.size() - 1);
+
+            XYSeries lastPointSeries = chart.addSeries("Last Profit Point (sync)",
+                    Collections.singletonList(lastTime),
+                    Collections.singletonList(lastValue));
+            lastPointSeries.setYAxisGroup(1);
+            lastPointSeries.setMarker(SeriesMarkers.CIRCLE);
+            lastPointSeries.setMarkerColor(Color.RED);
+        }
+
+        chart.setYAxisGroupTitle(1, "Profit %");
+
+        log.debug("🎯 ИДЕАЛЬНО синхронизированный профит добавлен на чарт!");
     }
 
     /**
