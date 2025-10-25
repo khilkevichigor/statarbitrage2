@@ -44,7 +44,6 @@ public class ZScoreChartDialog extends Dialog {
 
     private VerticalLayout content;
     private Image mainChartImage; // Единая область для чартов
-    private Image intersectionsChartImage; // Чарт пересечений
     private Div dataInfoPanel; // Панель с информацией о данных
     private H3 pairTitle;
     private Div detailsPanel;
@@ -89,14 +88,6 @@ public class ZScoreChartDialog extends Dialog {
         mainChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
         mainChartImage.getStyle().set("cursor", "crosshair");
 
-        // Чарт пересечений с crosshair
-        intersectionsChartImage = new Image();
-        intersectionsChartImage.setWidth("100%");
-        intersectionsChartImage.setHeight("600px");
-        intersectionsChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
-        intersectionsChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
-        intersectionsChartImage.getStyle().set("margin-top", "1rem");
-        intersectionsChartImage.getStyle().set("cursor", "crosshair");
 
         // Панель с информацией о данных
         dataInfoPanel = new Div();
@@ -222,12 +213,8 @@ public class ZScoreChartDialog extends Dialog {
 
         chartSelectionPanel.add(chartsLabel, mainChartsRow, infoSpan);
 
-        // Заголовок для чарта пересечений
-        H3 intersectionsTitle = new H3("📈 Чарт пересечений цен");
-        intersectionsTitle.getStyle().set("margin", "1rem 0 0.5rem 0");
-        intersectionsTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
 
-        content.add(header, dataInfoPanel, chartSelectionPanel, mainChartImage, intersectionsTitle, intersectionsChartImage, detailsPanel);
+        content.add(header, dataInfoPanel, chartSelectionPanel, mainChartImage, detailsPanel);
         add(content);
     }
 
@@ -267,8 +254,6 @@ public class ZScoreChartDialog extends Dialog {
             // Генерируем и показываем чарт согласно выбранным чекбоксам
             refreshMainChart();
 
-            // Генерируем чарт пересечений
-            refreshIntersectionsChart();
 
             // Обновляем информацию о данных
             updateDataInfoPanel(tradingPair);
@@ -447,116 +432,7 @@ public class ZScoreChartDialog extends Dialog {
         return profit >= 0 ? "#4CAF50" : "#F44336";
     }
 
-    /**
-     * Обновляет чарт пересечений
-     */
-    private void refreshIntersectionsChart() {
-        if (currentPair == null) return;
 
-        try {
-            log.info("📊 Создание чарта пересечений для пары: {}", currentPair.getPairName());
-
-            // Получаем данные свечей
-            var longCandles = currentPair.getLongTickerCandles();
-            var shortCandles = currentPair.getShortTickerCandles();
-
-            if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
-                log.warn("⚠️ Нет данных свечей для создания чарта пересечений");
-                intersectionsChartImage.setSrc("");
-                intersectionsChartImage.setAlt("Нет данных для чарта пересечений");
-                return;
-            }
-
-            // Подсчитываем пересечения (простой алгоритм)
-            int intersectionsCount = calculateIntersections(longCandles, shortCandles);
-
-            log.info("📊 Найдено {} пересечений цен для пары {}", intersectionsCount, currentPair.getPairName());
-
-            // Создаем чарт пересечений
-            BufferedImage intersectionsChart = chartService.createNormalizedPriceIntersectionsChart(
-                    longCandles, shortCandles, currentPair.getPairName(), intersectionsCount, false);
-
-            if (intersectionsChart != null) {
-                StreamResource intersectionsResource = createStreamResource(intersectionsChart, "intersections-chart.png");
-                intersectionsChartImage.setSrc(intersectionsResource);
-                intersectionsChartImage.setAlt("Intersections Chart for " + currentPair.getPairName());
-
-                // Добавляем crosshair функциональность
-                addCrosshairToIntersectionsChart();
-
-                log.debug("✅ Чарт пересечений успешно создан");
-            } else {
-                intersectionsChartImage.setSrc("");
-                intersectionsChartImage.setAlt("Failed to generate intersections chart");
-                log.warn("⚠️ Не удалось создать чарт пересечений");
-            }
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при создании чарта пересечений", e);
-            intersectionsChartImage.setSrc("");
-            intersectionsChartImage.setAlt("Chart generation error");
-        }
-    }
-
-    /**
-     * Подсчитывает количество пересечений между нормализованными ценами
-     */
-    private int calculateIntersections(java.util.List<com.example.shared.dto.Candle> longCandles,
-                                       java.util.List<com.example.shared.dto.Candle> shortCandles) {
-        try {
-            int minSize = Math.min(longCandles.size(), shortCandles.size());
-            if (minSize < 2) return 0;
-
-            // Нормализуем цены
-            double[] normalizedLongPrices = normalizePrices(longCandles, minSize);
-            double[] normalizedShortPrices = normalizePrices(shortCandles, minSize);
-
-            // Подсчитываем пересечения
-            int intersections = 0;
-            boolean firstAboveSecond = normalizedLongPrices[0] > normalizedShortPrices[0];
-
-            for (int i = 1; i < minSize; i++) {
-                boolean currentFirstAboveSecond = normalizedLongPrices[i] > normalizedShortPrices[i];
-                if (currentFirstAboveSecond != firstAboveSecond) {
-                    intersections++;
-                    firstAboveSecond = currentFirstAboveSecond;
-                }
-            }
-
-            return intersections;
-        } catch (Exception e) {
-            log.error("❌ Ошибка при подсчете пересечений: {}", e.getMessage(), e);
-            return 0;
-        }
-    }
-
-    /**
-     * Нормализует цены в диапазон [0, 1]
-     */
-    private double[] normalizePrices(java.util.List<com.example.shared.dto.Candle> candles, int size) {
-        double[] prices = new double[size];
-        double min = Double.MAX_VALUE;
-        double max = Double.MIN_VALUE;
-
-        // Извлекаем цены закрытия и находим min/max
-        for (int i = 0; i < size; i++) {
-            prices[i] = candles.get(i).getClose();
-            min = Math.min(min, prices[i]);
-            max = Math.max(max, prices[i]);
-        }
-
-        // Нормализуем
-        double range = max - min;
-        if (range == 0) {
-            return new double[size]; // Все цены одинаковые
-        }
-
-        for (int i = 0; i < size; i++) {
-            prices[i] = (prices[i] - min) / range;
-        }
-
-        return prices;
-    }
 
     /**
      * Обновляет панель с информацией о данных
@@ -598,16 +474,8 @@ public class ZScoreChartDialog extends Dialog {
             String alignedLongInfo = alignedTickerInfos.get(0);
             String alignedShortInfo = alignedTickerInfos.get(1);
 
-            // Подсчитываем пересечения
-            int intersectionsCount = calculateIntersections(tradingPair.getLongTickerCandles(), tradingPair.getShortTickerCandles());
-            int totalPoints = Math.min(
-                    tradingPair.getLongTickerCandles() != null ? tradingPair.getLongTickerCandles().size() : 0,
-                    tradingPair.getShortTickerCandles() != null ? tradingPair.getShortTickerCandles().size() : 0
-            );
-
-            double intersectionPercent = totalPoints > 0 ? (double) intersectionsCount / totalPoints * 100 : 0;
-            String intersectionInfo = String.format("Пересечений: %.1f%% (%d)",
-                    intersectionPercent, intersectionsCount);
+            // Информация о пересечениях отключена
+            String intersectionInfo = "Пересечений: отключено";
 
             // Создаем текстовые элементы
             Span longSpan = new Span(alignedLongInfo);
@@ -883,62 +751,6 @@ public class ZScoreChartDialog extends Dialog {
      */
     private void addCrosshairToMainChart() {
         mainChartImage.getElement().executeJs("""
-                // Создаем контейнер с relative позиционированием для crosshair
-                const imageContainer = document.createElement('div');
-                imageContainer.style.position = 'relative';
-                imageContainer.style.display = 'inline-block';
-                imageContainer.style.width = '100%';
-                imageContainer.style.height = '100%';
-                
-                // Переносим image в контейнер
-                const img = this;
-                const parent = img.parentNode;
-                parent.insertBefore(imageContainer, img);
-                imageContainer.appendChild(img);
-                
-                // Создаем ТОЛЬКО вертикальную линию crosshair
-                const verticalLine = document.createElement('div');
-                verticalLine.style.position = 'absolute';
-                verticalLine.style.top = '0';
-                verticalLine.style.width = '1px';
-                verticalLine.style.height = '100%';
-                verticalLine.style.backgroundColor = '#FF6B6B';
-                verticalLine.style.pointerEvents = 'none';
-                verticalLine.style.display = 'none';
-                verticalLine.style.zIndex = '1000';
-                imageContainer.appendChild(verticalLine);
-                
-                // 🎯 Горизонтальные линии НЕ создаем - только для Z-Score секции!
-                
-                // Обработчики событий мыши для crosshair
-                img.addEventListener('mouseenter', function() {
-                    verticalLine.style.display = 'block';
-                    // 🎯 Горизонтальные линии НЕ показываем - только для Z-Score секции!
-                });
-                
-                img.addEventListener('mouseleave', function() {
-                    verticalLine.style.display = 'none';
-                    // 🎯 Горизонтальные линии НЕ скрываем - только для Z-Score секции!
-                });
-                
-                img.addEventListener('mousemove', function(e) {
-                    const rect = img.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                
-                    verticalLine.style.left = x + 'px';
-                    // 🎯 Горизонтальные линии НЕ перемещаем - только для Z-Score секции!
-                });
-                
-                img.style.cursor = 'crosshair';
-                """);
-    }
-
-    /**
-     * Добавляет crosshair функциональность к чарту пересечений
-     * 🎯 ТОЛЬКО вертикальные линии! Горизонтальные линии только для Z-Score секции!
-     */
-    private void addCrosshairToIntersectionsChart() {
-        intersectionsChartImage.getElement().executeJs("""
                 // Создаем контейнер с relative позиционированием для crosshair
                 const imageContainer = document.createElement('div');
                 imageContainer.style.position = 'relative';

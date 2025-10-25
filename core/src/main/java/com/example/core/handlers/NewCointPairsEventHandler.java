@@ -3,7 +3,6 @@ package com.example.core.handlers;
 import com.example.core.messaging.SendEventService;
 import com.example.core.processors.StartNewTradeProcessor;
 import com.example.core.services.EventSendService;
-import com.example.core.services.PriceIntersectionService;
 import com.example.core.services.SettingsService;
 import com.example.core.repositories.PairRepository;
 import com.example.core.trading.services.OkxPortfolioManager;
@@ -35,7 +34,6 @@ public class NewCointPairsEventHandler {
     private final SettingsService settingsService;
     private final PairRepository tradingPairRepository;
     private final OkxPortfolioManager okxPortfolioManager;
-    private final PriceIntersectionService priceIntersectionService;
     private final SendEventService sendEventService;
 
     // Мапа для хранения соответствия UUID -> Pair для получения чартов
@@ -170,58 +168,9 @@ public class NewCointPairsEventHandler {
     }
 
     private List<Pair> filterByMinIntersections(List<Pair> cointPairs) {
-        Settings settings = settingsService.getSettings();
-
-        // Если фильтр отключен, возвращаем исходный список
-        if (!settings.isUseMinIntersections()) {
-            log.debug("📊 Фильтр по пересечениям нормализованных цен отключен");
-            return cointPairs;
-        }
-
-        int minIntersections = settings.getMinIntersections();
-        log.info("📊 Применяем фильтр по пересечениям: минимум {} пересечений", minIntersections);
-
-        List<Pair> filteredPairs = new ArrayList<>();
-
-        for (Pair cointPair : cointPairs) {
-            try {
-                // Получаем пересечения вместе с нормализованными ценами
-                var result = priceIntersectionService.calculateIntersectionsWithData(cointPair);
-                int intersections = result.getIntersections();
-
-                log.info("📊 Пара {}: {} пересечений нормализованных цен",
-                        cointPair.getPairName(), intersections);
-
-                if (intersections >= minIntersections) {
-                    // Сохраняем нормализованные цены и количество пересечений
-                    java.util.List<java.math.BigDecimal> normalizedLongList = java.util.Arrays.stream(result.getNormalizedLongPrices())
-                            .mapToObj(java.math.BigDecimal::valueOf)
-                            .collect(java.util.stream.Collectors.toList());
-                    java.util.List<java.math.BigDecimal> normalizedShortList = java.util.Arrays.stream(result.getNormalizedShortPrices())
-                            .mapToObj(java.math.BigDecimal::valueOf)
-                            .collect(java.util.stream.Collectors.toList());
-                    cointPair.setNormalizedLongPrices(normalizedLongList);
-                    cointPair.setNormalizedShortPrices(normalizedShortList);
-                    cointPair.setIntersectionsCount(intersections);
-
-                    // Создаем чарт для отобранных пар
-                    priceIntersectionService.calculateIntersectionsWithChart(cointPair, true);
-
-                    filteredPairs.add(cointPair);
-                    log.debug("✅ Пара {} прошла фильтр: {} >= {} пересечений",
-                            cointPair.getPairName(), intersections, minIntersections);
-                } else {
-                    log.info("❌ Пара {} отфильтрована: {} < {} пересечений",
-                            cointPair.getPairName(), intersections, minIntersections);
-                }
-            } catch (Exception e) {
-                log.error("❌ Ошибка при подсчете пересечений для пары {}: {}",
-                        cointPair.getPairName(), e.getMessage(), e);
-                // В случае ошибки не добавляем пару в отфильтрованный список
-            }
-        }
-
-        return filteredPairs;
+        // Фильтр по пересечениям удален - возвращаем исходный список
+        log.debug("📊 Фильтр по пересечениям отключен");
+        return cointPairs;
     }
 
     private List<String> getUsedTickers() {
@@ -300,20 +249,8 @@ public class NewCointPairsEventHandler {
                     .checkAutoTrading(true)
                     .build());
             if (result != null && result.getStatus().equals(TradeStatus.TRADING)) {
-                // Получаем чарт пересечений как массив байт
-                byte[] intersectionChart = new byte[0];
-                Pair cointPair = cointPairByUuid.get(pair.getUuid().toString());
-                if (cointPair != null) {
-                    intersectionChart = priceIntersectionService.getIntersectionChartAsBytes(cointPair);
-                    log.info("📊 Получен чарт пересечений для пары {}: {} байт", 
-                            pair.getPairName(), intersectionChart.length);
-                } else {
-                    log.warn("⚠️ Не найден CointPair для UUID {} (пара {})", 
-                            pair.getUuid(), pair.getPairName());
-                }
-
                 String message = "Новый трейд: " + pair.getPairName();
-                sendEventService.sendCoreEvent(new CoreEvent(message, intersectionChart, CoreEvent.Type.ENTRY_INTERSECTION_CHART));
+                sendEventService.sendCoreEvent(new CoreEvent(message, new byte[0], CoreEvent.Type.ENTRY_INTERSECTION_CHART));
             }
             return result != null;
         } catch (Exception e) {
