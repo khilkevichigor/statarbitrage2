@@ -23,8 +23,9 @@ public class VerticalChartBuilder {
     private final ChartLayerService chartLayerService;
 
     /**
-     * 🏗️ Создает вертикально скомпонованный чарт со ВСЕМИ секциями
-     * 🎯 УПРОЩЕНИЕ: Все секции отображаются ВСЕГДА! Никаких чекбоксов!
+     * 🏗️ Создает вертикально скомпонованный чарт с тремя секциями
+     * 🎯 УПРОЩЕНИЕ: Секции отображаются ВСЕГДА! Никаких чекбоксов!
+     * Секции: 1) Нормализованные цены, 2) Z-Score, 3) Профит
      *
      * @param tradingPair    Торговая пара
      * @param showEntryPoint Показать точки входа на всех секциях
@@ -32,7 +33,7 @@ public class VerticalChartBuilder {
      */
     public BufferedImage createVerticalChart(Pair tradingPair, boolean showEntryPoint) {
 
-        log.debug("🏗️ УПРОЩЕННОЕ создание ПОЛНОГО вертикального чарта для пары: {} (EntryPoint: {})",
+        log.debug("🏗️ Создание вертикального чарта с 3 секциями для пары: {} (EntryPoint: {})",
                 tradingPair.getPairName(), showEntryPoint);
 
         List<BufferedImage> chartSections = new ArrayList<>();
@@ -51,14 +52,7 @@ public class VerticalChartBuilder {
             log.debug("✅ Добавлена секция Z-Score");
         }
 
-        // 3. Пиксельный спред - ВСЕГДА
-        BufferedImage pixelSpreadChart = createPixelSpreadSection(tradingPair, showEntryPoint, false); // НЕ последний
-        if (pixelSpreadChart != null) {
-            chartSections.add(pixelSpreadChart);
-            log.debug("✅ Добавлена секция пиксельного спреда");
-        }
-
-        // 4. Профит - ВСЕГДА и ПОСЛЕДНИЙ (с шкалой X)
+        // 3. Профит - ВСЕГДА и ПОСЛЕДНИЙ (с шкалой X)
         BufferedImage profitChart = createProfitSection(tradingPair, showEntryPoint, true); // ПОСЛЕДНИЙ с шкалой X
         if (profitChart != null) {
             chartSections.add(profitChart);
@@ -73,7 +67,7 @@ public class VerticalChartBuilder {
 
         // Объединяем все секции в один вертикальный чарт
         BufferedImage result = combineChartsVertically(chartSections);
-        log.debug("✅ ПОЛНЫЙ вертикальный чарт создан для пары {} ({} секций)",
+        log.debug("✅ Вертикальный чарт создан для пары {} ({} секций)",
                 tradingPair.getPairName(), chartSections.size());
 
         return result;
@@ -132,39 +126,6 @@ public class VerticalChartBuilder {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при создании секции Z-Score: {}", e.getMessage(), e);
-            return null;
-        }
-    }
-
-    /**
-     * 🟣 Создает секцию пиксельного спреда
-     *
-     * @param isLast если true - показывать шкалу X, если false - скрывать
-     */
-    private BufferedImage createPixelSpreadSection(Pair tradingPair, boolean showEntryPoint, boolean isLast) {
-        try {
-            log.debug("🟣 Создание секции пиксельного спреда (шкала X: {})", isLast ? "показать" : "скрыть");
-
-            // Создаем базовый чарт и добавляем пиксельный спред
-            org.knowm.xchart.XYChart chart = zScoreChartBuilder.buildBasicZScoreChart(tradingPair, showEntryPoint);
-
-            // 🎯 Удаляем Z-Score серию И горизонтальные линии уровней, оставляем только точки входа
-            removeZScoreSeriesButKeepEntry(chart);
-
-            // Добавляем пиксельный спред
-            chartLayerService.addSynchronizedPixelSpreadToChart(chart, tradingPair);
-
-            // 🎯 Управляем отображением шкалы X
-            chart.getStyler().setXAxisTicksVisible(isLast);
-            chart.getStyler().setXAxisTitleVisible(isLast);
-
-            // Обновляем заголовок
-            chart.setTitle("🟣 Пиксельный спред: " + tradingPair.getPairName());
-
-            return org.knowm.xchart.BitmapEncoder.getBufferedImage(chart);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при создании секции пиксельного спреда: {}", e.getMessage(), e);
             return null;
         }
     }
