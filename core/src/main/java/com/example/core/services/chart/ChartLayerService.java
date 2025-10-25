@@ -131,6 +131,17 @@ public class ChartLayerService {
      * @param useNormalizedDisplay true - нормализованное отображение для секции цен, false - наложение в диапазон Z-Score
      */
     public void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair, boolean useNormalizedDisplay) {
+        addSynchronizedPricesToChart(chart, tradingPair, useNormalizedDisplay, false);
+    }
+    
+    /**
+     * 📈 Добавляет синхронизированные цены на чарт с выбором типа отображения и точкой входа
+     * @param chart чарт для добавления
+     * @param tradingPair торговая пара
+     * @param useNormalizedDisplay true - нормализованное отображение для секции цен, false - наложение в диапазон Z-Score
+     * @param showEntryPoint true - добавить точку входа после данных
+     */
+    public void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair, boolean useNormalizedDisplay, boolean showEntryPoint) {
         String longTicker = tradingPair.getLongTicker();
         String shortTicker = tradingPair.getShortTicker();
 
@@ -196,6 +207,11 @@ public class ChartLayerService {
         addPriceSeries(chart, "SHORT " + shortTicker + " (" + displayMode + ")", zScoreTimeAxis, finalShortPrices, shortColor);
 
         log.debug("🎯 ИДЕАЛЬНО синхронизированные цены добавлены (режим: {})!", displayMode);
+        
+        // Добавляем точку входа если требуется и это нормализованный режим
+        if (showEntryPoint && useNormalizedDisplay) {
+            addEntryPointToNormalizedChart(chart, tradingPair, zScoreTimeAxis, finalLongPrices, finalShortPrices);
+        }
     }
 
     /**
@@ -371,5 +387,86 @@ public class ChartLayerService {
 
         ChartUtils.addHorizontalLine(chart, timeAxis, overboughtLevel, Color.RED);
         ChartUtils.addHorizontalLine(chart, timeAxis, oversoldLevel, Color.GREEN);
+    }
+
+    /**
+     * 🎯 Добавляет точку входа на нормализованный чарт цен с правильным масштабированием
+     */
+    private void addEntryPointToNormalizedChart(XYChart chart, Pair tradingPair, List<Date> timeAxis, 
+                                                List<Double> longPrices, List<Double> shortPrices) {
+        long entryTimestamp = getEntryTimestamp(tradingPair);
+
+        if (entryTimestamp <= 0) {
+            log.debug("⚠️ Время входа не задано (0) - линия входа не будет показана");
+            return;
+        }
+
+        long historyStart = timeAxis.get(0).getTime();
+        long historyEnd = timeAxis.get(timeAxis.size() - 1).getTime();
+
+        log.debug("🔍 Проверка линии входа для нормализованного чарта: entryTime={}, historyStart={}, historyEnd={}",
+                new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
+
+        Date entryDate;
+        String seriesName;
+        Color color;
+
+        boolean inRange = entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+
+        if (inRange) {
+            entryDate = new Date(entryTimestamp);
+            seriesName = "Entry";
+            color = ChartUtils.ENTRY_POINT_COLOR;
+            log.debug("🎯 Время входа попадает в диапазон истории - рисуем точную линию входа");
+        } else {
+            if (entryTimestamp < historyStart) {
+                entryDate = new Date(historyStart);
+                log.debug("📍 Показываем линию входа в начале графика");
+            } else {
+                entryDate = new Date(historyEnd);
+                log.debug("📍 Показываем линию входа в конце графика");
+            }
+            seriesName = "Entry (approx)";
+            color = ChartUtils.ENTRY_POINT_APPROX_COLOR;
+        }
+
+        // Вычисляем реальный диапазон нормализованных данных
+        List<Double> allPrices = new ArrayList<>();
+        allPrices.addAll(longPrices);
+        allPrices.addAll(shortPrices);
+        
+        double minPrice = allPrices.stream().min(Double::compareTo).orElse(-10.0);
+        double maxPrice = allPrices.stream().max(Double::compareTo).orElse(10.0);
+        
+        // Добавляем небольшой отступ для лучшей видимости
+        double padding = (maxPrice - minPrice) * 0.05;
+        double lineMinY = minPrice - padding;
+        double lineMaxY = maxPrice + padding;
+
+        // Добавляем вертикальную линию входа с правильным диапазоном
+        List<Date> lineX = Arrays.asList(entryDate, entryDate);
+        List<Double> lineY = Arrays.asList(lineMinY, lineMaxY);
+
+        XYSeries entryLine = chart.addSeries(seriesName, lineX, lineY);
+        entryLine.setLineColor(color);
+        entryLine.setMarker(new None());
+        entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
+                0, new float[]{6f, 4f}, 0));
+
+        log.debug("✅ Вертикальная линия входа добавлена на нормализованный чарт (диапазон: {} - {})", 
+                lineMinY, lineMaxY);
+    }
+
+    /**
+     * 🕐 Получает таймштамп входа из данных торговой пары
+     */
+    private long getEntryTimestamp(Pair tradingPair) {
+        if (tradingPair.getEntryTime() != null) {
+            return tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        }
+        if (tradingPair.getTimestamp() != null) {
+            return tradingPair.getTimestamp();
+        }
+        return System.currentTimeMillis();
     }
 }

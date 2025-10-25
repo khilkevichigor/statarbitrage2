@@ -85,8 +85,8 @@ public class VerticalChartBuilder {
             // Создаем чистый чарт для нормализованных цен без наложения и прозрачности
             org.knowm.xchart.XYChart chart = zScoreChartBuilder.buildCleanNormalizedPriceChart(tradingPair, showEntryPoint);
 
-            // Добавляем нормализованные синхронизированные цены  
-            chartLayerService.addSynchronizedPricesToChart(chart, tradingPair, true);
+            // Добавляем нормализованные синхронизированные цены с точкой входа
+            chartLayerService.addSynchronizedPricesToChart(chart, tradingPair, true, showEntryPoint);
 
             // 🎯 Управляем отображением шкалы X
             chart.getStyler().setXAxisTicksVisible(isLast);

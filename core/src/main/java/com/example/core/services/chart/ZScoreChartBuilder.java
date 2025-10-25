@@ -124,10 +124,8 @@ public class ZScoreChartBuilder {
 
         ChartUtils.applyUnifiedChartStyle(chart, timeAxis);
 
-        // Добавляем точку входа если требуется (только точки входа, без Z-Score линий)
-        if (showEntryPoint) {
-            addEntryPointWithoutZScore(chart, tradingPair, timeAxis);
-        }
+        // Точка входа будет добавлена после добавления данных цен в ChartLayerService
+        // чтобы использовать реальный диапазон значений для вертикальной линии
 
         log.debug("✅ Чистый нормализованный чарт создан для пары {}", tradingPair.getPairName());
         return chart;
