@@ -21,7 +21,6 @@ public class VerticalChartBuilder {
 
     private final ZScoreChartBuilder zScoreChartBuilder;
     private final ChartLayerService chartLayerService;
-    private final InterpolationService interpolationService;
 
     /**
      * 🏗️ Создает вертикально скомпонованный чарт со ВСЕМИ секциями

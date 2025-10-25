@@ -25,8 +25,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ZScoreChartBuilder {
 
-    private final InterpolationService interpolationService;
-
     /**
      * 🎯 Создает базовый Z-Score чарт с опциональной точкой входа
      */
