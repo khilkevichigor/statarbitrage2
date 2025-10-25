@@ -38,7 +38,7 @@ public class VerticalChartBuilder {
 
         List<BufferedImage> chartSections = new ArrayList<>();
 
-        // 1. Чарт наложенных цен - ВСЕГДА как основа
+        // 1. Чарт нормализованных цен - ВСЕГДА как основа
         BufferedImage priceChart = createPriceSection(tradingPair, showEntryPoint, false); // НЕ последний
         if (priceChart != null) {
             chartSections.add(priceChart);
@@ -81,29 +81,26 @@ public class VerticalChartBuilder {
     }
 
     /**
-     * 💰 Создает секцию с наложенными ценами
+     * 💰 Создает секцию с нормализованными ценами
      *
      * @param isLast если true - показывать шкалу X, если false - скрывать
      */
     private BufferedImage createPriceSection(Pair tradingPair, boolean showEntryPoint, boolean isLast) {
         try {
-            log.debug("💰 Создание секции наложенных цен (шкала X: {})", isLast ? "показать" : "скрыть");
+            log.debug("💰 Создание секции нормализованных цен (шкала X: {})", isLast ? "показать" : "скрыть");
 
-            // Создаем базовый Z-Score чарт без Z-Score линии (только цены)
-            org.knowm.xchart.XYChart chart = zScoreChartBuilder.buildBasicZScoreChart(tradingPair, showEntryPoint);
+            // Создаем чистый чарт для нормализованных цен без наложения и прозрачности
+            org.knowm.xchart.XYChart chart = zScoreChartBuilder.buildCleanNormalizedPriceChart(tradingPair, showEntryPoint);
 
-            // 🎯 Удаляем Z-Score серию И горизонтальные линии уровней, оставляем только точки входа
-            removeZScoreSeriesButKeepEntry(chart);
-
-            // Добавляем синхронизированные цены  
-            chartLayerService.addSynchronizedPricesToChart(chart, tradingPair);
+            // Добавляем нормализованные синхронизированные цены  
+            chartLayerService.addSynchronizedPricesToChart(chart, tradingPair, true);
 
             // 🎯 Управляем отображением шкалы X
             chart.getStyler().setXAxisTicksVisible(isLast);
             chart.getStyler().setXAxisTitleVisible(isLast);
 
             // Обновляем заголовок
-            chart.setTitle("💰 Наложенные цены: " + tradingPair.getPairName());
+            chart.setTitle("💰 Нормализованные цены: " + tradingPair.getPairName());
 
             return org.knowm.xchart.BitmapEncoder.getBufferedImage(chart);
 

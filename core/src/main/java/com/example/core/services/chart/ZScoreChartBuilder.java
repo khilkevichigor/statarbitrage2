@@ -93,6 +93,49 @@ public class ZScoreChartBuilder {
     }
 
     /**
+     * 💰 Создает чистый чарт для нормализованных цен без наложения и прозрачности
+     * Используется специально для секции цен в вертикальном чарте
+     */
+    public XYChart buildCleanNormalizedPriceChart(Pair tradingPair, boolean showEntryPoint) {
+        List<ZScoreParam> history = tradingPair.getZScoreHistory();
+
+        List<Long> timestamps;
+
+        if (history.isEmpty()) {
+            log.warn("⚠️ История Z-Score пуста для пары {}, создаем минимальные данные",
+                    tradingPair.getPairName());
+            timestamps = Collections.singletonList(System.currentTimeMillis());
+        } else {
+            timestamps = history.stream()
+                    .map(ZScoreParam::getTimestamp)
+                    .toList();
+
+            log.debug("📊 Используем временные метки Z-Score для синхронизации: {} точек для пары {}",
+                    history.size(), tradingPair.getPairName());
+        }
+
+        List<Date> timeAxis = timestamps.stream().map(Date::new).toList();
+
+        // Создаем чистый чарт без предварительных серий
+        XYChart chart = new XYChartBuilder()
+                .width(ChartUtils.CHART_WIDTH)
+                .height(ChartUtils.CHART_HEIGHT)
+                .title("Нормализованные цены: " + tradingPair.getPairName())
+                .xAxisTitle("").yAxisTitle("Изменение %")
+                .build();
+
+        ChartUtils.applyUnifiedChartStyle(chart, timeAxis);
+
+        // Добавляем точку входа если требуется (только точки входа, без Z-Score линий)
+        if (showEntryPoint) {
+            addEntryPointWithoutZScore(chart, tradingPair, timeAxis);
+        }
+
+        log.debug("✅ Чистый нормализованный чарт создан для пары {}", tradingPair.getPairName());
+        return chart;
+    }
+
+    /**
      * 🎯 Добавляет точку входа на Z-Score чарт
      */
     private void addEntryPointToChart(XYChart chart, Pair tradingPair, List<Date> timeAxis, List<Double> zScores) {
@@ -204,5 +247,61 @@ public class ZScoreChartBuilder {
             return tradingPair.getTimestamp();
         }
         return System.currentTimeMillis();
+    }
+
+    /**
+     * 🎯 Добавляет только вертикальную линию входа без Z-Score горизонтальных линий
+     * Используется для нормализованного чарта цен
+     */
+    private void addEntryPointWithoutZScore(XYChart chart, Pair tradingPair, List<Date> timeAxis) {
+        long entryTimestamp = getEntryTimestamp(tradingPair);
+
+        if (entryTimestamp <= 0) {
+            log.debug("⚠️ Время входа не задано (0) - линия входа не будет показана");
+            return;
+        }
+
+        long historyStart = timeAxis.get(0).getTime();
+        long historyEnd = timeAxis.get(timeAxis.size() - 1).getTime();
+
+        log.debug("🔍 Проверка линии входа: entryTime={}, historyStart={}, historyEnd={}",
+                new Date(entryTimestamp), new Date(historyStart), new Date(historyEnd));
+
+        Date entryDate;
+        String seriesName;
+        Color color;
+
+        boolean inRange = entryTimestamp >= historyStart && entryTimestamp <= historyEnd;
+
+        if (inRange) {
+            entryDate = new Date(entryTimestamp);
+            seriesName = "Entry";
+            color = ChartUtils.ENTRY_POINT_COLOR;
+            log.debug("🎯 Время входа попадает в диапазон истории - рисуем точную линию входа");
+        } else {
+            if (entryTimestamp < historyStart) {
+                entryDate = new Date(historyStart);
+                log.debug("📍 Показываем линию входа в начале графика");
+            } else {
+                entryDate = new Date(historyEnd);
+                log.debug("📍 Показываем линию входа в конце графика");
+            }
+            seriesName = "Entry (approx)";
+            color = ChartUtils.ENTRY_POINT_APPROX_COLOR;
+        }
+
+        // Добавляем только вертикальную линию - для нормализованного чарта цен
+        // Горизонтальная линия Z-Score не нужна, так как ось Y теперь в процентах
+        List<Date> lineX = Arrays.asList(entryDate, entryDate);
+        // Устанавливаем диапазон для нормализованного чарта цен (в процентах)
+        List<Double> lineY = Arrays.asList(-50.0, 50.0); // примерный диапазон ±50%
+
+        XYSeries entryLine = chart.addSeries(seriesName, lineX, lineY);
+        entryLine.setLineColor(color);
+        entryLine.setMarker(new None());
+        entryLine.setLineStyle(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
+                0, new float[]{6f, 4f}, 0));
+
+        log.debug("✅ Вертикальная линия входа добавлена на нормализованный чарт");
     }
 }

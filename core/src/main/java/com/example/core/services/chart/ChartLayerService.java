@@ -118,8 +118,19 @@ public class ChartLayerService {
 
     /**
      * 📈 Добавляет синхронизированные цены на Z-Score чарт
+     * Для секции Z-Score используется наложение в диапазон Z-Score
      */
     public void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair) {
+        addSynchronizedPricesToChart(chart, tradingPair, false);
+    }
+
+    /**
+     * 📈 Добавляет синхронизированные цены на чарт с выбором типа отображения
+     * @param chart чарт для добавления
+     * @param tradingPair торговая пара
+     * @param useNormalizedDisplay true - нормализованное отображение для секции цен, false - наложение в диапазон Z-Score
+     */
+    public void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair, boolean useNormalizedDisplay) {
         String longTicker = tradingPair.getLongTicker();
         String shortTicker = tradingPair.getShortTicker();
 
@@ -154,23 +165,65 @@ public class ChartLayerService {
         List<Double> interpolatedLongPrices = interpolatePricesForTimestamps(longCandles, zScoreTimestamps);
         List<Double> interpolatedShortPrices = interpolatePricesForTimestamps(shortCandles, zScoreTimestamps);
 
-        // Нормализация в диапазон Z-Score
-        double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
-        double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
+        List<Double> finalLongPrices;
+        List<Double> finalShortPrices;
+        String displayMode;
 
-        List<Double> scaledLongPrices = ChartUtils.normalizeValues(interpolatedLongPrices, minZScore, maxZScore);
-        List<Double> scaledShortPrices = ChartUtils.normalizeValues(interpolatedShortPrices, minZScore, maxZScore);
+        if (useNormalizedDisplay) {
+            // Нормализованное отображение для секции цен - приводим к процентам изменения
+            finalLongPrices = normalizeToPercentageChanges(interpolatedLongPrices);
+            finalShortPrices = normalizeToPercentageChanges(interpolatedShortPrices);
+            displayMode = "normalized %";
+        } else {
+            // Классическое наложение в диапазон Z-Score для секции Z-Score
+            double minZScore = history.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
+            double maxZScore = history.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
 
-        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированные цены: {} точек (точно совпадают с Z-Score)",
-                scaledLongPrices.size());
+            finalLongPrices = ChartUtils.normalizeValues(interpolatedLongPrices, minZScore, maxZScore);
+            finalShortPrices = ChartUtils.normalizeValues(interpolatedShortPrices, minZScore, maxZScore);
+            displayMode = "z-score overlay";
+        }
+
+        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированные цены ({}): {} точек", 
+                displayMode, finalLongPrices.size());
+
+        // Выбираем цвета в зависимости от режима отображения
+        Color longColor = useNormalizedDisplay ? ChartUtils.LONG_PRICE_NORMALIZED_COLOR : ChartUtils.LONG_PRICE_COLOR;
+        Color shortColor = useNormalizedDisplay ? ChartUtils.SHORT_PRICE_NORMALIZED_COLOR : ChartUtils.SHORT_PRICE_COLOR;
 
         // Добавляем линии цен
-        addPriceSeries(chart, "LONG Price (sync): " + longTicker, zScoreTimeAxis, scaledLongPrices,
-                ChartUtils.LONG_PRICE_COLOR);
-        addPriceSeries(chart, "SHORT Price (sync): " + shortTicker, zScoreTimeAxis, scaledShortPrices,
-                ChartUtils.SHORT_PRICE_COLOR);
+        addPriceSeries(chart, "LONG " + longTicker + " (" + displayMode + ")", zScoreTimeAxis, finalLongPrices, longColor);
+        addPriceSeries(chart, "SHORT " + shortTicker + " (" + displayMode + ")", zScoreTimeAxis, finalShortPrices, shortColor);
 
-        log.debug("🎯 ИДЕАЛЬНО синхронизированные цены добавлены на Z-Score чарт!");
+        log.debug("🎯 ИДЕАЛЬНО синхронизированные цены добавлены (режим: {})!", displayMode);
+    }
+
+    /**
+     * 📊 Нормализует цены к процентным изменениям от первой точки
+     * Сохраняет точное поведение цен без наложения графиков
+     */
+    private List<Double> normalizeToPercentageChanges(List<Double> prices) {
+        if (prices.isEmpty()) {
+            log.warn("⚠️ Пустой список цен для нормализации");
+            return prices;
+        }
+
+        double basePrice = prices.get(0);
+        if (basePrice == 0) {
+            log.warn("⚠️ Нулевая базовая цена - возвращаем исходные данные");
+            return prices;
+        }
+
+        List<Double> normalizedPrices = prices.stream()
+                .map(price -> ((price - basePrice) / basePrice) * 100.0)
+                .toList();
+
+        log.debug("📊 Нормализация цен: база={}, диапазон изменений [{}, {}]%",
+                basePrice,
+                normalizedPrices.stream().min(Double::compareTo).orElse(0.0),
+                normalizedPrices.stream().max(Double::compareTo).orElse(0.0));
+
+        return normalizedPrices;
     }
 
     /**
@@ -193,7 +246,11 @@ public class ChartLayerService {
         XYSeries priceSeries = chart.addSeries(seriesName, timeAxis, prices);
         priceSeries.setLineColor(color);
         priceSeries.setMarker(new None());
-        priceSeries.setLineStyle(new BasicStroke(1.5f));
+        
+        // Для нормализованного режима используем более толстые линии
+        boolean isNormalizedMode = seriesName.contains("normalized %");
+        float lineWidth = isNormalizedMode ? 2.5f : 1.5f;
+        priceSeries.setLineStyle(new BasicStroke(lineWidth));
     }
 
     /**

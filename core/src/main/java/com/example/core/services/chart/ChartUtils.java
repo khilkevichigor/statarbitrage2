@@ -25,8 +25,11 @@ public final class ChartUtils {
 
     // Цвета для различных элементов графиков
     public static final Color ZSCORE_COLOR = Color.MAGENTA;
-    public static final Color LONG_PRICE_COLOR = new Color(0, 255, 0, 120); // Полупрозрачный зеленый
-    public static final Color SHORT_PRICE_COLOR = new Color(255, 0, 0, 120); // Полупрозрачный красный
+    public static final Color LONG_PRICE_COLOR = new Color(0, 255, 0, 120); // Полупрозрачный зеленый для наложения
+    public static final Color SHORT_PRICE_COLOR = new Color(255, 0, 0, 120); // Полупрозрачный красный для наложения
+    // Непрозрачные цвета для нормализованного режима
+    public static final Color LONG_PRICE_NORMALIZED_COLOR = new Color(34, 139, 34); // Ярко-зеленый непрозрачный
+    public static final Color SHORT_PRICE_NORMALIZED_COLOR = new Color(220, 20, 60); // Малиново-красный непрозрачный
     public static final Color EMA_COLOR = Color.CYAN;
     public static final Color STOCHRSI_COLOR = Color.ORANGE;
     public static final Color PROFIT_COLOR = Color.ORANGE;
@@ -131,29 +134,6 @@ public final class ChartUtils {
     }
 
     /**
-     * 🔍 Находит ближайший индекс по таймштампу
-     */
-    public static OptionalInt findClosestIndex(List<Long> timestamps, long targetTimestamp) {
-        if (timestamps.isEmpty()) {
-            return OptionalInt.empty();
-        }
-
-        int bestIndex = 0;
-        long bestDiff = Math.abs(timestamps.get(0) - targetTimestamp);
-
-        for (int i = 1; i < timestamps.size(); i++) {
-            long diff = Math.abs(timestamps.get(i) - targetTimestamp);
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                bestIndex = i;
-            }
-        }
-
-        log.trace("🔍 Найден ближайший индекс {} для таймштампа {}", bestIndex, new Date(targetTimestamp));
-        return OptionalInt.of(bestIndex);
-    }
-
-    /**
      * 📐 Нормализует значения в заданный диапазон
      */
     public static List<Double> normalizeValues(List<Double> values, double targetMin, double targetMax) {
@@ -181,21 +161,6 @@ public final class ChartUtils {
                 values.size(), sourceMin, sourceMax, targetMin, targetMax);
 
         return normalized;
-    }
-
-    /**
-     * 🎯 Конвертирует значение в пиксели для пиксельного спреда
-     */
-    public static double convertValueToPixel(double value, double minValue, double maxValue, int chartHeight) {
-        if (maxValue - minValue == 0) {
-            return chartHeight / 2.0;
-        }
-
-        // Нормализуем значение в диапазон [0, 1]
-        double normalized = (value - minValue) / (maxValue - minValue);
-
-        // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
-        return chartHeight - (normalized * chartHeight);
     }
 
     /**
