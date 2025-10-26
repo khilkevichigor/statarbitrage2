@@ -1,9 +1,9 @@
 package com.example.core.ui.components;
 
-import com.example.core.services.PixelSpreadService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.chart.ChartService;
 import com.example.core.services.chart.ChartSettingsService;
+import com.example.core.services.chart.PixelSpreadService;
 import com.example.shared.models.ChartSettings;
 import com.example.shared.models.Pair;
 import com.vaadin.flow.component.button.Button;
@@ -431,7 +431,6 @@ public class ZScoreChartDialog extends Dialog {
     private String getProfitColor(double profit) {
         return profit >= 0 ? "#4CAF50" : "#F44336";
     }
-
 
 
     /**

@@ -1,18 +1,11 @@
 package com.example.core.services.chart;
 
-import com.example.core.services.PixelSpreadService;
-import com.example.shared.dto.ZScoreParam;
 import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchart.BitmapEncoder;
-import org.knowm.xchart.XYChart;
 import org.springframework.stereotype.Service;
 
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 /**
  * 🎨 Рефакторенный сервис для создания графиков

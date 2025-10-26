@@ -1,4 +1,4 @@
-package com.example.core.services;
+package com.example.core.services.chart;
 
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.PixelSpreadHistoryItem;
@@ -21,15 +21,6 @@ public class PixelSpreadService {
             log.debug("🔢 Пиксельный спред не вычислен, вычисляем для пары {}", tradingPair.getPairName());
             calculatePixelSpreadForPair(tradingPair);
         }
-    }
-
-    /**
-     * Принудительно пересчитывает пиксельный спред для пары
-     */
-    public void recalculatePixelSpread(Pair tradingPair) {
-        log.debug("🔢 Пересчитываем пиксельный спред для пары {}", tradingPair.getPairName());
-        tradingPair.getPixelSpreadHistory().clear(); // Очищаем существующую историю
-        calculatePixelSpreadForPair(tradingPair);
     }
 
     /**
@@ -238,21 +229,6 @@ public class PixelSpreadService {
     }
 
     /**
-     * Получает минимальное значение пиксельного спреда для пары
-     */
-    public double getMinPixelSpread(Pair tradingPair) {
-        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
-        if (history.isEmpty()) {
-            return 0.0;
-        }
-
-        return history.stream()
-                .mapToDouble(PixelSpreadHistoryItem::getPixelDistance)
-                .min()
-                .orElse(0.0);
-    }
-
-    /**
      * Получает текущее значение пиксельного спреда для пары (последнее по времени)
      */
     public double getCurrentPixelSpread(Pair tradingPair) {
@@ -266,27 +242,6 @@ public class PixelSpreadService {
                 .max(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp))
                 .map(PixelSpreadHistoryItem::getPixelDistance)
                 .orElse(0.0);
-    }
-
-    /**
-     * Получает стандартное отклонение пиксельного спреда для пары
-     */
-    public double getPixelSpreadStandardDeviation(Pair tradingPair) {
-        List<PixelSpreadHistoryItem> history = tradingPair.getPixelSpreadHistory();
-        if (history.size() < 2) {
-            return 0.0;
-        }
-
-        double average = getAveragePixelSpread(tradingPair);
-
-        double sumSquaredDifferences = history.stream()
-                .mapToDouble(item -> {
-                    double diff = item.getPixelDistance() - average;
-                    return diff * diff;
-                })
-                .sum();
-
-        return Math.sqrt(sumSquaredDifferences / (history.size() - 1));
     }
 
     /**
@@ -378,128 +333,6 @@ public class PixelSpreadService {
 
         // Конвертируем в пиксели (Y=0 вверху, Y=chartHeight внизу)
         return chartHeight - (normalized * chartHeight);
-    }
-
-    /**
-     * НОВЫЙ МЕТОД: Вычисляет средний пиксельный спред из списков свечей без PairData
-     *
-     * @param longCandles  список свечей для long тикера
-     * @param shortCandles список свечей для short тикера
-     * @param longTicker   имя long тикера для логов
-     * @param shortTicker  имя short тикера для логов
-     * @return средний пиксельный спред за весь период или 0.0 если данных недостаточно
-     */
-    public double calculateAveragePixelSpreadFromCandles(List<Candle> longCandles, List<Candle> shortCandles,
-                                                         String longTicker, String shortTicker) {
-        if (longCandles == null || shortCandles == null || longCandles.isEmpty() || shortCandles.isEmpty()) {
-            log.debug("⚠️ Недостаточно данных свечей для расчета пиксельного спреда: long={}, short={}",
-                    longCandles != null ? longCandles.size() : "null",
-                    shortCandles != null ? shortCandles.size() : "null");
-            return 0.0;
-        }
-
-        String pairName = longTicker + "/" + shortTicker;
-        log.debug("🔢 Начинаем расчет среднего пиксельного спреда для пары {}", pairName);
-
-        // Сортировка по времени
-        List<Candle> sortedLongCandles = new ArrayList<>(longCandles);
-        List<Candle> sortedShortCandles = new ArrayList<>(shortCandles);
-        sortedLongCandles.sort(Comparator.comparing(Candle::getTimestamp));
-        sortedShortCandles.sort(Comparator.comparing(Candle::getTimestamp));
-
-        // Используем последние N свечей для расчета (ограничиваем для производительности)
-        int maxCandles = 200; // Берем последние 200 свечей для анализа
-        List<Candle> recentLongCandles = sortedLongCandles.size() > maxCandles ?
-                sortedLongCandles.subList(sortedLongCandles.size() - maxCandles, sortedLongCandles.size()) :
-                sortedLongCandles;
-        List<Candle> recentShortCandles = sortedShortCandles.size() > maxCandles ?
-                sortedShortCandles.subList(sortedShortCandles.size() - maxCandles, sortedShortCandles.size()) :
-                sortedShortCandles;
-
-        log.debug("🔢 Используем для анализа: LONG {} свечей, SHORT {} свечей",
-                recentLongCandles.size(), recentShortCandles.size());
-
-        // Извлекаем цены
-        List<Double> longPrices = recentLongCandles.stream().map(Candle::getClose).toList();
-        List<Double> shortPrices = recentShortCandles.stream().map(Candle::getClose).toList();
-
-        // Найти диапазон цен для нормализации
-        double minLongPrice = longPrices.stream().min(Double::compareTo).orElse(0.0);
-        double maxLongPrice = longPrices.stream().max(Double::compareTo).orElse(1.0);
-        double longPriceRange = maxLongPrice - minLongPrice;
-
-        double minShortPrice = shortPrices.stream().min(Double::compareTo).orElse(0.0);
-        double maxShortPrice = shortPrices.stream().max(Double::compareTo).orElse(1.0);
-        double shortPriceRange = maxShortPrice - minShortPrice;
-
-        if (longPriceRange == 0.0 || shortPriceRange == 0.0) {
-            log.debug("⚠️ Нулевой диапазон цен для пары {}: long={}, short={}",
-                    pairName, longPriceRange, shortPriceRange);
-            return 0.0;
-        }
-
-        // Используем стандартный диапазон Z-Score для нормализации ([-3, 3])
-        double minZScore = -3.0;
-        double maxZScore = 3.0;
-        double zRange = maxZScore - minZScore;
-
-        // Нормализация long цен в диапазон Z-Score
-        List<Double> scaledLongPrices = longPrices.stream()
-                .map(price -> minZScore + ((price - minLongPrice) / longPriceRange) * zRange)
-                .toList();
-
-        // Нормализация short цен в диапазон Z-Score
-        List<Double> scaledShortPrices = shortPrices.stream()
-                .map(price -> minZScore + ((price - minShortPrice) / shortPriceRange) * zRange)
-                .toList();
-
-        // Создаем синхронизированные временные точки для расчета среднего спреда
-        List<Date> longTimes = recentLongCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-        List<Date> shortTimes = recentShortCandles.stream().map(c -> new Date(c.getTimestamp())).toList();
-
-        Set<Long> allTimestamps = new HashSet<>();
-        longTimes.forEach(date -> allTimestamps.add(date.getTime()));
-        shortTimes.forEach(date -> allTimestamps.add(date.getTime()));
-
-        List<Long> sortedTimestamps = allTimestamps.stream().sorted().toList();
-
-        List<Double> pixelDistances = new ArrayList<>();
-        int chartHeight = 720;
-
-        // Находим диапазон масштабированных значений
-        double minValue = Math.min(
-                scaledLongPrices.stream().min(Double::compareTo).orElse(-3.0),
-                scaledShortPrices.stream().min(Double::compareTo).orElse(-3.0)
-        );
-        double maxValue = Math.max(
-                scaledLongPrices.stream().max(Double::compareTo).orElse(3.0),
-                scaledShortPrices.stream().max(Double::compareTo).orElse(3.0)
-        );
-
-        // Вычисляем пиксельные расстояния для всех временных точек
-        for (Long timestamp : sortedTimestamps) {
-            Double longPrice = findNearestPrice(longTimes, scaledLongPrices, timestamp);
-            Double shortPrice = findNearestPrice(shortTimes, scaledShortPrices, timestamp);
-
-            if (longPrice != null && shortPrice != null) {
-                double longPixelY = convertValueToPixel(longPrice, minValue, maxValue, chartHeight);
-                double shortPixelY = convertValueToPixel(shortPrice, minValue, maxValue, chartHeight);
-                double pixelDistance = Math.abs(longPixelY - shortPixelY);
-                pixelDistances.add(pixelDistance);
-            }
-        }
-
-        if (pixelDistances.isEmpty()) {
-            log.debug("⚠️ Не удалось вычислить пиксельные расстояния для пары {}", pairName);
-            return 0.0;
-        }
-
-        double averagePixelSpread = pixelDistances.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-
-        log.debug("✅ Средний пиксельный спред для пары {}: {} px (на основе {} точек)",
-                pairName, String.format("%.1f", averagePixelSpread), pixelDistances.size());
-
-        return averagePixelSpread;
     }
 
     /**

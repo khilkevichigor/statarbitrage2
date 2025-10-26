@@ -1,5 +1,6 @@
 package com.example.core.services;
 
+import com.example.core.services.chart.PixelSpreadService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.dto.ZScoreParam;
@@ -211,9 +212,9 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         log.debug("   ✅ {}: Положительный Z-score: {}", pairName, NumberFormatter.format(currentZScore, 2));
 
         // 4. Проверка минимального Z-Score (если включена в настройках)
-        log.info("🔍 DEBUG MinZ фильтр: useMinZFilter={}, minZ={}, currentZScore={} для пары {}", 
+        log.info("🔍 DEBUG MinZ фильтр: useMinZFilter={}, minZ={}, currentZScore={} для пары {}",
                 settings.isUseMinZFilter(), settings.getMinZ(), currentZScore, pairName);
-        
+
         if (settings.isUseMinZFilter()) {
             double minZ = settings.getMinZ();
             if (currentZScore < minZ) {

@@ -1,5 +1,6 @@
 package com.example.core.services;
 
+import com.example.core.services.chart.PixelSpreadService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
 import com.example.shared.enums.PairType;
@@ -68,33 +69,33 @@ public class CreatePairDataService {
 
         // Создаём торговую пару с типом TRADING
         Pair tradingPair = Pair.builder()
-            .type(PairType.TRADING)
-            .status(TradeStatus.SELECTED)
-            .tickerA(undervalued)  // Long ticker
-            .tickerB(overvalued)   // Short ticker
-            .pairName(undervalued + "/" + overvalued)
-            .longTickerCurrentPrice(BigDecimal.valueOf(CandlesUtil.getLastClose(undervaluedCandles)))
-            .shortTickerCurrentPrice(BigDecimal.valueOf(CandlesUtil.getLastClose(overvaluedCandles)))
-            .timestamp(System.currentTimeMillis())
-            .entryTime(LocalDateTime.now())
-            .updatedTime(LocalDateTime.now())
-            .createdAt(LocalDateTime.now())
-            .searchDate(LocalDateTime.now())
-            .build();
+                .type(PairType.TRADING)
+                .status(TradeStatus.SELECTED)
+                .tickerA(undervalued)  // Long ticker
+                .tickerB(overvalued)   // Short ticker
+                .pairName(undervalued + "/" + overvalued)
+                .longTickerCurrentPrice(BigDecimal.valueOf(CandlesUtil.getLastClose(undervaluedCandles)))
+                .shortTickerCurrentPrice(BigDecimal.valueOf(CandlesUtil.getLastClose(overvaluedCandles)))
+                .timestamp(System.currentTimeMillis())
+                .entryTime(LocalDateTime.now())
+                .updatedTime(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .searchDate(LocalDateTime.now())
+                .build();
 
         // Устанавливаем свечи
         tradingPair.setLongTickerCandles(undervaluedCandles);
         tradingPair.setShortTickerCandles(overvaluedCandles);
-        
+
         // Заполняем поля настроек сразу при создании пары
         Settings settings = settingsService.getSettings();
         tradingPair.setSettingsCandleLimit(BigDecimal.valueOf(settings.getCandleLimit()));
         tradingPair.setSettingsMinZ(BigDecimal.valueOf(settings.getMinZ()));
         tradingPair.setTimeframe(settings.getTimeframe());
-        
+
         // Устанавливаем минимальный объем из настроек
         tradingPair.setMinVolMln(BigDecimal.valueOf(settings.getMinVolume()));
-        
+
         updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
 
         // Рассчитываем пиксельный спред для новой пары
