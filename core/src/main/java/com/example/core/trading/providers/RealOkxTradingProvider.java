@@ -50,7 +50,6 @@ import static com.example.shared.utils.BigDecimalUtil.safeScale;
 @RequiredArgsConstructor
 public class RealOkxTradingProvider implements TradingProvider {
     private final OkxPortfolioManager okxPortfolioManager;
-    //    private final OkxClient okxClient;
     private final GeolocationService geolocationService;
     private final PositionRepository positionRepository;
     private final OkxFeignClient okxFeignClient;

@@ -24,7 +24,7 @@ public class StartNewTradeProcessor {
     private final PairService pairService;
     private final SettingsService settingsService;
     private final ZScoreService zScoreService;
-    private final TradingIntegrationService tradingIntegrationServiceImpl;
+    private final TradingIntegrationService tradingIntegrationService;
     private final TradeHistoryService tradeHistoryService;
     private final StartNewTradeValidationService startNewTradeValidationService;
     private final CandlesFeignClient candlesFeignClient;
@@ -109,7 +109,7 @@ public class StartNewTradeProcessor {
     }
 
     private Pair openTradePosition(Pair tradingPair, ZScoreData zScoreData, Settings settings) {
-        ArbitragePairTradeInfo openResult = tradingIntegrationServiceImpl.openArbitragePair(tradingPair, settings);
+        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(tradingPair, settings);
 
         if (openResult == null || !openResult.isSuccess()) {
             log.debug("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", tradingPair.getPairName());
