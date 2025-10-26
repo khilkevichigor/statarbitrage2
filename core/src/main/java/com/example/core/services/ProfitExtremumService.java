@@ -32,11 +32,11 @@ public class ProfitExtremumService {
                 ? tradingPair.getMinProfitPercentChanges()
                 : currentProfitPercent;
 
-        long timeToMax = tradingPair.getMinutesToMaxProfitPercent() > 0
+        long timeToMax = tradingPair.getMinutesToMaxProfitPercent() != null && tradingPair.getMinutesToMaxProfitPercent() > 0
                 ? tradingPair.getMinutesToMaxProfitPercent()
                 : currentTimeInMinutes;
 
-        long timeToMin = tradingPair.getMinutesToMinProfitPercent() > 0
+        long timeToMin = tradingPair.getMinutesToMinProfitPercent() != null && tradingPair.getMinutesToMinProfitPercent() > 0
                 ? tradingPair.getMinutesToMinProfitPercent()
                 : currentTimeInMinutes;
 
