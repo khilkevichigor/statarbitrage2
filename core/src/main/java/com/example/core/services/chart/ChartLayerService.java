@@ -26,7 +26,6 @@ import java.util.*;
 public class ChartLayerService {
 
     private final InterpolationService interpolationService;
-    private final TechnicalIndicatorService technicalIndicatorService;
 
     /**
      * 💰 Добавляет синхронизированный профит на Z-Score чарт
@@ -116,24 +115,6 @@ public class ChartLayerService {
         log.debug("🎯 ИДЕАЛЬНО синхронизированный профит добавлен на чарт!");
     }
 
-    /**
-     * 📈 Добавляет синхронизированные цены на Z-Score чарт
-     * Для секции Z-Score используется наложение в диапазон Z-Score
-     */
-    public void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair) {
-        addSynchronizedPricesToChart(chart, tradingPair, false);
-    }
-
-    /**
-     * 📈 Добавляет синхронизированные цены на чарт с выбором типа отображения
-     * @param chart чарт для добавления
-     * @param tradingPair торговая пара
-     * @param useNormalizedDisplay true - нормализованное отображение для секции цен, false - наложение в диапазон Z-Score
-     */
-    public void addSynchronizedPricesToChart(XYChart chart, Pair tradingPair, boolean useNormalizedDisplay) {
-        addSynchronizedPricesToChart(chart, tradingPair, useNormalizedDisplay, false);
-    }
-    
     /**
      * 📈 Добавляет синхронизированные цены на чарт с выбором типа отображения и точкой входа
      * @param chart чарт для добавления
@@ -267,126 +248,6 @@ public class ChartLayerService {
         boolean isNormalizedMode = seriesName.contains("normalized %");
         float lineWidth = isNormalizedMode ? 2.5f : 1.5f;
         priceSeries.setLineStyle(new BasicStroke(lineWidth));
-    }
-
-    /**
-     * 🟣 Добавляет синхронизированный пиксельный спред на Z-Score чарт
-     */
-    public void addSynchronizedPixelSpreadToChart(XYChart chart, Pair tradingPair) {
-        List<PixelSpreadHistoryItem> pixelHistory = tradingPair.getPixelSpreadHistory();
-        List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
-
-        if (pixelHistory == null || pixelHistory.isEmpty()) {
-            log.warn("📊 История пиксельного спреда пуста для пары {}, не можем добавить на Z-Score чарт",
-                    tradingPair.getPairName());
-            return;
-        }
-
-        if (zScoreHistory == null || zScoreHistory.isEmpty()) {
-            log.warn("⚠️ История Z-Score пуста - невозможно синхронизировать пиксельный спред");
-            return;
-        }
-
-        // Сортируем по времени
-        pixelHistory.sort(Comparator.comparing(PixelSpreadHistoryItem::getTimestamp));
-
-        // Используем точные временные метки Z-Score
-        List<Long> zScoreTimestamps = zScoreHistory.stream()
-                .map(ZScoreParam::getTimestamp)
-                .toList();
-        List<Date> zScoreTimeAxis = zScoreTimestamps.stream().map(Date::new).toList();
-
-        log.info("🎯 Синхронизируем пиксельный спред строго по Z-Score таймштампам: {} точек",
-                zScoreTimestamps.size());
-
-        // Интерполируем пиксельные расстояния на точные временные метки Z-Score
-        List<Double> interpolatedPixelDistances = new ArrayList<>();
-        for (Long zTimestamp : zScoreTimestamps) {
-            Double pixelDistance = interpolationService.interpolatePixelSpread(pixelHistory, zTimestamp);
-            interpolatedPixelDistances.add(pixelDistance != null ? pixelDistance : 0.0);
-        }
-
-        // Нормализация в диапазон Z-Score
-        double minZScore = zScoreHistory.stream().mapToDouble(ZScoreParam::getZscore).min().orElse(-3.0);
-        double maxZScore = zScoreHistory.stream().mapToDouble(ZScoreParam::getZscore).max().orElse(3.0);
-
-        List<Double> scaledPixelSpread = ChartUtils.normalizeValues(interpolatedPixelDistances, minZScore, maxZScore);
-
-        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированный пиксельный спред: {} точек", scaledPixelSpread.size());
-
-        // Добавляем пиксельный спред
-        XYSeries pixelSpreadSeries = chart.addSeries("Pixel Spread (sync)", zScoreTimeAxis, scaledPixelSpread);
-        pixelSpreadSeries.setLineColor(ChartUtils.PIXEL_SPREAD_COLOR);
-        pixelSpreadSeries.setMarker(new None());
-        pixelSpreadSeries.setLineStyle(new BasicStroke(2.0f));
-
-        log.debug("🎯 ИДЕАЛЬНО синхронизированный пиксельный спред добавлен!");
-    }
-
-    /**
-     * 📈 Добавляет EMA индикатор на чарт
-     */
-    public void addEmaToChart(XYChart chart, List<Date> timeAxis, List<Double> zScores, int period) {
-        List<Double> emaValues = technicalIndicatorService.calculateEMA(zScores, period);
-
-        if (emaValues.isEmpty()) {
-            log.warn("⚠️ Не удалось рассчитать EMA({}) - недостаточно данных", period);
-            return;
-        }
-
-        // Используем точные Z-Score таймштампы
-        int emaStartIndex = period - 1;
-        List<Date> synchronizedEmaTimeAxis = timeAxis.subList(emaStartIndex, timeAxis.size());
-
-        log.info("🎯 Добавляем синхронизированную EMA({}) линию: {} точек (с {} по {})",
-                period, emaValues.size(), synchronizedEmaTimeAxis.get(0),
-                synchronizedEmaTimeAxis.get(synchronizedEmaTimeAxis.size() - 1));
-
-        XYSeries emaSeries = chart.addSeries("EMA(" + period + ") sync", synchronizedEmaTimeAxis, emaValues);
-        emaSeries.setLineColor(ChartUtils.EMA_COLOR);
-        emaSeries.setMarker(new None());
-        emaSeries.setLineStyle(new BasicStroke(2.0f));
-    }
-
-    /**
-     * 🌊 Добавляет StochRSI индикатор на чарт
-     */
-    public void addStochRsiToChart(XYChart chart, List<Date> timeAxis, List<Double> zScores) {
-        List<Double> stochRsiValues = technicalIndicatorService.calculateStochRSI(zScores, 14, 3, 3);
-
-        if (stochRsiValues.isEmpty()) {
-            log.warn("⚠️ Не удалось рассчитать StochRSI - недостаточно данных");
-            return;
-        }
-
-        // Используем точные Z-Score таймштампы
-        int stochRsiStartIndex = timeAxis.size() - stochRsiValues.size();
-        List<Date> synchronizedStochRsiTimeAxis = timeAxis.subList(stochRsiStartIndex, timeAxis.size());
-
-        // Масштабируем в диапазон Z-Score
-        double minZScore = zScores.stream().min(Double::compareTo).orElse(-3.0);
-        double maxZScore = zScores.stream().max(Double::compareTo).orElse(3.0);
-        double range = maxZScore - minZScore;
-
-        List<Double> scaledStochRsi = stochRsiValues.stream()
-                .map(value -> minZScore + (value / 100.0) * range)
-                .toList();
-
-        log.info("🎯 Добавляем синхронизированную StochRSI линию: {} точек (с {} по {})",
-                stochRsiValues.size(), synchronizedStochRsiTimeAxis.get(0),
-                synchronizedStochRsiTimeAxis.get(synchronizedStochRsiTimeAxis.size() - 1));
-
-        XYSeries stochRsiSeries = chart.addSeries("StochRSI sync", synchronizedStochRsiTimeAxis, scaledStochRsi);
-        stochRsiSeries.setLineColor(ChartUtils.STOCHRSI_COLOR);
-        stochRsiSeries.setMarker(new None());
-        stochRsiSeries.setLineStyle(new BasicStroke(1.5f));
-
-        // Добавляем горизонтальные линии 80/20 уровней
-        double overboughtLevel = minZScore + (80.0 / 100.0) * range;
-        double oversoldLevel = minZScore + (20.0 / 100.0) * range;
-
-        ChartUtils.addHorizontalLine(chart, timeAxis, overboughtLevel, Color.RED);
-        ChartUtils.addHorizontalLine(chart, timeAxis, oversoldLevel, Color.GREEN);
     }
 
     /**

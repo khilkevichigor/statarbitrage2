@@ -83,70 +83,6 @@ public class InterpolationService {
     }
 
     /**
-     * 🎯 Интерполирует пиксельное расстояние на точный таймштамп Z-Score
-     */
-    public Double interpolatePixelSpread(List<PixelSpreadHistoryItem> pixelHistory, long targetTimestamp) {
-        if (pixelHistory == null || pixelHistory.isEmpty()) {
-            log.trace("🎯 Нет данных пиксельного спреда для интерполяции на {}", new Date(targetTimestamp));
-            return null;
-        }
-
-        // Ищем ближайшие записи до и после целевого времени
-        PixelSpreadHistoryItem beforeItem = null;
-        PixelSpreadHistoryItem afterItem = null;
-
-        for (PixelSpreadHistoryItem item : pixelHistory) {
-            if (item.getTimestamp() <= targetTimestamp) {
-                if (beforeItem == null || item.getTimestamp() > beforeItem.getTimestamp()) {
-                    beforeItem = item;
-                }
-            }
-            if (item.getTimestamp() >= targetTimestamp) {
-                if (afterItem == null || item.getTimestamp() < afterItem.getTimestamp()) {
-                    afterItem = item;
-                }
-            }
-        }
-
-        // Если точное совпадение
-        if (beforeItem != null && beforeItem.getTimestamp() == targetTimestamp) {
-            log.trace("🎯 Точное совпадение пиксельного спреда: {}", beforeItem.getPixelDistance());
-            return beforeItem.getPixelDistance();
-        }
-        if (afterItem != null && afterItem.getTimestamp() == targetTimestamp) {
-            log.trace("🎯 Точное совпадение пиксельного спреда: {}", afterItem.getPixelDistance());
-            return afterItem.getPixelDistance();
-        }
-
-        // Линейная интерполяция между двумя записями
-        if (beforeItem != null && afterItem != null && !beforeItem.equals(afterItem)) {
-            long timeDiff = afterItem.getTimestamp() - beforeItem.getTimestamp();
-            double pixelDiff = afterItem.getPixelDistance() - beforeItem.getPixelDistance();
-            long targetDiff = targetTimestamp - beforeItem.getTimestamp();
-
-            double interpolatedPixel = beforeItem.getPixelDistance() + (pixelDiff * targetDiff / (double) timeDiff);
-
-            log.trace("🎯 Интерполяция пиксельного спреда: {} -> {} (между {} и {})",
-                    new Date(targetTimestamp), interpolatedPixel, beforeItem.getPixelDistance(), afterItem.getPixelDistance());
-
-            return interpolatedPixel;
-        }
-
-        // Fallback: ближайшее доступное значение
-        if (beforeItem != null) {
-            log.trace("🎯 Используем предыдущий пиксельный спред: {}", beforeItem.getPixelDistance());
-            return beforeItem.getPixelDistance();
-        }
-        if (afterItem != null) {
-            log.trace("🎯 Используем следующий пиксельный спред: {}", afterItem.getPixelDistance());
-            return afterItem.getPixelDistance();
-        }
-
-        log.warn("⚠️ Не удалось интерполировать пиксельный спред для {}", new Date(targetTimestamp));
-        return null;
-    }
-
-    /**
      * 🎯 Интерполирует профит на точный таймштамп Z-Score
      */
     public Double interpolateProfit(List<ProfitHistoryItem> profitHistory, long targetTimestamp) {
@@ -208,35 +144,5 @@ public class InterpolationService {
 
         log.warn("⚠️ Не удалось интерполировать профит для {}", new Date(targetTimestamp));
         return null;
-    }
-
-    /**
-     * 🔍 Находит ближайшую цену по временной метке (вспомогательный метод для совместимости)
-     */
-    public Double findNearestPrice(List<Date> timeAxis, List<Double> prices, long targetTimestamp) {
-        if (timeAxis == null || prices == null || timeAxis.isEmpty() || prices.isEmpty()) {
-            return null;
-        }
-
-        if (timeAxis.size() != prices.size()) {
-            log.warn("⚠️ Размеры временной оси и цен не совпадают: {} vs {}",
-                    timeAxis.size(), prices.size());
-            return null;
-        }
-
-        int bestIndex = 0;
-        long bestDiff = Math.abs(timeAxis.get(0).getTime() - targetTimestamp);
-
-        for (int i = 1; i < timeAxis.size(); i++) {
-            long diff = Math.abs(timeAxis.get(i).getTime() - targetTimestamp);
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                bestIndex = i;
-            }
-        }
-
-        Double result = prices.get(bestIndex);
-        log.trace("🔍 Найдена ближайшая цена {} для {}", result, new Date(targetTimestamp));
-        return result;
     }
 }
