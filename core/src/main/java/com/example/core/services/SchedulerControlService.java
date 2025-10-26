@@ -49,6 +49,26 @@ public class SchedulerControlService {
     }
 
     /**
+     * Проверка включения AutoTradingScheduler (автоматическое открытие позиций каждые 5 минут)
+     */
+    public boolean isAutoTradingSchedulerEnabled() {
+        try {
+            Settings settings = settingsService.getSettings();
+            // Используем флаг автотрейдинга как основной индикатор
+            Boolean autoTradingEnabled = settings.isAutoTradingEnabled();
+            
+            boolean result = autoTradingEnabled != null ? autoTradingEnabled : false;
+            
+            log.debug("📅 AutoTradingScheduler: {} (AutoTrading: {})", 
+                    result ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН", autoTradingEnabled);
+            return result;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при проверке состояния AutoTradingScheduler: {}", e.getMessage());
+            return false; // По умолчанию отключен при ошибке для безопасности
+        }
+    }
+
+    /**
      * Проверка включения Portfolio Snapshot Scheduler (снапшот каждые 15 минут)
      */
     public boolean isPortfolioSnapshotSchedulerEnabled() {
@@ -156,6 +176,8 @@ public class SchedulerControlService {
         log.info("📅 === СОСТОЯНИЕ ШЕДУЛЛЕРОВ ===");
         log.info("📅 UpdateTradesScheduler (каждую минуту): {}", 
                 isUpdateTradesSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
+        log.info("📅 AutoTradingScheduler (каждые 5 минут): {}", 
+                isAutoTradingSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
         log.info("📅 StablePairsScheduler ({}): {}", 
                 getStablePairsSchedulerCron(),
                 isStablePairsSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
