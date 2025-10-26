@@ -1,6 +1,7 @@
 package com.example.core.services.chart;
 
 import com.example.shared.models.Pair;
+import com.example.shared.enums.TradeStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,18 +24,18 @@ public class VerticalChartBuilder {
     private final ChartLayerService chartLayerService;
 
     /**
-     * 🏗️ Создает вертикально скомпонованный чарт с тремя секциями
-     * 🎯 УПРОЩЕНИЕ: Секции отображаются ВСЕГДА! Никаких чекбоксов!
-     * Секции: 1) Нормализованные цены, 2) Z-Score, 3) Профит
+     * 🏗️ Создает вертикально скомпонованный чарт с секциями
+     * 🎯 УПРОЩЕНИЕ: Основные секции отображаются ВСЕГДА! Никаких чекбоксов!
+     * Секции: 1) Нормализованные цены, 2) Z-Score, 3) Профит (только для TRADING)
      *
      * @param tradingPair    Торговая пара
      * @param showEntryPoint Показать точки входа на всех секциях
-     * @return Готовое изображение полного вертикального чарта
+     * @return Готовое изображение вертикального чарта (2-3 секции)
      */
     public BufferedImage createVerticalChart(Pair tradingPair, boolean showEntryPoint) {
 
-        log.debug("🏗️ Создание вертикального чарта с 3 секциями для пары: {} (EntryPoint: {})",
-                tradingPair.getPairName(), showEntryPoint);
+        log.debug("🏗️ Создание вертикального чарта для пары: {} (статус: {}, EntryPoint: {})",
+                tradingPair.getPairName(), tradingPair.getStatus(), showEntryPoint);
 
         List<BufferedImage> chartSections = new ArrayList<>();
 
@@ -46,17 +47,26 @@ public class VerticalChartBuilder {
         }
 
         // 2. Z-Score чарт - ВСЕГДА
-        BufferedImage zScoreChart = createZScoreSection(tradingPair, showEntryPoint, false); // НЕ последний
+        // Проверяем, будет ли добавлен профит, чтобы определить, должен ли Z-Score быть последним
+        boolean isTrading = TradeStatus.TRADING.equals(tradingPair.getStatus());
+        boolean zScoreIsLast = !isTrading; // Z-Score последний, если нет профита
+        
+        BufferedImage zScoreChart = createZScoreSection(tradingPair, showEntryPoint, zScoreIsLast);
         if (zScoreChart != null) {
             chartSections.add(zScoreChart);
-            log.debug("✅ Добавлена секция Z-Score");
+            log.debug("✅ Добавлена секция Z-Score (последняя: {})", zScoreIsLast);
         }
 
-        // 3. Профит - ВСЕГДА и ПОСЛЕДНИЙ (с шкалой X)
-        BufferedImage profitChart = createProfitSection(tradingPair, showEntryPoint, true); // ПОСЛЕДНИЙ с шкалой X
-        if (profitChart != null) {
-            chartSections.add(profitChart);
-            log.debug("✅ Добавлена секция профита (последняя, с шкалой X)");
+        // 3. Профит - ТОЛЬКО для торгуемых пар (статус TRADING)
+        if (isTrading) {
+            BufferedImage profitChart = createProfitSection(tradingPair, showEntryPoint, true); // ПОСЛЕДНИЙ с шкалой X
+            if (profitChart != null) {
+                chartSections.add(profitChart);
+                log.debug("✅ Добавлена секция профита для торгуемой пары (последняя, с шкалой X)");
+            }
+        } else {
+            log.debug("⏭️ Секция профита пропущена - пара не в торговле (статус: {})", 
+                    tradingPair.getStatus());
         }
 
         // Если нет секций - создаем минимальный чарт с ценами и шкалой X
