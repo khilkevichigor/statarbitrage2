@@ -54,6 +54,7 @@ public class StablePairsScheduler {
             return;
         }
         
+        log.info("");
         log.info("🌙 Запуск многопоточного автоматического поиска стабильных пар в {}", LocalDateTime.now());
 
         try {
