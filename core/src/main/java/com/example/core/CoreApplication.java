@@ -4,6 +4,7 @@ import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
 import com.example.core.processors.UpdateTradeProcessor;
 import com.example.core.repositories.PairRepository;
+import com.example.core.services.SchedulerControlService;
 import com.example.core.trading.services.GeolocationService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.UpdateTradeRequest;
@@ -41,13 +42,15 @@ public class CoreApplication {
     private final GeolocationService geolocationService;
     private final UpdateTradeProcessor updateTradeProcessor;
     private final PairRepository pairDataService;
+    private final SchedulerControlService schedulerControlService;
 
-    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, PairRepository pairDataService) {
+    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, PairRepository pairDataService, SchedulerControlService schedulerControlService) {
         this.healthCheck = healthCheck;
         this.pythonRestClient = pythonRestClient;
         this.geolocationService = geolocationService;
         this.updateTradeProcessor = updateTradeProcessor;
         this.pairDataService = pairDataService;
+        this.schedulerControlService = schedulerControlService;
     }
 
     public static void main(String[] args) {
@@ -79,6 +82,10 @@ public class CoreApplication {
         updatePairsAfterRestart();
         log.info("");
         log.info("✅ Пары обновлены");
+        
+        log.info("");
+        log.info("🔍 Проверка состояния шедуллеров:");
+        schedulerControlService.logSchedulersStatus();
     }
 
     private void updatePairsAfterRestart() {

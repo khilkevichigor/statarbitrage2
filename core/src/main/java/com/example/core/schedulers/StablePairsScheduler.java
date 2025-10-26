@@ -50,7 +50,7 @@ public class StablePairsScheduler {
     public void searchStablePairsScheduled() {
         // Проверяем включен ли шедуллер через настройки
         if (!schedulerControlService.isStablePairsSchedulerEnabled()) {
-            log.debug("📅 StablePairsScheduler отключен в настройках");
+            log.info("📅 StablePairsScheduler отключен в настройках - пропускаем выполнение");
             return;
         }
         
