@@ -145,7 +145,7 @@ logging:
     org.springframework.dao.DataIntegrityViolationException: ERROR  # Подавляем Spring DAO ошибки constraint
     root: INFO
   file:
-    name: core/logs/core.log
+    name: logs/core.log
   logback:
     rollingpolicy:
       max-file-size: 100MB
