@@ -26,7 +26,6 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final TradingIntegrationService tradingIntegrationServiceImpl;
     private final ProfitExtremumService profitExtremumService;
     private final SettingsService settingsService;
-    //    private final TelegramNotificationService telegramNotificationService;
     private final SendEventService sendEventService;
 
     public ChangesData getChanges(Pair tradingPair) {
@@ -54,7 +53,6 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
             settingsService.save(settings);
             log.warn("Автотрейдинг отключен.");
 
-//            telegramNotificationService.sendTelegramMessage("Ошибка при обновлении changes. Автотрейдинг был отключен.");
             sendEventService.sendCoreEvent(new CoreEvent("Ошибка при обновлении changes. Автотрейдинг был отключен.", CoreEvent.Type.MESSAGE_TO_TELEGRAM));
             log.warn("Уведомление в телеграм отправлено.");
 
@@ -83,12 +81,6 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         log.debug("--> getFromClosedPositions для пары {}", tradingPair.getPairName());
 
         BigDecimal totalRealizedPnlUSDT = safeScale(safeGet(longPosition.getRealizedPnLUSDT()).add(safeGet(shortPosition.getRealizedPnLUSDT())), 8);
-//        BigDecimal totalRealizedPnlPercent = safeScale(safeGet(longPosition.getRealizedPnLPercent()).add(safeGet(shortPosition.getRealizedPnLPercent())), 8); //todo 0.00 в закрытых парах
-//        BigDecimal totalFees = safeScale(
-//                safeGet(longPosition.getOpeningFees()).add(safeGet(longPosition.getClosingFees())).add(safeGet(longPosition.getFundingFees()))
-//                        .add(safeGet(shortPosition.getOpeningFees())).add(safeGet(shortPosition.getClosingFees())).add(safeGet(shortPosition.getFundingFees())),
-//                8);
-
         // Взвешенный процентный профит: (P1 * A1 + P2 * A2) / (A1 + A2)
         BigDecimal longAlloc = safeGet(longPosition.getAllocatedAmount());
         BigDecimal shortAlloc = safeGet(shortPosition.getAllocatedAmount());
