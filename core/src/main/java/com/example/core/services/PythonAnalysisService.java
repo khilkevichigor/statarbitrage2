@@ -26,7 +26,7 @@ public class PythonAnalysisService {
      * Анализирует пару и возвращает ZScore данные
      */
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
-        log.info("🐍 Вызываем Python API для анализа пары. Тикеры: {}", candlesMap.keySet());
+        log.debug("🐍 Вызываем Python API для анализа пары. Тикеры: {}", candlesMap.keySet());
         // Получаем результат из Python
         ZScoreData zScoreData = pythonRestClient.analyzePair(candlesMap, settings, true);
         if (zScoreData == null) {
@@ -34,7 +34,7 @@ public class PythonAnalysisService {
             return null; // Возвращаем null вместо исключения для Z-Score расчетов
         }
 
-        log.info("✅ Python API успешно вернул ZScoreData для тикеров: {}", candlesMap.keySet());
+        log.debug("✅ Python API успешно вернул ZScoreData для тикеров: {}", candlesMap.keySet());
         return zScoreData;
     }
 

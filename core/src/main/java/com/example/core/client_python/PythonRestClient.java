@@ -49,7 +49,7 @@ public class PythonRestClient {
     }
 
     public ZScoreData analyzePair(Map<String, List<Candle>> pair, Settings settings, boolean includeFullZscoreHistory) {
-        log.info("🐍 Отправляем запрос в Python API для анализа пары: {}", pair.keySet());
+        log.debug("🐍 Отправляем запрос в Python API для анализа пары: {}", pair.keySet());
         Map<String, Object> settingsMap = convertSettingsToMap(settings);
         Map<String, List<ApiCandle>> apiPair = convertCandlesMap(pair);
         PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZscoreHistory);
@@ -59,7 +59,7 @@ public class PythonRestClient {
             });
 
             if (response.isSuccess()) {
-                log.info("✅ Python API успешно проанализировал пару: {}", pair.keySet());
+                log.debug("✅ Python API успешно проанализировал пару: {}", pair.keySet());
                 return convertPairAnalysisResultToZScoreData(response.getResult());
             } else {
                 log.warn("⚠️ Python API вернул success=false для пары: {}", pair.keySet());

@@ -250,20 +250,23 @@ public class UpdateTradeProcessor {
             throw new RuntimeException("Недостаточно данных свечей — пропуск анализа");
         }
 
-        // Оптимизация: рассчитываем Z-Score только если появились новые свечи
-        ZScoreData zScoreData;
-        if (candleUpdateCheckService.shouldRecalculateZScore(tradingPair)) {
-            log.debug("🔄 Пересчитываем Z-Score для пары {} (ТФ: {})",
-                    tradingPair.getPairName(), tradingPair.getTimeframe());
-            zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
-            // Отмечаем время обновления Z-Score
-            candleUpdateCheckService.markZScoreUpdated(tradingPair);
-        } else {
-            log.debug("⏰ Z-Score актуален для пары {} - пропускаем пересчет", tradingPair.getPairName());
-            // Используем последний рассчитанный Z-Score - не пересчитываем
-            // Цены все равно будут обновляться в updatePositionPrices выше
-            zScoreData = createCurrentZScoreFromPair(tradingPair);
-        }
+//        // Оптимизация: рассчитываем Z-Score только если появились новые свечи
+//        ZScoreData zScoreData;
+//        if (candleUpdateCheckService.shouldRecalculateZScore(tradingPair)) {
+//            log.debug("🔄 Пересчитываем Z-Score для пары {} (ТФ: {})",
+//                    tradingPair.getPairName(), tradingPair.getTimeframe());
+//            zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
+//            // Отмечаем время обновления Z-Score
+//            candleUpdateCheckService.markZScoreUpdated(tradingPair);
+//        } else {
+//            log.debug("⏰ Z-Score актуален для пары {} - пропускаем пересчет", tradingPair.getPairName());
+//            // Используем последний рассчитанный Z-Score - не пересчитываем
+//            // Цены все равно будут обновляться в updatePositionPrices выше
+//            zScoreData = createCurrentZScoreFromPair(tradingPair);
+//        }
+//        Map<String, Object> result = new HashMap<>();
+
+        ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();
         result.put("candlesMap", candlesMap);
         result.put("zScoreData", zScoreData);
