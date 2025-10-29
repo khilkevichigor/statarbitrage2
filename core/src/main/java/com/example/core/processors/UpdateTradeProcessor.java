@@ -400,6 +400,15 @@ public class UpdateTradeProcessor {
         zScoreData.setUnderValuedTicker(pair.getLongTicker());
         zScoreData.setOverValuedTicker(pair.getShortTicker());
 
+        // Получаем timestamp последней точки из истории или используем текущее время
+        long lastTimestamp = System.currentTimeMillis();
+        if (pair.getZScoreHistory() != null && !pair.getZScoreHistory().isEmpty()) {
+            lastTimestamp = pair.getZScoreHistory().get(pair.getZScoreHistory().size() - 1).getTimestamp();
+            log.debug("📋 Используем timestamp последней точки истории: {}", lastTimestamp);
+        } else {
+            log.debug("📋 История пустая, используем текущее время: {}", lastTimestamp);
+        }
+
         // Создаем актуальный ZScoreParam из текущих данных пары
         ZScoreParam currentParam = ZScoreParam.builder()
                 .zscore(pair.getZScoreCurrent() != null ? pair.getZScoreCurrent().doubleValue() : 0.0)
@@ -411,7 +420,7 @@ public class UpdateTradeProcessor {
                 .spread(pair.getSpreadCurrent() != null ? pair.getSpreadCurrent().doubleValue() : 0.0)
                 .alpha(pair.getAlphaCurrent() != null ? pair.getAlphaCurrent().doubleValue() : 0.0)
                 .beta(pair.getBetaCurrent() != null ? pair.getBetaCurrent().doubleValue() : 1.0)
-                .timestamp(System.currentTimeMillis())
+                .timestamp(lastTimestamp)
                 .build();
 
         // Устанавливаем данные в ZScoreData (как в UpdateZScoreDataCurrentService)
