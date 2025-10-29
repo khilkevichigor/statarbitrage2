@@ -145,7 +145,7 @@ public class TradingPairsComponent extends VerticalLayout {
             if (p.getFormattedProfitCommon() != null && !p.getFormattedProfitCommon().isEmpty()) {
                 return p.getFormattedProfitCommon();
             }
-            return p.getProfitPercentChanges() != null ? safeScale(p.getProfitPercentChanges(), 2) + "%" : "0.00%"; //todo используем только это! $ не сетим в getFormattedProfitCommon вобще
+            return p.getProfitPercentChanges() != null ? safeScale(p.getProfitPercentChanges(), 2) + "%" : "0.00%"; //todo сетим только это! $ не сетим в getFormattedProfitCommon вобще
         }).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(p -> p.getAveragingCount() != null ? String.valueOf(p.getAveragingCount()) : "0").setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
