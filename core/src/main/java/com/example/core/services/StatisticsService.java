@@ -200,13 +200,12 @@ public class StatisticsService {
 
     private long calculateTotalAveragingCount(List<Pair> pairs) {
         return pairs.stream()
-                .mapToInt(p -> p.getAveragingCount() != null ? p.getAveragingCount() : 0)
+                .mapToInt(Pair::getAveragingCount)
                 .sum();
     }
 
     private long calculateAverageTimeToMinProfitMinutes(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .filter(p -> p.getMinutesToMinProfitPercent() != null)
                 .mapToLong(Pair::getMinutesToMinProfitPercent)
                 .filter(minutes -> minutes > 0)
                 .average();
@@ -216,7 +215,6 @@ public class StatisticsService {
 
     private long calculateAverageTimeToMaxProfitMinutes(List<Pair> pairs) {
         OptionalDouble average = pairs.stream()
-                .filter(p -> p.getMinutesToMaxProfitPercent() != null)
                 .mapToLong(Pair::getMinutesToMaxProfitPercent)
                 .filter(minutes -> minutes > 0)
                 .average();
