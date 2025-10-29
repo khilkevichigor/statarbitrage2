@@ -8,7 +8,6 @@ import com.example.shared.models.Pair;
 import com.example.shared.models.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,7 +15,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class FindCointPairsScheduler {
+public class FindCointPairsScheduler { //todo старый непонятный шедуллер! сделал новый com/example/core/schedulers/AutoTradingScheduler.java:29
     private final SettingsService settingsService;
     private final FetchCointPairsProcessor fetchCointPairsProcessor;
     private final SendEventService sendEventService;

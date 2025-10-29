@@ -632,4 +632,20 @@ public class PairService {
             return false;
         }
     }
+
+    /**
+     * Очистить все найденные стабильные пары (не в мониторинге)
+     * Используется перед сохранением новых результатов поиска
+     */
+    @Transactional
+    public int clearFoundStablePairs() {
+        try {
+            int deletedCount = pairRepository.deleteAllFoundStablePairs();
+            log.info("🧹 Удалено {} найденных стабильных пар", deletedCount);
+            return deletedCount;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при очистке найденных стабильных пар: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
 }

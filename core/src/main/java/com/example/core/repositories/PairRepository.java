@@ -29,7 +29,7 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      * Найти все пары по тикерам
      */
     List<Pair> findByTickerAAndTickerB(String tickerA, String tickerB);
-    
+
     /**
      * Проверить существование пары по всем ключевым полям
      */
@@ -67,6 +67,7 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
 
     /**
      * Найти стабильные пары в мониторинге с указанными рейтингами (строки - для обратной совместимости)
+     *
      * @deprecated Используйте {@link #findStablePairsInMonitoringByStabilityRatings(List)}
      */
     @Deprecated
@@ -87,6 +88,7 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
 
     /**
      * Найти стабильные пары по рейтингу (строка - для обратной совместимости)
+     *
      * @deprecated Используйте {@link #findStablePairsByStabilityRating(StabilityRating)}
      */
     @Deprecated
@@ -103,8 +105,8 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      * Найти стабильные пары за определенный период
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.searchDate BETWEEN :startDate AND :endDate ORDER BY p.searchDate DESC")
-    List<Pair> findStablePairsByDateRange(@Param("startDate") LocalDateTime startDate, 
-                                         @Param("endDate") LocalDateTime endDate);
+    List<Pair> findStablePairsByDateRange(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate);
 
     /**
      * Найти стабильные пары по таймфрейму
@@ -122,38 +124,39 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      * Поиск похожих стабильных пар для предотвращения дубликатов
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.tickerA = :tickerA AND p.tickerB = :tickerB " +
-           "AND p.timeframe = :timeframe AND p.period = :period " +
-           "AND p.searchDate >= :searchDateFrom")
-    List<Pair> findSimilarStablePairs(@Param("tickerA") String tickerA, 
-                                     @Param("tickerB") String tickerB,
-                                     @Param("timeframe") String timeframe, 
-                                     @Param("period") String period,
-                                     @Param("searchDateFrom") LocalDateTime searchDateFrom);
+            "AND p.timeframe = :timeframe AND p.period = :period " +
+            "AND p.searchDate >= :searchDateFrom")
+    List<Pair> findSimilarStablePairs(@Param("tickerA") String tickerA,
+                                      @Param("tickerB") String tickerB,
+                                      @Param("timeframe") String timeframe,
+                                      @Param("period") String period,
+                                      @Param("searchDateFrom") LocalDateTime searchDateFrom);
 
     /**
      * Получить статистику по рейтингу стабильности
      */
     @Query("SELECT p.stabilityRating, COUNT(p) FROM Pair p " +
-           "WHERE p.type = 'STABLE' AND p.searchDate >= :fromDate GROUP BY p.stabilityRating")
+            "WHERE p.type = 'STABLE' AND p.searchDate >= :fromDate GROUP BY p.stabilityRating")
     List<Object[]> getStabilityRatingStats(@Param("fromDate") LocalDateTime fromDate);
 
     /**
      * Найти топ стабильных пар по рейтингу (enum)
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.stabilityRating IN :ratings " +
-           "ORDER BY p.totalScore DESC LIMIT :limit")
-    List<Pair> findTopStablePairsByStabilityRating(@Param("ratings") List<StabilityRating> ratings, 
-                                                  @Param("limit") int limit);
+            "ORDER BY p.totalScore DESC LIMIT :limit")
+    List<Pair> findTopStablePairsByStabilityRating(@Param("ratings") List<StabilityRating> ratings,
+                                                   @Param("limit") int limit);
 
     /**
      * Найти топ стабильных пар по рейтингу (строки - для обратной совместимости)
+     *
      * @deprecated Используйте {@link #findTopStablePairsByStabilityRating(List, int)}
      */
     @Deprecated
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' AND p.stabilityRating IN :ratings " +
-           "ORDER BY p.totalScore DESC LIMIT :limit")
-    List<Pair> findTopStablePairsByRating(@Param("ratings") List<String> ratings, 
-                                         @Param("limit") int limit);
+            "ORDER BY p.totalScore DESC LIMIT :limit")
+    List<Pair> findTopStablePairsByRating(@Param("ratings") List<String> ratings,
+                                          @Param("limit") int limit);
 
     // ======== МЕТОДЫ ДЛЯ КОИНТЕГРИРОВАННЫХ ПАР (COINTEGRATED) ========
 
@@ -197,6 +200,14 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     @Modifying
     @Query("DELETE FROM Pair p WHERE p.type = 'STABLE' AND p.isInMonitoring = false AND p.searchDate < :cutoffDate")
     int deleteOldStablePairs(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    /**
+     * Удалить ВСЕ найденные стабильные пары (не в мониторинге)
+     * Используется перед сохранением новых результатов поиска
+     */
+    @Modifying
+    @Query("DELETE FROM Pair p WHERE p.type = 'STABLE' AND p.isInMonitoring = false")
+    int deleteAllFoundStablePairs();
 
     /**
      * Удалить пары по типу и статусу
@@ -246,25 +257,25 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      * Найти пары с лучшей производительностью за период
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.entryTime >= :fromDate " +
-           "ORDER BY p.profitPercentChanges DESC NULLS LAST LIMIT :limit")
+            "ORDER BY p.profitPercentChanges DESC NULLS LAST LIMIT :limit")
     List<Pair> findTopPerformingPairs(@Param("fromDate") LocalDateTime fromDate, @Param("limit") int limit);
 
     // ======== ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ДЛЯ TRADINGPAIR СОВМЕСТИМОСТИ ========
-    
+
     /**
      * Найти торговые пары по статусу и времени входа после указанной даты
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.status = :status AND p.entryTime >= :afterDate " +
-           "ORDER BY p.entryTime DESC")
-    List<Pair> findTradingPairsByStatusAndEntryTimeAfter(@Param("status") TradeStatus status, 
-                                                        @Param("afterDate") LocalDateTime afterDate);
-                                                        
+            "ORDER BY p.entryTime DESC")
+    List<Pair> findTradingPairsByStatusAndEntryTimeAfter(@Param("status") TradeStatus status,
+                                                         @Param("afterDate") LocalDateTime afterDate);
+
     /**
      * Найти все торговые пары по статусу (для совместимости с TradingPairRepository)
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'TRADING' AND p.status = :status ORDER BY p.updatedTime DESC")
     List<Pair> findTradingPairsByStatusOrderByUpdatedTime(@Param("status") TradeStatus status);
-    
+
     /**
      * Подсчет пар по типу и статусу
      */
@@ -275,10 +286,10 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
      * Универсальный метод для поиска стабильных пар с фильтрами
      */
     @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' " +
-           "AND ((:includeMonitoring = true AND p.isInMonitoring = true) " +
-           "     OR (:includeFound = true AND p.isInMonitoring = false)) " +
-           "AND (:ratings IS NULL OR p.stabilityRating IN :ratings) " +
-           "ORDER BY p.totalScore DESC NULLS LAST, p.createdAt DESC")
+            "AND ((:includeMonitoring = true AND p.isInMonitoring = true) " +
+            "     OR (:includeFound = true AND p.isInMonitoring = false)) " +
+            "AND (:ratings IS NULL OR p.stabilityRating IN :ratings) " +
+            "ORDER BY p.totalScore DESC NULLS LAST, p.createdAt DESC")
     List<Pair> findStablePairsWithFilters(@Param("includeMonitoring") boolean includeMonitoring,
                                           @Param("includeFound") boolean includeFound,
                                           @Param("ratings") List<StabilityRating> ratings);
