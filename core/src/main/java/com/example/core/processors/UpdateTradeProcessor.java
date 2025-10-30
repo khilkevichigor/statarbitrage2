@@ -266,6 +266,7 @@ public class UpdateTradeProcessor {
 //        }
 //        Map<String, Object> result = new HashMap<>();
 
+        //Критично! Нужно обновлять zScore каждый раз независимо от ТФ
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();
         result.put("candlesMap", candlesMap);
