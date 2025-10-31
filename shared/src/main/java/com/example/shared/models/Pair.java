@@ -896,10 +896,12 @@ public class Pair {
     }
 
     public void addProfitHistoryPoint(ProfitHistoryItem item) {
+        // КРИТИЧНО: Всегда загружаем существующую историю из JSON, если profitHistory == null (аналогично Z-Score)
         if (profitHistory == null) {
-            profitHistory = new ArrayList<>();
+            profitHistory = getProfitHistory(); // Загружаем из JSON или создаем пустой список
         }
         profitHistory.add(item);
+        // Автоматически сохраняем в JSON поле
         setProfitHistory(profitHistory);
     }
 
