@@ -900,10 +900,37 @@ public class Pair {
             profitHistory = new ArrayList<>();
         }
         profitHistory.add(item);
+        setProfitHistory(profitHistory);
+    }
+
+    public void setProfitHistory(List<ProfitHistoryItem> history) {
+        this.profitHistory = history;
+        if (history != null) {
+            try {
+                this.profitHistoryJson = objectMapper.writeValueAsString(history);
+            } catch (JsonProcessingException e) {
+                log.error("Ошибка при сериализации истории Profit", e);
+                this.profitHistoryJson = "[]";
+            }
+        } else {
+            this.profitHistoryJson = null;
+        }
     }
 
     public List<ProfitHistoryItem> getProfitHistory() {
-        return profitHistory != null ? profitHistory : new ArrayList<>();
+        if (profitHistory != null) {
+            return profitHistory;
+        }
+        if (profitHistoryJson != null && !profitHistoryJson.isEmpty()) {
+            try {
+                profitHistory = objectMapper.readValue(profitHistoryJson,
+                        new TypeReference<>() {});
+                return profitHistory;
+            } catch (JsonProcessingException e) {
+                log.error("Ошибка при десериализации истории Profit", e);
+            }
+        }
+        return new ArrayList<>();
     }
 
     // Метод для совместимости с TradingPair
