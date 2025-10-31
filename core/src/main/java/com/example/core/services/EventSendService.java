@@ -14,11 +14,11 @@ public class EventSendService {
 
     public void updateUI(UpdateUiEvent event) {
         try {
-            log.info("📡 EventSendService: Отправляем событие UpdateUiEvent через ApplicationEventPublisher");
-            log.info("📡 EventSendService: Событие объект: {}", event);
-            log.info("📡 EventSendService: Thread: {}", Thread.currentThread().getName());
+            log.debug("📡 EventSendService: Отправляем событие UpdateUiEvent через ApplicationEventPublisher");
+            log.debug("📡 EventSendService: Событие объект: {}", event);
+            log.debug("📡 EventSendService: Thread: {}", Thread.currentThread().getName());
             applicationEventPublisher.publishEvent(event);
-            log.info("✅ EventSendService: Событие UpdateUiEvent успешно отправлено");
+            log.debug("✅ EventSendService: Событие UpdateUiEvent успешно отправлено");
         } catch (Exception e) {
             log.error("❌ EventSendService: Ошибка при отправке события UpdateUiEvent: {}", e.getMessage(), e);
             throw e;
