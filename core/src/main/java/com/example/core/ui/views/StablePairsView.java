@@ -4,6 +4,7 @@ import com.example.core.experemental.stability.dto.StabilityResponseDto;
 import com.example.core.services.PairService;
 import com.example.core.services.SettingsService;
 import com.example.core.services.StablePairsScreenerSettingsService;
+import com.example.core.services.UiBroadcaster;
 import com.example.core.ui.components.ZScoreChartDialog;
 import com.example.core.ui.layout.MainLayout;
 import com.example.shared.events.GlobalSettingsUpdatedEvent;
@@ -14,6 +15,7 @@ import com.example.shared.services.TimeframeAndPeriodService;
 import com.example.shared.utils.TimeFormatterUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBox;
@@ -37,6 +39,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import com.vaadin.flow.shared.Registration;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -98,6 +101,7 @@ public class StablePairsView extends VerticalLayout {
     private Grid<Pair> monitoringPairsGrid;
 
     // Статистика
+    private Registration broadcasterRegistration;
     private Span statsLabel;
 
     public StablePairsView(PairService pairService, ZScoreChartDialog zScoreChartDialog,
@@ -113,6 +117,7 @@ public class StablePairsView extends VerticalLayout {
         initializeGlobalOptions();
         initializeLayout();
         loadData();
+        setupBroadcastListener();
     }
 
     private void initializeGlobalOptions() {
@@ -1323,6 +1328,94 @@ public class StablePairsView extends VerticalLayout {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при обработке события обновления глобальных настроек в StablePairsView: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Настройка слушателя UI Broadcaster
+     */
+    private void setupBroadcastListener() {
+        try {
+            log.info("📡 StablePairsView: Настраиваем UiBroadcaster listener");
+            broadcasterRegistration = UiBroadcaster.register(message -> {
+                log.info("📡 StablePairsView: ПОЛУЧЕНО broadcast сообщение: {}", message);
+                
+                if ("STABLE_PAIRS_UPDATE".equals(message)) {
+                    // Обновляем UI в контексте Vaadin UI thread
+                    getUI().ifPresent(ui -> {
+                        log.info("🔄 StablePairsView: Выполняем ui.access() для обновления после broadcast");
+                        ui.access(() -> {
+                            try {
+                                log.info("📊 StablePairsView: Загружаем найденные пары...");
+                                loadFoundPairs();
+                                log.info("👁️ StablePairsView: Загружаем пары мониторинга...");
+                                loadMonitoringPairs();
+                                log.info("📈 StablePairsView: Обновляем статистику...");
+                                updateStatistics();
+                                log.info("✅ StablePairsView: UI полностью обновлен после broadcast");
+                            } catch (Exception e) {
+                                log.error("❌ StablePairsView: Ошибка при обновлении UI: {}", e.getMessage(), e);
+                            }
+                        });
+                    });
+                }
+            });
+            log.info("✅ StablePairsView: UiBroadcaster listener настроен успешно");
+        } catch (Exception e) {
+            log.error("❌ StablePairsView: Ошибка при настройке UiBroadcaster listener: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Cleanup при закрытии View
+     */
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        try {
+            if (broadcasterRegistration != null) {
+                log.info("🧹 StablePairsView: Удаляем UiBroadcaster listener");
+                broadcasterRegistration.remove();
+                broadcasterRegistration = null;
+            }
+        } catch (Exception e) {
+            log.error("❌ StablePairsView: Ошибка при удалении UiBroadcaster listener: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Слушатель события обновления UI (DEPRECATED - используем UiBroadcaster)
+     */
+    @EventListener
+    public void handleUpdateUi(com.example.shared.events.UpdateUiEvent event) {
+        try {
+            log.info("📡 ПОЛУЧЕНО событие обновления UI в StablePairsView - обновляем найденные пары");
+            log.info("📍 Текущий UI присутствует: {}", getUI().isPresent());
+            
+            // Обновляем UI в контексте Vaadin UI thread
+            getUI().ifPresent(ui -> {
+                log.info("🔄 Выполняем ui.access() для обновления StablePairsView");
+                ui.access(() -> {
+                    try {
+                        log.info("📊 Загружаем найденные пары...");
+                        loadFoundPairs();
+                        log.info("👁️ Загружаем пары мониторинга...");
+                        loadMonitoringPairs();
+                        log.info("📈 Обновляем статистику...");
+                        updateStatistics();
+                        log.info("✅ StablePairsView: UI полностью обновлен после получения события");
+                    } catch (Exception e) {
+                        log.error("❌ Ошибка при обновлении UI StablePairsView: {}", e.getMessage(), e);
+                    }
+                });
+            });
+            
+            if (!getUI().isPresent()) {
+                log.warn("⚠️ UI не присутствует - пропускаем обновление");
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при обработке события обновления UI в StablePairsView: {}", e.getMessage(), e);
         }
     }
 }

@@ -1,9 +1,11 @@
 package com.example.core.schedulers;
 
 import com.example.core.experemental.stability.dto.StabilityResponseDto;
+import com.example.core.services.EventSendService;
 import com.example.core.services.PairService;
 import com.example.core.services.SchedulerControlService;
 import com.example.core.services.StablePairsScreenerSettingsService;
+import com.example.shared.events.UpdateUiEvent;
 import com.example.shared.models.StablePairsScreenerSettings;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class StablePairsScheduler {
     private final StablePairsScreenerSettingsService settingsService;
     private final PairService pairService;
     private final SchedulerControlService schedulerControlService;
+    private final EventSendService eventSendService;
 
     // Пул потоков для параллельной обработки
     private final ExecutorService executorService = Executors.newFixedThreadPool(5,
@@ -61,6 +64,15 @@ public class StablePairsScheduler {
         try {
             int deletedCount = pairService.clearFoundStablePairs();
             log.info("🧹 Очищено {} устаревших найденных стабильных пар", deletedCount);
+            
+            // Отправляем событие обновления UI после очистки таблиц (всегда, независимо от количества)
+            try {
+                UpdateUiEvent uiEvent = UpdateUiEvent.builder().build();
+                eventSendService.updateUI(uiEvent);
+                log.info("📡 Отправлено событие обновления UI после очистки {} найденных пар", deletedCount);
+            } catch (Exception uiException) {
+                log.error("⚠️ Ошибка при отправке события обновления UI после очистки: {}", uiException.getMessage(), uiException);
+            }
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при очистке старых результатов поиска: {}", e.getMessage());
         }
@@ -158,6 +170,15 @@ public class StablePairsScheduler {
             log.info("   🔍 Всего проанализировано пар: {}", totalPairsAnalyzed.get());
             log.info("   ✅ Всего найдено торгуемых пар: {}", totalPairsFound.get());
             log.info("   ⚡ Использовано потоков: 5");
+
+            // Отправляем событие обновления UI всегда (независимо от количества найденных пар)
+            try {
+                UpdateUiEvent uiEvent = UpdateUiEvent.builder().build();
+                eventSendService.updateUI(uiEvent);
+                log.info("📡 Отправлено событие обновления UI после поиска - найдено {} пар", totalPairsFound.get());
+            } catch (Exception e) {
+                log.error("⚠️ Ошибка при отправке события обновления UI после поиска: {}", e.getMessage(), e);
+            }
 
         } catch (Exception e) {
             log.error("💥 Критическая ошибка при автоматическом поиске стабильных пар: {}",
