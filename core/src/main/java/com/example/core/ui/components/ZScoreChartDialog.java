@@ -236,7 +236,7 @@ public class ZScoreChartDialog extends Dialog {
             this.currentPair = tradingPair;
 
             // Устанавливаем заголовок
-            pairTitle.setText(String.format("📊 Z-Score Chart: %s", tradingPair.getPairName()));
+            pairTitle.setText(String.format("📊 Z-Score Chart: %s %s", tradingPair.getPairName(), tradingPair.getUuid().toString()));
 
             // 🎯 УПРОЩЕНИЕ: Загружаем настройку ЕДИНСТВЕННОГО чекбокса из базы данных
             ChartSettings chartSettings = chartSettingsService.getChartSettings(CHART_TYPE);
