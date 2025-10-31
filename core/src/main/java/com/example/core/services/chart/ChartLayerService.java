@@ -34,18 +34,6 @@ public class ChartLayerService {
         List<ProfitHistoryItem> profitHistory = tradingPair.getProfitHistory();
         List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
 
-        log.info("🎯 addSynchronizedProfitToChart для пары {}: profitHistory={} точек, zScoreHistory={} точек", 
-                tradingPair.getPairName(), 
-                profitHistory != null ? profitHistory.size() : "null",
-                zScoreHistory != null ? zScoreHistory.size() : "null");
-
-        if (profitHistory != null && !profitHistory.isEmpty()) {
-            log.info("📊 Первые несколько точек профита: {}", 
-                    profitHistory.stream().limit(3).map(item -> 
-                            String.format("%.2f%% в %s", item.getProfitPercent(), new java.util.Date(item.getTimestamp()))
-                    ).toList());
-        }
-
         if (profitHistory == null || profitHistory.isEmpty()) {
             log.debug("📊 История профита пуста для пары {}, график профита не будет добавлен.",
                     tradingPair.getPairName());
@@ -69,41 +57,14 @@ public class ChartLayerService {
 
         log.info("🎯 Синхронизируем профит строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
 
-        // Интерполируем профит на точные временные метки Z-Score с carry-forward стратегией
+        // Интерполируем профит на точные временные метки Z-Score
         List<Double> interpolatedProfitValues = new ArrayList<>();
-        Double lastKnownValue = 0.0; // Начинаем с 0 до первой записи
-        
-        // Находим время первой записи профита для определения стратегии
-        long firstProfitTimestamp = profitHistory.get(0).getTimestamp();
-        
         for (Long zTimestamp : zScoreTimestamps) {
             Double profitValue = interpolationService.interpolateProfit(profitHistory, zTimestamp);
-            
-            if (profitValue != null) {
-                // Есть данные - используем их
-                lastKnownValue = profitValue;
-                interpolatedProfitValues.add(profitValue);
-            } else {
-                // Нет данных - применяем стратегию
-                if (zTimestamp < firstProfitTimestamp) {
-                    // До первой записи профита - используем 0
-                    interpolatedProfitValues.add(0.0);
-                } else {
-                    // После первой записи - используем последнее известное значение (carry forward)
-                    interpolatedProfitValues.add(lastKnownValue);
-                }
-            }
+            interpolatedProfitValues.add(profitValue != null ? profitValue : 0.0);
         }
 
         log.info("✅ Добавляем ИДЕАЛЬНО синхронизированный профит: {} точек", interpolatedProfitValues.size());
-        
-        // Логируем статистику интерполированных значений
-        long nonZeroCount = interpolatedProfitValues.stream().mapToLong(v -> v != 0.0 ? 1 : 0).sum();
-        double minValue = interpolatedProfitValues.stream().mapToDouble(v -> v).min().orElse(0.0);
-        double maxValue = interpolatedProfitValues.stream().mapToDouble(v -> v).max().orElse(0.0);
-        
-        log.info("📈 Статистика интерполированного профита: {} ненулевых из {}, диапазон [{:.2f}% - {:.2f}%]",
-                nonZeroCount, interpolatedProfitValues.size(), minValue, maxValue);
 
         addProfitSeriesToChart(chart, zScoreTimeAxis, interpolatedProfitValues);
     }
