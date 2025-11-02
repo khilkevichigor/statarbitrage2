@@ -293,4 +293,16 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Pair> findStablePairsWithFilters(@Param("includeMonitoring") boolean includeMonitoring,
                                           @Param("includeFound") boolean includeFound,
                                           @Param("ratings") List<StabilityRating> ratings);
+
+    /**
+     * Поиск стабильных пар по минимальному скору с учетом флагов мониторинга
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'STABLE' " +
+            "AND ((:includeMonitoring = true AND p.isInMonitoring = true) " +
+            "     OR (:includeFound = true AND p.isInMonitoring = false)) " +
+            "AND p.totalScore >= :minScore " +
+            "ORDER BY p.totalScore DESC NULLS LAST, p.createdAt DESC")
+    List<Pair> findStablePairsByScore(@Param("includeMonitoring") boolean includeMonitoring,
+                                      @Param("includeFound") boolean includeFound,
+                                      @Param("minScore") int minScore);
 }

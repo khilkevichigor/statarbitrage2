@@ -96,20 +96,50 @@ public class StablePairsService {
     /**
      * Получить хорошие стабильные пары на основе настроек чекбоксов
      *
-     * @param useMonitoring использовать ли пары в мониторинге
-     * @param useFound      использовать ли найденные пары
-     * @return список стабильных пар с хорошими рейтингами
+     * @param useMonitoring     использовать ли пары в мониторинге
+     * @param useFound          использовать ли найденные пары
+     * @param useScoreFiltering использовать ли фильтрацию по скору
+     * @param minStabilityScore минимальный скор стабильности (используется только при useScoreFiltering=true)
+     * @return список стабильных пар с хорошими рейтингами или скором
      */
-    public List<Pair> getGoodStablePairsBySettings(boolean useMonitoring, boolean useFound) {
-        List<StabilityRating> goodRatings = List.of(
-                StabilityRating.MARGINAL,
-                StabilityRating.GOOD,
-                StabilityRating.EXCELLENT
-        );
+    public List<Pair> getGoodStablePairsBySettings(boolean useMonitoring, boolean useFound, 
+                                                   boolean useScoreFiltering, int minStabilityScore) {
+        if (useScoreFiltering) {
+            log.info("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
+                    useMonitoring, useFound, minStabilityScore);
+            
+            return getStablePairsByScore(useMonitoring, useFound, minStabilityScore);
+        } else {
+            // Использование старой логики с рейтингами
+            List<StabilityRating> goodRatings = List.of(
+                    StabilityRating.MARGINAL,
+                    StabilityRating.GOOD,
+                    StabilityRating.EXCELLENT
+            );
 
-        log.info("🔍 Получение хороших стабильных пар по настройкам: мониторинг={}, найденные={}, рейтинги={}",
-                useMonitoring, useFound, goodRatings);
+            log.info("🔍 Получение хороших стабильных пар по рейтингам: мониторинг={}, найденные={}, рейтинги={}",
+                    useMonitoring, useFound, goodRatings);
 
-        return getStablePairsWithFilters(useMonitoring, useFound, goodRatings);
+            return getStablePairsWithFilters(useMonitoring, useFound, goodRatings);
+        }
+    }
+
+    /**
+     * Получить стабильные пары на основе минимального скора
+     *
+     * @param includeMonitoring включать ли пары в мониторинге
+     * @param includeFound      включать ли найденные пары (не в мониторинге)
+     * @param minScore          минимальный скор стабильности
+     * @return список стабильных пар с скором больше или равно minScore
+     */
+    public List<Pair> getStablePairsByScore(boolean includeMonitoring, boolean includeFound, int minScore) {
+        log.info("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
+                includeMonitoring, includeFound, minScore);
+
+        List<Pair> filteredPairs = pairRepository.findStablePairsByScore(includeMonitoring, includeFound, minScore);
+
+        log.info("✅ Найдено {} стабильных пар с скором >= {}", filteredPairs.size(), minScore);
+
+        return filteredPairs;
     }
 }

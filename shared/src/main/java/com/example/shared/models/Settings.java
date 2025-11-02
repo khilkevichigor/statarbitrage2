@@ -295,6 +295,15 @@ public class Settings {
     @Column(name = "use_found_stable_pairs")
     private boolean useFoundStablePairs = false;
 
+    // ===== Фильтрация по скору стабильности =====
+    @Builder.Default
+    @Column(name = "use_score_filtering")
+    private boolean useScoreFiltering = false;
+
+    @Builder.Default
+    @Column(name = "min_stability_score")
+    private int minStabilityScore = 30;
+
     // ===== Управление шедуллерами =====
 
     // UpdateTradesScheduler (обновление торговых пар каждую минуту)
@@ -458,6 +467,11 @@ public class Settings {
 
         // Использование стабильных пар для мониторинга
         this.useStablePairsForMonitoring = other.useStablePairsForMonitoring;
+        this.useFoundStablePairs = other.useFoundStablePairs;
+        
+        // Фильтрация по скору стабильности
+        this.useScoreFiltering = other.useScoreFiltering;
+        this.minStabilityScore = other.minStabilityScore;
 
         // Управление шедуллерами
         this.schedulerUpdateTradesEnabled = other.schedulerUpdateTradesEnabled;

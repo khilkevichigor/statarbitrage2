@@ -226,6 +226,24 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinIntersectionsFilterCheckbox = new Checkbox("Использовать фильтр по пересечениям цен");
         Checkbox useStablePairsForMonitoringCheckbox = new Checkbox("Искать из Постоянный список для мониторинга");
         Checkbox useFoundStablePairsCheckbox = new Checkbox("Искать из Найденные стабильные пары");
+        
+        // Новые поля для фильтрации по скору
+        Checkbox useScoreFilteringCheckbox = new Checkbox("Искать по Скор");
+        
+        NumberField minStabilityScoreField = new NumberField("Минимальный скор");
+        minStabilityScoreField.setHelperText("Минимальный скор стабильности для отбора пар");
+        setNumberFieldProperties(minStabilityScoreField, 1, 0);
+        
+        // Логика активации чекбокса "Искать по Скор" только когда активны чекбоксы мониторинга или найденных пар
+        Runnable updateScoreFilteringState = () -> {
+            boolean canUseScoreFiltering = useStablePairsForMonitoringCheckbox.getValue() || useFoundStablePairsCheckbox.getValue();
+            useScoreFilteringCheckbox.setEnabled(canUseScoreFiltering);
+            minStabilityScoreField.setEnabled(canUseScoreFiltering && useScoreFilteringCheckbox.getValue());
+        };
+        
+        useStablePairsForMonitoringCheckbox.addValueChangeListener(e -> updateScoreFilteringState.run());
+        useFoundStablePairsCheckbox.addValueChangeListener(e -> updateScoreFilteringState.run());
+        useScoreFilteringCheckbox.addValueChangeListener(e -> updateScoreFilteringState.run());
 
         // Min intersections field
         NumberField minIntersectionsField = new NumberField("Мин. пересечений");
@@ -296,7 +314,7 @@ public class SettingsComponent extends VerticalLayout {
                 checkIntervalField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
                 useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
                 useMinVolumeFilterCheckbox, useMinIntersectionsFilterCheckbox, minIntersectionsField,
-                useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox));
+                useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox, useScoreFilteringCheckbox, minStabilityScoreField));
 
         // Создаем поля для усреднения (депозит берется из OKX через PortfolioService)
 
@@ -388,6 +406,8 @@ public class SettingsComponent extends VerticalLayout {
                 minIntersectionsField,
                 useStablePairsForMonitoringCheckbox,
                 useFoundStablePairsCheckbox,
+                useScoreFilteringCheckbox,
+                minStabilityScoreField,
                 useExitTakeCheckbox,
                 useExitStopCheckbox,
                 useExitZMinCheckbox,
@@ -717,7 +737,8 @@ public class SettingsComponent extends VerticalLayout {
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
                                           Checkbox useMinVolumeFilterCheckbox, Checkbox useMinIntersectionsFilterCheckbox,
                                           NumberField minIntersectionsField, Checkbox useStablePairsForMonitoringCheckbox,
-                                          Checkbox useFoundStablePairsCheckbox) {
+                                          Checkbox useFoundStablePairsCheckbox, Checkbox useScoreFilteringCheckbox, 
+                                          NumberField minStabilityScoreField) {
 
         FormLayout analysisForm = createFormLayout();
 
@@ -729,12 +750,16 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout minCorrelationLayout = createFilterLayout(useMinCorrelationFilterCheckbox, minCorrelationField);
         HorizontalLayout minVolumeLayout = createFilterLayout(useMinVolumeFilterCheckbox, minVolumeField);
         HorizontalLayout minIntersectionsLayout = createFilterLayout(useMinIntersectionsFilterCheckbox, minIntersectionsField);
+        
+        // Создаем layout для фильтрации по скору
+        HorizontalLayout scoreFilteringLayout = createFilterLayout(useScoreFilteringCheckbox, minStabilityScoreField);
 
         analysisForm.add(
                 timeframeField, periodField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
                 maxAdfValueLayout, minCorrelationLayout, minVolumeLayout,
-                minIntersectionsLayout, useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox, minimumLotBlacklistField
+                minIntersectionsLayout, useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox,
+                scoreFilteringLayout, minimumLotBlacklistField
         );
 
         Details analysisSection = createDetailsCard("🔍 Анализ и фильтры",
@@ -1003,6 +1028,8 @@ public class SettingsComponent extends VerticalLayout {
                             NumberField minIntersectionsField,
                             Checkbox useStablePairsForMonitoringCheckbox,
                             Checkbox useFoundStablePairsCheckbox,
+                            Checkbox useScoreFilteringCheckbox,
+                            NumberField minStabilityScoreField,
                             Checkbox useExitTakeCheckbox,
                             Checkbox useExitStopCheckbox,
                             Checkbox useExitZMinCheckbox,
@@ -1077,6 +1104,13 @@ public class SettingsComponent extends VerticalLayout {
         
         // Bind found stable pairs checkbox
         settingsBinder.forField(useFoundStablePairsCheckbox).bind(Settings::isUseFoundStablePairs, Settings::setUseFoundStablePairs);
+        
+        // Bind score filtering checkbox and field
+        settingsBinder.forField(useScoreFilteringCheckbox).bind(Settings::isUseScoreFiltering, Settings::setUseScoreFiltering);
+        settingsBinder.forField(minStabilityScoreField)
+                .withValidator(value -> value != null && value >= 0, "Минимальный скор должен быть больше или равен 0")
+                .bind(settings -> (double) settings.getMinStabilityScore(), 
+                      (settings, value) -> settings.setMinStabilityScore(value.intValue()));
 
         // Bind exit strategy checkboxes
         settingsBinder.forField(useExitTakeCheckbox).bind(Settings::isUseExitTake, Settings::setUseExitTake);

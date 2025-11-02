@@ -187,7 +187,9 @@ public class FetchPairsProcessor {
         log.info("🔍 Получение стабильных пар с фильтрами: мониторинг={}, найденные={}", useMonitoring, useFound);
 
         // Получаем хорошие стабильные пары с учетом настроек
-        List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings(useMonitoring, useFound);
+        List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings(
+                useMonitoring, useFound, 
+                settings.isUseScoreFiltering(), settings.getMinStabilityScore());
         
         if (stablePairs.isEmpty()) {
             log.warn("⚠️ Не найдено стабильных пар с указанными фильтрами");
