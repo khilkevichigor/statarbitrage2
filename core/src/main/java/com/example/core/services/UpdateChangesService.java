@@ -3,6 +3,8 @@ package com.example.core.services;
 import com.example.shared.dto.ChangesData;
 import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.models.Pair;
+
+import java.util.List;
 import com.example.shared.utils.NumberFormatter;
 import com.example.shared.utils.TimeFormatterUtil;
 import lombok.RequiredArgsConstructor;
@@ -37,14 +39,43 @@ public class UpdateChangesService {
         tradingPair.setProfitUSDTChanges(changes.getProfitUSDTChanges());
         tradingPair.setProfitPercentChanges(changes.getProfitPercentChanges());
 
-        // Добавляем новую точку в историю профита ПОСЛЕ обновления значения
+        // Добавляем новую точку в историю профита ПОСЛЕ обновления значения (аналогично Z-Score)
         if (changes.getProfitPercentChanges() != null) {
-            log.info("📊 Добавляем точку профита в историю: {}% на время {}",
-                    changes.getProfitPercentChanges(), System.currentTimeMillis());
-            tradingPair.addProfitHistoryPoint(ProfitHistoryItem.builder()
-                    .timestamp(System.currentTimeMillis())
-                    .profitPercent(changes.getProfitPercentChanges().doubleValue())
-                    .build());
+            long currentTimestamp = System.currentTimeMillis();
+            double currentProfitPercent = changes.getProfitPercentChanges().doubleValue();
+            
+            // Получаем существующую историю для проверки дубликатов
+            List<ProfitHistoryItem> existingHistory = tradingPair.getProfitHistory();
+            
+            // Проверяем дубликаты по времени (избегаем добавления одинаковых записей)
+            boolean shouldAdd = true;
+            if (!existingHistory.isEmpty()) {
+                ProfitHistoryItem lastItem = existingHistory.get(existingHistory.size() - 1);
+                long timeDiff = currentTimestamp - lastItem.getTimestamp();
+                
+                // Если прошло меньше 30 секунд - обновляем последнюю запись вместо добавления новой
+                if (timeDiff < 30000) { // 30 секунд
+                    log.info("📊 Обновляем последнюю точку профита (прошло {} сек): {}% -> {}% для пары {}", 
+                            timeDiff / 1000, lastItem.getProfitPercent(), currentProfitPercent, tradingPair.getPairName());
+                    
+                    lastItem.setTimestamp(currentTimestamp);
+                    lastItem.setProfitPercent(currentProfitPercent);
+                    tradingPair.setProfitHistory(existingHistory); // Пересохраняем для обновления JSON
+                    shouldAdd = false;
+                }
+            }
+            
+            if (shouldAdd) {
+                log.info("📊 Добавляем НОВУЮ точку профита в историю: {}% на время {} для пары {} (было {} точек)",
+                        currentProfitPercent, currentTimestamp, tradingPair.getPairName(), existingHistory.size());
+                
+                tradingPair.addProfitHistoryPoint(ProfitHistoryItem.builder()
+                        .timestamp(currentTimestamp)
+                        .profitPercent(currentProfitPercent)
+                        .build());
+                        
+                log.info("📊 После добавления стало {} точек профита", tradingPair.getProfitHistory().size());
+            }
         }
 
         tradingPair.setMinutesToMinProfitPercent(changes.getTimeInMinutesSinceEntryToMinProfit());
