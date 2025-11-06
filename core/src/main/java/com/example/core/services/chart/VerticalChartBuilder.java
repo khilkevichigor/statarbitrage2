@@ -47,9 +47,10 @@ public class VerticalChartBuilder {
         }
 
         // 2. Z-Score чарт - ВСЕГДА
-        // Проверяем, будет ли добавлен профит, чтобы определить, должен ли Z-Score быть последним
+        // Определяем какие секции будут после Z-Score
+        boolean hasCorrelationData = hasCorrelationHistoryData(tradingPair);
         boolean hasProfitData = hasProfitHistoryData(tradingPair);
-        boolean zScoreIsLast = !hasProfitData; // Z-Score последний, если нет профита
+        boolean zScoreIsLast = !hasCorrelationData && !hasProfitData; // Z-Score последний, если нет корреляции и профита
         
         BufferedImage zScoreChart = createZScoreSection(tradingPair, showEntryPoint, zScoreIsLast);
         if (zScoreChart != null) {
@@ -57,7 +58,21 @@ public class VerticalChartBuilder {
             log.debug("✅ Добавлена секция Z-Score (последняя: {})", zScoreIsLast);
         }
 
-        // 3. Профит - для всех пар с историей профита (TRADING, CLOSED, ERROR)
+        // 3. Корреляция - для всех пар с историей корреляции
+        if (hasCorrelationData) {
+            boolean correlationIsLast = !hasProfitData; // Корреляция последняя, если нет профита
+            BufferedImage correlationChart = createCorrelationSection(tradingPair, showEntryPoint, correlationIsLast);
+            if (correlationChart != null) {
+                chartSections.add(correlationChart);
+                log.debug("✅ Добавлена секция корреляции для пары {} (статус: {}, последняя: {})", 
+                         tradingPair.getPairName(), tradingPair.getStatus(), correlationIsLast);
+            }
+        } else {
+            log.debug("⏭️ Секция корреляции пропущена - нет данных корреляции для пары {} (статус: {})", 
+                    tradingPair.getPairName(), tradingPair.getStatus());
+        }
+
+        // 4. Профит - для всех пар с историей профита (TRADING, CLOSED, ERROR)
         if (hasProfitData) {
             BufferedImage profitChart = createProfitSection(tradingPair, showEntryPoint, true); // ПОСЛЕДНИЙ с шкалой X
             if (profitChart != null) {
@@ -137,6 +152,39 @@ public class VerticalChartBuilder {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при создании секции Z-Score: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 📊 Создает секцию корреляции
+     *
+     * @param isLast если true - показывать шкалу X, если false - скрывать
+     */
+    private BufferedImage createCorrelationSection(Pair tradingPair, boolean showEntryPoint, boolean isLast) {
+        try {
+            log.debug("📊 Создание секции корреляции (шкала X: {})", isLast ? "показать" : "скрыть");
+
+            // Создаем базовый чарт и добавляем корреляцию
+            org.knowm.xchart.XYChart chart = zScoreChartBuilder.buildBasicZScoreChart(tradingPair, showEntryPoint);
+
+            // 🎯 Удаляем Z-Score серию И горизонтальные линии уровней, оставляем только точки входа
+            removeZScoreSeriesButKeepEntry(chart);
+
+            // Добавляем корреляцию
+            chartLayerService.addSynchronizedCorrelationToChart(chart, tradingPair);
+
+            // 🎯 Управляем отображением шкалы X
+            chart.getStyler().setXAxisTicksVisible(isLast);
+            chart.getStyler().setXAxisTitleVisible(isLast);
+
+            // Обновляем заголовок
+            chart.setTitle("📊 Корреляция: " + tradingPair.getPairName());
+
+            return org.knowm.xchart.BitmapEncoder.getBufferedImage(chart);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании секции корреляции: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -283,6 +331,29 @@ public class VerticalChartBuilder {
             return hasData;
         } catch (Exception e) {
             log.debug("📊 Ошибка при проверке истории профита для пары {}: {}", 
+                     tradingPair.getPairName(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 📊 Проверяет, есть ли у пары данные истории корреляции для отображения
+     */
+    private boolean hasCorrelationHistoryData(Pair tradingPair) {
+        try {
+            List<com.example.shared.dto.CorrelationHistoryItem> correlationHistory = tradingPair.getCorrelationHistory();
+            boolean hasData = correlationHistory != null && !correlationHistory.isEmpty();
+            
+            if (hasData) {
+                log.debug("📊 У пары {} есть {} точек истории корреляции", 
+                         tradingPair.getPairName(), correlationHistory.size());
+            } else {
+                log.debug("📊 У пары {} нет данных истории корреляции", tradingPair.getPairName());
+            }
+            
+            return hasData;
+        } catch (Exception e) {
+            log.debug("📊 Ошибка при проверке истории корреляции для пары {}: {}", 
                      tradingPair.getPairName(), e.getMessage());
             return false;
         }

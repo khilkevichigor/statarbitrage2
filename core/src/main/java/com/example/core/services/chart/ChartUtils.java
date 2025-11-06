@@ -33,6 +33,7 @@ public final class ChartUtils {
     public static final Color EMA_COLOR = Color.CYAN;
     public static final Color STOCHRSI_COLOR = Color.ORANGE;
     public static final Color PROFIT_COLOR = Color.ORANGE;
+    public static final Color CORRELATION_COLOR = new Color(46, 139, 87); // Морская зелень
     public static final Color PIXEL_SPREAD_COLOR = new Color(128, 0, 128, 150); // Полупрозрачный фиолетовый
     public static final Color ENTRY_POINT_COLOR = Color.BLUE;
     public static final Color ENTRY_POINT_APPROX_COLOR = Color.ORANGE;

@@ -29,6 +29,7 @@ public class ChangesData {
 
     private BigDecimal minCorr;
     private BigDecimal maxCorr;
+    private BigDecimal correlationCurrent;
 
     private BigDecimal minProfitChanges;
     private BigDecimal maxProfitChanges;

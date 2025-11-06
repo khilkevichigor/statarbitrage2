@@ -1,5 +1,6 @@
 package com.example.core.services.chart;
 
+import com.example.shared.dto.CorrelationHistoryItem;
 import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.dto.ZScoreParam;
@@ -152,6 +153,133 @@ public class ChartLayerService {
 
         chart.setYAxisGroupTitle(1, "Profit %");
         log.debug("🎯 ИДЕАЛЬНО синхронизированный профит добавлен на чарт!");
+    }
+
+    /**
+     * 📊 Добавляет синхронизированную корреляцию на Z-Score чарт
+     */
+    public void addSynchronizedCorrelationToChart(XYChart chart, Pair tradingPair) {
+        List<CorrelationHistoryItem> correlationHistory = tradingPair.getCorrelationHistory();
+        List<ZScoreParam> zScoreHistory = tradingPair.getZScoreHistory();
+
+        log.info("🎯 addSynchronizedCorrelationToChart для пары {}: correlationHistory={} точек, zScoreHistory={} точек", 
+                tradingPair.getPairName(), 
+                correlationHistory != null ? correlationHistory.size() : "null",
+                zScoreHistory != null ? zScoreHistory.size() : "null");
+
+        if (correlationHistory != null && !correlationHistory.isEmpty()) {
+            log.info("📊 Первые несколько точек корреляции: {}", 
+                    correlationHistory.stream().limit(3).map(item -> 
+                            String.format("%.4f в %s", item.getCorrelation(), new java.util.Date(item.getTimestamp()))
+                    ).toList());
+        }
+
+        if (correlationHistory == null || correlationHistory.isEmpty()) {
+            log.debug("📊 История корреляции пуста для пары {}, график корреляции не будет добавлен.",
+                    tradingPair.getPairName());
+            return;
+        }
+
+        if (zScoreHistory == null || zScoreHistory.isEmpty()) {
+            log.warn("⚠️ История Z-Score пуста - невозможно синхронизировать корреляцию");
+            addFallbackCorrelationToChart(chart, correlationHistory);
+            return;
+        }
+
+        // Сортируем по времени
+        correlationHistory.sort(Comparator.comparing(CorrelationHistoryItem::getTimestamp));
+
+        // Получаем временные метки Z-Score для синхронизации
+        List<Long> zScoreTimestamps = zScoreHistory.stream()
+                .map(ZScoreParam::getTimestamp)
+                .toList();
+        List<Date> zScoreTimeAxis = zScoreTimestamps.stream().map(Date::new).toList();
+
+        log.info("🎯 Синхронизируем корреляцию строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
+
+        // Интерполируем корреляцию на точные временные метки Z-Score с carry-forward стратегией
+        List<Double> interpolatedCorrelationValues = new ArrayList<>();
+        Double lastKnownValue = 0.0; // Начинаем с 0 до первой записи
+        
+        // Находим время первой записи корреляции для определения стратегии
+        long firstCorrelationTimestamp = correlationHistory.get(0).getTimestamp();
+        
+        for (Long zTimestamp : zScoreTimestamps) {
+            Double correlationValue = interpolationService.interpolateCorrelation(correlationHistory, zTimestamp);
+            
+            if (correlationValue != null) {
+                // Есть данные - используем их
+                lastKnownValue = correlationValue;
+                interpolatedCorrelationValues.add(correlationValue);
+            } else {
+                // Нет данных - применяем стратегию
+                if (zTimestamp < firstCorrelationTimestamp) {
+                    // До первой записи корреляции - используем 0
+                    interpolatedCorrelationValues.add(0.0);
+                } else {
+                    // После первой записи - используем последнее известное значение (carry forward)
+                    interpolatedCorrelationValues.add(lastKnownValue);
+                }
+            }
+        }
+
+        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированную корреляцию: {} точек", interpolatedCorrelationValues.size());
+        
+        // Логируем статистику интерполированных значений
+        long nonZeroCount = interpolatedCorrelationValues.stream().mapToLong(v -> v != 0.0 ? 1 : 0).sum();
+        double minValue = interpolatedCorrelationValues.stream().mapToDouble(v -> v).min().orElse(0.0);
+        double maxValue = interpolatedCorrelationValues.stream().mapToDouble(v -> v).max().orElse(0.0);
+        
+        log.info("📈 Статистика интерполированной корреляции: {} ненулевых из {}, диапазон [{:.4f} - {:.4f}]",
+                nonZeroCount, interpolatedCorrelationValues.size(), minValue, maxValue);
+
+        addCorrelationSeriesToChart(chart, zScoreTimeAxis, interpolatedCorrelationValues);
+    }
+
+    /**
+     * 🔄 Fallback метод для добавления корреляции без синхронизации
+     */
+    private void addFallbackCorrelationToChart(XYChart chart, List<CorrelationHistoryItem> correlationHistory) {
+        List<Date> correlationTimeAxis = correlationHistory.stream()
+                .map(c -> new Date(c.getTimestamp()))
+                .toList();
+        List<Double> correlationValues = correlationHistory.stream()
+                .map(CorrelationHistoryItem::getCorrelation)
+                .toList();
+
+        addCorrelationSeriesToChart(chart, correlationTimeAxis, correlationValues);
+    }
+
+    /**
+     * 📊 Добавляет серию корреляции на чарт
+     */
+    private void addCorrelationSeriesToChart(XYChart chart, List<Date> timeAxis, List<Double> correlationValues) {
+        if (!ChartUtils.isValidChartData(timeAxis, correlationValues)) {
+            log.warn("⚠️ Невалидные данные корреляции для добавления на чарт");
+            return;
+        }
+
+        XYSeries correlationSeries = chart.addSeries("Correlation (sync)", timeAxis, correlationValues);
+        correlationSeries.setYAxisGroup(1);
+        correlationSeries.setLineColor(ChartUtils.CORRELATION_COLOR);
+        correlationSeries.setMarker(new None());
+        correlationSeries.setLineStyle(new BasicStroke(2.0f));
+
+        // Последняя точка корреляции
+        if (!timeAxis.isEmpty() && !correlationValues.isEmpty()) {
+            Date lastTime = timeAxis.get(timeAxis.size() - 1);
+            Double lastValue = correlationValues.get(correlationValues.size() - 1);
+
+            XYSeries lastPointSeries = chart.addSeries("Last Correlation Point (sync)",
+                    Collections.singletonList(lastTime),
+                    Collections.singletonList(lastValue));
+            lastPointSeries.setYAxisGroup(1);
+            lastPointSeries.setMarker(SeriesMarkers.CIRCLE);
+            lastPointSeries.setMarkerColor(Color.BLUE);
+        }
+
+        chart.setYAxisGroupTitle(1, "Correlation");
+        log.debug("🎯 ИДЕАЛЬНО синхронизированная корреляция добавлена на чарт!");
     }
 
     /**

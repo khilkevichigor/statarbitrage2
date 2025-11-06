@@ -1,6 +1,7 @@
 package com.example.core.services;
 
 import com.example.shared.dto.ChangesData;
+import com.example.shared.dto.CorrelationHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.models.Pair;
 
@@ -33,6 +34,45 @@ public class UpdateChangesService {
 
         tradingPair.setMinCorr(changes.getMinCorr());
         tradingPair.setMaxCorr(changes.getMaxCorr());
+
+        // Добавляем новую точку в историю корреляции ПОСЛЕ обновления значения (аналогично профиту)
+        if (changes.getCorrelationCurrent() != null) {
+            long currentTimestamp = System.currentTimeMillis();
+            double currentCorrelation = changes.getCorrelationCurrent().doubleValue();
+            
+            // Получаем существующую историю для проверки дубликатов
+            List<CorrelationHistoryItem> existingHistory = tradingPair.getCorrelationHistory();
+            
+            // Проверяем дубликаты по времени (избегаем добавления одинаковых записей)
+            boolean shouldAdd = true;
+            if (!existingHistory.isEmpty()) {
+                CorrelationHistoryItem lastItem = existingHistory.get(existingHistory.size() - 1);
+                long timeDiff = currentTimestamp - lastItem.getTimestamp();
+                
+                // Если прошло меньше 30 секунд - обновляем последнюю запись вместо добавления новой
+                if (timeDiff < 30000) { // 30 секунд
+                    log.info("📊 Обновляем последнюю точку корреляции (прошло {} сек): {} -> {} для пары {}", 
+                            timeDiff / 1000, lastItem.getCorrelation(), currentCorrelation, tradingPair.getPairName());
+                    
+                    lastItem.setTimestamp(currentTimestamp);
+                    lastItem.setCorrelation(currentCorrelation);
+                    tradingPair.setCorrelationHistory(existingHistory); // Пересохраняем для обновления JSON
+                    shouldAdd = false;
+                }
+            }
+            
+            if (shouldAdd) {
+                log.info("📊 Добавляем НОВУЮ точку корреляции в историю: {} на время {} для пары {} (было {} точек)",
+                        currentCorrelation, currentTimestamp, tradingPair.getPairName(), existingHistory.size());
+                
+                tradingPair.addCorrelationHistoryPoint(CorrelationHistoryItem.builder()
+                        .timestamp(currentTimestamp)
+                        .correlation(currentCorrelation)
+                        .build());
+                        
+                log.info("📊 После добавления стало {} точек корреляции", tradingPair.getCorrelationHistory().size());
+            }
+        }
 
         tradingPair.setMinProfitPercentChanges(changes.getMinProfitChanges());
         tradingPair.setMaxProfitPercentChanges(changes.getMaxProfitChanges());

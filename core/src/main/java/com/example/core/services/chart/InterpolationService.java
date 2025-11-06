@@ -1,6 +1,7 @@
 package com.example.core.services.chart;
 
 import com.example.shared.dto.Candle;
+import com.example.shared.dto.CorrelationHistoryItem;
 import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import lombok.extern.slf4j.Slf4j;
@@ -143,6 +144,70 @@ public class InterpolationService {
         }
 
         log.warn("⚠️ Не удалось интерполировать профит для {}", new Date(targetTimestamp));
+        return null;
+    }
+
+    /**
+     * 🎯 Интерполирует корреляцию на точный таймштамп Z-Score
+     */
+    public Double interpolateCorrelation(List<CorrelationHistoryItem> correlationHistory, long targetTimestamp) {
+        if (correlationHistory == null || correlationHistory.isEmpty()) {
+            log.trace("🎯 Нет данных корреляции для интерполяции на {}", new Date(targetTimestamp));
+            return null;
+        }
+
+        // Ищем ближайшие записи до и после целевого времени
+        CorrelationHistoryItem beforeItem = null;
+        CorrelationHistoryItem afterItem = null;
+
+        for (CorrelationHistoryItem item : correlationHistory) {
+            if (item.getTimestamp() <= targetTimestamp) {
+                if (beforeItem == null || item.getTimestamp() > beforeItem.getTimestamp()) {
+                    beforeItem = item;
+                }
+            }
+            if (item.getTimestamp() >= targetTimestamp) {
+                if (afterItem == null || item.getTimestamp() < afterItem.getTimestamp()) {
+                    afterItem = item;
+                }
+            }
+        }
+
+        // Если точное совпадение
+        if (beforeItem != null && beforeItem.getTimestamp() == targetTimestamp) {
+            log.trace("🎯 Точное совпадение корреляции: {}", beforeItem.getCorrelation());
+            return beforeItem.getCorrelation();
+        }
+        if (afterItem != null && afterItem.getTimestamp() == targetTimestamp) {
+            log.trace("🎯 Точное совпадение корреляции: {}", afterItem.getCorrelation());
+            return afterItem.getCorrelation();
+        }
+
+        // Линейная интерполяция между двумя записями
+        if (beforeItem != null && afterItem != null && !beforeItem.equals(afterItem)) {
+            long timeDiff = afterItem.getTimestamp() - beforeItem.getTimestamp();
+            double correlationDiff = afterItem.getCorrelation() - beforeItem.getCorrelation();
+            long targetDiff = targetTimestamp - beforeItem.getTimestamp();
+
+            double interpolatedCorrelation = beforeItem.getCorrelation() + (correlationDiff * targetDiff / (double) timeDiff);
+
+            log.trace("🎯 Интерполяция корреляции: {} -> {} (между {} и {})",
+                    new Date(targetTimestamp), interpolatedCorrelation, beforeItem.getCorrelation(), afterItem.getCorrelation());
+
+            return interpolatedCorrelation;
+        }
+
+        // Fallback: ближайшее доступное значение
+        if (beforeItem != null) {
+            log.trace("🎯 Используем предыдущую корреляцию: {}", beforeItem.getCorrelation());
+            return beforeItem.getCorrelation();
+        }
+        if (afterItem != null) {
+            log.trace("🎯 Используем следующую корреляцию: {}", afterItem.getCorrelation());
+            return afterItem.getCorrelation();
+        }
+
+        log.warn("⚠️ Не удалось интерполировать корреляцию для {}", new Date(targetTimestamp));
         return null;
     }
 }

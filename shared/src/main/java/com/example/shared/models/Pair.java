@@ -1,6 +1,7 @@
 package com.example.shared.models;
 
 import com.example.shared.dto.Candle;
+import com.example.shared.dto.CorrelationHistoryItem;
 import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.dto.ZScoreParam;
@@ -245,6 +246,9 @@ public class Pair {
     @Column(name = "profit_history_json", columnDefinition = "TEXT")
     private String profitHistoryJson;
 
+    @Column(name = "correlation_history_json", columnDefinition = "TEXT")
+    private String correlationHistoryJson;
+
     @Column(name = "pixel_spread_history_json", columnDefinition = "TEXT")
     private String pixelSpreadHistoryJson;
 
@@ -260,6 +264,9 @@ public class Pair {
 
     @Transient
     private List<ProfitHistoryItem> profitHistory;
+
+    @Transient
+    private List<CorrelationHistoryItem> correlationHistory;
 
     @Transient
     private List<PixelSpreadHistoryItem> pixelSpreadHistory;
@@ -930,6 +937,46 @@ public class Pair {
                 return profitHistory;
             } catch (JsonProcessingException e) {
                 log.error("Ошибка при десериализации истории Profit", e);
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    public void addCorrelationHistoryPoint(CorrelationHistoryItem item) {
+        // КРИТИЧНО: Всегда загружаем существующую историю из JSON, если correlationHistory == null (аналогично Z-Score)
+        if (correlationHistory == null) {
+            correlationHistory = getCorrelationHistory(); // Загружаем из JSON или создаем пустой список
+        }
+        correlationHistory.add(item);
+        // Автоматически сохраняем в JSON поле
+        setCorrelationHistory(correlationHistory);
+    }
+
+    public void setCorrelationHistory(List<CorrelationHistoryItem> history) {
+        this.correlationHistory = history;
+        if (history != null) {
+            try {
+                this.correlationHistoryJson = objectMapper.writeValueAsString(history);
+            } catch (JsonProcessingException e) {
+                log.error("Ошибка при сериализации истории Correlation", e);
+                this.correlationHistoryJson = "[]";
+            }
+        } else {
+            this.correlationHistoryJson = null;
+        }
+    }
+
+    public List<CorrelationHistoryItem> getCorrelationHistory() {
+        if (correlationHistory != null) {
+            return correlationHistory;
+        }
+        if (correlationHistoryJson != null && !correlationHistoryJson.isEmpty()) {
+            try {
+                correlationHistory = objectMapper.readValue(correlationHistoryJson,
+                        new TypeReference<>() {});
+                return correlationHistory;
+            } catch (JsonProcessingException e) {
+                log.error("Ошибка при десериализации истории Correlation", e);
             }
         }
         return new ArrayList<>();

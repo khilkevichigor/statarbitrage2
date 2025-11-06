@@ -209,6 +209,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
         changesData.setMaxShort(updateMax(tradingPair.getMaxShort(), shortPct));
         changesData.setMinCorr(updateMin(tradingPair.getMinCorr(), corr));
         changesData.setMaxCorr(updateMax(tradingPair.getMaxCorr(), corr));
+        changesData.setCorrelationCurrent(corr);
     }
 
     private BigDecimal updateMin(BigDecimal currentMin, BigDecimal newVal) {
