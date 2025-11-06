@@ -119,6 +119,13 @@ public class StartNewTradeProcessor {
         log.debug("✅ Успешно открыта арбитражная пара: {}", tradingPair.getPairName());
 
         tradingPair.setStatus(TradeStatus.TRADING);
+        
+        // Сохраняем скор при входе в торговлю, если он еще не установлен
+        if (tradingPair.getTotalScoreEntry() == null && tradingPair.getTotalScore() != null) {
+            tradingPair.setTotalScoreEntry(tradingPair.getTotalScore());
+            log.debug("📊 Установлен скор при входе: {} для пары {}", 
+                     tradingPair.getTotalScore(), tradingPair.getPairName());
+        }
 
         tradingPair.setPortfolioBeforeTradeUSDT(openResult.getPortfolioBalanceBeforeTradeUSDT()); // баланс ДО
 
