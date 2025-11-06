@@ -113,6 +113,11 @@ public class TradingPairsComponent extends VerticalLayout {
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent() != null ? p.getAdfPvalueCurrent().doubleValue() : 0.0)).setHeader("AdfValue (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         selectedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent() != null ? p.getCorrelationCurrent().doubleValue() : 0.0)).setHeader("Корр.").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
+        // Добавляем колонки Скор entry, Скор факт, Рейтинг
+        selectedPairsGrid.addColumn(p -> p.getTotalScoreEntry() != null ? p.getTotalScoreEntry().toString() : "").setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        selectedPairsGrid.addColumn(p -> p.getTotalScore() != null ? p.getTotalScore().toString() : "").setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        selectedPairsGrid.addColumn(p -> p.getStabilityRating() != null ? p.getStabilityRating() : "").setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         selectedPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         selectedPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         selectedPairsGrid.addColumn(p -> {
@@ -172,6 +177,11 @@ public class TradingPairsComponent extends VerticalLayout {
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry() != null ? p.getCorrelationEntry().doubleValue() : 0.0)).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent() != null ? p.getCorrelationCurrent().doubleValue() : 0.0)).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
+        // Добавляем колонки Скор entry, Скор факт, Рейтинг
+        tradingPairsGrid.addColumn(p -> p.getTotalScoreEntry() != null ? p.getTotalScoreEntry().toString() : "").setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> p.getTotalScore() != null ? p.getTotalScore().toString() : "").setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> p.getStabilityRating() != null ? p.getStabilityRating() : "").setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         tradingPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         tradingPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
@@ -228,6 +238,11 @@ public class TradingPairsComponent extends VerticalLayout {
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry() != null ? p.getCorrelationEntry().doubleValue() : 0.0)).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent() != null ? p.getCorrelationCurrent().doubleValue() : 0.0)).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
+        // Добавляем колонки Скор entry, Скор факт, Рейтинг
+        closedPairsGrid.addColumn(p -> p.getTotalScoreEntry() != null ? p.getTotalScoreEntry().toString() : "").setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> p.getTotalScore() != null ? p.getTotalScore().toString() : "").setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> p.getStabilityRating() != null ? p.getStabilityRating() : "").setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         closedPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         closedPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
@@ -278,6 +293,11 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationEntry() != null ? p.getCorrelationEntry().doubleValue() : 0.0)).setHeader("Corr (entry)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent() != null ? p.getCorrelationCurrent().doubleValue() : 0.0)).setHeader("Corr (curr)").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
+        // Добавляем колонки Скор entry, Скор факт, Рейтинг
+        errorPairsGrid.addColumn(p -> p.getTotalScoreEntry() != null ? p.getTotalScoreEntry().toString() : "").setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> p.getTotalScore() != null ? p.getTotalScore().toString() : "").setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> p.getStabilityRating() != null ? p.getStabilityRating() : "").setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         errorPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         errorPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
@@ -303,6 +323,11 @@ public class TradingPairsComponent extends VerticalLayout {
         observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getPValueCurrent() != null ? p.getPValueCurrent().doubleValue() : 0.0)).setHeader("PValue").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getAdfPvalueCurrent() != null ? p.getAdfPvalueCurrent().doubleValue() : 0.0)).setHeader("AdfValue").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         observedPairsGrid.addColumn(p -> NumberFormatter.formatBigDecimal(p.getCorrelationCurrent() != null ? p.getCorrelationCurrent().doubleValue() : 0.0)).setHeader("Corr").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        // Добавляем колонки Скор entry, Скор факт, Рейтинг
+        observedPairsGrid.addColumn(p -> p.getTotalScoreEntry() != null ? p.getTotalScoreEntry().toString() : "").setHeader("Скор entry").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> p.getTotalScore() != null ? p.getTotalScore().toString() : "").setHeader("Скор факт").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        observedPairsGrid.addColumn(p -> p.getStabilityRating() != null ? p.getStabilityRating() : "").setHeader("Рейтинг").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         observedPairsGrid.addColumn(Pair::getSettingsTimeframe).setHeader("ТФ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         observedPairsGrid.addColumn(p -> String.valueOf(p.getSettingsCandleLimit() != null ? p.getSettingsCandleLimit().intValue() : 0)).setHeader("Свечей").setSortable(true).setAutoWidth(true).setFlexGrow(0);
