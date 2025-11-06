@@ -48,8 +48,8 @@ public class VerticalChartBuilder {
 
         // 2. Z-Score чарт - ВСЕГДА
         // Проверяем, будет ли добавлен профит, чтобы определить, должен ли Z-Score быть последним
-        boolean isTrading = TradeStatus.TRADING.equals(tradingPair.getStatus());
-        boolean zScoreIsLast = !isTrading; // Z-Score последний, если нет профита
+        boolean hasProfitData = hasProfitHistoryData(tradingPair);
+        boolean zScoreIsLast = !hasProfitData; // Z-Score последний, если нет профита
         
         BufferedImage zScoreChart = createZScoreSection(tradingPair, showEntryPoint, zScoreIsLast);
         if (zScoreChart != null) {
@@ -57,16 +57,17 @@ public class VerticalChartBuilder {
             log.debug("✅ Добавлена секция Z-Score (последняя: {})", zScoreIsLast);
         }
 
-        // 3. Профит - ТОЛЬКО для торгуемых пар (статус TRADING)
-        if (isTrading) {
+        // 3. Профит - для всех пар с историей профита (TRADING, CLOSED, ERROR)
+        if (hasProfitData) {
             BufferedImage profitChart = createProfitSection(tradingPair, showEntryPoint, true); // ПОСЛЕДНИЙ с шкалой X
             if (profitChart != null) {
                 chartSections.add(profitChart);
-                log.debug("✅ Добавлена секция профита для торгуемой пары (последняя, с шкалой X)");
+                log.debug("✅ Добавлена секция профита для пары {} (статус: {}, последняя, с шкалой X)", 
+                         tradingPair.getPairName(), tradingPair.getStatus());
             }
         } else {
-            log.debug("⏭️ Секция профита пропущена - пара не в торговле (статус: {})", 
-                    tradingPair.getStatus());
+            log.debug("⏭️ Секция профита пропущена - нет данных профита для пары {} (статус: {})", 
+                    tradingPair.getPairName(), tradingPair.getStatus());
         }
 
         // Если нет секций - создаем минимальный чарт с ценами и шкалой X
@@ -261,6 +262,29 @@ public class VerticalChartBuilder {
         } catch (Exception e) {
             log.error("❌ Ошибка при объединении чартов: {}", e.getMessage(), e);
             return chartSections.get(0); // Возвращаем первую секцию в случае ошибки
+        }
+    }
+
+    /**
+     * 📊 Проверяет, есть ли у пары данные истории профита для отображения
+     */
+    private boolean hasProfitHistoryData(Pair tradingPair) {
+        try {
+            List<com.example.shared.dto.ProfitHistoryItem> profitHistory = tradingPair.getProfitHistory();
+            boolean hasData = profitHistory != null && !profitHistory.isEmpty();
+            
+            if (hasData) {
+                log.debug("📊 У пары {} есть {} точек истории профита", 
+                         tradingPair.getPairName(), profitHistory.size());
+            } else {
+                log.debug("📊 У пары {} нет данных истории профита", tradingPair.getPairName());
+            }
+            
+            return hasData;
+        } catch (Exception e) {
+            log.debug("📊 Ошибка при проверке истории профита для пары {}: {}", 
+                     tradingPair.getPairName(), e.getMessage());
+            return false;
         }
     }
 }
