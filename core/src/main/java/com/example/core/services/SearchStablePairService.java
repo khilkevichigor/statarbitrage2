@@ -522,14 +522,15 @@ public class SearchStablePairService {
             return null;
         }
 
-        if (searchTickersObj instanceof List<?> tickersList) {
-            if (tickersList.isEmpty()) {
+        // Поддержка Collection (List, Set, HashSet)
+        if (searchTickersObj instanceof Collection<?> tickersCollection) {
+            if (tickersCollection.isEmpty()) {
                 return null;
             }
 
-            // Конвертируем в Set<String> с валидацией
+            // Конвертируем в List<String> с валидацией
             List<String> result = new ArrayList<>();
-            for (Object ticker : tickersList) {
+            for (Object ticker : tickersCollection) {
                 if (ticker instanceof String tickerStr) {
                     String trimmed = tickerStr.trim().toUpperCase();
                     if (!trimmed.isEmpty()) {
