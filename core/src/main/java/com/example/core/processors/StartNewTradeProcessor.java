@@ -62,14 +62,20 @@ public class StartNewTradeProcessor {
             return handleTradeError(tradingPair, StartTradeErrorType.AUTO_TRADING_DISABLED);
         }
 
+        // 4. Проверка фильтра снижения zScore
+        if (!startNewTradeValidationService.validateZScoreDeclineFilter(zScoreData, settings)) {
+            log.warn("⚠️ Фильтр снижения zScore: условие не выполнено для пары {}", tradingPair.getPairName());
+            return handleTradeError(tradingPair, StartTradeErrorType.ZSCORE_DECLINE_FILTER_FAILED);
+        }
+
         logTradeInfo(zScoreData);
 
-        // 4. Проверка баланса
+        // 5. Проверка баланса
         if (!startNewTradeValidationService.validateBalance(tradingPair, settings)) {
             return handleTradeError(tradingPair, StartTradeErrorType.INSUFFICIENT_FUNDS);
         }
 
-        // 5. Открытие позиции
+        // 6. Открытие позиции
         return openTradePosition(tradingPair, zScoreData, settings);
     }
 

@@ -72,4 +72,52 @@ public class StartNewTradeValidationService {
         }
         return true;
     }
+
+    public boolean validateZScoreDeclineFilter(ZScoreData zScoreData, Settings settings) {
+        // Если фильтр отключен, пропускаем проверку
+        if (!settings.isUseZScoreDeclineFilter()) {
+            log.debug("✅ Фильтр снижения zScore отключен");
+            return true;
+        }
+
+        // Получаем количество свечей для проверки
+        int candlesCount = settings.getZScoreDeclineCandlesCount();
+        
+        // Получаем исторические данные zScore
+        var zScoreHistory = zScoreData.getZScoreHistory();
+        if (zScoreHistory == null || zScoreHistory.isEmpty()) {
+            log.warn("⚠️ Нет данных истории zScore для проверки фильтра снижения");
+            return false;
+        }
+
+        // Проверяем, что у нас достаточно точек для анализа
+        if (zScoreHistory.size() < candlesCount) {
+            log.warn("⚠️ Недостаточно данных zScore для проверки фильтра снижения. Требуется {}, доступно {}", 
+                    candlesCount, zScoreHistory.size());
+            return false;
+        }
+
+        // Берём последние N точек zScore (самые свежие в конце списка)
+        var recentZScores = zScoreHistory.subList(zScoreHistory.size() - candlesCount, zScoreHistory.size());
+        
+        // Проверяем тенденцию снижения
+        boolean isDecreasing = true;
+        for (int i = 1; i < recentZScores.size(); i++) {
+            double previousZScore = recentZScores.get(i - 1).getZscore();
+            double currentZScore = recentZScores.get(i).getZscore();
+            
+            if (currentZScore >= previousZScore) {
+                isDecreasing = false;
+                break;
+            }
+        }
+
+        if (!isDecreasing) {
+            log.warn("⚠️ Фильтр снижения zScore: тенденция снижения не обнаружена за последние {} точек", candlesCount);
+            return false;
+        }
+
+        log.info("✅ Фильтр снижения zScore: обнаружена тенденция снижения за последние {} точек", candlesCount);
+        return true;
+    }
 }

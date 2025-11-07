@@ -97,6 +97,14 @@ public class Settings {
     private boolean useMinZFilter = true;
 
     @Builder.Default
+    @Column(name = "use_zscore_decline_filter")
+    private boolean useZScoreDeclineFilter = false;
+
+    @Builder.Default
+    @Column(name = "zscore_decline_candles_count")
+    private int zScoreDeclineCandlesCount = 4;
+
+    @Builder.Default
     @Column(name = "use_min_r_squared_filter")
     private boolean useMinRSquaredFilter = true;
 
@@ -401,6 +409,8 @@ public class Settings {
 
         // Флаги фильтров
         this.useMinZFilter = other.useMinZFilter;
+        this.useZScoreDeclineFilter = other.useZScoreDeclineFilter;
+        this.zScoreDeclineCandlesCount = other.zScoreDeclineCandlesCount;
         this.useMinRSquaredFilter = other.useMinRSquaredFilter;
         this.useMaxPValueFilter = other.useMaxPValueFilter;
         this.useMaxAdfValueFilter = other.useMaxAdfValueFilter;

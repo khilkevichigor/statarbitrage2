@@ -224,6 +224,15 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
         Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
         Checkbox useMinIntersectionsFilterCheckbox = new Checkbox("Использовать фильтр по пересечениям цен");
+        Checkbox useZScoreDeclineFilterCheckbox = new Checkbox("Вход при снижении zScore");
+        
+        NumberField zScoreDeclineCandlesCountField = new NumberField("Количество свечей");
+        zScoreDeclineCandlesCountField.setHelperText("Количество последних свечей для проверки снижения zScore");
+        zScoreDeclineCandlesCountField.setStep(1.0);
+        zScoreDeclineCandlesCountField.setMin(1.0);
+        zScoreDeclineCandlesCountField.setMax(10.0);
+        zScoreDeclineCandlesCountField.setValue(4.0);
+        zScoreDeclineCandlesCountField.setStepButtonsVisible(true);
         Checkbox useStablePairsForMonitoringCheckbox = new Checkbox("Искать из Постоянный список для мониторинга");
         Checkbox useFoundStablePairsCheckbox = new Checkbox("Искать из Найденные стабильные пары");
         
@@ -314,6 +323,7 @@ public class SettingsComponent extends VerticalLayout {
                 checkIntervalField, minimumLotBlacklistField, useMinZFilterCheckbox, useMinRSquaredFilterCheckbox,
                 useMinPValueFilterCheckbox, useMaxAdfValueFilterCheckbox, useMinCorrelationFilterCheckbox,
                 useMinVolumeFilterCheckbox, useMinIntersectionsFilterCheckbox, minIntersectionsField,
+                useZScoreDeclineFilterCheckbox, zScoreDeclineCandlesCountField,
                 useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox, useScoreFilteringCheckbox, minStabilityScoreField));
 
         // Создаем поля для усреднения (депозит берется из OKX через PortfolioService)
@@ -404,6 +414,8 @@ public class SettingsComponent extends VerticalLayout {
                 useMinVolumeFilterCheckbox,
                 useMinIntersectionsFilterCheckbox,
                 minIntersectionsField,
+                useZScoreDeclineFilterCheckbox,
+                zScoreDeclineCandlesCountField,
                 useStablePairsForMonitoringCheckbox,
                 useFoundStablePairsCheckbox,
                 useScoreFilteringCheckbox,
@@ -736,7 +748,8 @@ public class SettingsComponent extends VerticalLayout {
                                           Checkbox useMinRSquaredFilterCheckbox, Checkbox useMinPValueFilterCheckbox,
                                           Checkbox useMaxAdfValueFilterCheckbox, Checkbox useMinCorrelationFilterCheckbox,
                                           Checkbox useMinVolumeFilterCheckbox, Checkbox useMinIntersectionsFilterCheckbox,
-                                          NumberField minIntersectionsField, Checkbox useStablePairsForMonitoringCheckbox,
+                                          NumberField minIntersectionsField, Checkbox useZScoreDeclineFilterCheckbox,
+                                          NumberField zScoreDeclineCandlesCountField, Checkbox useStablePairsForMonitoringCheckbox,
                                           Checkbox useFoundStablePairsCheckbox, Checkbox useScoreFilteringCheckbox, 
                                           NumberField minStabilityScoreField) {
 
@@ -750,6 +763,7 @@ public class SettingsComponent extends VerticalLayout {
         HorizontalLayout minCorrelationLayout = createFilterLayout(useMinCorrelationFilterCheckbox, minCorrelationField);
         HorizontalLayout minVolumeLayout = createFilterLayout(useMinVolumeFilterCheckbox, minVolumeField);
         HorizontalLayout minIntersectionsLayout = createFilterLayout(useMinIntersectionsFilterCheckbox, minIntersectionsField);
+        HorizontalLayout zScoreDeclineLayout = createFilterLayout(useZScoreDeclineFilterCheckbox, zScoreDeclineCandlesCountField);
         
         // Создаем layout для фильтрации по скору
         HorizontalLayout scoreFilteringLayout = createFilterLayout(useScoreFilteringCheckbox, minStabilityScoreField);
@@ -758,7 +772,7 @@ public class SettingsComponent extends VerticalLayout {
                 timeframeField, periodField, checkIntervalField,
                 minZLayout, minRSquaredLayout, minWindowSizeField, minPValueLayout,
                 maxAdfValueLayout, minCorrelationLayout, minVolumeLayout,
-                minIntersectionsLayout, useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox,
+                minIntersectionsLayout, zScoreDeclineLayout, useStablePairsForMonitoringCheckbox, useFoundStablePairsCheckbox,
                 scoreFilteringLayout, minimumLotBlacklistField
         );
 
@@ -1026,6 +1040,8 @@ public class SettingsComponent extends VerticalLayout {
                             Checkbox useMinVolumeFilterCheckbox,
                             Checkbox useMinIntersectionsFilterCheckbox,
                             NumberField minIntersectionsField,
+                            Checkbox useZScoreDeclineFilterCheckbox,
+                            NumberField zScoreDeclineCandlesCountField,
                             Checkbox useStablePairsForMonitoringCheckbox,
                             Checkbox useFoundStablePairsCheckbox,
                             Checkbox useScoreFilteringCheckbox,
@@ -1105,6 +1121,13 @@ public class SettingsComponent extends VerticalLayout {
         // Bind found stable pairs checkbox
         settingsBinder.forField(useFoundStablePairsCheckbox).bind(Settings::isUseFoundStablePairs, Settings::setUseFoundStablePairs);
         
+        // Bind zScore decline filter checkbox and field
+        settingsBinder.forField(useZScoreDeclineFilterCheckbox).bind(Settings::isUseZScoreDeclineFilter, Settings::setUseZScoreDeclineFilter);
+        settingsBinder.forField(zScoreDeclineCandlesCountField)
+                .withValidator(value -> value != null && value >= 1 && value <= 10, "Количество свечей должно быть от 1 до 10")
+                .bind(settings -> (double) settings.getZScoreDeclineCandlesCount(),
+                      (settings, value) -> settings.setZScoreDeclineCandlesCount(value.intValue()));
+
         // Bind score filtering checkbox and field
         settingsBinder.forField(useScoreFilteringCheckbox).bind(Settings::isUseScoreFiltering, Settings::setUseScoreFiltering);
         settingsBinder.forField(minStabilityScoreField)
