@@ -100,6 +100,19 @@ public class StartNewTradeValidationService {
         // Берём последние N точек zScore (самые свежие в конце списка)
         var recentZScores = zScoreHistory.subList(zScoreHistory.size() - candlesCount, zScoreHistory.size());
         
+        // Создаём строку с последовательностью zScore для логирования
+        StringBuilder zScoreSequence = new StringBuilder();
+        for (int i = 0; i < recentZScores.size(); i++) {
+            double zScore = recentZScores.get(i).getZscore();
+            zScoreSequence.append(String.format("%.2f", zScore));
+            if (i < recentZScores.size() - 1) {
+                zScoreSequence.append("->");
+            }
+        }
+        
+        log.info("📊 Проверка фильтра снижения zScore для {} точек. Последовательность: {}", 
+                candlesCount, zScoreSequence);
+        
         // Проверяем тенденцию снижения
         boolean isDecreasing = true;
         for (int i = 1; i < recentZScores.size(); i++) {
@@ -108,16 +121,23 @@ public class StartNewTradeValidationService {
             
             if (currentZScore >= previousZScore) {
                 isDecreasing = false;
+                log.debug("❌ Снижение прервано на позиции {}: {} >= {}", 
+                        i, String.format("%.2f", currentZScore), String.format("%.2f", previousZScore));
                 break;
+            } else {
+                log.debug("✅ Снижение на позиции {}: {} -> {}", 
+                        i, String.format("%.2f", previousZScore), String.format("%.2f", currentZScore));
             }
         }
 
         if (!isDecreasing) {
-            log.warn("⚠️ Фильтр снижения zScore: тенденция снижения не обнаружена за последние {} точек", candlesCount);
+            log.warn("⚠️ Фильтр снижения zScore: тенденция снижения НЕ обнаружена. Последовательность: {}", 
+                    zScoreSequence);
             return false;
         }
 
-        log.info("✅ Фильтр снижения zScore: обнаружена тенденция снижения за последние {} точек", candlesCount);
+        log.info("✅ Фильтр снижения zScore: обнаружена тенденция снижения! Последовательность: {}", 
+                zScoreSequence);
         return true;
     }
 }
