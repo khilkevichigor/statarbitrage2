@@ -129,8 +129,25 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
                 log.debug("Начинаем закрытие позиций для пары {}", pair.getPairName());
 
-                TradeResult longResult = closePosition(provider, longPositionOpt.get());
+                // Сначала закрываем ШОРТ позицию (это может освободить больше маржи)
                 TradeResult shortResult = closePosition(provider, shortPositionOpt.get());
+                
+                // Добавляем задержку для освобождения маржи после закрытия ШОРТ позиции
+                if (shortResult.isSuccess()) {
+                    try {
+                        log.info("💤 Ожидаем 3 секунды для освобождения маржи после закрытия ШОРТ позиции");
+                        Thread.sleep(3000);
+                        log.info("✅ Ожидание завершено, пытаемся закрыть ЛОНГ позицию");
+                    } catch (InterruptedException e) {
+                        log.warn("⚠️ Прервано ожидание освобождения маржи: {}", e.getMessage());
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    log.warn("⚠️ ШОРТ позиция не была успешно закрыта, все равно пытаемся закрыть ЛОНГ");
+                }
+                
+                // Теперь закрываем ЛОНГ позицию
+                TradeResult longResult = closePosition(provider, longPositionOpt.get());
 
                 if (longResult.isSuccess() && shortResult.isSuccess()) {
                     logSuccess(pair, longResult, shortResult);
