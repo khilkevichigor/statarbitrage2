@@ -200,6 +200,7 @@ public class StatisticsService {
 
     private long calculateTotalAveragingCount(List<Pair> pairs) {
         return pairs.stream()
+                .filter(p -> p.getAveragingCount() != null)
                 .mapToInt(Pair::getAveragingCount)
                 .sum();
     }
