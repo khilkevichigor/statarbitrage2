@@ -22,10 +22,27 @@ public class PositionService {
     private final PositionRepository positionRepository;
 
     /**
-     * Получить все позиции
+     * Получить все позиции (без удаленных)
      */
     public List<Position> getAllPositions() {
+        return positionRepository.findAllByIsDeleted(false);
+    }
+
+    /**
+     * Получить все позиции с фильтром по isDeleted
+     */
+    public List<Position> getAllPositions(Boolean includeDeleted) {
+        if (includeDeleted == null || !includeDeleted) {
+            return getAllPositions();
+        }
         return positionRepository.findAll();
+    }
+
+    /**
+     * Получить только удаленные позиции
+     */
+    public List<Position> getDeletedPositions() {
+        return positionRepository.findAllByIsDeleted(true);
     }
 
     /**
@@ -50,19 +67,37 @@ public class PositionService {
     }
 
     /**
-     * Получить позиции по ID торговой пары
+     * Получить позиции по ID торговой пары (без удаленных)
      */
     public List<Position> getPositionsByTradingPairId(Long tradingPairId) {
-        return positionRepository.findAll().stream()
+        return getAllPositions().stream()
                 .filter(p -> p.getTradingPairId().equals(tradingPairId))
                 .collect(Collectors.toList());
     }
 
     /**
-     * Получить позиции по типу
+     * Получить позиции по ID торговой пары с фильтром по isDeleted
+     */
+    public List<Position> getPositionsByTradingPairId(Long tradingPairId, Boolean includeDeleted) {
+        return getAllPositions(includeDeleted).stream()
+                .filter(p -> p.getTradingPairId().equals(tradingPairId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Получить позиции по типу (без удаленных)
      */
     public List<Position> getPositionsByType(PositionType type) {
-        return positionRepository.findAll().stream()
+        return getAllPositions().stream()
+                .filter(p -> p.getType() == type)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Получить позиции по типу с фильтром по isDeleted
+     */
+    public List<Position> getPositionsByType(PositionType type, Boolean includeDeleted) {
+        return getAllPositions(includeDeleted).stream()
                 .filter(p -> p.getType() == type)
                 .collect(Collectors.toList());
     }
@@ -114,18 +149,80 @@ public class PositionService {
     }
 
     /**
-     * Удалить позицию
+     * Мягкое удаление позиции (soft delete)
      */
     @Transactional
-    public void delete(Position position) {
-        positionRepository.delete(position);
+    public void softDelete(Position position) {
+        position.setIsDeleted(true);
+        positionRepository.save(position);
+        log.info("Position {} soft deleted", position.getId());
     }
 
     /**
-     * Найти позицию по ID
+     * Мягкое удаление позиции по ID
+     */
+    @Transactional
+    public void softDeleteById(Long id) {
+        Position position = findById(id);
+        if (position != null && !position.getIsDeleted()) {
+            softDelete(position);
+        }
+    }
+
+    /**
+     * Восстановление удаленной позиции
+     */
+    @Transactional
+    public void restore(Position position) {
+        position.setIsDeleted(false);
+        positionRepository.save(position);
+        log.info("Position {} restored", position.getId());
+    }
+
+    /**
+     * Восстановление удаленной позиции по ID
+     */
+    @Transactional
+    public void restoreById(Long id) {
+        Position position = positionRepository.findById(id).orElse(null);
+        if (position != null && position.getIsDeleted()) {
+            restore(position);
+        }
+    }
+
+    /**
+     * Массовое мягкое удаление позиций для торговой пары
+     */
+    @Transactional
+    public void softDeleteByTradingPairId(Long tradingPairId) {
+        List<Position> positions = getPositionsByTradingPairId(tradingPairId, false); // Только активные
+        positions.forEach(this::softDelete);
+        log.info("Soft deleted {} positions for trading pair {}", positions.size(), tradingPairId);
+    }
+
+    /**
+     * Жесткое удаление позиции (безвозвратное) - только для административных целей
+     * ВНИМАНИЕ: Этот метод приватный, чтобы предотвратить случайное использование
+     */
+    @Transactional
+    private void hardDelete(Position position) {
+        positionRepository.delete(position);
+        log.warn("Position {} hard deleted (irreversible)", position.getId());
+    }
+
+    /**
+     * Найти позицию по ID (включая удаленные)
      */
     public Position findById(Long id) {
         return positionRepository.findById(id).orElse(null);
+    }
+
+    /**
+     * Найти активную позицию по ID (без удаленных)
+     */
+    public Position findActiveById(Long id) {
+        Position position = findById(id);
+        return (position != null && !position.getIsDeleted()) ? position : null;
     }
 
     /**

@@ -7,6 +7,7 @@ import com.example.shared.models.Position;
 import com.example.shared.utils.NumberFormatter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -39,6 +40,7 @@ public class PositionsComponent extends VerticalLayout {
     private final ComboBox<PositionStatus> statusFilter;
     private final ComboBox<PositionType> typeFilter;
     private final VerticalLayout statisticsLayout;
+    private final Checkbox showDeletedCheckbox;
 
     private Consumer<Void> uiUpdateCallback;
 
@@ -48,6 +50,7 @@ public class PositionsComponent extends VerticalLayout {
         this.statusFilter = new ComboBox<>("Фильтр по статусу");
         this.typeFilter = new ComboBox<>("Фильтр по типу");
         this.statisticsLayout = new VerticalLayout();
+        this.showDeletedCheckbox = new Checkbox("Показать удаленные");
 
         initializeComponent();
         setupGrid();
@@ -63,7 +66,7 @@ public class PositionsComponent extends VerticalLayout {
         updateStatistics();
 
         // Создаем фильтры
-        HorizontalLayout filtersLayout = new HorizontalLayout(statusFilter, typeFilter);
+        HorizontalLayout filtersLayout = new HorizontalLayout(statusFilter, typeFilter, showDeletedCheckbox);
         filtersLayout.setAlignItems(Alignment.END);
 
         add(statisticsLayout, filtersLayout, positionsGrid);
@@ -83,6 +86,10 @@ public class PositionsComponent extends VerticalLayout {
         typeFilter.setClearButtonVisible(true);
         typeFilter.setPlaceholder("Все типы");
         typeFilter.addValueChangeListener(e -> refreshPositions());
+
+        // Настройка чекбокса для удаленных
+        showDeletedCheckbox.setValue(false);
+        showDeletedCheckbox.addValueChangeListener(e -> refreshPositions());
     }
 
     private void setupGrid() {
@@ -173,6 +180,10 @@ public class PositionsComponent extends VerticalLayout {
                 .setWidth("150px")
                 .setFlexGrow(0);
 
+        // Стиль для удаленных позиций
+        positionsGrid.setClassNameGenerator(position -> 
+            position.getIsDeleted() ? "deleted-position" : null);
+
         refreshPositions();
     }
 
@@ -255,12 +266,25 @@ public class PositionsComponent extends VerticalLayout {
         detailsButton.setTooltipText("Подробности");
         detailsButton.addClickListener(e -> showPositionDetails(position));
 
-        Button deleteButton = new Button(VaadinIcon.TRASH.create());
-        deleteButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
-        deleteButton.setTooltipText("Удалить");
-        deleteButton.addClickListener(e -> confirmDeletePosition(position));
+        HorizontalLayout layout = new HorizontalLayout(detailsButton);
 
-        return new HorizontalLayout(detailsButton, deleteButton);
+        if (position.getIsDeleted()) {
+            // Если позиция удалена - показываем кнопку восстановления
+            Button restoreButton = new Button(VaadinIcon.REFRESH.create());
+            restoreButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+            restoreButton.setTooltipText("Восстановить");
+            restoreButton.addClickListener(e -> confirmRestorePosition(position));
+            layout.add(restoreButton);
+        } else {
+            // Если позиция активна - показываем кнопку удаления
+            Button deleteButton = new Button(VaadinIcon.TRASH.create());
+            deleteButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            deleteButton.setTooltipText("Удалить");
+            deleteButton.addClickListener(e -> confirmDeletePosition(position));
+            layout.add(deleteButton);
+        }
+
+        return layout;
     }
 
     private void showPositionDetails(Position position) {
@@ -320,10 +344,46 @@ public class PositionsComponent extends VerticalLayout {
         confirmDialog.open();
     }
 
+    private void confirmRestorePosition(Position position) {
+        Dialog confirmDialog = new Dialog();
+        confirmDialog.setHeaderTitle("Подтверждение восстановления");
+
+        VerticalLayout content = new VerticalLayout();
+        content.add(new Span("Вы уверены, что хотите восстановить позицию " + position.getSymbol() + "?"));
+
+        Button confirmButton = new Button("Восстановить", e -> {
+            restorePosition(position);
+            confirmDialog.close();
+        });
+        confirmButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+
+        Button cancelButton = new Button("Отмена", e -> confirmDialog.close());
+
+        HorizontalLayout buttons = new HorizontalLayout(confirmButton, cancelButton);
+        content.add(buttons);
+
+        confirmDialog.add(content);
+        confirmDialog.open();
+    }
+
+    private void restorePosition(Position position) {
+        try {
+            positionService.restore(position);
+            Notification.show("Позиция успешно восстановлена", 3000, Notification.Position.TOP_END);
+            refreshPositions();
+            updateStatistics();
+            triggerUIUpdate();
+        } catch (Exception e) {
+            log.error("Ошибка при восстановлении позиции", e);
+            Notification.show("Ошибка при восстановлении позиции: " + e.getMessage(),
+                    5000, Notification.Position.TOP_END);
+        }
+    }
+
     private void deletePosition(Position position) {
         try {
-            positionService.delete(position);
-            Notification.show("Позиция успешно удалена", 3000, Notification.Position.TOP_END);
+            positionService.softDelete(position);
+            Notification.show("Позиция помечена как удаленная (можно восстановить)", 3000, Notification.Position.TOP_END);
             refreshPositions();
             updateStatistics();
             triggerUIUpdate();
@@ -395,7 +455,13 @@ public class PositionsComponent extends VerticalLayout {
 
     public void refreshPositions() {
         try {
-            List<Position> positions = positionService.getAllPositions();
+            // Получаем позиции с учетом фильтра удаленных
+            List<Position> positions;
+            if (showDeletedCheckbox.getValue()) {
+                positions = positionService.getAllPositions(true); // Включая удаленные
+            } else {
+                positions = positionService.getAllPositions(); // Только активные
+            }
 
             // Применяем фильтры
             if (statusFilter.getValue() != null) {

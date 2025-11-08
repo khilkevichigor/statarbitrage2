@@ -2,6 +2,7 @@ package com.example.core.trading.services;
 
 import com.example.core.repositories.PositionRepository;
 import com.example.core.services.PortfolioService;
+import com.example.core.services.PositionService;
 import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.interfaces.TradingProviderType;
 import com.example.shared.dto.*;
@@ -29,6 +30,7 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     private final TradingProviderFactory tradingProviderFactory;
     private final PositionRepository positionRepository;
+    private final PositionService positionService;
     private final PositionSizeService positionSizeService;
     private final AdaptiveAmountService adaptiveAmountService;
     private final ValidateMinimumLotRequirementsService validateMinimumLotRequirementsService;
@@ -296,15 +298,9 @@ public class TradingIntegrationServiceImpl implements TradingIntegrationService 
 
     @Override
     public void deletePositions(Pair pair) {
-        log.debug("Удаляем сохранённые позиции из бд для пары {}", pair.getPairName());
-        List<Position> longPositions = positionRepository.findAllByTradingPairIdAndType(pair.getId(), PositionType.LONG);
-        List<Position> shortPositions = positionRepository.findAllByTradingPairIdAndType(pair.getId(), PositionType.SHORT);
-
-        positionRepository.deleteAll(longPositions);
-        positionRepository.deleteAll(shortPositions);
-
-        log.debug("Удалены позиции для пары {}: {} лонг позиций, {} шорт позиций",
-                pair.getPairName(), longPositions.size(), shortPositions.size());
+        log.debug("Мягко удаляем позиции из БД для пары {}", pair.getPairName());
+        // Мягкое удаление позиций через PositionService
+        positionService.softDeleteByTradingPairId(pair.getId());
     }
 
     @Override

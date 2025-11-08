@@ -107,6 +107,10 @@ public class Position {
     @Column(name = "candle_count")
     private Integer candleCount; // Свечей: количество свечей использованных для анализа
 
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false; // Soft delete флаг
+
     public boolean isOpen() {
         return status == PositionStatus.OPEN;
     }
