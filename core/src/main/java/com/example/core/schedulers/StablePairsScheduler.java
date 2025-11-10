@@ -10,6 +10,7 @@ import com.example.shared.models.StablePairsScreenerSettings;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -48,13 +49,23 @@ public class StablePairsScheduler {
     /**
      * Автоматический поиск стабильных пар по расписанию (многопоточный)
      * Запускается каждые 15 мин по местному времени
+     * Выполняется асинхронно чтобы не блокировать UI
      */
     @Scheduled(cron = "0 10,25,40,55 * * * *")
     public void searchStablePairsScheduled() {
+        // Запускаем асинхронно
+        executeStablePairsSearchAsync();
+    }
+
+    /**
+     * Асинхронное выполнение поиска стабильных пар
+     */
+    @Async
+    public CompletableFuture<Void> executeStablePairsSearchAsync() {
         // Проверяем включен ли шедуллер через настройки
         if (!schedulerControlService.isStablePairsSchedulerEnabled()) {
             log.info("📅 StablePairsScheduler отключен в настройках - пропускаем выполнение");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         log.info("");
@@ -83,7 +94,7 @@ public class StablePairsScheduler {
 
             if (scheduledSettings.isEmpty()) {
                 log.info("⏰ Нет настроек с включенным автоматическим поиском");
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
             // Считаем общее количество задач
@@ -184,6 +195,8 @@ public class StablePairsScheduler {
             log.error("💥 Критическая ошибка при автоматическом поиске стабильных пар: {}",
                     e.getMessage(), e);
         }
+        
+        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -237,9 +250,9 @@ public class StablePairsScheduler {
      * Тестовый метод для проверки автоматического поиска
      * Можно запустить вручную для тестирования
      */
-    public void testScheduledSearch() {
+    public CompletableFuture<Void> testScheduledSearch() {
         log.info("🧪 Тестовый запуск многопоточного автоматического поиска стабильных пар");
-        searchStablePairsScheduled();
+        return executeStablePairsSearchAsync();
     }
 
     /**
