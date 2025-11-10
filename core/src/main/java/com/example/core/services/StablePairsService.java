@@ -28,7 +28,7 @@ public class StablePairsService {
      * @return список всех пар (исходные + зеркальные)
      */
     public List<Pair> createPairsWithMirrors(List<Pair> originalPairs) {
-        log.info("🪞 Создание зеркальных пар для {} исходных пар", originalPairs.size());
+        log.debug("🪞 Создание зеркальных пар для {} исходных пар", originalPairs.size());
 
         List<Pair> allPairs = new ArrayList<>(originalPairs);
 
@@ -36,11 +36,11 @@ public class StablePairsService {
             Pair mirrorPair = createMirrorPair(originalPair);
             allPairs.add(mirrorPair);
 
-            log.info("🪞 Создана зеркальная пара: {} -> {}",
+            log.debug("🪞 Создана зеркальная пара: {} -> {}",
                     originalPair.getPairName(), mirrorPair.getPairName());
         }
 
-        log.info("✅ Создано {} пар с зеркальными (исходных: {}, зеркальных: {})",
+        log.debug("✅ Создано {} пар с зеркальными (исходных: {}, зеркальных: {})",
                 allPairs.size(), originalPairs.size(), originalPairs.size());
 
         return allPairs;
@@ -105,9 +105,6 @@ public class StablePairsService {
     public List<Pair> getGoodStablePairsBySettings(boolean useMonitoring, boolean useFound, 
                                                    boolean useScoreFiltering, int minStabilityScore) {
         if (useScoreFiltering) {
-            log.info("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
-                    useMonitoring, useFound, minStabilityScore);
-            
             return getStablePairsByScore(useMonitoring, useFound, minStabilityScore);
         } else {
             // Использование старой логики с рейтингами
@@ -117,7 +114,7 @@ public class StablePairsService {
                     StabilityRating.EXCELLENT
             );
 
-            log.info("🔍 Получение хороших стабильных пар по рейтингам: мониторинг={}, найденные={}, рейтинги={}",
+            log.debug("🔍 Получение хороших стабильных пар по рейтингам: мониторинг={}, найденные={}, рейтинги={}",
                     useMonitoring, useFound, goodRatings);
 
             return getStablePairsWithFilters(useMonitoring, useFound, goodRatings);
@@ -133,7 +130,7 @@ public class StablePairsService {
      * @return список стабильных пар с скором больше или равно minScore
      */
     public List<Pair> getStablePairsByScore(boolean includeMonitoring, boolean includeFound, int minScore) {
-        log.info("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
+        log.debug("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
                 includeMonitoring, includeFound, minScore);
 
         List<Pair> filteredPairs = pairRepository.findStablePairsByScore(includeMonitoring, includeFound, minScore);

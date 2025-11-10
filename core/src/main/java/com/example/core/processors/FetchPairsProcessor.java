@@ -184,7 +184,7 @@ public class FetchPairsProcessor {
                                                  boolean useMonitoring, boolean useFound) {
         long start = System.currentTimeMillis();
 
-        log.info("🔍 Получение стабильных пар с фильтрами: мониторинг={}, найденные={}", useMonitoring, useFound);
+        log.debug("🔍 Получение стабильных пар с фильтрами: мониторинг={}, найденные={}", useMonitoring, useFound);
 
         // Получаем хорошие стабильные пары с учетом настроек
         List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings(
@@ -196,7 +196,7 @@ public class FetchPairsProcessor {
             throw new IllegalStateException("❌ В выбранных источниках стабильных пар нет подходящих данных");
         }
 
-        log.info("📋 Найдено {} стабильных пар для анализа", stablePairs.size());
+        log.debug("📋 Найдено {} стабильных пар для анализа", stablePairs.size());
 
         // Создаем зеркальные пары для анализа
         List<Pair> allPairs = stablePairsService.createPairsWithMirrors(stablePairs);
@@ -219,7 +219,7 @@ public class FetchPairsProcessor {
             return Collections.emptyList();
         }
 
-        log.info("📊 Извлечено {} уникальных тикеров для загрузки свечей: {}",
+        log.debug("📊 Извлечено {} уникальных тикеров для загрузки свечей: {}",
                 uniqueTickers.size(), uniqueTickers);
 
         // Получаем свечи только для нужных тикеров
@@ -246,7 +246,7 @@ public class FetchPairsProcessor {
 
         log.info("✅ Создано {} пар из стабильных источников", pairs.size());
         pairs.forEach(p -> log.info("📈 {}", p.getPairName()));
-        log.info("🕒 Время выполнения (стабильные пары): {} сек",
+        log.debug("🕒 Время выполнения (стабильные пары): {} сек",
                 String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
 
         return pairs;
