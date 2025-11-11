@@ -643,6 +643,9 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.setVisible(false);
         observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(false);
+        
+        // Обновляем только данные выбранных пар
+        updateSelectedPairs();
     }
 
     public void showOnlyPairs() {
@@ -652,6 +655,10 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.setVisible(false);
         observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(true);
+        
+        // Обновляем только данные торгуемых пар и нереализованный профит
+        updatePairs();
+        updateUnrealizedProfit();
     }
 
     public void showOnlyClosedPairs() {
@@ -661,6 +668,9 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.setVisible(false);
         observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(false);
+        
+        // Обновляем только данные закрытых пар
+        updateClosedPairs();
     }
 
     public void showOnlyErrorPairs() {
@@ -670,6 +680,9 @@ public class TradingPairsComponent extends VerticalLayout {
         errorPairsGrid.setVisible(true);
         observedPairsGrid.setVisible(false);
         unrealizedProfitLayout.setVisible(false);
+        
+        // Обновляем только данные пар с ошибками
+        updateErrorPairs();
     }
 
     public void showOnlyObservedPairs() {

@@ -69,7 +69,8 @@ public class ErrorPairsView extends VerticalLayout implements UIUpdateable {
     private void updateUI() {
         getUI().ifPresent(ui -> ui.access(() -> {
             try {
-                tradingPairsComponent.updateAllData();
+                // Обновляем только данные пар с ошибками
+                tradingPairsComponent.updateErrorPairs();
             } catch (Exception e) {
                 log.error("Ошибка при обновлении UI", e);
             }

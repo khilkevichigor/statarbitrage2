@@ -153,7 +153,8 @@ public class SelectedPairsView extends VerticalLayout implements UIUpdateable {
     private void updateUI() {
         getUI().ifPresent(ui -> ui.access(() -> {
             try {
-                tradingPairsComponent.updateAllData();
+                // Обновляем только данные для отобранных пар
+                tradingPairsComponent.updateSelectedPairs();
             } catch (Exception e) {
                 log.error("❌ Ошибка при обновлении UI", e);
             }
