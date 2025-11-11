@@ -494,7 +494,8 @@ public class TradingPairsComponent extends VerticalLayout {
 
     public void updateErrorPairs() {
         try {
-            List<Pair> pairs = pairService.findAllByStatusOrderByUpdatedTimeDesc(TradeStatus.ERROR);
+            // Отображаем только пары которые торговались и получили ошибку (имеют profitPercentChanges)
+            List<Pair> pairs = pairService.findTradedErrorPairs();
             errorPairsGrid.setItems(pairs);
         } catch (Exception e) {
             log.error("Error updating error pairs", e);

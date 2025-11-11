@@ -277,6 +277,13 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     List<Pair> findTradingPairsByStatusOrderByUpdatedTime(@Param("status") TradeStatus status);
 
     /**
+     * Найти пары с ошибками которые действительно торговались (имеют результат торговли)
+     */
+    @Query("SELECT p FROM Pair p WHERE p.status = :status " +
+           "AND p.profitPercentChanges IS NOT NULL ORDER BY p.updatedTime DESC")
+    List<Pair> findTradedPairsByStatusOrderByUpdatedTime(@Param("status") TradeStatus status);
+
+    /**
      * Подсчет пар по типу и статусу
      */
     @Query("SELECT COUNT(p) FROM Pair p WHERE p.type = :type AND p.status = :status")

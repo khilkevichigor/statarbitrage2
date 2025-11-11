@@ -415,6 +415,13 @@ public class PairService {
         return pairRepository.findTradingPairsByStatus(status);
     }
 
+    /**
+     * Найти пары с ошибками которые действительно торговались (имеют результат торговли)
+     */
+    public List<Pair> findTradedErrorPairs() {
+        return pairRepository.findTradedPairsByStatusOrderByUpdatedTime(TradeStatus.ERROR);
+    }
+
     public List<Pair> findAllByStatusIn(List<TradeStatus> statuses) {
         List<Pair> result = new ArrayList<>();
         for (TradeStatus status : statuses) {
