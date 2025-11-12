@@ -279,12 +279,12 @@ public class ZScoreService {
                 .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
                 .max().orElse(0.0);
 
-        log.debug("📊 Статистика перед отбором топ-{} пар:", topN);
+        log.info("📊 Статистика перед отбором топ-{} пар:", topN);
         log.info("   🔥 Лучший Z-Score: {}", maxZScore);
-        log.info("   📉 Лучший P-Value: {}", minPValue);
-        log.info("   📈 Лучший R-Squared: {}", maxRSquared);
-        log.info("   🔍 Лучший ADF: {}", minADF);
-        log.info("   🔗 Лучшая корреляция: {}", maxCorrelation);
+        log.debug("   📉 Лучший P-Value: {}", minPValue);
+        log.debug("   📈 Лучший R-Squared: {}", maxRSquared);
+        log.debug("   🔍 Лучший ADF: {}", minADF);
+        log.debug("   🔗 Лучшая корреляция: {}", maxCorrelation);
 
         List<ZScoreData> bestPairs = new ArrayList<>();
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка

@@ -52,7 +52,7 @@ public class StabilityAnalysisService {
             // Сериализуем запрос в JSON
             String requestJson = objectMapper.writeValueAsString(request);
             double sizeInMB = requestJson.length() / (1024.0 * 1024.0);
-            log.info("📦 Размер JSON запроса: {} MB ({} байт)", String.format("%.2f", sizeInMB), requestJson.length());
+            log.debug("📦 Размер JSON запроса: {} MB ({} байт)", String.format("%.2f", sizeInMB), requestJson.length());
             log.debug("📝 JSON запрос: {}", requestJson.length() > 1000 ?
                     requestJson.substring(0, 1000) + "..." : requestJson);
 

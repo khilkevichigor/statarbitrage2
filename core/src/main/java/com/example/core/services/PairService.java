@@ -648,7 +648,7 @@ public class PairService {
     public int clearFoundStablePairs() {
         try {
             int deletedCount = pairRepository.deleteAllFoundStablePairs();
-            log.info("🧹 Удалено {} найденных стабильных пар", deletedCount);
+            log.debug("🧹 Удалено {} найденных стабильных пар", deletedCount);
             return deletedCount;
         } catch (Exception e) {
             log.error("❌ Ошибка при очистке найденных стабильных пар: {}", e.getMessage(), e);
