@@ -63,8 +63,8 @@ public class ZScoreChartDialog extends Dialog {
     }
 
     private void initializeDialog() {
-        setWidth("90vw");
-        setHeight("80vh");
+        setWidth("98vw");
+        setHeight("95vh");
         setModal(true);
         setCloseOnEsc(true);
         setCloseOnOutsideClick(false);
@@ -83,7 +83,7 @@ public class ZScoreChartDialog extends Dialog {
         // Единая область для чартов с crosshair
         mainChartImage = new Image();
         mainChartImage.setWidth("100%");
-        mainChartImage.setHeight("600px");
+        mainChartImage.setHeight("800px");
         mainChartImage.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
         mainChartImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
         mainChartImage.getStyle().set("cursor", "crosshair");
