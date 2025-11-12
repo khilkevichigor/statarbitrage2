@@ -318,7 +318,7 @@ public class ChartLayerService {
                 .toList();
         List<Date> zScoreTimeAxis = zScoreTimestamps.stream().map(Date::new).toList();
 
-        log.info("🎯 Синхронизируем цены строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
+        log.debug("🎯 Синхронизируем цены строго по Z-Score таймштампам: {} точек", zScoreTimestamps.size());
 
         // Интерполируем цены на точные временные метки Z-Score
         List<Double> interpolatedLongPrices = interpolatePricesForTimestamps(longCandles, zScoreTimestamps);
@@ -343,7 +343,7 @@ public class ChartLayerService {
             displayMode = "z-score overlay";
         }
 
-        log.info("✅ Добавляем ИДЕАЛЬНО синхронизированные цены ({}): {} точек", 
+        log.debug("✅ Добавляем ИДЕАЛЬНО синхронизированные цены ({}): {} точек",
                 displayMode, finalLongPrices.size());
 
         // Выбираем цвета в зависимости от режима отображения

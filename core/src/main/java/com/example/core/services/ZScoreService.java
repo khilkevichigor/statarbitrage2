@@ -290,11 +290,11 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            log.info("🔄 Итерация {}/{}: ищем лучшую пару из {} оставшихся", (i+1), topN, remainingPairs.size());
+            log.debug("🔄 Итерация {}/{}: ищем лучшую пару из {} оставшихся", (i+1), topN, remainingPairs.size());
             Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs, candlesMap);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
-                log.info("✅ Найдена пара: {}/{} с Z-скором={}", 
+                log.info("✅ Найдена пара: {}/{} с Z-скором={}",
                         best.getUnderValuedTicker(), best.getOverValuedTicker(), best.getLatestZScore());
 
                 //смотрим что мы отобрали по тикерам
@@ -326,17 +326,17 @@ public class ZScoreService {
                         remainingPairs.remove(best); // исключаем только из remainingPairs
                         continue; // пропускаем добавление в bestPairs
                     }
-                    log.info("✅ Пара {}/{} прошла повторную проверку MinZ: {} >= {}", 
+                    log.debug("✅ Пара {}/{} прошла повторную проверку MinZ: {} >= {}",
                             best.getUnderValuedTicker(), best.getOverValuedTicker(), 
                             recalculatedZ, settings.getMinZ());
                 }
 
                 bestPairs.add(detailedZScoreData);
                 remainingPairs.remove(best); // исключаем выбранную пару из дальнейшего отбора
-                log.info("✅ Пара {}/{} добавлена в финальный список (всего: {})", 
+                log.debug("✅ Пара {}/{} добавлена в финальный список (всего: {})",
                         best.getUnderValuedTicker(), best.getOverValuedTicker(), bestPairs.size());
             } else {
-                log.info("❌ Итерация {}: getBestZScoreData вернул пустой результат (возможно, все пары не прошли фильтрацию)", (i+1));
+                log.debug("❌ Итерация {}: getBestZScoreData вернул пустой результат (возможно, все пары не прошли фильтрацию)", (i+1));
             }
         }
 

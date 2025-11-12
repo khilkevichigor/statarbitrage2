@@ -1336,23 +1336,23 @@ public class StablePairsView extends VerticalLayout {
      */
     private void setupBroadcastListener() {
         try {
-            log.info("📡 StablePairsView: Настраиваем UiBroadcaster listener");
+            log.debug("📡 StablePairsView: Настраиваем UiBroadcaster listener");
             broadcasterRegistration = UiBroadcaster.register(message -> {
-                log.info("📡 StablePairsView: ПОЛУЧЕНО broadcast сообщение: {}", message);
+                log.debug("📡 StablePairsView: ПОЛУЧЕНО broadcast сообщение: {}", message);
                 
                 if ("STABLE_PAIRS_UPDATE".equals(message)) {
                     // Обновляем UI в контексте Vaadin UI thread
                     getUI().ifPresent(ui -> {
-                        log.info("🔄 StablePairsView: Выполняем ui.access() для обновления после broadcast");
+                        log.debug("🔄 StablePairsView: Выполняем ui.access() для обновления после broadcast");
                         ui.access(() -> {
                             try {
-                                log.info("📊 StablePairsView: Загружаем найденные пары...");
+                                log.debug("📊 StablePairsView: Загружаем найденные пары...");
                                 loadFoundPairs();
-                                log.info("👁️ StablePairsView: Загружаем пары мониторинга...");
+                                log.debug("👁️ StablePairsView: Загружаем пары мониторинга...");
                                 loadMonitoringPairs();
-                                log.info("📈 StablePairsView: Обновляем статистику...");
+                                log.debug("📈 StablePairsView: Обновляем статистику...");
                                 updateStatistics();
-                                log.info("✅ StablePairsView: UI полностью обновлен после broadcast");
+                                log.debug("✅ StablePairsView: UI полностью обновлен после broadcast");
                             } catch (Exception e) {
                                 log.error("❌ StablePairsView: Ошибка при обновлении UI: {}", e.getMessage(), e);
                             }
@@ -1360,7 +1360,7 @@ public class StablePairsView extends VerticalLayout {
                     });
                 }
             });
-            log.info("✅ StablePairsView: UiBroadcaster listener настроен успешно");
+            log.debug("✅ StablePairsView: UiBroadcaster listener настроен успешно");
         } catch (Exception e) {
             log.error("❌ StablePairsView: Ошибка при настройке UiBroadcaster listener: {}", e.getMessage(), e);
         }
@@ -1374,7 +1374,7 @@ public class StablePairsView extends VerticalLayout {
         super.onDetach(detachEvent);
         try {
             if (broadcasterRegistration != null) {
-                log.info("🧹 StablePairsView: Удаляем UiBroadcaster listener");
+                log.debug("🧹 StablePairsView: Удаляем UiBroadcaster listener");
                 broadcasterRegistration.remove();
                 broadcasterRegistration = null;
             }

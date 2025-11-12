@@ -88,7 +88,7 @@ public class PairService {
         }
 
         try {
-            log.info("🧮 Расчет Z-Score для стабильной пары {}", stablePair.getPairName());
+            log.debug("🧮 Расчет Z-Score для стабильной пары {}", stablePair.getPairName());
 
             // Получаем настройки системы
             Settings settings = settingsService.getSettings();
@@ -99,7 +99,7 @@ public class PairService {
             // КРИТИЧНО: Используем реальное количество свечей из найденной пары!
             int candleLimit = stablePair.getCandleCount() != null ? stablePair.getCandleCount() : 1000; //todo 1000???
 
-            log.info("🔧 ИСПРАВЛЕНИЕ: Используем точно те же параметры что и при поиске - timeframe: {}, period: {}, candleCount: {}",
+            log.debug("🔧 ИСПРАВЛЕНИЕ: Используем точно те же параметры что и при поиске - timeframe: {}, period: {}, candleCount: {}",
                     timeframe, period, candleLimit);
 
             // Создаем запрос для получения свечей конкретной пары
@@ -157,7 +157,7 @@ public class PairService {
                         stablePair.getPairName(), longCandles.size(), shortCandles.size()));
             }
 
-            log.info("✅ ВАЛИДАЦИЯ СВЕЧЕЙ: Пара {} имеет одинаковое количество свечей: {}",
+            log.debug("✅ ВАЛИДАЦИЯ СВЕЧЕЙ: Пара {} имеет одинаковое количество свечей: {}",
                     stablePair.getPairName(), longCandles.size());
 
             // Создаем временную Pair для расчетов
@@ -171,9 +171,9 @@ public class PairService {
             tradingPair.setShortTickerCandles(shortCandles);
 
             // Рассчитываем Z-Score данные
-            log.info("🔍 Вызываем pythonAnalysisService.calculateZScoreData для пары {}", stablePair.getPairName());
+            log.debug("🔍 Вызываем pythonAnalysisService.calculateZScoreData для пары {}", stablePair.getPairName());
             ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
-            log.info("📊 Результат calculateZScoreData для пары {}: {}", stablePair.getPairName(), zScoreData != null ? "OK" : "NULL");
+            log.debug("📊 Результат calculateZScoreData для пары {}: {}", stablePair.getPairName(), zScoreData != null ? "OK" : "NULL");
 
             if (zScoreData != null) {
                 // Обновляем Z-Score данные в TradingPair
@@ -183,7 +183,7 @@ public class PairService {
                 chartService.calculatePixelSpreadIfNeeded(tradingPair);
                 chartService.addCurrentPixelSpreadPoint(tradingPair);
 
-                log.info("✅ Z-Score рассчитан для пары {}. Latest Z-Score: {}",
+                log.debug("✅ Z-Score рассчитан для пары {}. Latest Z-Score: {}",
                         stablePair.getPairName(), zScoreData.getLatestZScore());
 
                 return tradingPair;

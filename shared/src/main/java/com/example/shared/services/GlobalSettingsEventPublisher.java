@@ -20,14 +20,14 @@ public class GlobalSettingsEventPublisher {
      * Публикует событие обновления глобальных настроек таймфреймов и периодов
      */
     public void publishGlobalSettingsUpdated(String updatedTimeframes, String updatedPeriods) {
-        log.info("📢 Публикуется событие обновления глобальных настроек:");
-        log.info("📊 Новые активные таймфреймы: {}", updatedTimeframes);
-        log.info("📅 Новые активные периоды: {}", updatedPeriods);
+        log.debug("📢 Публикуется событие обновления глобальных настроек:");
+        log.debug("📊 Новые активные таймфреймы: {}", updatedTimeframes);
+        log.debug("📅 Новые активные периоды: {}", updatedPeriods);
 
         GlobalSettingsUpdatedEvent event = new GlobalSettingsUpdatedEvent(
                 this, updatedTimeframes, updatedPeriods);
         eventPublisher.publishEvent(event);
 
-        log.info("✅ Событие GlobalSettingsUpdatedEvent опубликовано");
+        log.debug("✅ Событие GlobalSettingsUpdatedEvent опубликовано");
     }
 }

@@ -36,7 +36,7 @@ public class UpdateZScoreDataCurrentService {
         
         if (existingHistory.isEmpty()) {
             // Если история пустая, добавляем всю новую историю (для новых пар)
-            log.info("📊 История Z-Score пустая для пары {} - добавляем {} новых точек",
+            log.debug("📊 История Z-Score пустая для пары {} - добавляем {} новых точек",
                     tradingPair.getPairName(), newHistory.size());
             for (ZScoreParam param : newHistory) {
                 tradingPair.addZScorePoint(param);

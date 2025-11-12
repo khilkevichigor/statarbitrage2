@@ -40,7 +40,7 @@ public class SearchStablePairService {
      */
     public StabilityResponseDto searchStablePairs(Set<String> timeframes, Set<String> periods,
                                                   Map<String, Object> searchSettings) {
-        log.info("🔍 Начало поиска стабильных пар: timeframes={}, periods={}", timeframes, periods);
+        log.debug("🔍 Начало поиска стабильных пар: timeframes={}, periods={}", timeframes, periods);
 
         try {
             // Применяем настройки поиска к параметрам анализа один раз
@@ -92,7 +92,7 @@ public class SearchStablePairService {
                             continue;
                         }
 
-                        log.info("✅ ВАЛИДАЦИЯ: Из {} тикеров {} прошли валидацию для timeframe={}, period={}",
+                        log.debug("✅ ВАЛИДАЦИЯ: Из {} тикеров {} прошли валидацию для timeframe={}, period={}",
                                 candlesMap.size(), validatedCandlesMap.size(), timeframe, period);
 
                         // Создаем запрос для Python API
@@ -116,7 +116,7 @@ public class SearchStablePairService {
                             totalPairsFound += response.getTradeablePairsFound();
                             totalPairsAnalyzed += response.getTotalPairsAnalyzed();
 
-                            log.info("✅ Поиск для timeframe={}, period={} завершен. Найдено {} торгуемых пар из {}",
+                            log.debug("✅ Поиск для timeframe={}, period={} завершен. Найдено {} торгуемых пар из {}",
                                     timeframe, period, response.getTradeablePairsFound(), response.getTotalPairsAnalyzed());
                         } else {
                             log.warn("⚠️ Поиск для timeframe={}, period={} завершился неуспешно",
@@ -425,7 +425,7 @@ public class SearchStablePairService {
         }
 
         if (savedCount > 0 || skippedCount > 0) {
-            log.info("💾 Результаты сохранения [{}][{}]: {} новых пар, {} пропущено дубликатов",
+            log.debug("💾 Результаты сохранения [{}][{}]: {} новых пар, {} пропущено дубликатов",
                     timeframe, period, savedCount, skippedCount);
         }
     }

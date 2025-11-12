@@ -74,13 +74,13 @@ public class StablePairsScheduler {
         // ВАЖНО: Очищаем все предыдущие результаты поиска перед началом нового поиска
         try {
             int deletedCount = pairService.clearFoundStablePairs();
-            log.info("🧹 Очищено {} устаревших найденных стабильных пар", deletedCount);
+            log.debug("🧹 Очищено {} устаревших найденных стабильных пар", deletedCount);
             
             // Отправляем событие обновления UI после очистки таблиц (всегда, независимо от количества)
             try {
                 UpdateUiEvent uiEvent = UpdateUiEvent.builder().build();
                 eventSendService.updateUI(uiEvent);
-                log.info("📡 Отправлено событие обновления UI после очистки {} найденных пар", deletedCount);
+                log.debug("📡 Отправлено событие обновления UI после очистки {} найденных пар", deletedCount);
             } catch (Exception uiException) {
                 log.error("⚠️ Ошибка при отправке события обновления UI после очистки: {}", uiException.getMessage(), uiException);
             }
@@ -93,7 +93,7 @@ public class StablePairsScheduler {
             List<StablePairsScreenerSettings> scheduledSettings = settingsService.getScheduledSettings();
 
             if (scheduledSettings.isEmpty()) {
-                log.info("⏰ Нет настроек с включенным автоматическим поиском");
+                log.debug("⏰ Нет настроек с включенным автоматическим поиском");
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -104,9 +104,9 @@ public class StablePairsScheduler {
                                     settings.getSelectedPeriodsSet().size())
                     .sum();
 
-            log.info("📋 Найдено {} настроек для автоматического поиска", scheduledSettings.size());
-            log.info("🧮 Общее количество комбинаций для обработки: {}", totalTasks);
-            log.info("🔧 Используем {} потоков для параллельной обработки", 5);
+            log.debug("📋 Найдено {} настроек для автоматического поиска", scheduledSettings.size());
+            log.debug("🧮 Общее количество комбинаций для обработки: {}", totalTasks);
+            log.debug("🔧 Используем {} потоков для параллельной обработки", 5);
 
             // Атомарные счетчики для статистики
             AtomicInteger totalPairsFound = new AtomicInteger(0);
@@ -157,7 +157,7 @@ public class StablePairsScheduler {
 
             try {
                 allFutures.get(MAX_EXECUTION_TIME_HOURS, TimeUnit.HOURS);
-                log.info("✅ Все задачи завершены успешно");
+                log.debug("✅ Все задачи завершены успешно");
             } catch (TimeoutException e) {
                 log.warn("⏰ Превышен лимит времени выполнения ({} часов). Принудительно завершаем задачи",
                         MAX_EXECUTION_TIME_HOURS);
@@ -186,7 +186,7 @@ public class StablePairsScheduler {
             try {
                 UpdateUiEvent uiEvent = UpdateUiEvent.builder().build();
                 eventSendService.updateUI(uiEvent);
-                log.info("📡 Отправлено событие обновления UI после поиска - найдено {} пар", totalPairsFound.get());
+                log.debug("📡 Отправлено событие обновления UI после поиска - найдено {} пар", totalPairsFound.get());
             } catch (Exception e) {
                 log.error("⚠️ Ошибка при отправке события обновления UI после поиска: {}", e.getMessage(), e);
             }
@@ -215,7 +215,7 @@ public class StablePairsScheduler {
         String taskId = String.format("%s[%s-%s]", settings.getName(), timeframe, period);
         String threadName = Thread.currentThread().getName();
 
-        log.info("🧵 Поток {}: Начало обработки {}", threadName, taskId);
+        log.debug("🧵 Поток {}: Начало обработки {}", threadName, taskId);
 
         try {
             // Выполняем поиск для конкретной комбинации
@@ -231,7 +231,7 @@ public class StablePairsScheduler {
                 totalPairsAnalyzed.addAndGet(pairsAnalyzed);
                 successfulTasks.incrementAndGet();
 
-                log.info("✅ Поток {}: {} завершен успешно - найдено {} торгуемых пар из {} проанализированных",
+                log.debug("✅ Поток {}: {} завершен успешно - найдено {} торгуемых пар из {} проанализированных",
                         threadName, taskId, pairsFound, pairsAnalyzed);
 
             } else {
@@ -247,20 +247,11 @@ public class StablePairsScheduler {
     }
 
     /**
-     * Тестовый метод для проверки автоматического поиска
-     * Можно запустить вручную для тестирования
-     */
-    public CompletableFuture<Void> testScheduledSearch() {
-        log.info("🧪 Тестовый запуск многопоточного автоматического поиска стабильных пар");
-        return executeStablePairsSearchAsync();
-    }
-
-    /**
      * Graceful shutdown при остановке приложения
      */
     @PreDestroy
     public void shutdown() {
-        log.info("🛑 Завершение работы шедуллера стабильных пар");
+        log.debug("🛑 Завершение работы шедуллера стабильных пар");
 
         executorService.shutdown();
         try {
@@ -275,6 +266,6 @@ public class StablePairsScheduler {
             Thread.currentThread().interrupt();
         }
 
-        log.info("✅ Шедуллер стабильных пар остановлен");
+        log.debug("✅ Шедуллер стабильных пар остановлен");
     }
 }

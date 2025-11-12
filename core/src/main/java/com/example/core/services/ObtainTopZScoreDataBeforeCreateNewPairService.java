@@ -212,20 +212,20 @@ public class ObtainTopZScoreDataBeforeCreateNewPairService {
         log.debug("   ✅ {}: Положительный Z-score: {}", pairName, NumberFormatter.format(currentZScore, 2));
 
         // 4. Проверка минимального Z-Score (если включена в настройках)
-        log.info("🔍 DEBUG MinZ фильтр: useMinZFilter={}, minZ={}, currentZScore={} для пары {}",
+        log.debug("🔍 DEBUG MinZ фильтр: useMinZFilter={}, minZ={}, currentZScore={} для пары {}",
                 settings.isUseMinZFilter(), settings.getMinZ(), currentZScore, pairName);
 
         if (settings.isUseMinZFilter()) {
             double minZ = settings.getMinZ();
             if (currentZScore < minZ) {
                 reason = String.format("Z-score ниже минимума: %.2f < %.2f", currentZScore, minZ);
-                log.info("   ❌ {}: {} (useMinZFilter={})", pairName, reason, settings.isUseMinZFilter());
+                log.debug("   ❌ {}: {} (useMinZFilter={})", pairName, reason, settings.isUseMinZFilter());
                 return reason;
             }
-            log.info("   ✅ {}: Z-score выше минимума: {} >= {} (useMinZFilter={})", pairName,
+            log.debug("   ✅ {}: Z-score выше минимума: {} >= {} (useMinZFilter={})", pairName,
                     NumberFormatter.format(currentZScore, 2), NumberFormatter.format(minZ, 2), settings.isUseMinZFilter());
         } else {
-            log.info("   ⚠️ {}: MinZ фильтр ОТКЛЮЧЕН в настройках (useMinZFilter=false)", pairName);
+            log.debug("   ⚠️ {}: MinZ фильтр ОТКЛЮЧЕН в настройках (useMinZFilter=false)", pairName);
         }
 
         // 5. Проверка максимального P-Value корреляции (если включена в настройках)

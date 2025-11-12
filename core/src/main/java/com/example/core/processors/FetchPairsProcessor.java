@@ -236,7 +236,7 @@ public class FetchPairsProcessor {
         // Рассчитываем Z-Score для стабильных пар
         List<ZScoreData> zScoreDataList = computeZScoreDataForStablePairs(settings, candlesMap, pairNames, count);
         if (zScoreDataList.isEmpty()) {
-            log.warn("⚠️ Z-Score данные для стабильных пар не получены");
+            log.debug("⚠️ Z-Score данные для стабильных пар не получены");
             return Collections.emptyList();
         }
 
@@ -281,7 +281,7 @@ public class FetchPairsProcessor {
                 .build();
 
         try {
-            log.info("⏳ Отправка запроса к candles микросервису для стабильных пар...");
+            log.debug("⏳ Отправка запроса к candles микросервису для стабильных пар...");
             Map<String, List<Candle>> map = candlesFeignClient.getValidatedCacheExtended(request);
 
             double elapsed = (System.currentTimeMillis() - start) / 1000.0;

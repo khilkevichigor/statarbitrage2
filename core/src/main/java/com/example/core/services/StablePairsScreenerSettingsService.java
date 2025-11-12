@@ -156,9 +156,9 @@ public class StablePairsScreenerSettingsService {
             List<String> allowedPeriods = timeframeAndPeriodService.getActivePeriods(
                     globalSettings.getGlobalActivePeriods());
 
-            log.info("🌐 Глобальные ограничения для шедуллера:");
-            log.info("📊 Разрешенные таймфреймы: {}", allowedTimeframes);
-            log.info("📅 Разрешенные периоды: {}", allowedPeriods);
+            log.debug("🌐 Глобальные ограничения для шедуллера:");
+            log.debug("📊 Разрешенные таймфреймы: {}", allowedTimeframes);
+            log.debug("📅 Разрешенные периоды: {}", allowedPeriods);
 
             // Фильтруем настройки и ограничиваем их глобальными настройками
             List<StablePairsScreenerSettings> filteredSettings = new ArrayList<>();
@@ -185,20 +185,20 @@ public class StablePairsScreenerSettingsService {
 
                         filteredSettings.add(filteredSetting);
 
-                        log.info("✅ Настройки '{}': {} тф → {}, {} периодов → {}",
+                        log.debug("✅ Настройки '{}': {} тф → {}, {} периодов → {}",
                                 setting.getName(),
                                 settingTimeframes.size(), validTimeframes.size(),
                                 settingPeriods.size(), validPeriods.size());
 
                         if (!settingTimeframes.equals(validTimeframes)) {
-                            log.info("🔄 Исключенные таймфреймы: {}",
+                            log.debug("🔄 Исключенные таймфреймы: {}",
                                     settingTimeframes.stream()
                                             .filter(tf -> !validTimeframes.contains(tf))
                                             .collect(Collectors.toSet()));
                         }
 
                         if (!settingPeriods.equals(validPeriods)) {
-                            log.info("🔄 Исключенные периоды: {}",
+                            log.debug("🔄 Исключенные периоды: {}",
                                     settingPeriods.stream()
                                             .filter(p -> !validPeriods.contains(p))
                                             .collect(Collectors.toSet()));
@@ -219,7 +219,7 @@ public class StablePairsScreenerSettingsService {
                 }
             }
 
-            log.info("🏁 Итого для шедуллера: {} настроек из {} исходных прошли фильтрацию",
+            log.debug("🏁 Итого для шедуллера: {} настроек из {} исходных прошли фильтрацию",
                     filteredSettings.size(), originalSettings.size());
 
             return filteredSettings;

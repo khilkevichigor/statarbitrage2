@@ -1711,7 +1711,7 @@ public class SettingsComponent extends VerticalLayout {
                         }
                     }
 
-                    log.info("✅ SettingsComponent: Выпадающие списки в секции 'Анализ и фильтры' обновлены");
+                    log.debug("✅ SettingsComponent: Выпадающие списки в секции 'Анализ и фильтры' обновлены");
 
                 } catch (Exception e) {
                     log.error("❌ Ошибка при обновлении UI SettingsComponent после изменения глобальных настроек: {}", e.getMessage(), e);
