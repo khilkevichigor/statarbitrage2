@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 public class SettingsComponent extends VerticalLayout {
 
     private final SettingsService settingsService;
-    private final UpdateTradesScheduler updateTradesScheduler;
     private final CapitalCalculationService capitalCalculationService;
     private final PortfolioService portfolioService;
     private final AutoVolumeService autoVolumeService;
@@ -73,7 +72,6 @@ public class SettingsComponent extends VerticalLayout {
     private Select<String> analysisPeriodSelect;
 
     public SettingsComponent(SettingsService settingsService,
-                             UpdateTradesScheduler updateTradesScheduler,
                              CapitalCalculationService capitalCalculationService,
                              PortfolioService portfolioService,
                              AutoVolumeService autoVolumeService,
@@ -81,7 +79,6 @@ public class SettingsComponent extends VerticalLayout {
                              TimeframeAndPeriodService timeframeAndPeriodService,
                              GlobalSettingsEventPublisher globalSettingsEventPublisher) {
         this.settingsService = settingsService;
-        this.updateTradesScheduler = updateTradesScheduler;
         this.capitalCalculationService = capitalCalculationService;
         this.portfolioService = portfolioService;
         this.autoVolumeService = autoVolumeService;
@@ -174,18 +171,6 @@ public class SettingsComponent extends VerticalLayout {
                 log.info(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
                 Notification.show(event.getValue() ? "Автотрейдинг включен" : "Автотрейдинг отключен");
 
-//                if (event.getValue()) { //todo будем ждать шедуллера
-//                    log.debug("🚀 UI: Запускаем maintainPairs() асинхронно");
-//                    // Запускаем maintainPairs() асинхронно, чтобы не блокировать UI
-//                    CompletableFuture.runAsync(() -> {
-//                        try {
-//                            tradeAndSimulationScheduler.maintainPairs();
-//                        } catch (Exception e) {
-//                            log.error("❌ Ошибка при асинхронном запуске maintainPairs()", e);
-//                        }
-//                    });
-//                }
-
                 // Уведомляем об изменении состояния автотрейдинга
                 if (autoTradingChangeCallback != null) {
                     log.debug("🔄 SettingsComponent: Вызываем autoTradingChangeCallback для autoTrading={}", event.getValue());
@@ -217,17 +202,18 @@ public class SettingsComponent extends VerticalLayout {
         NumberField checkIntervalField = new NumberField("Обновление (мин)");
 
         // Create filter checkboxes
-        Checkbox useMinZFilterCheckbox = new Checkbox("Использовать Min Z фильтр");
-        Checkbox useMinRSquaredFilterCheckbox = new Checkbox("Использовать Min R-Squared фильтр");
-        Checkbox useMinPValueFilterCheckbox = new Checkbox("Использовать Min pValue фильтр");
-        Checkbox useMaxAdfValueFilterCheckbox = new Checkbox("Использовать Max adfValue фильтр");
-        Checkbox useMinCorrelationFilterCheckbox = new Checkbox("Использовать Min Correlation фильтр");
-        Checkbox useMinVolumeFilterCheckbox = new Checkbox("Использовать Min Volume фильтр");
-        Checkbox useMinIntersectionsFilterCheckbox = new Checkbox("Использовать фильтр по пересечениям цен");
-        Checkbox useZScoreDeclineFilterCheckbox = new Checkbox("Вход при снижении zScore");
+        Checkbox useMinZFilterCheckbox = new Checkbox("");
+        Checkbox useMinRSquaredFilterCheckbox = new Checkbox("");
+        Checkbox useMinPValueFilterCheckbox = new Checkbox("");
+        Checkbox useMaxAdfValueFilterCheckbox = new Checkbox("");
+        Checkbox useMinCorrelationFilterCheckbox = new Checkbox("");
+        Checkbox useMinVolumeFilterCheckbox = new Checkbox("");
+        Checkbox useMinIntersectionsFilterCheckbox = new Checkbox("");
+        Checkbox useZScoreDeclineFilterCheckbox = new Checkbox("");
+        Checkbox useScoreFilteringCheckbox = new Checkbox("");
         
-        NumberField zScoreDeclineCandlesCountField = new NumberField("Количество свечей");
-        zScoreDeclineCandlesCountField.setHelperText("Количество последних свечей для проверки снижения zScore");
+        NumberField zScoreDeclineCandlesCountField = new NumberField("Вход по снижению zScore");
+        zScoreDeclineCandlesCountField.setHelperText("Количество последних точек");
         zScoreDeclineCandlesCountField.setStep(1.0);
         zScoreDeclineCandlesCountField.setMin(1.0);
         zScoreDeclineCandlesCountField.setMax(10.0);
@@ -235,11 +221,8 @@ public class SettingsComponent extends VerticalLayout {
         zScoreDeclineCandlesCountField.setStepButtonsVisible(true);
         Checkbox useStablePairsForMonitoringCheckbox = new Checkbox("Искать из Постоянный список для мониторинга");
         Checkbox useFoundStablePairsCheckbox = new Checkbox("Искать из Найденные стабильные пары");
-        
-        // Новые поля для фильтрации по скору
-        Checkbox useScoreFilteringCheckbox = new Checkbox("Искать по Скор");
-        
-        NumberField minStabilityScoreField = new NumberField("Минимальный скор");
+
+        NumberField minStabilityScoreField = new NumberField("Искать по Скор");
         minStabilityScoreField.setHelperText("Минимальный скор стабильности для отбора пар");
         setNumberFieldProperties(minStabilityScoreField, 1, 0);
         
@@ -255,12 +238,12 @@ public class SettingsComponent extends VerticalLayout {
         useScoreFilteringCheckbox.addValueChangeListener(e -> updateScoreFilteringState.run());
 
         // Min intersections field
-        NumberField minIntersectionsField = new NumberField("Мин. пересечений");
+        NumberField minIntersectionsField = new NumberField("Искать по кол-ву пересечений");
         minIntersectionsField.setHelperText("Минимальное количество пересечений нормализованных цен");
         setNumberFieldProperties(minIntersectionsField, 1, 1);
 
         // Minimum lot blacklist field
-        TextArea minimumLotBlacklistField = new TextArea("Блэклист мин. лота");
+        TextArea minimumLotBlacklistField = new TextArea("Блэклист тикеров мин. лота");
         minimumLotBlacklistField.setPlaceholder("Тикеры через запятую (ETH-USDT-SWAP,BTC-USDT-SWAP)");
         minimumLotBlacklistField.setHelperText("Тикеры с высокими требованиями к минимальному лоту");
 
@@ -279,14 +262,14 @@ public class SettingsComponent extends VerticalLayout {
         NumberField exitNegativeZMinProfitPercentField = new NumberField("Мин. профит при Z<0 (%)");
 
         // Create exit strategy checkboxes
-        Checkbox useExitTakeCheckbox = new Checkbox("Использовать Exit Тейк");
-        Checkbox useExitStopCheckbox = new Checkbox("Использовать Exit Стоп");
-        Checkbox useExitZMinCheckbox = new Checkbox("Использовать Exit Мин Z");
-        Checkbox useExitZMaxCheckbox = new Checkbox("Использовать Exit Макс Z");
-        Checkbox useExitZMaxPercentCheckbox = new Checkbox("Использовать Exit Макс Z (%)");
-        Checkbox useExitTimeMinutesCheckbox = new Checkbox("Использовать Exit Таймаут");
-        Checkbox useExitBreakEvenPercentCheckbox = new Checkbox("Использовать уровень профита для БУ");
-        Checkbox useExitNegativeZMinProfitPercentCheckbox = new Checkbox("Выход при Z<0 с мин. профитом");
+        Checkbox useExitTakeCheckbox = new Checkbox("");
+        Checkbox useExitStopCheckbox = new Checkbox("");
+        Checkbox useExitZMinCheckbox = new Checkbox("");
+        Checkbox useExitZMaxCheckbox = new Checkbox("");
+        Checkbox useExitZMaxPercentCheckbox = new Checkbox("");
+        Checkbox useExitTimeMinutesCheckbox = new Checkbox("");
+        Checkbox useExitBreakEvenPercentCheckbox = new Checkbox("");
+        Checkbox useExitNegativeZMinProfitPercentCheckbox = new Checkbox("");
 
         NumberField usePairsField = new NumberField("Кол-во пар");
 
@@ -852,12 +835,12 @@ public class SettingsComponent extends VerticalLayout {
         NumberField bonusWeightField = new NumberField("Бонусы (очки)");
 
         // Создаем чекбоксы для включения/выключения компонентов
-        Checkbox useZScoreScoringCheckbox = new Checkbox("Использовать Z-Score скоринг");
-        Checkbox usePixelSpreadScoringCheckbox = new Checkbox("Использовать пиксельный спред скоринг");
-        Checkbox useCointegrationScoringCheckbox = new Checkbox("Использовать коинтеграцию скоринг");
-        Checkbox useModelQualityScoringCheckbox = new Checkbox("Использовать качество модели скоринг");
-        Checkbox useStatisticsScoringCheckbox = new Checkbox("Использовать статистику скоринг");
-        Checkbox useBonusScoringCheckbox = new Checkbox("Использовать бонусы скоринг");
+        Checkbox useZScoreScoringCheckbox = new Checkbox("");
+        Checkbox usePixelSpreadScoringCheckbox = new Checkbox("");
+        Checkbox useCointegrationScoringCheckbox = new Checkbox("");
+        Checkbox useModelQualityScoringCheckbox = new Checkbox("");
+        Checkbox useStatisticsScoringCheckbox = new Checkbox("");
+        Checkbox useBonusScoringCheckbox = new Checkbox("");
 
         // Настраиваем свойства полей
         setNumberFieldProperties(zScoreWeightField, 1.0, 0.0);
@@ -1529,14 +1512,14 @@ public class SettingsComponent extends VerticalLayout {
         FormLayout schedulerForm = createSingleColumnFormLayout();
 
         // Создаем чекбоксы для управления шедуллерами
-        Checkbox updateTradesSchedulerCheckbox = new Checkbox("UpdateTrades (каждую минуту)");
-        Checkbox stablePairsSchedulerCheckbox = new Checkbox("StablePairs (поиск пар ночью)");
-        Checkbox monitoringPairsUpdateSchedulerCheckbox = new Checkbox("MonitoringPairs Update (обновление пар в мониторинге)");
-        Checkbox portfolioSnapshotSchedulerCheckbox = new Checkbox("Portfolio Snapshot (каждые 15 минут)");
-        Checkbox portfolioCleanupSchedulerCheckbox = new Checkbox("Portfolio Cleanup (очистка каждый день)");
-        Checkbox candleCacheSyncSchedulerCheckbox = new Checkbox("CandleCache Sync (синхронизация)");
-        Checkbox candleCacheUpdateSchedulerCheckbox = new Checkbox("CandleCache Update (обновление)");
-        Checkbox candleCacheStatsSchedulerCheckbox = new Checkbox("CandleCache Stats (статистика)");
+        Checkbox updateTradesSchedulerCheckbox = new Checkbox("UpdateTrades");
+        Checkbox stablePairsSchedulerCheckbox = new Checkbox("StablePairs");
+        Checkbox monitoringPairsUpdateSchedulerCheckbox = new Checkbox("MonitoringPairs Update");
+        Checkbox portfolioSnapshotSchedulerCheckbox = new Checkbox("Portfolio Snapshot");
+        Checkbox portfolioCleanupSchedulerCheckbox = new Checkbox("Portfolio Cleanup");
+        Checkbox candleCacheSyncSchedulerCheckbox = new Checkbox("CandleCache Sync");
+        Checkbox candleCacheUpdateSchedulerCheckbox = new Checkbox("CandleCache Update");
+        Checkbox candleCacheStatsSchedulerCheckbox = new Checkbox("CandleCache Stats");
 
         // Создаем поля для отображения CRON выражений
         Span stablePairsCronSpan = new Span();
