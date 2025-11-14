@@ -753,7 +753,7 @@ public class SettingsComponent extends VerticalLayout {
                                           Checkbox useFoundStablePairsCheckbox, Checkbox useScoreFilteringCheckbox, 
                                           NumberField minStabilityScoreField) {
 
-        FormLayout analysisForm = createFormLayout();
+        FormLayout analysisForm = createSingleColumnFormLayout();
 
         // Создаем компоненты фильтров с чекбоксами
         HorizontalLayout minZLayout = createFilterLayout(useMinZFilterCheckbox, minZField);
@@ -813,7 +813,7 @@ public class SettingsComponent extends VerticalLayout {
             Checkbox useExitNegativeZMinProfitPercentCheckbox
     ) {
 
-        FormLayout exitForm = createFormLayout();
+        FormLayout exitForm = createSingleColumnFormLayout();
 
         // Создаем компоненты стратегий выхода с чекбоксами
         HorizontalLayout exitTakeLayout = createFilterLayout(useExitTakeCheckbox, exitTakeField);
@@ -841,7 +841,7 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     private Details createScoringWeightsSection() {
-        FormLayout scoringForm = createFormLayout();
+        FormLayout scoringForm = createSingleColumnFormLayout();
 
         // Создаем поля для весов скоринга
         NumberField zScoreWeightField = new NumberField("Z-Score сила (очки)");
@@ -989,6 +989,14 @@ public class SettingsComponent extends VerticalLayout {
                 new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("500px", 2),
                 new FormLayout.ResponsiveStep("800px", 3)
+        );
+        return form;
+    }
+
+    private FormLayout createSingleColumnFormLayout() {
+        FormLayout form = new FormLayout();
+        form.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1)
         );
         return form;
     }
@@ -1369,7 +1377,7 @@ public class SettingsComponent extends VerticalLayout {
                                                    NumberField autoVolumeLongField,
                                                    NumberField autoVolumeShortField) {
 
-        FormLayout capitalForm = createFormLayout();
+        FormLayout capitalForm = createSingleColumnFormLayout();
 
         // Настраиваем placeholder и helper text для полей усреднения
         averagingDrawdownThresholdField.setPlaceholder("10.0");
@@ -1518,7 +1526,7 @@ public class SettingsComponent extends VerticalLayout {
      * Создает секцию управления шедуллерами
      */
     private Details createSchedulerControlSection() {
-        FormLayout schedulerForm = createFormLayout();
+        FormLayout schedulerForm = createSingleColumnFormLayout();
 
         // Создаем чекбоксы для управления шедуллерами
         Checkbox updateTradesSchedulerCheckbox = new Checkbox("UpdateTrades (каждую минуту)");
