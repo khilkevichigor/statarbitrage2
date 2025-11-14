@@ -82,9 +82,8 @@ public class CoreApplication {
         // updatePairsAfterRestart(); // Закомментировано для тестирования автообновления UI
         log.info("");
         log.info("✅ Запуск завершен без обновления пар");
-        
+
         log.info("");
-        log.info("🔍 Проверка состояния шедуллеров:");
         schedulerControlService.logSchedulersStatus();
     }
 

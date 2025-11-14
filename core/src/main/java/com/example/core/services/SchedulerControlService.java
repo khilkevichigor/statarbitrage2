@@ -174,22 +174,19 @@ public class SchedulerControlService {
      */
     public void logSchedulersStatus() {
         log.info("📅 === СОСТОЯНИЕ ШЕДУЛЛЕРОВ ===");
-        log.info("📅 UpdateTradesScheduler (каждую минуту): {}", 
+        log.info("📅 UpdateTrades: {}",
                 isUpdateTradesSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
-        log.info("📅 AutoTradingScheduler (каждые 5 минут): {}", 
+        log.info("📅 AutoTrading: {}",
                 isAutoTradingSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
-        log.info("📅 StablePairsScheduler ({}): {}", 
-                getStablePairsSchedulerCron(),
+        log.info("📅 StablePairs: {}",
                 isStablePairsSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
-        log.info("📅 MonitoringPairsUpdateScheduler ({}): {}", 
-                getMonitoringPairsUpdateSchedulerCron(),
+        log.info("📅 MonitoringPairs Update: {}",
                 isMonitoringPairsUpdateSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
-        log.info("📅 PortfolioSnapshotScheduler (каждые 15 минут): {}", 
+        log.info("📅 Portfolio Snapshot: {}",
                 isPortfolioSnapshotSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
-        log.info("📅 PortfolioCleanupScheduler ({}): {}", 
-                getPortfolioCleanupSchedulerCron(),
+        log.info("📅 Portfolio Cleanup: {}",
                 isPortfolioCleanupSchedulerEnabled() ? "ВКЛЮЧЕН" : "ОТКЛЮЧЕН");
-        log.info("📅 ================================");
+        log.info("📅 =============================");
     }
 
     /**
