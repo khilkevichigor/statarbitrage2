@@ -3,15 +3,21 @@ package com.example.core.services;
 import com.example.shared.models.Settings;
 import lombok.Builder;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 /**
  * Сервис для расчета требуемого капитала при заданных настройках торговли
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CapitalCalculationService {
+
+    private final AutoVolumeService autoVolumeService;
 
     /**
      * Рассчитывает общий требуемый капитал для заданных настроек
@@ -74,8 +80,25 @@ public class CapitalCalculationService {
      */
     public CapitalRequirement calculateRequiredCapitalAlternative(Settings settings) {
         double pairsCount = settings.getUsePairs();
-        double longMarginSize = settings.getMaxLongMarginSize();
-        double shortMarginSize = settings.getMaxShortMarginSize();
+        
+        // Определяем размеры позиций в зависимости от того, включен ли автообъем
+        double longMarginSize;
+        double shortMarginSize;
+        
+        if (settings.isAutoVolumeEnabled()) {
+            // Если включен автообъем, рассчитываем размеры позиций автоматически
+            AutoVolumeService.AutoVolumeData autoVolume = autoVolumeService.calculateAutoVolume(settings);
+            longMarginSize = autoVolume.getLongVolume().doubleValue();
+            shortMarginSize = autoVolume.getShortVolume().doubleValue();
+            
+            log.info("🤖 АВТООБЪЕМ ВКЛЮЧЕН: long={}, short={}", longMarginSize, shortMarginSize);
+        } else {
+            // Если автообъем отключен, используем ручные настройки
+            longMarginSize = settings.getMaxLongMarginSize();
+            shortMarginSize = settings.getMaxShortMarginSize();
+            
+            log.info("✋ РУЧНЫЕ ОБЪЕМЫ: long={}, short={}", longMarginSize, shortMarginSize);
+        }
 
         double totalCapital = 0;
         double totalBaseCapital = 0;

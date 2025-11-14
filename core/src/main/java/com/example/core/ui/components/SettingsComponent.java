@@ -1399,7 +1399,7 @@ public class SettingsComponent extends VerticalLayout {
 
             // Обновляем информацию о капитале при изменении настроек усреднения
             updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                    autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField);
+                    autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox);
         });
 
         // Логика активации/деактивации полей автообъема
@@ -1419,20 +1419,20 @@ public class SettingsComponent extends VerticalLayout {
 
             // Обновляем информацию о капитале
             updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                    autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField);
+                    autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox);
         });
 
         // Слушатели для обновления информации о капитале
         usePairsField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox));
         maxShortMarginSize.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox));
         maxLongMarginSize.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox));
         averagingVolumeMultiplierField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox));
         maxAveragingCountField.addValueChangeListener(e -> updateCapitalInfo(usePairsField, maxShortMarginSize, maxLongMarginSize,
-                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField));
+                autoAveragingCheckbox, averagingVolumeMultiplierField, maxAveragingCountField, autoVolumeCheckbox));
 
         // Создаем спан для отображения информации о капитале
         capitalInfoSpan = new Span();
@@ -1462,7 +1462,8 @@ public class SettingsComponent extends VerticalLayout {
     }
 
     private void updateCapitalInfo(NumberField usePairsField, NumberField maxShortMarginSize, NumberField maxLongMarginSize,
-                                   Checkbox autoAveragingCheckbox, NumberField averagingVolumeMultiplierField, NumberField maxAveragingCountField) {
+                                   Checkbox autoAveragingCheckbox, NumberField averagingVolumeMultiplierField, NumberField maxAveragingCountField, 
+                                   Checkbox autoVolumeCheckbox) {
         try {
             // Берем текущие настройки и обновляем их значениями из UI полей
             Settings tempSettings = Settings.builder()
@@ -1472,6 +1473,7 @@ public class SettingsComponent extends VerticalLayout {
                     .autoAveragingEnabled(autoAveragingCheckbox.getValue())
                     .averagingVolumeMultiplier(averagingVolumeMultiplierField.getValue() != null ? averagingVolumeMultiplierField.getValue() : currentSettings.getAveragingVolumeMultiplier())
                     .maxAveragingCount(maxAveragingCountField.getValue() != null ? maxAveragingCountField.getValue().intValue() : currentSettings.getMaxAveragingCount())
+                    .autoVolumeEnabled(autoVolumeCheckbox.getValue()) // Добавляем состояние автообъема
                     .build();
 
             // Рассчитываем требуемый капитал
