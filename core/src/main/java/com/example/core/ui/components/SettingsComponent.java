@@ -1521,14 +1521,6 @@ public class SettingsComponent extends VerticalLayout {
         Checkbox candleCacheUpdateSchedulerCheckbox = new Checkbox("CandleCache Update");
         Checkbox candleCacheStatsSchedulerCheckbox = new Checkbox("CandleCache Stats");
 
-        // Создаем поля для отображения CRON выражений
-        Span stablePairsCronSpan = new Span();
-        stablePairsCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
-        Span monitoringPairsUpdateCronSpan = new Span();
-        monitoringPairsUpdateCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
-        Span portfolioCleanupCronSpan = new Span();
-        portfolioCleanupCronSpan.getStyle().set("font-family", "monospace").set("color", "var(--lumo-secondary-text-color)");
-
         // Инициализируем значения чекбоксов из настроек (с проверкой на null)
         updateTradesSchedulerCheckbox.setValue(currentSettings.getSchedulerUpdateTradesEnabled() != null ? currentSettings.getSchedulerUpdateTradesEnabled() : true);
         stablePairsSchedulerCheckbox.setValue(currentSettings.getSchedulerStablePairsEnabled() != null ? currentSettings.getSchedulerStablePairsEnabled() : true);
@@ -1539,29 +1531,21 @@ public class SettingsComponent extends VerticalLayout {
         candleCacheUpdateSchedulerCheckbox.setValue(currentSettings.getSchedulerCandleCacheUpdateEnabled() != null ? currentSettings.getSchedulerCandleCacheUpdateEnabled() : true);
         candleCacheStatsSchedulerCheckbox.setValue(currentSettings.getSchedulerCandleCacheStatsEnabled() != null ? currentSettings.getSchedulerCandleCacheStatsEnabled() : true);
 
-        // Отображаем CRON выражения
-        String stablePairsCron = schedulerControlService.getStablePairsSchedulerCron();
-        String monitoringPairsUpdateCron = schedulerControlService.getMonitoringPairsUpdateSchedulerCron();
-        String portfolioCleanupCron = schedulerControlService.getPortfolioCleanupSchedulerCron();
-        stablePairsCronSpan.setText("CRON: " + stablePairsCron + " (02:10 каждый день)");
-        monitoringPairsUpdateCronSpan.setText("CRON: " + monitoringPairsUpdateCron + " (01:00 каждый день)");
-        portfolioCleanupCronSpan.setText("CRON: " + portfolioCleanupCron + " (02:00 каждый день)");
-
         // Создаем вертикальные компоновки для шедуллеров с CRON
         VerticalLayout stablePairsLayout = new VerticalLayout();
         stablePairsLayout.setSpacing(false);
         stablePairsLayout.setPadding(false);
-        stablePairsLayout.add(stablePairsSchedulerCheckbox, stablePairsCronSpan);
+        stablePairsLayout.add(stablePairsSchedulerCheckbox);
 
         VerticalLayout monitoringPairsUpdateLayout = new VerticalLayout();
         monitoringPairsUpdateLayout.setSpacing(false);
         monitoringPairsUpdateLayout.setPadding(false);
-        monitoringPairsUpdateLayout.add(monitoringPairsUpdateSchedulerCheckbox, monitoringPairsUpdateCronSpan);
+        monitoringPairsUpdateLayout.add(monitoringPairsUpdateSchedulerCheckbox);
 
         VerticalLayout portfolioCleanupLayout = new VerticalLayout();
         portfolioCleanupLayout.setSpacing(false);
         portfolioCleanupLayout.setPadding(false);
-        portfolioCleanupLayout.add(portfolioCleanupSchedulerCheckbox, portfolioCleanupCronSpan);
+        portfolioCleanupLayout.add(portfolioCleanupSchedulerCheckbox);
 
         // Добавляем компоненты в форму
         schedulerForm.add(
@@ -1587,7 +1571,7 @@ public class SettingsComponent extends VerticalLayout {
                 candleCacheStatsSchedulerCheckbox
         );
 
-        return createDetailsCard("📅 Расписание шедуллеров",
+        return createDetailsCard("📅 Управление шедуллерами",
                 "Управление автоматическими задачами и их расписанием", schedulerForm);
     }
 
