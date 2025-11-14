@@ -51,7 +51,7 @@ public class AutoTradingScheduler {
 
             Settings settings = settingsService.getSettings();
 
-            log.info("🤖 Запуск автоматического трейдинга в {}", LocalDateTime.now());
+            log.debug("🤖 Запуск автоматического трейдинга в {}", LocalDateTime.now());
 
             // Проверяем можем ли открыть новые позиции
             if (!canOpenNewPositions(settings)) {
@@ -70,9 +70,9 @@ public class AutoTradingScheduler {
             int newTradesOpened = openNewTrades(candidatePairs, settings);
             
             if (newTradesOpened > 0) {
-                log.info("✅ Автотрейдинг: открыто {} новых позиций", newTradesOpened);
+                log.debug("✅ Автотрейдинг: открыто {} новых позиций", newTradesOpened);
             } else {
-                log.info("📊 Автотрейдинг: новые позиции не открыты");
+                log.debug("📊 Автотрейдинг: новые позиции не открыты");
             }
 
         } catch (Exception e) {

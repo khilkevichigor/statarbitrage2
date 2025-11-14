@@ -62,7 +62,7 @@ public class UpdateChangesService {
             }
             
             if (shouldAdd) {
-                log.info("📊 Добавляем НОВУЮ точку корреляции в историю: {} на время {} для пары {} (было {} точек)",
+                log.debug("📊 Добавляем НОВУЮ точку корреляции в историю: {} на время {} для пары {} (было {} точек)",
                         currentCorrelation, currentTimestamp, tradingPair.getPairName(), existingHistory.size());
                 
                 tradingPair.addCorrelationHistoryPoint(CorrelationHistoryItem.builder()
@@ -70,7 +70,7 @@ public class UpdateChangesService {
                         .correlation(currentCorrelation)
                         .build());
                         
-                log.info("📊 После добавления стало {} точек корреляции", tradingPair.getCorrelationHistory().size());
+                log.debug("📊 После добавления стало {} точек корреляции", tradingPair.getCorrelationHistory().size());
             }
         }
 
@@ -106,7 +106,7 @@ public class UpdateChangesService {
             }
             
             if (shouldAdd) {
-                log.info("📊 Добавляем НОВУЮ точку профита в историю: {}% на время {} для пары {} (было {} точек)",
+                log.debug("📊 Добавляем НОВУЮ точку профита в историю: {}% на время {} для пары {} (было {} точек)",
                         currentProfitPercent, currentTimestamp, tradingPair.getPairName(), existingHistory.size());
                 
                 tradingPair.addProfitHistoryPoint(ProfitHistoryItem.builder()
@@ -114,7 +114,7 @@ public class UpdateChangesService {
                         .profitPercent(currentProfitPercent)
                         .build());
                         
-                log.info("📊 После добавления стало {} точек профита", tradingPair.getProfitHistory().size());
+                log.debug("📊 После добавления стало {} точек профита", tradingPair.getProfitHistory().size());
             }
         }
 

@@ -40,7 +40,7 @@ public class PythonRestClient {
 
     public List<ZScoreData> discoverPairs(Map<String, List<Candle>> candlesMap, Settings settings) {
         Map<String, Object> settingsMap = convertSettingsToMap(settings);
-        log.info("settingsMap перед получением ZScoreData: {}", settingsMap);
+        log.debug("settingsMap перед получением ZScoreData: {}", settingsMap);
         Map<String, List<ApiCandle>> apiCandlesMap = convertCandlesMap(candlesMap);
         DiscoveryRequest requestBody = new DiscoveryRequest(apiCandlesMap, settingsMap);
 
