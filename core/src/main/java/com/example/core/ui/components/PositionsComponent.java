@@ -99,64 +99,64 @@ public class PositionsComponent extends VerticalLayout {
         // Основные колонки
         positionsGrid.addColumn(Position::getId)
                 .setHeader("ID")
-                .setWidth("80px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(Position::getPositionId)
                 .setHeader("Position ID")
-                .setWidth("150px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(Position::getSymbol)
                 .setHeader("Символ")
-                .setWidth("120px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(new ComponentRenderer<>(this::createTypeRenderer))
                 .setHeader("Тип")
-                .setWidth("100px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(new ComponentRenderer<>(this::createStatusRenderer))
                 .setHeader("Статус")
-                .setWidth("120px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         // Размер и цены
         positionsGrid.addColumn(position ->
                         position.getSize() != null ? NumberFormatter.format(position.getSize(), 4) : "")
                 .setHeader("Размер")
-                .setWidth("120px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(position ->
                         position.getEntryPrice() != null ? NumberFormatter.format(position.getEntryPrice(), 4) : "")
                 .setHeader("Цена входа")
-                .setWidth("120px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(position ->
                         position.getCurrentPrice() != null ? NumberFormatter.format(position.getCurrentPrice(), 4) : "")
                 .setHeader("Текущая цена")
-                .setWidth("120px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         // Плечо
         positionsGrid.addColumn(position ->
                         position.getLeverage() != null ? NumberFormatter.format(position.getLeverage(), 1) + "x" : "")
                 .setHeader("Плечо")
-                .setWidth("80px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         // PnL
         positionsGrid.addColumn(new ComponentRenderer<>(this::createUnrealizedPnLRenderer))
                 .setHeader("Нереализованный PnL")
-                .setWidth("180px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(new ComponentRenderer<>(this::createRealizedPnLRenderer))
                 .setHeader("Реализованный PnL")
-                .setWidth("180px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         // Время
@@ -164,20 +164,20 @@ public class PositionsComponent extends VerticalLayout {
                         position.getOpenTime() != null ?
                                 position.getOpenTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")) : "")
                 .setHeader("Время открытия")
-                .setWidth("160px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         positionsGrid.addColumn(position ->
                         position.getLastUpdated() != null ?
                                 position.getLastUpdated().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")) : "")
                 .setHeader("Последнее обновление")
-                .setWidth("160px")
+                .setAutoWidth(true)
                 .setFlexGrow(1);
 
         // Действия
         positionsGrid.addColumn(new ComponentRenderer<>(this::createActionsRenderer))
                 .setHeader("Действия")
-                .setWidth("150px")
+                .setAutoWidth(true)
                 .setFlexGrow(0);
 
         // Стиль для удаленных позиций
