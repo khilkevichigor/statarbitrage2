@@ -976,6 +976,7 @@ public class SettingsComponent extends VerticalLayout {
         Details details = new Details();
         details.setSummaryText(title);
         details.setContent(cardContent);
+        details.setOpened(true);
         details.getStyle().set("margin-bottom", "1rem");
         details.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderRadius.LARGE);
 
