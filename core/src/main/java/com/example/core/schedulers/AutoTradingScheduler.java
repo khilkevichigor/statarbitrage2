@@ -62,7 +62,7 @@ public class AutoTradingScheduler {
             // Ищем хорошие пары из стабильных источников
             List<Pair> candidatePairs = findCandidatePairs(settings);
             if (candidatePairs.isEmpty()) {
-                log.info("📊 Не найдено подходящих пар для автотрейдинга");
+                log.debug("📊 Не найдено подходящих пар для автотрейдинга");
                 return;
             }
 
