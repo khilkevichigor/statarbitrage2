@@ -2,13 +2,9 @@ package com.example.core;
 
 import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
-import com.example.core.processors.UpdateTradeProcessor;
-import com.example.core.repositories.PairRepository;
 import com.example.core.services.SchedulerControlService;
 import com.example.core.trading.services.GeolocationService;
 import com.example.shared.dto.Candle;
-import com.example.shared.dto.UpdateTradeRequest;
-import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Settings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -40,57 +36,34 @@ public class CoreApplication {
     private final CointegrationApiHealthCheck healthCheck;
     private final PythonRestClient pythonRestClient;
     private final GeolocationService geolocationService;
-    private final UpdateTradeProcessor updateTradeProcessor;
-    private final PairRepository pairDataService;
     private final SchedulerControlService schedulerControlService;
 
-    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, UpdateTradeProcessor updateTradeProcessor, PairRepository pairDataService, SchedulerControlService schedulerControlService) {
+    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, SchedulerControlService schedulerControlService) {
         this.healthCheck = healthCheck;
         this.pythonRestClient = pythonRestClient;
         this.geolocationService = geolocationService;
-        this.updateTradeProcessor = updateTradeProcessor;
-        this.pairDataService = pairDataService;
         this.schedulerControlService = schedulerControlService;
     }
 
     public static void main(String[] args) {
         SpringApplication.run(CoreApplication.class, args);
-        log.info("");
-        log.info("🚀 Core готов к работе!");
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         try {
             //ждем чтобы не мешать логи и было по красоте
-            Thread.sleep(5000);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        // Проверка геолокации при запуске
-        geolocationService.checkGeolocationOnStartup();
         log.info("");
+        geolocationService.checkGeolocationOnStartup();
         log.info("✅ Геолокация при запуске: безопасно для OKX");
-
-        // Проверка Cointegration API
         checkCointegrationApiHealth();
         log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
-
-        log.info("");
-        log.info("⏭️ Пропускаем плановое обновление пар при запуске (OKX API не настроен)...");
-        // updatePairsAfterRestart(); // Закомментировано для тестирования автообновления UI
-        log.info("");
-        log.info("✅ Запуск завершен без обновления пар");
-
-        log.info("");
         schedulerControlService.logSchedulersStatus();
-    }
-
-    private void updatePairsAfterRestart() {
-        pairDataService.findTradingPairsByStatus(TradeStatus.TRADING).forEach(pairData -> updateTradeProcessor.updateTrade(UpdateTradeRequest.builder()
-                .tradingPair(pairData)
-                .build()));
+        log.info("🚀 Core готов к работе!");
     }
 
     private void checkCointegrationApiHealth() {

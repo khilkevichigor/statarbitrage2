@@ -90,14 +90,10 @@ public class CapitalCalculationService {
             AutoVolumeService.AutoVolumeData autoVolume = autoVolumeService.calculateAutoVolume(settings);
             longMarginSize = autoVolume.getLongVolume().doubleValue();
             shortMarginSize = autoVolume.getShortVolume().doubleValue();
-            
-            log.info("🤖 АВТООБЪЕМ ВКЛЮЧЕН: long={}, short={}", longMarginSize, shortMarginSize);
         } else {
             // Если автообъем отключен, используем ручные настройки
             longMarginSize = settings.getMaxLongMarginSize();
             shortMarginSize = settings.getMaxShortMarginSize();
-            
-            log.info("✋ РУЧНЫЕ ОБЪЕМЫ: long={}, short={}", longMarginSize, shortMarginSize);
         }
 
         double totalCapital = 0;
