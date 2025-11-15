@@ -250,23 +250,25 @@ public class BtcVolatilityService {
         if (data.averageAtr > 0) {
             double atrRatio = data.currentAtr / data.averageAtr;
             atrOk = atrRatio <= settings.getBtcAtrThresholdMultiplier();
-            log.debug("🪙 ATR: текущий={:.2f}, средний={:.2f}, ratio={:.2f}, порог={:.2f}, OK={}", 
-                    data.currentAtr, data.averageAtr, atrRatio, settings.getBtcAtrThresholdMultiplier(), atrOk);
+            log.debug("🪙 ATR: текущий={}, средний={}, ratio={}, порог={}, OK={}", 
+                    String.format("%.2f", data.currentAtr), String.format("%.2f", data.averageAtr), 
+                    String.format("%.2f", atrRatio), String.format("%.2f", settings.getBtcAtrThresholdMultiplier()), atrOk);
         }
 
         // Проверка дневного диапазона
         if (data.averageDailyRange > 0) {
             double rangeRatio = data.currentDailyRange / data.averageDailyRange;
             dailyRangeOk = rangeRatio <= settings.getBtcDailyRangeMultiplier();
-            log.debug("🪙 Дневной диапазон: текущий={:.2f}, средний={:.2f}, ratio={:.2f}, порог={:.2f}, OK={}", 
-                    data.currentDailyRange, data.averageDailyRange, rangeRatio, settings.getBtcDailyRangeMultiplier(), dailyRangeOk);
+            log.debug("🪙 Дневной диапазон: текущий={}, средний={}, ratio={}, порог={}, OK={}", 
+                    String.format("%.2f", data.currentDailyRange), String.format("%.2f", data.averageDailyRange), 
+                    String.format("%.2f", rangeRatio), String.format("%.2f", settings.getBtcDailyRangeMultiplier()), dailyRangeOk);
         }
 
         // Проверка дневного изменения
         double absChange = Math.abs(data.dailyChangePercent);
         dailyChangeOk = absChange <= settings.getMaxBtcDailyChangePercent();
-        log.debug("🪙 Дневное изменение: {:.2f}%, порог={:.2f}%, OK={}", 
-                data.dailyChangePercent, settings.getMaxBtcDailyChangePercent(), dailyChangeOk);
+        log.debug("🪙 Дневное изменение: {}%, порог={}%, OK={}", 
+                String.format("%.2f", data.dailyChangePercent), String.format("%.2f", settings.getMaxBtcDailyChangePercent()), dailyChangeOk);
 
         return atrOk && dailyRangeOk && dailyChangeOk;
     }

@@ -103,8 +103,9 @@ public class ChartLayerService {
         double minValue = interpolatedProfitValues.stream().mapToDouble(v -> v).min().orElse(0.0);
         double maxValue = interpolatedProfitValues.stream().mapToDouble(v -> v).max().orElse(0.0);
         
-        log.info("📈 Статистика интерполированного профита: {} ненулевых из {}, диапазон [{:.2f}% - {:.2f}%]",
-                nonZeroCount, interpolatedProfitValues.size(), minValue, maxValue);
+        log.info("📈 Статистика интерполированного профита: {} ненулевых из {}, диапазон [{}% - {}%]",
+                nonZeroCount, interpolatedProfitValues.size(), 
+                String.format("%.2f", minValue), String.format("%.2f", maxValue));
 
         addProfitSeriesToChart(chart, zScoreTimeAxis, interpolatedProfitValues);
     }
