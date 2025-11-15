@@ -148,7 +148,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
         tradingPairsGrid.addColumn(Pair::getFormattedProfitCommon).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        tradingPairsGrid.addColumn(p -> String.valueOf(p.getAveragingCount())).setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        tradingPairsGrid.addColumn(p -> p.getAveragingCount() != null ? String.valueOf(p.getAveragingCount()) : "0").setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         tradingPairsGrid.addColumn(p -> {
             if (p.getUpdatedTime() != null && p.getEntryTime() != null) {
@@ -207,7 +207,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
         closedPairsGrid.addColumn(Pair::getFormattedProfitCommon).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        closedPairsGrid.addColumn(p -> String.valueOf(p.getAveragingCount())).setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        closedPairsGrid.addColumn(p -> p.getAveragingCount() != null ? String.valueOf(p.getAveragingCount()) : "0").setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         closedPairsGrid.addColumn(p -> safeScale(p.getPortfolioAfterTradeUSDT(), 2) + "$").setHeader("Баланс ПОСЛЕ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
@@ -271,7 +271,7 @@ public class TradingPairsComponent extends VerticalLayout {
 
         errorPairsGrid.addColumn(Pair::getFormattedProfitCommon).setHeader("Профит Общий").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
-        errorPairsGrid.addColumn(p -> String.valueOf(p.getAveragingCount())).setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        errorPairsGrid.addColumn(p -> p.getAveragingCount() != null ? String.valueOf(p.getAveragingCount()) : "0").setHeader("Усреднений").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         errorPairsGrid.addColumn(p -> safeScale(p.getPortfolioAfterTradeUSDT(), 2) + "$").setHeader("Баланс ПОСЛЕ").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
