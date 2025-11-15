@@ -459,6 +459,9 @@ public class StablePairsView extends VerticalLayout {
 
         // Основные колонки
         grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        
+        // Колонка с кнопкой "Чарт"
+        grid.addColumn(new ComponentRenderer<>(this::createFoundPairChartButton)).setHeader("Чарт").setSortable(false).setWidth("70px").setFlexGrow(0);
         Grid.Column<Pair> scoreColumn = grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScore() != null ? pair.getTotalScore().toString() : "-"));
         scoreColumn.setHeader("Скор").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         scoreColumn.setComparator((pair1, pair2) -> {
@@ -487,8 +490,8 @@ public class StablePairsView extends VerticalLayout {
             return "-";
         })).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getSearchDate() != null ? TimeFormatterUtil.formatDateTime(pair.getSearchDate()) : "-")).setHeader("Дата поиска").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        // Колонка действий
-        grid.addColumn(new ComponentRenderer<>(this::createFoundPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        // Колонка действий (без кнопки чарта)
+        grid.addColumn(new ComponentRenderer<>(this::createFoundPairActionsWithoutChart)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         return grid;
     }
@@ -500,6 +503,9 @@ public class StablePairsView extends VerticalLayout {
 
         // Основные колонки
         grid.addColumn(Pair::getPairName).setHeader("Пара").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        
+        // Колонка с кнопкой "Чарт"
+        grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairChartButton)).setHeader("Чарт").setSortable(false).setWidth("70px").setFlexGrow(0);
 
         // Колонка "Скор entry" - изначальный скор при добавлении в мониторинг
         Grid.Column<Pair> scoreEntryColumn = grid.addColumn(new TextRenderer<>(pair -> pair.getTotalScoreEntry() != null ? pair.getTotalScoreEntry().toString() : "-"));
@@ -541,8 +547,8 @@ public class StablePairsView extends VerticalLayout {
         })).setHeader("Min Vol").setSortable(true).setWidth("100px").setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getCreatedAt() != null ? TimeFormatterUtil.formatDateTime(pair.getCreatedAt()) : "-")).setHeader("Добавлена").setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(new TextRenderer<>(pair -> pair.getUpdatedTime() != null ? TimeFormatterUtil.formatDateTime(pair.getUpdatedTime()) : "-")).setHeader("Обновлено").setAutoWidth(true).setFlexGrow(0);
-        // Колонка действий
-        grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairActions)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        // Колонка действий (без кнопки чарта)
+        grid.addColumn(new ComponentRenderer<>(this::createMonitoringPairActionsWithoutChart)).setHeader("Действия").setSortable(true).setAutoWidth(true).setFlexGrow(0);
 
         return grid;
     }
@@ -594,6 +600,62 @@ public class StablePairsView extends VerticalLayout {
         removeButton.addClickListener(e -> removeFromMonitoring(pair));
 
         actions.add(updateButton, chartButton, removeButton);
+        return actions;
+    }
+
+    private Button createFoundPairChartButton(Pair pair) {
+        Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
+        chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        chartButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
+        chartButton.addClickListener(e -> calculateZScore(pair));
+        return chartButton;
+    }
+
+    private Button createMonitoringPairChartButton(Pair pair) {
+        Button chartButton = new Button(VaadinIcon.LINE_CHART.create());
+        chartButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        chartButton.getElement().setAttribute("title", "Рассчитать Z-Score и показать график");
+        chartButton.addClickListener(e -> calculateZScore(pair));
+        return chartButton;
+    }
+
+    private HorizontalLayout createFoundPairActionsWithoutChart(Pair pair) {
+        HorizontalLayout actions = new HorizontalLayout();
+        actions.setSpacing(true);
+
+        Button addButton = new Button("Добавить", VaadinIcon.PLUS.create());
+        addButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+        addButton.addClickListener(e -> addToMonitoring(pair));
+
+        Button addTickersButton = new Button("Добавить тикеры", VaadinIcon.TAGS.create());
+        addTickersButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        addTickersButton.getElement().setAttribute("title", "Добавить инструменты пары в поле поиска");
+        addTickersButton.addClickListener(e -> addTickersToSearch(pair));
+
+        Button deleteButton = new Button(VaadinIcon.TRASH.create());
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        deleteButton.getElement().setAttribute("title", "Удалить");
+        deleteButton.addClickListener(e -> deleteFoundPair(pair));
+
+        actions.add(addButton, addTickersButton, deleteButton);
+        return actions;
+    }
+
+    private HorizontalLayout createMonitoringPairActionsWithoutChart(Pair pair) {
+        HorizontalLayout actions = new HorizontalLayout();
+        actions.setSpacing(true);
+
+        Button updateButton = new Button(VaadinIcon.REFRESH.create());
+        updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        updateButton.getElement().setAttribute("title", "Обновить данные пары");
+        updateButton.addClickListener(e -> updateMonitoringPair(pair));
+
+        Button removeButton = new Button(VaadinIcon.MINUS.create());
+        removeButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+        removeButton.getElement().setAttribute("title", "Удалить из мониторинга");
+        removeButton.addClickListener(e -> removeFromMonitoring(pair));
+
+        actions.add(updateButton, removeButton);
         return actions;
     }
 
