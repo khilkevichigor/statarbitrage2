@@ -244,6 +244,9 @@ public class FetchPairsProcessor {
 
         List<Pair> pairs = createPairs(zScoreDataList, candlesMap);
 
+        // Переносим данные из стабильных пар: Скор entry, Скор факт, Рейтинг
+        enrichPairsWithStableData(pairs, stablePairs);
+
         log.info("✅ Создано {} пар из стабильных источников", pairs.size());
         pairs.forEach(p -> log.info("📈 {}", p.getPairName()));
         log.debug("🕒 Время выполнения (стабильные пары): {} сек",
@@ -322,6 +325,82 @@ public class FetchPairsProcessor {
             log.error("❌ Ошибка при расчете Z-Score для стабильных пар: {}", e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Обогащает созданные пары данными из стабильных пар
+     * Переносит: totalScore (факт), totalScoreEntry, stabilityRating с учетом зеркальности
+     */
+    private void enrichPairsWithStableData(List<Pair> pairs, List<Pair> stablePairs) {
+        log.info("🔄 Обогащение {} пар данными из {} стабильных пар", pairs.size(), stablePairs.size());
+        
+        int enrichedCount = 0;
+        
+        for (Pair pair : pairs) {
+            String pairName = pair.getPairName();
+            
+            // Ищем соответствующую стабильную пару (включая зеркальные варианты)
+            Pair matchingStablePair = findMatchingStablePair(pairName, stablePairs);
+            
+            if (matchingStablePair != null) {
+                // Переносим данные из стабильной пары
+                pair.setTotalScore(matchingStablePair.getTotalScore()); // Скор факт (текущий)
+                pair.setTotalScoreEntry(matchingStablePair.getTotalScoreEntry()); // Скор entry (изначальный)
+                pair.setStabilityRating(matchingStablePair.getStabilityRating()); // Рейтинг
+                
+                log.info("📋 Перенесены данные для {}: scoreFact={}, scoreEntry={}, rating={}",
+                    pairName, 
+                    matchingStablePair.getTotalScore(),
+                    matchingStablePair.getTotalScoreEntry(),
+                    matchingStablePair.getStabilityRating());
+                
+                enrichedCount++;
+            } else {
+                log.debug("⚠️ Не найдена стабильная пара для: {}", pairName);
+            }
+        }
+        
+        log.info("✅ Обогащено {} из {} пар данными из стабильных пар", enrichedCount, pairs.size());
+    }
+
+    /**
+     * Находит соответствующую стабильную пару с учетом зеркальности
+     * 
+     * @param pairName название пары (например "BTC/ETH")
+     * @param stablePairs список стабильных пар для поиска
+     * @return найденная стабильная пара или null
+     */
+    private Pair findMatchingStablePair(String pairName, List<Pair> stablePairs) {
+        if (pairName == null || !pairName.contains("/")) {
+            return null;
+        }
+        
+        // Разбиваем название пары
+        String[] parts = pairName.split("/");
+        if (parts.length != 2) {
+            return null;
+        }
+        
+        String tickerA = parts[0];
+        String tickerB = parts[1];
+        
+        // Ищем прямое соответствие или зеркальное
+        for (Pair stablePair : stablePairs) {
+            String stablePairName = stablePair.getPairName();
+            
+            if (pairName.equals(stablePairName)) {
+                // Прямое соответствие
+                return stablePair;
+            }
+            
+            // Проверяем зеркальное соответствие (A/B == B/A)
+            String mirrorPairName = tickerB + "/" + tickerA;
+            if (mirrorPairName.equals(stablePairName)) {
+                return stablePair;
+            }
+        }
+        
+        return null;
     }
 
 }
