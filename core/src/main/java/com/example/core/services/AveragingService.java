@@ -75,9 +75,10 @@ public class AveragingService {
         }
 
         // Проверяем, не превышен ли максимальный лимит усреднений
-        if (tradingPair.getAveragingCount() >= settings.getMaxAveragingCount()) {
+        int currentAveragingCount = tradingPair.getAveragingCount() != null ? tradingPair.getAveragingCount() : 0;
+        if (currentAveragingCount >= settings.getMaxAveragingCount()) {
             log.info("🚫 Достигнут максимальный лимит усреднений для пары {}: {} >= {}",
-                    tradingPair.getPairName(), tradingPair.getAveragingCount(), settings.getMaxAveragingCount());
+                    tradingPair.getPairName(), currentAveragingCount, settings.getMaxAveragingCount());
             return false;
         }
 
@@ -88,7 +89,7 @@ public class AveragingService {
         }
 
         // Рассчитываем прогрессивный порог просадки
-        double threshold = calculateAveragingThreshold(tradingPair.getAveragingCount(), settings);
+        double threshold = calculateAveragingThreshold(currentAveragingCount, settings);
         double currentProfitDouble = currentProfitPercent.doubleValue();
 
         boolean shouldAverage = currentProfitDouble <= threshold;
@@ -96,7 +97,7 @@ public class AveragingService {
         if (shouldAverage) {
             log.info("📉 Обнаружена просадка для пары {}: {}% <= {}%. Требуется усреднение #{}/{}.",
                     tradingPair.getPairName(), currentProfitDouble, threshold,
-                    tradingPair.getAveragingCount() + 1, settings.getMaxAveragingCount());
+                    currentAveragingCount + 1, settings.getMaxAveragingCount());
         }
 
         return shouldAverage;
@@ -108,7 +109,8 @@ public class AveragingService {
     private AveragingResult executeAveraging(Pair tradingPair, Settings settings, String trigger) {
         try {
             // Создаем временные настройки с прогрессивно увеличенным объемом
-            Settings averagingSettings = createAveragingSettings(settings, tradingPair.getAveragingCount());
+            int currentCount = tradingPair.getAveragingCount() != null ? tradingPair.getAveragingCount() : 0;
+            Settings averagingSettings = createAveragingSettings(settings, currentCount);
 
             // Сохраняем текущий профит перед усреднением для отслеживания
             tradingPair.setLastAveragingProfitPercent(tradingPair.getProfitPercentChanges());
@@ -122,7 +124,8 @@ public class AveragingService {
             }
 
             // Обновляем счетчик усреднений
-            int newAveragingCount = tradingPair.getAveragingCount() + 1;
+            int existingCount = tradingPair.getAveragingCount() != null ? tradingPair.getAveragingCount() : 0;
+            int newAveragingCount = existingCount + 1;
             tradingPair.setAveragingCount(newAveragingCount);
             tradingPair.setLastAveragingTimestamp(System.currentTimeMillis());
 

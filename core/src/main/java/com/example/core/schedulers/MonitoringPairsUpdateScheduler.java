@@ -66,6 +66,7 @@ public class MonitoringPairsUpdateScheduler {
             return;
         }
 
+        log.info("");
         log.info("🌙 Запуск автоматического обновления пар в мониторинге в {}", LocalDateTime.now());
 
         try {
