@@ -29,7 +29,7 @@ public class SettingsService {
     }
 
     private Settings createTempDefaultSettings() {
-        return new Settings();
+        return Settings.builder().build();
     }
 
     @Transactional

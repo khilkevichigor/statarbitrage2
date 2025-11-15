@@ -372,6 +372,23 @@ public class Settings {
     @Column(name = "scheduler_monitoring_pairs_update_cron")
     private String schedulerMonitoringPairsUpdateCron = "0 0 1 * * *";
 
+    // ===== BTC Volatility Analysis =====
+    @Builder.Default
+    @Column(name = "use_btc_volatility_filter")
+    private boolean useBtcVolatilityFilter = false;
+
+    @Builder.Default
+    @Column(name = "btc_atr_threshold_multiplier")
+    private double btcAtrThresholdMultiplier = 1.3;
+
+    @Builder.Default
+    @Column(name = "btc_daily_range_multiplier")
+    private double btcDailyRangeMultiplier = 1.3;
+
+    @Builder.Default
+    @Column(name = "max_btc_daily_change_percent")
+    private double maxBtcDailyChangePercent = 5.0;
+
     // ===== Логика =====
     public double getExpectedZParamsCount() {
         return this.getCandleLimit() - this.getMinWindowSize();
@@ -497,6 +514,12 @@ public class Settings {
         this.schedulerCandleCacheStatsCron = other.schedulerCandleCacheStatsCron;
         this.schedulerMonitoringPairsUpdateEnabled = other.schedulerMonitoringPairsUpdateEnabled;
         this.schedulerMonitoringPairsUpdateCron = other.schedulerMonitoringPairsUpdateCron;
+        
+        // BTC Volatility Analysis
+        this.useBtcVolatilityFilter = other.useBtcVolatilityFilter;
+        this.btcAtrThresholdMultiplier = other.btcAtrThresholdMultiplier;
+        this.btcDailyRangeMultiplier = other.btcDailyRangeMultiplier;
+        this.maxBtcDailyChangePercent = other.maxBtcDailyChangePercent;
     }
 
     /**

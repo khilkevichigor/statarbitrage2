@@ -247,6 +247,7 @@ public class SettingsComponent extends VerticalLayout {
         minimumLotBlacklistField.setPlaceholder("Тикеры через запятую (ETH-USDT-SWAP,BTC-USDT-SWAP)");
         minimumLotBlacklistField.setHelperText("Тикеры с высокими требованиями к минимальному лоту");
 
+
         NumberField maxShortMarginSize = new NumberField("Размер риска шорт ($)");
         NumberField maxLongMarginSize = new NumberField("Размер риска лонг ($)");
         NumberField capitalShortField = new NumberField("Позиция шорт ($)");
@@ -358,6 +359,9 @@ public class SettingsComponent extends VerticalLayout {
                 useExitBreakEvenPercentCheckbox,
                 useExitNegativeZMinProfitPercentCheckbox
         ));
+
+        // Создаем секцию анализа волатильности BTC
+        add(createBtcAnalysisSection());
 
         add(createScoringWeightsSection());
 
@@ -823,6 +827,65 @@ public class SettingsComponent extends VerticalLayout {
                 "Условия закрытия позиций и управления рисками", exitForm);
     }
 
+    /**
+     * Создает секцию анализа волатильности BTC
+     */
+    private Details createBtcAnalysisSection() {
+        FormLayout btcForm = createSingleColumnFormLayout();
+
+        // Создаем поля для анализа BTC
+        Checkbox useBtcVolatilityFilterCheckbox = new Checkbox("Анализ BTC при автотрейдинге");
+//        useBtcVolatilityFilterCheckbox.setHelperText("Блокировать автотрейдинг при повышенной волатильности Bitcoin");
+        
+        NumberField btcAtrThresholdMultiplierField = new NumberField("Порог ATR (множитель)");
+        btcAtrThresholdMultiplierField.setHelperText("Множитель превышения среднего ATR (например, 1.3 = 30% превышение)");
+        btcAtrThresholdMultiplierField.setValue(1.3);
+        setNumberFieldProperties(btcAtrThresholdMultiplierField, 0.1, 1.0);
+        
+        NumberField btcDailyRangeMultiplierField = new NumberField("Порог дневного диапазона");
+        btcDailyRangeMultiplierField.setHelperText("Множитель превышения среднего дневного диапазона");
+        btcDailyRangeMultiplierField.setValue(1.3);
+        setNumberFieldProperties(btcDailyRangeMultiplierField, 0.1, 1.0);
+        
+        NumberField maxBtcDailyChangePercentField = new NumberField("Макс. дневное изменение (%)");
+        maxBtcDailyChangePercentField.setHelperText("Максимальное дневное изменение BTC в % (блокировка если превышено)");
+        maxBtcDailyChangePercentField.setValue(5.0);
+        setNumberFieldProperties(maxBtcDailyChangePercentField, 0.1, 0.0);
+
+        // Логика активации полей настроек только при включенном фильтре
+        Runnable updateBtcFieldsState = () -> {
+            boolean isFilterEnabled = useBtcVolatilityFilterCheckbox.getValue();
+            btcAtrThresholdMultiplierField.setEnabled(isFilterEnabled);
+            btcDailyRangeMultiplierField.setEnabled(isFilterEnabled);
+            maxBtcDailyChangePercentField.setEnabled(isFilterEnabled);
+        };
+        
+        useBtcVolatilityFilterCheckbox.addValueChangeListener(e -> updateBtcFieldsState.run());
+        updateBtcFieldsState.run(); // Инициализация состояния
+
+        btcForm.add(
+                useBtcVolatilityFilterCheckbox,
+                btcAtrThresholdMultiplierField,
+                btcDailyRangeMultiplierField,
+                maxBtcDailyChangePercentField
+        );
+
+        // Привязываем поля к настройкам
+        settingsBinder.forField(useBtcVolatilityFilterCheckbox).bind(Settings::isUseBtcVolatilityFilter, Settings::setUseBtcVolatilityFilter);
+        settingsBinder.forField(btcAtrThresholdMultiplierField)
+                .withValidator(new DoubleRangeValidator("Порог ATR должен быть больше 1.0", 1.0, 10.0))
+                .bind(Settings::getBtcAtrThresholdMultiplier, Settings::setBtcAtrThresholdMultiplier);
+        settingsBinder.forField(btcDailyRangeMultiplierField)
+                .withValidator(new DoubleRangeValidator("Порог дневного диапазона должен быть больше 1.0", 1.0, 10.0))
+                .bind(Settings::getBtcDailyRangeMultiplier, Settings::setBtcDailyRangeMultiplier);
+        settingsBinder.forField(maxBtcDailyChangePercentField)
+                .withValidator(new DoubleRangeValidator("Максимальное дневное изменение должно быть больше 0", 0.1, 50.0))
+                .bind(Settings::getMaxBtcDailyChangePercent, Settings::setMaxBtcDailyChangePercent);
+
+        return createDetailsCard("🪙 Анализ BTC",
+                "Фильтрация автотрейдинга по волатильности Bitcoin", btcForm);
+    }
+
     private Details createScoringWeightsSection() {
         FormLayout scoringForm = createSingleColumnFormLayout();
 
@@ -1126,6 +1189,7 @@ public class SettingsComponent extends VerticalLayout {
                 .withValidator(value -> value != null && value >= 0, "Минимальный скор должен быть больше или равен 0")
                 .bind(settings -> (double) settings.getMinStabilityScore(), 
                       (settings, value) -> settings.setMinStabilityScore(value.intValue()));
+
 
         // Bind exit strategy checkboxes
         settingsBinder.forField(useExitTakeCheckbox).bind(Settings::isUseExitTake, Settings::setUseExitTake);

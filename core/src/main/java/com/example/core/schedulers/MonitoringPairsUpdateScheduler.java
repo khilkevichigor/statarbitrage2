@@ -45,7 +45,7 @@ public class MonitoringPairsUpdateScheduler {
      * Автоматическое обновление пар в мониторинге
      * Запускается по расписанию из настроек (по умолчанию каждую ночь в 01:00)
      */
-    @Scheduled(cron = "#{@settingsService.getSettings().getSchedulerMonitoringPairsUpdateCron()}")
+    @Scheduled(cron = "${app.scheduler.monitoring-pairs-update.cron:0 0 1 * * *}")
     public void updateMonitoringPairsScheduled() {
         try {
             Settings settings = settingsService.getSettings();

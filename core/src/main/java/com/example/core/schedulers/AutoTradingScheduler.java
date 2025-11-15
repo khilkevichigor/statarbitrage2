@@ -2,6 +2,7 @@ package com.example.core.schedulers;
 
 import com.example.core.processors.FetchPairsProcessor;
 import com.example.core.processors.StartNewTradeProcessor;
+import com.example.core.services.BtcVolatilityService;
 import com.example.core.services.SchedulerControlService;
 import com.example.core.services.SettingsService;
 import com.example.core.trading.services.OkxPortfolioManager;
@@ -33,6 +34,7 @@ public class AutoTradingScheduler {
     private final FetchPairsProcessor fetchPairsProcessor;
     private final StartNewTradeProcessor startNewTradeProcessor;
     private final OkxPortfolioManager okxPortfolioManager;
+    private final BtcVolatilityService btcVolatilityService;
 
     /**
      * Автоматический поиск и открытие новых торговых позиций
@@ -56,6 +58,12 @@ public class AutoTradingScheduler {
             // Проверяем можем ли открыть новые позиции
             if (!canOpenNewPositions(settings)) {
                 log.info("🚫 Нельзя открывать новые позиции - лимит достигнут");
+                return;
+            }
+
+            // Проверяем BTC волатильность
+            if (!btcVolatilityService.canTradeNow()) {
+                log.info("🪙 ⛔ Автотрейдинг заблокирован из-за повышенной волатильности BTC");
                 return;
             }
 
