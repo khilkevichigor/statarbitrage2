@@ -56,6 +56,7 @@ public class BtcVolatilityService {
                 return lastCheckResult;
             }
 
+            log.info("");
             log.info("🪙 Запуск анализа волатильности Bitcoin...");
 
             // Получаем свечи BTC
