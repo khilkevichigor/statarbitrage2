@@ -6,10 +6,8 @@ import com.example.shared.enums.StabilityRating;
 import com.example.shared.models.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,37 +20,12 @@ public class StablePairsService {
     private final PairRepository pairRepository;
 
     /**
-     * Создать зеркальные пары для списка исходных пар
-     *
-     * @param originalPairs исходные пары
-     * @return список всех пар (исходные + зеркальные)
-     */
-    public List<Pair> createPairsWithMirrors(List<Pair> originalPairs) {
-        log.debug("🪞 Создание зеркальных пар для {} исходных пар", originalPairs.size());
-
-        List<Pair> allPairs = new ArrayList<>(originalPairs);
-
-        for (Pair originalPair : originalPairs) {
-            Pair mirrorPair = createMirrorPair(originalPair);
-            allPairs.add(mirrorPair);
-
-            log.debug("🪞 Создана зеркальная пара: {} -> {}",
-                    originalPair.getPairName(), mirrorPair.getPairName());
-        }
-
-        log.debug("✅ Создано {} пар с зеркальными (исходных: {}, зеркальных: {})",
-                allPairs.size(), originalPairs.size(), originalPairs.size());
-
-        return allPairs;
-    }
-
-    /**
      * Создать зеркальную пару для исходной пары
      *
      * @param originalPair исходная пара
      * @return зеркальная пара
      */
-    private Pair createMirrorPair(Pair originalPair) {
+    public Pair createMirrorPair(Pair originalPair) {
         return Pair.builder()
                 .type(PairType.STABLE)
                 .status(originalPair.getStatus())
@@ -102,7 +75,7 @@ public class StablePairsService {
      * @param minStabilityScore минимальный скор стабильности (используется только при useScoreFiltering=true)
      * @return список стабильных пар с хорошими рейтингами или скором
      */
-    public List<Pair> getGoodStablePairsBySettings(boolean useMonitoring, boolean useFound, 
+    public List<Pair> getGoodStablePairsBySettings(boolean useMonitoring, boolean useFound,
                                                    boolean useScoreFiltering, int minStabilityScore) {
         if (useScoreFiltering) {
             return getStablePairsByScore(useMonitoring, useFound, minStabilityScore);
