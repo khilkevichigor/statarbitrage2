@@ -390,6 +390,52 @@ public class ZScoreService {
         return zScoreData;
     }
 
+    /**
+     * Создает инвертированную копию ZScoreData для зеркальной пары
+     * Меняет знак Z-Score на противоположный и меняет местами тикеры
+     *
+     * @param originalZScoreData исходные данные Z-Score
+     * @return инвертированная копия данных для зеркальной пары
+     */
+    public ZScoreData invertZScoreData(ZScoreData originalZScoreData) {
+        if (originalZScoreData == null) {
+            return null;
+        }
+        
+        try {
+            ZScoreData invertedData = new ZScoreData();
+            
+            // Меняем местами тикеры
+            invertedData.setUnderValuedTicker(originalZScoreData.getOverValuedTicker());
+            invertedData.setOverValuedTicker(originalZScoreData.getUnderValuedTicker());
+            
+            // Инвертируем Z-Score (меняем знак)
+            if (originalZScoreData.getLatestZScore() != null) {
+                invertedData.setLatestZScore(-originalZScoreData.getLatestZScore());
+            }
+            
+            // Копируем остальные параметры без изменений
+            invertedData.setPearsonCorr(originalZScoreData.getPearsonCorr());
+            invertedData.setPearsonCorrPValue(originalZScoreData.getPearsonCorrPValue());
+            invertedData.setJohansenCointPValue(originalZScoreData.getJohansenCointPValue());
+            invertedData.setAvgAdfPvalue(originalZScoreData.getAvgAdfPvalue());
+            invertedData.setAvgRSquared(originalZScoreData.getAvgRSquared());
+            invertedData.setTotalObservations(originalZScoreData.getTotalObservations());
+            invertedData.setZScoreHistory(originalZScoreData.getZScoreHistory()); // История остается та же
+            
+            log.debug("🔄 Создана инвертированная ZScoreData: {}/{} -> {}/{}, Z-Score: {} -> {}",
+                    originalZScoreData.getUnderValuedTicker(), originalZScoreData.getOverValuedTicker(),
+                    invertedData.getUnderValuedTicker(), invertedData.getOverValuedTicker(),
+                    originalZScoreData.getLatestZScore(), invertedData.getLatestZScore());
+            
+            return invertedData;
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании инвертированной ZScoreData: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
     private void logLastZ(ZScoreData zScoreData) {
         List<ZScoreParam> params = zScoreData.getZScoreHistory();
 
