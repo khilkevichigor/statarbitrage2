@@ -42,8 +42,7 @@ public class PairService {
     private final SearchStablePairService searchStablePairService;
     private final CandlesFeignClient candlesFeignClient;
     private final SettingsService settingsService;
-    private final PythonAnalysisService pythonAnalysisService; // Заменили ZScoreService на PythonAnalysisService
-    private final ZScoreService zScoreService;
+    private final PythonAnalysisService pythonAnalysisService;
     private final ChartService chartService;
     private final StablePairsScreenerSettingsService stablePairsScreenerSettingsService;
     private final StablePairsService stablePairsService;
@@ -662,67 +661,67 @@ public class PairService {
      * Создает зеркальную пару с положительным Z-Score из пары с отрицательным Z-Score
      * Объединяет создание зеркальной пары и инверсию Z-Score данных
      *
-     * @param originalPair исходная пара с отрицательным Z-Score
+     * @param originalPair       исходная пара с отрицательным Z-Score
      * @param originalZScoreData исходные Z-Score данные с отрицательным значением
-     * @param candlesMap карта свечей
+     * @param candlesMap         карта свечей
      * @return зеркальная пара с положительным Z-Score или null если не удалось создать
      */
     public Pair createMirrorPairWithPositiveZScore(
-            Pair originalPair, 
-            ZScoreData originalZScoreData, 
+            Pair originalPair,
+            ZScoreData originalZScoreData,
             Map<String, List<Candle>> candlesMap) {
-        
+
         if (originalPair == null || originalZScoreData == null) {
             log.warn("⚠️ Не удается создать зеркальную пару: originalPair или originalZScoreData равны null");
             return null;
         }
-        
+
         try {
             log.debug("🪞 Создание зеркальной пары с положительным Z-Score для {}", originalPair.getPairName());
-            
+
             // Инвертируем Z-Score данные
-            ZScoreData invertedZScoreData = zScoreService.invertZScoreData(originalZScoreData);
-            
-            if (invertedZScoreData == null || 
-                invertedZScoreData.getLatestZScore() == null || 
-                invertedZScoreData.getLatestZScore() <= 0) {
-                
-                log.debug("⚠️ Не удалось создать положительный Z-Score для зеркальной пары {}", 
-                         originalPair.getPairName());
+            ZScoreData invertedZScoreData = invertZScoreData(originalZScoreData);
+
+            if (invertedZScoreData == null ||
+                    invertedZScoreData.getLatestZScore() == null ||
+                    invertedZScoreData.getLatestZScore() <= 0) {
+
+                log.debug("⚠️ Не удалось создать положительный Z-Score для зеркальной пары {}",
+                        originalPair.getPairName());
                 return null;
             }
-            
+
             // Создаем зеркальную пару
             Pair mirrorPair = stablePairsService.createMirrorPair(originalPair);
-            
+
             // Обновляем зеркальную пару с инвертированными Z-Score данными
             updateZScoreDataCurrent(mirrorPair, invertedZScoreData);
-            
+
             // Получаем свечи для пары (меняем местами тикеры для зеркальной пары)
             String tickerA = mirrorPair.getTickerA();
             String tickerB = mirrorPair.getTickerB();
-            
+
             if (candlesMap.containsKey(tickerA) && candlesMap.containsKey(tickerB)) {
                 mirrorPair.setLongTickerCandles(candlesMap.get(tickerA));
                 mirrorPair.setShortTickerCandles(candlesMap.get(tickerB));
             } else {
                 log.warn("⚠️ Не удалось найти данные свечей для зеркальной пары {}", mirrorPair.getPairName());
             }
-            
+
             // Устанавливаем Z-Score
             if (invertedZScoreData.getLatestZScore() != null) {
                 mirrorPair.setZScoreCurrent(BigDecimal.valueOf(invertedZScoreData.getLatestZScore()));
             }
-            
-            
-            log.info("✅ Зеркальная пара {}/{} успешно создана с положительным Z-Score: {}",
+
+
+            log.debug("✅ Зеркальная пара {}/{} успешно создана с положительным Z-Score: {}",
                     mirrorPair.getTickerA(), mirrorPair.getTickerB(), invertedZScoreData.getLatestZScore());
-            
+
             return mirrorPair;
-            
+
         } catch (Exception e) {
-            log.error("❌ Ошибка при создании зеркальной пары для {}: {}", 
-                     originalPair.getPairName(), e.getMessage(), e);
+            log.error("❌ Ошибка при создании зеркальной пары для {}: {}",
+                    originalPair.getPairName(), e.getMessage(), e);
             return null;
         }
     }
@@ -730,24 +729,24 @@ public class PairService {
     /**
      * Обогащает пару данными из стабильных пар с учетом зеркальности
      *
-     * @param pair пара для обогащения
+     * @param pair        пара для обогащения
      * @param stablePairs список стабильных пар для поиска
      */
     private void enrichSinglePairWithStableData(Pair pair, List<Pair> stablePairs) {
         try {
             log.debug("🔄 Обогащение пары {} данными из стабильных пар", pair.getPairName());
-            
+
             String pairName = pair.getPairName();
-            
+
             // Ищем соответствующую стабильную пару
             Pair matchingStablePair = findMatchingStablePair(pairName, stablePairs);
-            
+
             if (matchingStablePair != null) {
                 // Переносим данные из стабильной пары
                 pair.setTotalScore(matchingStablePair.getTotalScore());
                 pair.setTotalScoreEntry(matchingStablePair.getTotalScoreEntry());
                 pair.setStabilityRating(matchingStablePair.getStabilityRating());
-                
+
                 log.debug("✅ Пара {} обогащена данными: score={}, scoreEntry={}, rating={}",
                         pairName,
                         matchingStablePair.getTotalScore(),
@@ -756,7 +755,7 @@ public class PairService {
             } else {
                 log.debug("⚠️ Не найдена соответствующая стабильная пара для: {}", pairName);
             }
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при обогащении пары {} данными: {}",
                     pair.getPairName(), e.getMessage(), e);
@@ -765,8 +764,8 @@ public class PairService {
 
     /**
      * Находит соответствующую стабильную пару с учетом зеркальности
-     * 
-     * @param pairName название пары (например "BTC/ETH")
+     *
+     * @param pairName    название пары (например "BTC/ETH")
      * @param stablePairs список стабильных пар для поиска
      * @return найденная стабильная пара или null
      */
@@ -774,32 +773,78 @@ public class PairService {
         if (pairName == null || !pairName.contains("/")) {
             return null;
         }
-        
+
         // Разбиваем название пары
         String[] parts = pairName.split("/");
         if (parts.length != 2) {
             return null;
         }
-        
+
         String tickerA = parts[0];
         String tickerB = parts[1];
-        
+
         // Ищем прямое соответствие или зеркальное
         for (Pair stablePair : stablePairs) {
             String stablePairName = stablePair.getPairName();
-            
+
             if (pairName.equals(stablePairName)) {
                 // Прямое соответствие
                 return stablePair;
             }
-            
+
             // Проверяем зеркальное соответствие (A/B == B/A)
             String mirrorPairName = tickerB + "/" + tickerA;
             if (mirrorPairName.equals(stablePairName)) {
                 return stablePair;
             }
         }
-        
+
         return null;
+    }
+
+    /**
+     * Создает инвертированную копию ZScoreData для зеркальной пары
+     * Меняет знак Z-Score на противоположный и меняет местами тикеры
+     *
+     * @param originalZScoreData исходные данные Z-Score
+     * @return инвертированная копия данных для зеркальной пары
+     */
+    private ZScoreData invertZScoreData(ZScoreData originalZScoreData) {
+        if (originalZScoreData == null) {
+            return null;
+        }
+
+        try {
+            ZScoreData invertedData = new ZScoreData();
+
+            // Меняем местами тикеры
+            invertedData.setUnderValuedTicker(originalZScoreData.getOverValuedTicker());
+            invertedData.setOverValuedTicker(originalZScoreData.getUnderValuedTicker());
+
+            // Инвертируем Z-Score (меняем знак)
+            if (originalZScoreData.getLatestZScore() != null) {
+                invertedData.setLatestZScore(-originalZScoreData.getLatestZScore());
+            }
+
+            // Копируем остальные параметры без изменений
+            invertedData.setPearsonCorr(originalZScoreData.getPearsonCorr());
+            invertedData.setPearsonCorrPValue(originalZScoreData.getPearsonCorrPValue());
+            invertedData.setJohansenCointPValue(originalZScoreData.getJohansenCointPValue());
+            invertedData.setAvgAdfPvalue(originalZScoreData.getAvgAdfPvalue());
+            invertedData.setAvgRSquared(originalZScoreData.getAvgRSquared());
+            invertedData.setTotalObservations(originalZScoreData.getTotalObservations());
+            invertedData.setZScoreHistory(originalZScoreData.getZScoreHistory()); // История остается та же
+
+            log.debug("🔄 Создана инвертированная ZScoreData: {}/{} -> {}/{}, Z-Score: {} -> {}",
+                    originalZScoreData.getUnderValuedTicker(), originalZScoreData.getOverValuedTicker(),
+                    invertedData.getUnderValuedTicker(), invertedData.getOverValuedTicker(),
+                    originalZScoreData.getLatestZScore(), invertedData.getLatestZScore());
+
+            return invertedData;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании инвертированной ZScoreData: {}", e.getMessage(), e);
+            return null;
+        }
     }
 }

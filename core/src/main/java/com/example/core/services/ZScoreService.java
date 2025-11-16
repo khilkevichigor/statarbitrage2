@@ -240,13 +240,13 @@ public class ZScoreService {
         // Выводим статистику по ZScore данным перед отбором
         ZScoreData bestZScorePair = null;
         double maxZScore = Double.NEGATIVE_INFINITY;
-        
+
         for (ZScoreData data : zScoreDataList) {
             List<ZScoreParam> params = data.getZScoreHistory();
             double zScore = params != null && !params.isEmpty()
                     ? params.get(params.size() - 1).getZscore()
                     : (data.getLatestZScore() != null ? data.getLatestZScore() : 0.0);
-            
+
             if (zScore > maxZScore) {
                 maxZScore = zScore;
                 bestZScorePair = data;
@@ -285,9 +285,9 @@ public class ZScoreService {
                 .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
                 .max().orElse(0.0);
 
-        String bestPairName = bestZScorePair != null ? 
+        String bestPairName = bestZScorePair != null ?
                 bestZScorePair.getUnderValuedTicker() + "/" + bestZScorePair.getOverValuedTicker() : "N/A";
-        
+
         log.info("📊 Статистика перед отбором топ-{} пар:", topN);
         log.info("   🔥 Лучший Z-Score: {} (пара: {})", maxZScore, bestPairName);
         log.debug("   📉 Лучший P-Value: {}", minPValue);
@@ -299,7 +299,7 @@ public class ZScoreService {
         List<ZScoreData> remainingPairs = new ArrayList<>(zScoreDataList); // копия списка
 
         for (int i = 0; i < topN; i++) {
-            log.debug("🔄 Итерация {}/{}: ищем лучшую пару из {} оставшихся", (i+1), topN, remainingPairs.size());
+            log.debug("🔄 Итерация {}/{}: ищем лучшую пару из {} оставшихся", (i + 1), topN, remainingPairs.size());
             Optional<ZScoreData> maybeBest = obtainTopZScoreDataBeforeCreateNewPairService.getBestZScoreData(settings, remainingPairs, candlesMap);
             if (maybeBest.isPresent()) {
                 ZScoreData best = maybeBest.get();
@@ -323,20 +323,20 @@ public class ZScoreService {
 
                 //детальная инфа
                 ZScoreData detailedZScoreData = getDetailedZScoreData(best, candlesMap, settings);
-                
+
                 // Повторная проверка MinZ после пересчета через Python API
                 if (settings.isUseMinZFilter()) {
-                    double recalculatedZ = detailedZScoreData.getLatestZScore() != null ? 
+                    double recalculatedZ = detailedZScoreData.getLatestZScore() != null ?
                             detailedZScoreData.getLatestZScore() : 0.0;
                     if (recalculatedZ < settings.getMinZ()) {
-                        log.warn("⚠️ Пара {}/{} исключена после пересчета: Z-скор {} < MinZ {}", 
-                                best.getUnderValuedTicker(), best.getOverValuedTicker(), 
+                        log.warn("⚠️ Пара {}/{} исключена после пересчета: Z-скор {} < MinZ {}",
+                                best.getUnderValuedTicker(), best.getOverValuedTicker(),
                                 recalculatedZ, settings.getMinZ());
                         remainingPairs.remove(best); // исключаем только из remainingPairs
                         continue; // пропускаем добавление в bestPairs
                     }
                     log.debug("✅ Пара {}/{} прошла повторную проверку MinZ: {} >= {}",
-                            best.getUnderValuedTicker(), best.getOverValuedTicker(), 
+                            best.getUnderValuedTicker(), best.getOverValuedTicker(),
                             recalculatedZ, settings.getMinZ());
                 }
 
@@ -345,7 +345,7 @@ public class ZScoreService {
                 log.debug("✅ Пара {}/{} добавлена в финальный список (всего: {})",
                         best.getUnderValuedTicker(), best.getOverValuedTicker(), bestPairs.size());
             } else {
-                log.debug("❌ Итерация {}: getBestZScoreData вернул пустой результат (возможно, все пары не прошли фильтрацию)", (i+1));
+                log.debug("❌ Итерация {}: getBestZScoreData вернул пустой результат (возможно, все пары не прошли фильтрацию)", (i + 1));
             }
         }
 
@@ -390,51 +390,6 @@ public class ZScoreService {
         return zScoreData;
     }
 
-    /**
-     * Создает инвертированную копию ZScoreData для зеркальной пары
-     * Меняет знак Z-Score на противоположный и меняет местами тикеры
-     *
-     * @param originalZScoreData исходные данные Z-Score
-     * @return инвертированная копия данных для зеркальной пары
-     */
-    public ZScoreData invertZScoreData(ZScoreData originalZScoreData) {
-        if (originalZScoreData == null) {
-            return null;
-        }
-        
-        try {
-            ZScoreData invertedData = new ZScoreData();
-            
-            // Меняем местами тикеры
-            invertedData.setUnderValuedTicker(originalZScoreData.getOverValuedTicker());
-            invertedData.setOverValuedTicker(originalZScoreData.getUnderValuedTicker());
-            
-            // Инвертируем Z-Score (меняем знак)
-            if (originalZScoreData.getLatestZScore() != null) {
-                invertedData.setLatestZScore(-originalZScoreData.getLatestZScore());
-            }
-            
-            // Копируем остальные параметры без изменений
-            invertedData.setPearsonCorr(originalZScoreData.getPearsonCorr());
-            invertedData.setPearsonCorrPValue(originalZScoreData.getPearsonCorrPValue());
-            invertedData.setJohansenCointPValue(originalZScoreData.getJohansenCointPValue());
-            invertedData.setAvgAdfPvalue(originalZScoreData.getAvgAdfPvalue());
-            invertedData.setAvgRSquared(originalZScoreData.getAvgRSquared());
-            invertedData.setTotalObservations(originalZScoreData.getTotalObservations());
-            invertedData.setZScoreHistory(originalZScoreData.getZScoreHistory()); // История остается та же
-            
-            log.debug("🔄 Создана инвертированная ZScoreData: {}/{} -> {}/{}, Z-Score: {} -> {}",
-                    originalZScoreData.getUnderValuedTicker(), originalZScoreData.getOverValuedTicker(),
-                    invertedData.getUnderValuedTicker(), invertedData.getOverValuedTicker(),
-                    originalZScoreData.getLatestZScore(), invertedData.getLatestZScore());
-            
-            return invertedData;
-            
-        } catch (Exception e) {
-            log.error("❌ Ошибка при создании инвертированной ZScoreData: {}", e.getMessage(), e);
-            return null;
-        }
-    }
 
     private void logLastZ(ZScoreData zScoreData) {
         List<ZScoreParam> params = zScoreData.getZScoreHistory();
