@@ -62,10 +62,10 @@ public class AutoTradingScheduler {
             }
 
             // Проверяем BTC волатильность
-            if (!btcVolatilityService.canTradeNow()) {
-                log.info("🪙 ⛔ Автотрейдинг заблокирован из-за повышенной волатильности BTC");
-                return;
-            }
+//            if (!btcVolatilityService.canTradeNow()) {
+//                log.info("🪙 ⛔ Автотрейдинг заблокирован из-за повышенной волатильности BTC");
+//                return;
+//            }
 
             // Ищем хорошие пары из стабильных источников
             List<Pair> candidatePairs = findCandidatePairs(settings);
@@ -76,7 +76,7 @@ public class AutoTradingScheduler {
 
             // Пытаемся открыть новые торговые позиции
             int newTradesOpened = openNewTrades(candidatePairs, settings);
-            
+
             if (newTradesOpened > 0) {
                 log.debug("✅ Автотрейдинг: открыто {} новых позиций", newTradesOpened);
             } else {
@@ -95,19 +95,19 @@ public class AutoTradingScheduler {
         try {
             // Получаем текущее количество открытых позиций с биржи
             int currentPositions = okxPortfolioManager.getActivePositionsCount();
-            
+
             // Вычисляем максимальное количество позиций (пары * 2)
             int maxPairs = (int) settings.getUsePairs();
             int maxPositions = maxPairs * 2;
-            
+
             // Проверяем есть ли место для новой пары (2 позиции)
             boolean canOpen = (currentPositions + 2) <= maxPositions;
-            
-            log.debug("📊 Позиции: текущие={}, максимум={}, можно_открыть={}", 
+
+            log.debug("📊 Позиции: текущие={}, максимум={}, можно_открыть={}",
                     currentPositions, maxPositions, canOpen);
-            
+
             return canOpen;
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при проверке возможности открытия позиций: {}", e.getMessage());
             return false; // Безопасно отказываемся от торговли при ошибке
@@ -129,11 +129,11 @@ public class AutoTradingScheduler {
 
             // Используем FetchPairsProcessor для получения лучших пар
             List<Pair> pairs = fetchPairsProcessor.fetchPairs(request);
-            
+
             log.debug("📋 Найдено {} кандидатов для автотрейдинга", pairs.size());
-            
+
             return pairs;
-            
+
         } catch (Exception e) {
             log.error("❌ Ошибка при поиске кандидатов для автотрейдинга: {}", e.getMessage(), e);
             return List.of();
@@ -145,24 +145,24 @@ public class AutoTradingScheduler {
      */
     private int openNewTrades(List<Pair> candidatePairs, Settings settings) {
         int successCount = 0;
-        
+
         for (Pair pair : candidatePairs) {
             try {
                 log.info("🚀 Попытка открыть автоматическую позицию для пары: {}", pair.getPairName());
-                
+
                 // Создаем запрос на открытие новой торговой позиции
                 StartNewTradeRequest tradeRequest = StartNewTradeRequest.builder()
                         .tradingPair(pair)
                         .checkAutoTrading(true) // Включаем проверку автотрейдинга
                         .build();
-                
+
                 // Пытаемся открыть торговую позицию
                 Pair result = startNewTradeProcessor.startNewTrade(tradeRequest);
-                
+
                 if (result != null && TradeStatus.TRADING.equals(result.getStatus())) {
                     successCount++;
                     log.info("✅ Автотрейдинг: успешно открыта позиция для пары {}", pair.getPairName());
-                    
+
                     // Проверяем можем ли открыть еще одну позицию
                     if (!canOpenNewPositions(settings)) {
                         log.info("🚫 Лимит позиций достигнут - прекращаем автотрейдинг");
@@ -171,13 +171,13 @@ public class AutoTradingScheduler {
                 } else {
                     log.warn("⚠️ Автотрейдинг: не удалось открыть позицию для пары {}", pair.getPairName());
                 }
-                
+
             } catch (Exception e) {
-                log.error("❌ Ошибка при открытии автоматической позиции для пары {}: {}", 
+                log.error("❌ Ошибка при открытии автоматической позиции для пары {}: {}",
                         pair.getPairName(), e.getMessage());
             }
         }
-        
+
         return successCount;
     }
 }
