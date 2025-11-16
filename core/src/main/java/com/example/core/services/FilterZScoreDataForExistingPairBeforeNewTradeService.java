@@ -411,21 +411,21 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
 
     // ============ НОВАЯ СИСТЕМА ОЦЕНКИ КАЧЕСТВА ПАР ============
 
-    /**
-     * ПУБЛИЧНЫЙ МЕТОД для ObtainBestPairServiceV2
-     * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
-     * <p>
-     * Компоненты скора (веса настраиваются через UI):
-     * - Z-Score сила - основной торговый сигнал
-     * - Пиксельный спред - важность раздвижки цен
-     * - Коинтеграция - Johansen + ADF тесты
-     * - Качество модели - R-squared + стабильность
-     * - Статистика - P-values и корреляции
-     * - Бонусы - за полноту данных
-     */
-    public double calculatePairQualityScore(ZScoreData data, Settings settings) {
-        return calculatePairQualityScoreInternal(data, settings);
-    }
+//    /**
+//     * ПУБЛИЧНЫЙ МЕТОД для ObtainBestPairServiceV2
+//     * Рассчитывает качественный скор пары с КОНФИГУРИРУЕМЫМИ ВЕСАМИ из Settings
+//     * <p>
+//     * Компоненты скора (веса настраиваются через UI):
+//     * - Z-Score сила - основной торговый сигнал
+//     * - Пиксельный спред - важность раздвижки цен
+//     * - Коинтеграция - Johansen + ADF тесты
+//     * - Качество модели - R-squared + стабильность
+//     * - Статистика - P-values и корреляции
+//     * - Бонусы - за полноту данных
+//     */
+//    public double calculatePairQualityScore(ZScoreData data, Settings settings) {
+//        return calculatePairQualityScoreInternal(data, settings);
+//    }
 
     /**
      * Внутренняя реализация расчета скора

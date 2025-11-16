@@ -42,134 +42,134 @@ public class ZScoreService {
         }
     }
 
-    private void filterIncompleteZScoreParams(Pair tradingPair, List<ZScoreData> zScoreDataList, Settings settings) {
-        double expected = settings.getExpectedZParamsCount();
-        double maxZScore = zScoreDataList.stream()
-                .map(data -> (data.getZScoreHistory() != null && !data.getZScoreHistory().isEmpty()) ? data.getZScoreHistory().get(data.getZScoreHistory().size() - 1) : null)
-                .filter(Objects::nonNull)
-                .map(ZScoreParam::getZscore)
-                .max(Comparator.naturalOrder())
-                .orElse(0d);
-        log.info("🔍 Ожидаемое количество наблюдений по настройкам: {}, максимальный Z-скор: {}", expected, maxZScore);
-
-        int before = zScoreDataList.size();
-
-        zScoreDataList.removeIf(data -> {
-            // Проверяем размер данных (используем новые поля API если zscoreParams отсутствуют)
-            List<ZScoreParam> params = data.getZScoreHistory();
-            int actualSize = params != null ? params.size() :
-                    (data.getTotalObservations() != null ? data.getTotalObservations() : 0);
-
-            // Для нового API не проверяем количество наблюдений - данные уже агрегированы
-            boolean isIncompleteBySize = false;
-            if (params != null && !params.isEmpty()) {
-                // Только для старого формата проверяем количество наблюдений
-                isIncompleteBySize = actualSize < expected;
-                if (isIncompleteBySize) {
-                    if (tradingPair != null) {
-                        pairService.deletePair(tradingPair);
-                        log.warn("⚠️ Удалили пару {}/{} — наблюдений {} (ожидалось {})",
-                                data.getUnderValuedTicker(), data.getOverValuedTicker(), actualSize, expected);
-                    }
-                }
-            }
-
-            // Получаем последний Z-score (используем новые поля API если zscoreParams отсутствуют)
-            double lastZScore;
-            if (params != null && !params.isEmpty()) {
-                lastZScore = params.get(params.size() - 1).getZscore(); //todo
-            } else if (data.getLatestZScore() != null) {
-                lastZScore = data.getLatestZScore();
-            } else {
-                if (tradingPair != null) {
-                    pairService.deletePair(tradingPair);
-                    log.warn("⚠️ Удалили пару {}/{} — отсутствует информация о Z-score",
-                            data.getUnderValuedTicker(), data.getOverValuedTicker());
-                }
-                return true;
-            }
-
-            boolean isIncompleteByZ = settings.isUseMinZFilter() && lastZScore < settings.getMinZ();
-            if (isIncompleteByZ) {
-                if (tradingPair != null) {
-                    pairService.deletePair(tradingPair);
-                    log.warn("⚠️ Удалили пару {}/{} — Z-скор={} < Z-скор Min={}",
-                            data.getUnderValuedTicker(), data.getOverValuedTicker(), lastZScore, settings.getMinZ());
-                }
-            }
-
-            // Фильтрация по R-squared
-            boolean isIncompleteByRSquared = false;
-            if (settings.isUseMinRSquaredFilter() && data.getAvgRSquared() != null && data.getAvgRSquared() < settings.getMinRSquared()) {
-                isIncompleteByRSquared = true;
-                if (tradingPair != null) {
-                    pairService.deletePair(tradingPair);
-                    log.warn("⚠️ Удалили пару {}/{} — RSquared={} < MinRSquared={}",
-                            data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
-                }
-            }
-
-            // Фильтрация по Correlation
-            boolean isIncompleteByCorrelation = false;
-            if (settings.isUseMinCorrelationFilter() && data.getPearsonCorr() != null && data.getPearsonCorr() < settings.getMinCorrelation()) {
-                isIncompleteByCorrelation = true;
-                if (tradingPair != null) {
-                    pairService.deletePair(tradingPair);
-                    log.warn("⚠️ Удалили пару {}/{} — Correlation={} < MinCorrelation={}",
-                            data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getPearsonCorr(), settings.getMinCorrelation());
-                }
-            }
-
-            // Фильтрация по pValue
-            boolean isIncompleteByPValue = false;
-            if (settings.isUseMaxPValueFilter()) {
-                Double pValue = null;
-                if (params != null && !params.isEmpty()) {
-                    // Для старого формата используем pValue из последнего параметра
-                    pValue = params.get(params.size() - 1).getPvalue();
-                } else if (data.getPearsonCorrPValue() != null) {
-                    // Для нового формата используем correlation_pvalue
-                    pValue = data.getPearsonCorrPValue();
-                }
-
-                if (pValue != null && pValue > settings.getMaxPValue()) {
-                    isIncompleteByPValue = true;
-                    if (tradingPair != null) {
-                        pairService.deletePair(tradingPair);
-                        log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
-                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMaxPValue());
-                    }
-                }
-            }
-
-            // Фильтрация по adfValue
-            boolean isIncompleteByAdfValue = false;
-            if (settings.isUseMaxAdfValueFilter()) {
-                Double adfValue = null;
-                if (params != null && !params.isEmpty()) {
-                    // Для старого формата используем adfpvalue из последнего параметра
-                    adfValue = params.get(params.size() - 1).getAdfpvalue(); //todo здесь смесь старой и новой логики! актуализировать!!!
-                } else if (data.getJohansenCointPValue() != null) {
-                    // Для нового формата используем cointegration_pvalue
-                    adfValue = data.getJohansenCointPValue(); //todo проверить это одно и то же???
-                }
-
-                if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
-                    isIncompleteByAdfValue = true;
-                    if (tradingPair != null) {
-                        pairService.deletePair(tradingPair);
-                        log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
-                                data.getUnderValuedTicker(), data.getOverValuedTicker(), adfValue, settings.getMaxAdfValue());
-                    }
-                }
-            }
-
-            return isIncompleteBySize || isIncompleteByZ || isIncompleteByRSquared || isIncompleteByCorrelation || isIncompleteByPValue || isIncompleteByAdfValue;
-        });
-
-        int after = zScoreDataList.size();
-        log.debug("✅ После фильтрации осталось {} из {} пар", after, before);
-    }
+//    private void filterIncompleteZScoreParams(Pair tradingPair, List<ZScoreData> zScoreDataList, Settings settings) {
+//        double expected = settings.getExpectedZParamsCount();
+//        double maxZScore = zScoreDataList.stream()
+//                .map(data -> (data.getZScoreHistory() != null && !data.getZScoreHistory().isEmpty()) ? data.getZScoreHistory().get(data.getZScoreHistory().size() - 1) : null)
+//                .filter(Objects::nonNull)
+//                .map(ZScoreParam::getZscore)
+//                .max(Comparator.naturalOrder())
+//                .orElse(0d);
+//        log.info("🔍 Ожидаемое количество наблюдений по настройкам: {}, максимальный Z-скор: {}", expected, maxZScore);
+//
+//        int before = zScoreDataList.size();
+//
+//        zScoreDataList.removeIf(data -> {
+//            // Проверяем размер данных (используем новые поля API если zscoreParams отсутствуют)
+//            List<ZScoreParam> params = data.getZScoreHistory();
+//            int actualSize = params != null ? params.size() :
+//                    (data.getTotalObservations() != null ? data.getTotalObservations() : 0);
+//
+//            // Для нового API не проверяем количество наблюдений - данные уже агрегированы
+//            boolean isIncompleteBySize = false;
+//            if (params != null && !params.isEmpty()) {
+//                // Только для старого формата проверяем количество наблюдений
+//                isIncompleteBySize = actualSize < expected;
+//                if (isIncompleteBySize) {
+//                    if (tradingPair != null) {
+//                        pairService.deletePair(tradingPair);
+//                        log.warn("⚠️ Удалили пару {}/{} — наблюдений {} (ожидалось {})",
+//                                data.getUnderValuedTicker(), data.getOverValuedTicker(), actualSize, expected);
+//                    }
+//                }
+//            }
+//
+//            // Получаем последний Z-score (используем новые поля API если zscoreParams отсутствуют)
+//            double lastZScore;
+//            if (params != null && !params.isEmpty()) {
+//                lastZScore = params.get(params.size() - 1).getZscore(); //todo
+//            } else if (data.getLatestZScore() != null) {
+//                lastZScore = data.getLatestZScore();
+//            } else {
+//                if (tradingPair != null) {
+//                    pairService.deletePair(tradingPair);
+//                    log.warn("⚠️ Удалили пару {}/{} — отсутствует информация о Z-score",
+//                            data.getUnderValuedTicker(), data.getOverValuedTicker());
+//                }
+//                return true;
+//            }
+//
+//            boolean isIncompleteByZ = settings.isUseMinZFilter() && lastZScore < settings.getMinZ();
+//            if (isIncompleteByZ) {
+//                if (tradingPair != null) {
+//                    pairService.deletePair(tradingPair);
+//                    log.warn("⚠️ Удалили пару {}/{} — Z-скор={} < Z-скор Min={}",
+//                            data.getUnderValuedTicker(), data.getOverValuedTicker(), lastZScore, settings.getMinZ());
+//                }
+//            }
+//
+//            // Фильтрация по R-squared
+//            boolean isIncompleteByRSquared = false;
+//            if (settings.isUseMinRSquaredFilter() && data.getAvgRSquared() != null && data.getAvgRSquared() < settings.getMinRSquared()) {
+//                isIncompleteByRSquared = true;
+//                if (tradingPair != null) {
+//                    pairService.deletePair(tradingPair);
+//                    log.warn("⚠️ Удалили пару {}/{} — RSquared={} < MinRSquared={}",
+//                            data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getAvgRSquared(), settings.getMinRSquared());
+//                }
+//            }
+//
+//            // Фильтрация по Correlation
+//            boolean isIncompleteByCorrelation = false;
+//            if (settings.isUseMinCorrelationFilter() && data.getPearsonCorr() != null && data.getPearsonCorr() < settings.getMinCorrelation()) {
+//                isIncompleteByCorrelation = true;
+//                if (tradingPair != null) {
+//                    pairService.deletePair(tradingPair);
+//                    log.warn("⚠️ Удалили пару {}/{} — Correlation={} < MinCorrelation={}",
+//                            data.getUnderValuedTicker(), data.getOverValuedTicker(), data.getPearsonCorr(), settings.getMinCorrelation());
+//                }
+//            }
+//
+//            // Фильтрация по pValue
+//            boolean isIncompleteByPValue = false;
+//            if (settings.isUseMaxPValueFilter()) {
+//                Double pValue = null;
+//                if (params != null && !params.isEmpty()) {
+//                    // Для старого формата используем pValue из последнего параметра
+//                    pValue = params.get(params.size() - 1).getPvalue();
+//                } else if (data.getPearsonCorrPValue() != null) {
+//                    // Для нового формата используем correlation_pvalue
+//                    pValue = data.getPearsonCorrPValue();
+//                }
+//
+//                if (pValue != null && pValue > settings.getMaxPValue()) {
+//                    isIncompleteByPValue = true;
+//                    if (tradingPair != null) {
+//                        pairService.deletePair(tradingPair);
+//                        log.warn("⚠️ Удалили пару {}/{} — pValue={} > MinPValue={}",
+//                                data.getUnderValuedTicker(), data.getOverValuedTicker(), pValue, settings.getMaxPValue());
+//                    }
+//                }
+//            }
+//
+//            // Фильтрация по adfValue
+//            boolean isIncompleteByAdfValue = false;
+//            if (settings.isUseMaxAdfValueFilter()) {
+//                Double adfValue = null;
+//                if (params != null && !params.isEmpty()) {
+//                    // Для старого формата используем adfpvalue из последнего параметра
+//                    adfValue = params.get(params.size() - 1).getAdfpvalue(); //todo здесь смесь старой и новой логики! актуализировать!!!
+//                } else if (data.getJohansenCointPValue() != null) {
+//                    // Для нового формата используем cointegration_pvalue
+//                    adfValue = data.getJohansenCointPValue(); //todo проверить это одно и то же???
+//                }
+//
+//                if (adfValue != null && adfValue > settings.getMaxAdfValue()) {
+//                    isIncompleteByAdfValue = true;
+//                    if (tradingPair != null) {
+//                        pairService.deletePair(tradingPair);
+//                        log.warn("⚠️ Удалили пару {}/{} — adfValue={} > MaxAdfValue={}",
+//                                data.getUnderValuedTicker(), data.getOverValuedTicker(), adfValue, settings.getMaxAdfValue());
+//                    }
+//                }
+//            }
+//
+//            return isIncompleteBySize || isIncompleteByZ || isIncompleteByRSquared || isIncompleteByCorrelation || isIncompleteByPValue || isIncompleteByAdfValue;
+//        });
+//
+//        int after = zScoreDataList.size();
+//        log.debug("✅ После фильтрации осталось {} из {} пар", after, before);
+//    }
 
     public ZScoreData calculateZScoreData(Settings settings, Map<String, List<Candle>> candlesMap) {
         return pythonAnalysisService.calculateZScoreData(settings, candlesMap);
@@ -418,53 +418,53 @@ public class ZScoreService {
         }
     }
 
-    public Optional<ZScoreData> getBestByCriteria(Settings settings, List<ZScoreData> dataList) {
-        ZScoreData best = null;
-        double maxZ = Double.NEGATIVE_INFINITY;
-
-        for (ZScoreData z : dataList) {
-            List<ZScoreParam> params = z.getZScoreHistory();
-
-            double zVal, pValue, adf, corr;
-
-            if (params != null && !params.isEmpty()) {
-                // Используем старый формат с детальными параметрами
-                ZScoreParam last = params.get(params.size() - 1);
-                zVal = last.getZscore();
-                pValue = last.getPvalue();
-                adf = last.getAdfpvalue();
-                corr = last.getCorrelation();
-            } else {
-                // Используем новый формат с агрегированными данными
-                if (z.getLatestZScore() == null || z.getPearsonCorr() == null) continue;
-
-                zVal = z.getLatestZScore();
-                corr = z.getPearsonCorr();
-
-                // Для новых полей используем разумные значения по умолчанию
-                pValue = z.getPearsonCorrPValue() != null ? z.getPearsonCorrPValue() : 0.0;
-                adf = z.getJohansenCointPValue() != null ? z.getJohansenCointPValue() : 0.0;
-            }
-
-            // 1. Z >= minZ (только положительные Z-score, исключаем зеркальные пары)
-            if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) continue;
-
-            // 2. pValue <= minPValue
-            if (settings.isUseMaxPValueFilter() && pValue > settings.getMaxPValue()) continue;
-
-            // 3. adfValue <= maxAdfValue
-            if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;
-
-            // 4. corr >= minCorr
-            if (settings.isUseMinCorrelationFilter() && corr < settings.getMinCorrelation()) continue;
-
-            // 5. Выбираем с максимальным Z (только положительные)
-            if (zVal > maxZ) {
-                maxZ = zVal;
-                best = z;
-            }
-        }
-
-        return Optional.ofNullable(best);
-    }
+//    public Optional<ZScoreData> getBestByCriteria(Settings settings, List<ZScoreData> dataList) {
+//        ZScoreData best = null;
+//        double maxZ = Double.NEGATIVE_INFINITY;
+//
+//        for (ZScoreData z : dataList) {
+//            List<ZScoreParam> params = z.getZScoreHistory();
+//
+//            double zVal, pValue, adf, corr;
+//
+//            if (params != null && !params.isEmpty()) {
+//                // Используем старый формат с детальными параметрами
+//                ZScoreParam last = params.get(params.size() - 1);
+//                zVal = last.getZscore();
+//                pValue = last.getPvalue();
+//                adf = last.getAdfpvalue();
+//                corr = last.getCorrelation();
+//            } else {
+//                // Используем новый формат с агрегированными данными
+//                if (z.getLatestZScore() == null || z.getPearsonCorr() == null) continue;
+//
+//                zVal = z.getLatestZScore();
+//                corr = z.getPearsonCorr();
+//
+//                // Для новых полей используем разумные значения по умолчанию
+//                pValue = z.getPearsonCorrPValue() != null ? z.getPearsonCorrPValue() : 0.0;
+//                adf = z.getJohansenCointPValue() != null ? z.getJohansenCointPValue() : 0.0;
+//            }
+//
+//            // 1. Z >= minZ (только положительные Z-score, исключаем зеркальные пары)
+//            if (settings.isUseMinZFilter() && zVal < settings.getMinZ()) continue;
+//
+//            // 2. pValue <= minPValue
+//            if (settings.isUseMaxPValueFilter() && pValue > settings.getMaxPValue()) continue;
+//
+//            // 3. adfValue <= maxAdfValue
+//            if (settings.isUseMaxAdfValueFilter() && adf > settings.getMaxAdfValue()) continue;
+//
+//            // 4. corr >= minCorr
+//            if (settings.isUseMinCorrelationFilter() && corr < settings.getMinCorrelation()) continue;
+//
+//            // 5. Выбираем с максимальным Z (только положительные)
+//            if (zVal > maxZ) {
+//                maxZ = zVal;
+//                best = z;
+//            }
+//        }
+//
+//        return Optional.ofNullable(best);
+//    }
 }
