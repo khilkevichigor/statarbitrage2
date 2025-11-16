@@ -62,10 +62,10 @@ public class AutoTradingScheduler {
             }
 
             // Проверяем BTC волатильность
-//            if (!btcVolatilityService.canTradeNow()) {
-//                log.info("🪙 ⛔ Автотрейдинг заблокирован из-за повышенной волатильности BTC");
-//                return;
-//            }
+            if (!btcVolatilityService.canTradeNow()) {
+                log.info("🪙 ⛔ Автотрейдинг заблокирован из-за повышенной волатильности BTC");
+                return;
+            }
 
             // Ищем хорошие пары из стабильных источников
             List<Pair> candidatePairs = findCandidatePairs(settings);
