@@ -238,14 +238,20 @@ public class ZScoreService {
         }
 
         // Выводим статистику по ZScore данным перед отбором
-        double maxZScore = zScoreDataList.stream()
-                .mapToDouble(data -> {
-                    List<ZScoreParam> params = data.getZScoreHistory();
-                    return params != null && !params.isEmpty()
-                            ? params.get(params.size() - 1).getZscore()
-                            : (data.getLatestZScore() != null ? data.getLatestZScore() : 0.0);
-                })
-                .max().orElse(0.0);
+        ZScoreData bestZScorePair = null;
+        double maxZScore = Double.NEGATIVE_INFINITY;
+        
+        for (ZScoreData data : zScoreDataList) {
+            List<ZScoreParam> params = data.getZScoreHistory();
+            double zScore = params != null && !params.isEmpty()
+                    ? params.get(params.size() - 1).getZscore()
+                    : (data.getLatestZScore() != null ? data.getLatestZScore() : 0.0);
+            
+            if (zScore > maxZScore) {
+                maxZScore = zScore;
+                bestZScorePair = data;
+            }
+        }
 
         double minPValue = zScoreDataList.stream()
                 .mapToDouble(data -> {
@@ -279,8 +285,11 @@ public class ZScoreService {
                 .mapToDouble(data -> data.getPearsonCorr() != null ? data.getPearsonCorr() : 0.0)
                 .max().orElse(0.0);
 
+        String bestPairName = bestZScorePair != null ? 
+                bestZScorePair.getUnderValuedTicker() + "/" + bestZScorePair.getOverValuedTicker() : "N/A";
+        
         log.info("📊 Статистика перед отбором топ-{} пар:", topN);
-        log.info("   🔥 Лучший Z-Score: {}", maxZScore);
+        log.info("   🔥 Лучший Z-Score: {} (пара: {})", maxZScore, bestPairName);
         log.debug("   📉 Лучший P-Value: {}", minPValue);
         log.debug("   📈 Лучший R-Squared: {}", maxRSquared);
         log.debug("   🔍 Лучший ADF: {}", minADF);
