@@ -120,37 +120,37 @@ public class StabilityAnalysisService {
             return;
         }
 
-        log.info("🎯 === РЕЗУЛЬТАТЫ АНАЛИЗА СТАБИЛЬНОСТИ ===");
-        log.info("📊 Всего проанализировано пар: {}", response.getTotalPairsAnalyzed());
-        log.info("✅ Торгуемых пар найдено: {}", response.getTradeablePairsFound());
-        log.info("⭐ Отличных пар найдено: {}", response.getExcellentPairsFound());
-        log.info("⏱️ Время анализа: {} сек",
+        log.debug("🎯 === РЕЗУЛЬТАТЫ АНАЛИЗА СТАБИЛЬНОСТИ ===");
+        log.debug("📊 Всего проанализировано пар: {}", response.getTotalPairsAnalyzed());
+        log.debug("✅ Торгуемых пар найдено: {}", response.getTradeablePairsFound());
+        log.debug("⭐ Отличных пар найдено: {}", response.getExcellentPairsFound());
+        log.debug("⏱️ Время анализа: {} сек",
                 String.format("%.2f", response.getAnalysisTimeSeconds()));
 
         if (response.getSummaryStats() != null) {
-            log.info("📈 Лучший результат: {} баллов", response.getSummaryStats().getBestScore());
-            log.info("📊 Средний балл: {}",
+            log.debug("📈 Лучший результат: {} баллов", response.getSummaryStats().getBestScore());
+            log.debug("📊 Средний балл: {}",
                     String.format("%.1f", response.getSummaryStats().getAverageScore()));
 
             if (response.getSummaryStats().getPairsByRating() != null) {
                 var ratingStats = response.getSummaryStats().getPairsByRating();
-                log.info("📋 Распределение по рейтингу:");
-                log.info("   EXCELLENT: {}", ratingStats.getOrDefault("excellent", 0));
-                log.info("   GOOD: {}", ratingStats.getOrDefault("good", 0));
-                log.info("   MARGINAL: {}", ratingStats.getOrDefault("marginal", 0));
-                log.info("   POOR: {}", ratingStats.getOrDefault("poor", 0));
-                log.info("   REJECTED: {}", ratingStats.getOrDefault("rejected", 0));
+                log.debug("📋 Распределение по рейтингу:");
+                log.debug("   EXCELLENT: {}", ratingStats.getOrDefault("excellent", 0));
+                log.debug("   GOOD: {}", ratingStats.getOrDefault("good", 0));
+                log.debug("   MARGINAL: {}", ratingStats.getOrDefault("marginal", 0));
+                log.debug("   POOR: {}", ratingStats.getOrDefault("poor", 0));
+                log.debug("   REJECTED: {}", ratingStats.getOrDefault("rejected", 0));
             }
         }
 
         // Показываем топ-5 лучших пар
         if (response.getResults() != null && !response.getResults().isEmpty()) {
-            log.info("🏆 ТОП-5 ЛУЧШИХ ПАР:");
+            log.debug("🏆 ТОП-5 ЛУЧШИХ ПАР:");
             response.getResults().stream()
                     .filter(result -> result.getTotalScore() != null && result.getTotalScore() > 0)
                     .limit(5)
                     .forEach(result -> {
-                        log.info("   {}—{}: {} баллов [{}] {}",
+                        log.debug("   {}—{}: {} баллов [{}] {}",
                                 result.getTickerA(),
                                 result.getTickerB(),
                                 result.getTotalScore(),
@@ -159,6 +159,6 @@ public class StabilityAnalysisService {
                     });
         }
 
-        log.info("🎯 === КОНЕЦ РЕЗУЛЬТАТОВ АНАЛИЗА ===");
+        log.debug("🎯 === КОНЕЦ РЕЗУЛЬТАТОВ АНАЛИЗА ===");
     }
 }
