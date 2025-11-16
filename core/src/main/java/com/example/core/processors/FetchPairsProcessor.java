@@ -329,14 +329,10 @@ public class FetchPairsProcessor {
                                 // Обновляем пару с Z-Score данными
                                 updatePairWithZScoreData(pair, zScoreData, candlesMap);
 
-                                // Обогащаем данными из стабильных пар
-                                enrichSinglePairWithStableData(pair, originalStablePairs);
-
                                 updatedPairs.add(pair);
                                 log.info("✅ Пара {}/{} обновлена, Z-Score: {} - добавлена в результаты",
                                         tickerA, tickerB, zScore);
                             } else {
-                                // ИСПРАВЛЕНИЕ: Используем централизованный метод для создания зеркальной пары
                                 log.debug("🪞 Пара {}/{} имеет отрицательный Z-Score: {}, создаем зеркальную пару",
                                         tickerA, tickerB, zScore);
 
@@ -353,6 +349,8 @@ public class FetchPairsProcessor {
                                 }
                             }
 
+                            // Обогащаем данными из стабильных пар
+                            enrichSinglePairWithStableData(pair, originalStablePairs);
 
                         } else {
                             log.debug("⚠️ Пара {}/{} не получила Z-Score данные", tickerA, tickerB);
@@ -382,7 +380,6 @@ public class FetchPairsProcessor {
             return Collections.emptyList();
         }
     }
-
 
     /**
      * Обновляет пару с данными Z-Score
