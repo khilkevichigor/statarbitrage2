@@ -101,6 +101,7 @@ public class StartNewTradeProcessor {
                 .useCache(true)
                 .useMinVolumeFilter(true)
                 .minimumLotBlacklist(null)
+                .sorted(false)
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);

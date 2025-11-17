@@ -499,7 +499,7 @@ public class OkxClient {
     }
 
     public List<String> getValidTickersByVolume(double minQuoteVolume, boolean sorted) {
-        List<String> allSwapTickers = getAllSwapTickers(true);
+        List<String> allSwapTickers = getAllSwapTickers(sorted);
         return getValidTickersV2(allSwapTickers, "1D", 2, minQuoteVolume, sorted);
     }
 }

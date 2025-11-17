@@ -215,6 +215,7 @@ public class UpdateTradeProcessor {
                 .useCache(true)
                 .useMinVolumeFilter(true)
                 .minimumLotBlacklist(null)
+                .sorted(true)
                 .build();
 
         // Получаем все свечи через расширенный эндпоинт с пагинацией

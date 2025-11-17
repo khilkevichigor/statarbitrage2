@@ -75,4 +75,10 @@ public class ExtendedCandlesRequest {
      * Биржа для получения данных (по умолчанию OKX)
      */
     private String exchange;
+
+    /**
+     * Сортировать ли тикеры
+     * Если false - не сортировать
+     */
+    private Boolean sorted;
 }

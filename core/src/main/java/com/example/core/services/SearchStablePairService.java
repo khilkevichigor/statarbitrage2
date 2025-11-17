@@ -308,6 +308,7 @@ public class SearchStablePairService {
                     .useCache(true)
                     .useMinVolumeFilter(true)
                     .minimumLotBlacklist(null)
+                    .sorted(true)
                     .build();
 
             Map<String, List<Candle>> result = candlesFeignClient.getValidatedCacheExtended(request);

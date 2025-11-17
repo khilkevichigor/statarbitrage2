@@ -115,6 +115,7 @@ public class FetchPairsProcessor {
                 .useCache(true)
                 .useMinVolumeFilter(true)
                 .minimumLotBlacklist(null)
+                .sorted(true)
                 .build();
 
         try {
@@ -265,6 +266,7 @@ public class FetchPairsProcessor {
                 .useCache(true)
                 .useMinVolumeFilter(true)
                 .minimumLotBlacklist(null)
+                .sorted(true)
                 .build();
 
         try {

@@ -107,6 +107,7 @@ public class BtcVolatilityService {
                     .useCache(true)
                     .useMinVolumeFilter(false)
                     .minimumLotBlacklist(null)
+                    .sorted(true)
                     .build();
 
             Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);

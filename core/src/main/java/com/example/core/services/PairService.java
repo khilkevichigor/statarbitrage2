@@ -116,6 +116,7 @@ public class PairService {
                     .useCache(true)
                     .useMinVolumeFilter(true)
                     .minimumLotBlacklist(null)
+                    .sorted(true)
                     .build();
 
             // Получаем свечи для пары
@@ -545,6 +546,7 @@ public class PairService {
                     .useCache(true)
                     .useMinVolumeFilter(true)
                     .minimumLotBlacklist(null)
+                    .sorted(true)
                     .build();
 
             // Получаем свежие данные свечей
@@ -702,8 +704,8 @@ public class PairService {
             String tickerB = mirrorPair.getTickerB();
 
             if (candlesMap.containsKey(tickerA) && candlesMap.containsKey(tickerB)) {
-                mirrorPair.setLongTickerCandles(candlesMap.get(tickerA));
-                mirrorPair.setShortTickerCandles(candlesMap.get(tickerB));
+                mirrorPair.setLongTickerCandles(candlesMap.get(tickerB));
+                mirrorPair.setShortTickerCandles(candlesMap.get(tickerA));
             } else {
                 log.warn("⚠️ Не удалось найти данные свечей для зеркальной пары {}", mirrorPair.getPairName());
             }

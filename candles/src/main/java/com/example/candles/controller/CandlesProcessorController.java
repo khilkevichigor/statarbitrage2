@@ -59,6 +59,7 @@ public class CandlesProcessorController {
             Objects.requireNonNull(request.getPeriod(), "period обязательное поле");
             Objects.requireNonNull(request.getUntilDate(), "untilDate обязательное поле");
             Objects.requireNonNull(request.getUseCache(), "useCache обязательное поле");
+            Objects.requireNonNull(request.getSorted(), "sorted обязательное поле");
 
             // Валидация значений на корректность
             if (request.getExchange().trim().isEmpty()) {
@@ -131,7 +132,7 @@ public class CandlesProcessorController {
 
                 try {
                     // Получаем тикеры с повторными попытками (retry логика)
-                    tickersToProcess = retryOperation(() -> okxFeignClient.getValidTickersByVolume(minVolume, true), 
+                    tickersToProcess = retryOperation(() -> okxFeignClient.getValidTickersByVolume(minVolume, request.getSorted()),
                                                     "получение тикеров от OKX API", 3);
                     log.info("Получено валидных тикеров {}", tickersToProcess.size());
                 } catch (Exception e) {
