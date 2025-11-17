@@ -189,9 +189,11 @@ public class FetchPairsProcessor {
         log.info("🔍 Получение стабильных пар с фильтрами: мониторинг={}, найденные={}", useMonitoring, useFound);
 
         // Получаем хорошие стабильные пары с учетом настроек
-        List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings(
-                useMonitoring, useFound,
-                settings.isUseScoreFiltering(), settings.getMinStabilityScore());
+        List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings( //todo 2) здесь берем
+                useMonitoring,
+                useFound,
+                settings.isUseScoreFiltering(),
+                settings.getMinStabilityScore());
 
         if (stablePairs.isEmpty()) {
             log.warn("⚠️ Не найдено стабильных пар с указанными фильтрами - возвращаем пустой список");
@@ -221,11 +223,11 @@ public class FetchPairsProcessor {
 
         if (candlesMap.isEmpty()) {
             log.warn("⚠️ Данные свечей для стабильных пар не получены — пропуск поиска.");
-            throw new IllegalStateException("❌ Не удалось получить данные свечей для стабильных пар");
+            return Collections.emptyList();
         }
 
         // Анализируем исходные стабильные пары и создаем зеркальные при необходимости
-        List<Pair> updatedPairs = analyzeAndUpdatePairs(stablePairs, candlesMap, settings, stablePairs);
+        List<Pair> updatedPairs = analyzeAndUpdatePairs(stablePairs, candlesMap, settings);
 
         if (updatedPairs.isEmpty()) {
             log.warn("⚠️ Не найдено пар с положительным Z-Score");
@@ -298,11 +300,10 @@ public class FetchPairsProcessor {
      * @param pairs все пары включая зеркальные
      * @param candlesMap          карта свечей
      * @param settings            настройки
-     * @param originalStablePairs исходные стабильные пары для обогащения
      * @return список обновленных пар с положительным Z-Score
      */
     private List<Pair> analyzeAndUpdatePairs(List<Pair> pairs, Map<String, List<Candle>> candlesMap,
-                                             Settings settings, List<Pair> originalStablePairs) {
+                                             Settings settings) {
         try {
             log.info("📊 Анализ и обновление {} пар (включая зеркальные)", pairs.size());
 
@@ -329,7 +330,7 @@ public class FetchPairsProcessor {
                             double zScore = zScoreData.getLatestZScore() != null ? zScoreData.getLatestZScore() : 0.0;
                             if (zScore > 0) {
                                 // Обновляем пару с Z-Score данными
-                                updatePairWithZScoreData(pair, zScoreData, candlesMap);
+//                                updatePairWithZScoreData(pair, zScoreData, candlesMap);
 
                                 updatedPairs.add(pair);
                                 log.info("✅ Пара {}/{} обновлена, Z-Score: {} - добавлена в результаты",
@@ -352,7 +353,7 @@ public class FetchPairsProcessor {
                             }
 
                             // Обогащаем данными из стабильных пар
-                            enrichSinglePairWithStableData(pair, originalStablePairs);
+//                            enrichSinglePairWithStableData(pair, pairs); //todo пока отключил
 
                         } else {
                             log.debug("⚠️ Пара {}/{} не получила Z-Score данные", tickerA, tickerB);

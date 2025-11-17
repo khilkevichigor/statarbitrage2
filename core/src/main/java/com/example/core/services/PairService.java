@@ -682,42 +682,41 @@ public class PairService {
             log.debug("🪞 Создание зеркальной пары с положительным Z-Score для {}", originalPair.getPairName());
 
             // Инвертируем Z-Score данные
-            ZScoreData invertedZScoreData = invertZScoreData(originalZScoreData);
+//            ZScoreData invertedZScoreData = invertZScoreData(originalZScoreData);
 
-            if (invertedZScoreData == null ||
-                    invertedZScoreData.getLatestZScore() == null ||
-                    invertedZScoreData.getLatestZScore() <= 0) {
-
-                log.debug("⚠️ Не удалось создать положительный Z-Score для зеркальной пары {}",
-                        originalPair.getPairName());
-                return null;
-            }
+//            if (invertedZScoreData == null ||
+//                    invertedZScoreData.getLatestZScore() == null ||
+//                    invertedZScoreData.getLatestZScore() <= 0) {
+//
+//                log.debug("⚠️ Не удалось создать положительный Z-Score для зеркальной пары {}",
+//                        originalPair.getPairName());
+//                return null;
+//            }
 
             // Создаем зеркальную пару
             Pair mirrorPair = stablePairsService.createMirrorPair(originalPair);
 
             // Обновляем зеркальную пару с инвертированными Z-Score данными
-            updateZScoreDataCurrent(mirrorPair, invertedZScoreData);
+//            updateZScoreDataCurrent(mirrorPair, invertedZScoreData);
 
             // Получаем свечи для пары (меняем местами тикеры для зеркальной пары)
-            String tickerA = mirrorPair.getTickerA();
-            String tickerB = mirrorPair.getTickerB();
+//            String tickerA = mirrorPair.getTickerA();
+//            String tickerB = mirrorPair.getTickerB();
 
-            if (candlesMap.containsKey(tickerA) && candlesMap.containsKey(tickerB)) {
-                mirrorPair.setLongTickerCandles(candlesMap.get(tickerB));
-                mirrorPair.setShortTickerCandles(candlesMap.get(tickerA));
-            } else {
-                log.warn("⚠️ Не удалось найти данные свечей для зеркальной пары {}", mirrorPair.getPairName());
-            }
+//            if (candlesMap.containsKey(tickerA) && candlesMap.containsKey(tickerB)) {
+//                mirrorPair.setLongTickerCandles(candlesMap.get(tickerB));
+//                mirrorPair.setShortTickerCandles(candlesMap.get(tickerA));
+//            } else {
+//                log.warn("⚠️ Не удалось найти данные свечей для зеркальной пары {}", mirrorPair.getPairName());
+//            }
 
             // Устанавливаем Z-Score
-            if (invertedZScoreData.getLatestZScore() != null) {
-                mirrorPair.setZScoreCurrent(BigDecimal.valueOf(invertedZScoreData.getLatestZScore()));
+            if (originalZScoreData.getLatestZScore() != null) {
+                mirrorPair.setZScoreCurrent(BigDecimal.valueOf(originalZScoreData.getLatestZScore()).multiply(BigDecimal.valueOf(-1)));
             }
 
-
             log.debug("✅ Зеркальная пара {}/{} успешно создана с положительным Z-Score: {}",
-                    mirrorPair.getTickerA(), mirrorPair.getTickerB(), invertedZScoreData.getLatestZScore());
+                    mirrorPair.getTickerA(), mirrorPair.getTickerB(), mirrorPair.getZScoreCurrent());
 
             return mirrorPair;
 

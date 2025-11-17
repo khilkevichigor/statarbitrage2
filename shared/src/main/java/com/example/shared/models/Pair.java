@@ -737,7 +737,7 @@ public class Pair {
                                           String timeframe, String period, 
                                           Map<String, Object> searchSettings) {
         Pair pair = new Pair();
-        pair.setType(PairType.STABLE);
+        pair.setType(PairType.STABLE); //todo 1) здесь мы создаем стабильную пару без статуса
         pair.setTimeframe(timeframe);
         pair.setPeriod(period);
         pair.setSearchSettingsMap(searchSettings);

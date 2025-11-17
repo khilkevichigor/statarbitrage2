@@ -57,8 +57,7 @@ public class PythonRestClient {
         PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZScoreHistory);
 
         try {
-            PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<>() {
-            });
+            PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<>() {});
 
             if (response.isSuccess()) {
                 log.debug("✅ Python API успешно проанализировал пару: {}", candlesMap.keySet());

@@ -197,7 +197,7 @@ public class ZScoreService {
     public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
         // Переупорядочиваем candlesMap в соответствии с порядком тикеров в торговой паре
         // Это важно, поскольку Python API зависит от порядка тикеров для правильного расчета Z-Score
-        Map<String, List<Candle>> orderedCandlesMap = new java.util.LinkedHashMap<>();
+        Map<String, List<Candle>> orderedCandlesMap = new LinkedHashMap<>();
         String longTicker = tradingPair.getLongTicker();
         String shortTicker = tradingPair.getShortTicker();
         
@@ -213,7 +213,7 @@ public class ZScoreService {
                     tradingPair.getPairName(), longTicker, shortTicker);
             throw new IllegalStateException("Отсутствуют данные свечей для торговой пары " + tradingPair.getPairName());
         }
-        
+
         ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, orderedCandlesMap);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");

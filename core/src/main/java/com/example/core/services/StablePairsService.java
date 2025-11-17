@@ -27,7 +27,7 @@ public class StablePairsService {
      */
     public Pair createMirrorPair(Pair originalPair) {
         return Pair.builder()
-                .type(PairType.STABLE)
+                .type(originalPair.getType())
                 .status(originalPair.getStatus())
                 .tickerA(originalPair.getTickerB()) // Меняем местами тикеры
                 .tickerB(originalPair.getTickerA())
@@ -103,7 +103,7 @@ public class StablePairsService {
      * @return список стабильных пар с скором больше или равно minScore
      */
     public List<Pair> getStablePairsByScore(boolean includeMonitoring, boolean includeFound, int minScore) {
-        log.debug("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
+        log.info("🔍 Получение стабильных пар по скору: мониторинг={}, найденные={}, минимальный скор={}",
                 includeMonitoring, includeFound, minScore);
 
         List<Pair> filteredPairs = pairRepository.findStablePairsByScore(includeMonitoring, includeFound, minScore);
