@@ -88,27 +88,12 @@ public class StartNewTradeProcessor {
     }
 
     private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
-
-        // Определяем правильный порядок тикеров для Python API на основе ожидаемого Z-Score
-        List<String> tickersForAPI;
-        if (tradingPair.getZScoreCurrent() != null && tradingPair.getZScoreCurrent().doubleValue() > 0) {
-            // Для положительного Z-Score (обычные пары): long = undervalued, short = overvalued
-            tickersForAPI = List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker());
-            log.debug("🔄 Для положительного Z-Score: тикеры в порядке [{}, {}]", 
-                     tradingPair.getLongTicker(), tradingPair.getShortTicker());
-        } else {
-            // Для отрицательного Z-Score или зеркальных пар: меняем порядок
-            tickersForAPI = List.of(tradingPair.getShortTicker(), tradingPair.getLongTicker());
-            log.debug("🔄 Для отрицательного Z-Score/зеркальной пары: тикеры в порядке [{}, {}]", 
-                     tradingPair.getShortTicker(), tradingPair.getLongTicker());
-        }
-
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
-                .tickers(tickersForAPI) // Правильный порядок тикеров для API
+                .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()))
                 .period(settings.calculateCurrentPeriod())
                 .untilDate(StringUtils.getCurrentDateTimeWithZ())
                 .excludeTickers(null)

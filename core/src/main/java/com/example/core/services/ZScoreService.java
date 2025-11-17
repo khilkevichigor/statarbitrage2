@@ -195,7 +195,32 @@ public class ZScoreService {
     }
 
     public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
-        ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
+        // Определяем правильный порядок тикеров для Python API на основе ожидаемого Z-Score
+        Map<String, List<Candle>> orderedCandlesMap;
+        if (tradingPair.getZScoreCurrent() != null && tradingPair.getZScoreCurrent().doubleValue() > 0) {
+            // Для положительного Z-Score (обычные пары): используем исходный порядок
+            orderedCandlesMap = candlesMap;
+            log.debug("🔄 Для положительного Z-Score {}: используем исходный порядок тикеров", 
+                     tradingPair.getZScoreCurrent());
+        } else {
+            // Для отрицательного Z-Score или зеркальных пар: меняем порядок тикеров в candlesMap
+            orderedCandlesMap = new java.util.LinkedHashMap<>();
+            String longTicker = tradingPair.getLongTicker();
+            String shortTicker = tradingPair.getShortTicker();
+            
+            // Меняем порядок: short идет первым, потом long
+            if (candlesMap.containsKey(shortTicker)) {
+                orderedCandlesMap.put(shortTicker, candlesMap.get(shortTicker));
+            }
+            if (candlesMap.containsKey(longTicker)) {
+                orderedCandlesMap.put(longTicker, candlesMap.get(longTicker));
+            }
+            
+            log.debug("🔄 Для отрицательного Z-Score {} (зеркальная пара): меняем порядок тикеров [{} -> {}]", 
+                     tradingPair.getZScoreCurrent(), shortTicker, longTicker);
+        }
+        
+        ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, orderedCandlesMap);
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
             throw new IllegalStateException("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
