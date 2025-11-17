@@ -49,25 +49,25 @@ public class PythonRestClient {
         return response.getResults();
     }
 
-    public ZScoreData analyzePair(Map<String, List<Candle>> pair, Settings settings, boolean includeFullZscoreHistory) {
-        log.debug("🐍 Отправляем запрос в Python API для анализа пары: {}", pair.keySet());
+    public ZScoreData analyzePair(Map<String, List<Candle>> candlesMap, Settings settings, boolean includeFullZScoreHistory) {
+        log.debug("🐍 Отправляем запрос в Python API для анализа пары: {}", candlesMap.keySet());
         Map<String, Object> settingsMap = convertSettingsToMap(settings);
-        Map<String, List<ApiCandle>> apiPair = convertCandlesMap(pair);
-        PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZscoreHistory);
+        Map<String, List<ApiCandle>> apiPair = convertCandlesMap(candlesMap); //todo после этой строки порядок изменился
+        PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZScoreHistory);
 
         try {
-            PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<PairAnalysisResponse>() {
+            PairAnalysisResponse response = sendRequestWithRestTemplate("/analyze-pair", requestBody, new TypeReference<>() {
             });
 
             if (response.isSuccess()) {
-                log.debug("✅ Python API успешно проанализировал пару: {}", pair.keySet());
+                log.debug("✅ Python API успешно проанализировал пару: {}", candlesMap.keySet());
                 return convertPairAnalysisResultToZScoreData(response.getResult());
             } else {
-                log.warn("⚠️ Python API вернул success=false для пары: {}", pair.keySet());
+                log.warn("⚠️ Python API вернул success=false для пары: {}", candlesMap.keySet());
                 return null; // Возвращаем null вместо исключения
             }
         } catch (Exception e) {
-            log.error("❌ Ошибка при вызове Python API для пары {}: {}", pair.keySet(), e.getMessage(), e);
+            log.error("❌ Ошибка при вызове Python API для пары {}: {}", candlesMap.keySet(), e.getMessage(), e);
             return null; // Возвращаем null при ошибке соединения
         }
     }
@@ -85,7 +85,7 @@ public class PythonRestClient {
     private Map<String, Object> convertSettingsToMap(Settings settings) {
         try {
             String json = objectMapper.writeValueAsString(settings);
-            return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {
+            return objectMapper.readValue(json, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("❌ Ошибка конвертации настроек в мапу", e);
