@@ -21,6 +21,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,7 +53,7 @@ public class PythonRestClient {
     public ZScoreData analyzePair(Map<String, List<Candle>> candlesMap, Settings settings, boolean includeFullZScoreHistory) {
         log.debug("🐍 Отправляем запрос в Python API для анализа пары: {}", candlesMap.keySet());
         Map<String, Object> settingsMap = convertSettingsToMap(settings);
-        Map<String, List<ApiCandle>> apiPair = convertCandlesMap(candlesMap); //todo после этой строки порядок изменился
+        Map<String, List<ApiCandle>> apiPair = convertCandlesMap(candlesMap);
         PairAnalysisRequest requestBody = new PairAnalysisRequest(apiPair, settingsMap, includeFullZScoreHistory);
 
         try {
@@ -93,12 +94,15 @@ public class PythonRestClient {
     }
 
     private Map<String, List<ApiCandle>> convertCandlesMap(Map<String, List<Candle>> candlesMap) {
+        // Используем LinkedHashMap для сохранения порядка тикеров
         return candlesMap.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> entry.getValue().stream()
                                 .map(candle -> new ApiCandle(candle.getTimestamp(), candle.getClose()))
-                                .collect(Collectors.toList())
+                                .collect(Collectors.toList()),
+                        (existing, replacement) -> existing, // merge function (не используется)
+                        LinkedHashMap::new // supplier для LinkedHashMap
                 ));
     }
 
