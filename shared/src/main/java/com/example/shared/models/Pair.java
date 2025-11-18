@@ -36,16 +36,13 @@ import java.util.*;
                 @Index(name = "idx_pair_status", columnList = "status")
         },
         uniqueConstraints = {
-                // Уникальность стабильных пар по тикерам + таймфрейм + период + тип
-                @UniqueConstraint(
-                        name = "uk_stable_pairs_unique",
-                        columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type"}
-                ),
                 // Уникальность пар в мониторинге по тикерам + таймфрейм + период + тип
                 @UniqueConstraint(
                         name = "uk_monitoring_pairs_unique",
                         columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type", "is_in_monitoring"}
                 )
+                // ПРИМЕЧАНИЕ: Основной уникальный констрейнт для пар (исключая ERROR статус)
+                // реализован через частичный индекс idx_pairs_unique_exclude_error в базе данных
         })
 @Data
 @Builder
