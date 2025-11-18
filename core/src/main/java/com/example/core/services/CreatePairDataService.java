@@ -58,7 +58,7 @@ public class CreatePairDataService {
     /**
      * Строит одну торговую пару на основе Z-данных и свечей
      */
-    private Pair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+    public Pair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         String undervalued = zScoreData.getUnderValuedTicker();
         String overvalued = zScoreData.getOverValuedTicker();
 
@@ -132,12 +132,12 @@ public class CreatePairDataService {
         try {
             // Ищем стабильную пару с такими же тикерами
             List<Pair> stablePairs = pairRepository.findByTickerAAndTickerB(tickerA, tickerB);
-            
+
             // Также проверяем обратное направление (зеркальную пару)
             if (stablePairs.isEmpty()) {
                 stablePairs = pairRepository.findByTickerAAndTickerB(tickerB, tickerA);
             }
-            
+
             // Фильтруем только стабильные пары и ищем лучшую по скору
             Pair bestStablePair = stablePairs.stream()
                     .filter(p -> PairType.STABLE.equals(p.getType()))
@@ -149,13 +149,13 @@ public class CreatePairDataService {
                         return Integer.compare(p1.getTotalScore(), p2.getTotalScore());
                     })
                     .orElse(null);
-            
+
             if (bestStablePair != null) {
                 // Переносим данные стабильности
                 tradingPair.setTotalScore(bestStablePair.getTotalScore());
                 tradingPair.setTotalScoreEntry(bestStablePair.getTotalScore()); // При создании entry = current
                 tradingPair.setStabilityRating(bestStablePair.getStabilityRating());
-                
+
                 // Переносим дополнительные поля стабильности если они есть
                 if (bestStablePair.getDataPoints() != null) {
                     tradingPair.setDataPoints(bestStablePair.getDataPoints());
@@ -172,19 +172,19 @@ public class CreatePairDataService {
                 if (bestStablePair.getMinVolMln() != null) {
                     tradingPair.setMinVolMln(bestStablePair.getMinVolMln());
                 }
-                
+
                 log.debug("✅ Перенесены данные стабильности для {}/{}: скор={}, рейтинг={}, источник={}",
-                        tickerA, tickerB, bestStablePair.getTotalScore(), 
+                        tickerA, tickerB, bestStablePair.getTotalScore(),
                         bestStablePair.getStabilityRating(),
                         bestStablePair.isInMonitoring() ? "мониторинг" : "найденные");
-                        
+
             } else {
                 log.debug("⚠️ Не найдена стабильная пара для переноса данных: {}/{}", tickerA, tickerB);
             }
-            
+
         } catch (Exception e) {
-            log.warn("❌ Ошибка при переносе данных стабильности для {}/{}: {}", 
-                     tickerA, tickerB, e.getMessage());
+            log.warn("❌ Ошибка при переносе данных стабильности для {}/{}: {}",
+                    tickerA, tickerB, e.getMessage());
         }
     }
 

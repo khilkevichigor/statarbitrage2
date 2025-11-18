@@ -386,6 +386,12 @@ public class PairService {
         return pairs;
     }
 
+    public Pair createPair(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+        Pair pair = createPairDataService.buildPairData(zScoreData, candlesMap);
+        save(pair);
+        return pair;
+    }
+
     public void updateZScoreDataCurrent(Pair tradingPair, ZScoreData zScoreData) {
         updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
     }

@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 @Slf4j
@@ -173,6 +172,15 @@ public class FetchPairsProcessor {
         }
     }
 
+    private Pair createPair(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+        try {
+            return pairService.createPair(zScoreData, candlesMap);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при создании PairData: {}", e.getMessage());
+            return null;
+        }
+    }
+
     /**
      * Получение пар из стабильных пар с фильтрами
      *
@@ -189,7 +197,7 @@ public class FetchPairsProcessor {
         log.info("🔍 Получение стабильных пар с фильтрами: мониторинг={}, найденные={}", useMonitoring, useFound);
 
         // Получаем хорошие стабильные пары с учетом настроек
-        List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings( //todo 2) здесь берем
+        List<Pair> stablePairs = stablePairsService.getGoodStablePairsBySettings(
                 useMonitoring,
                 useFound,
                 settings.isUseScoreFiltering(),
@@ -227,19 +235,19 @@ public class FetchPairsProcessor {
         }
 
         // Анализируем исходные стабильные пары и создаем зеркальные при необходимости
-        List<Pair> updatedPairs = analyzeAndUpdatePairs(stablePairs, candlesMap, settings);
+        List<Pair> tradingPairs = createTradingPairs(stablePairs, candlesMap, settings);
 
-        if (updatedPairs.isEmpty()) {
-            log.warn("⚠️ Не найдено пар с положительным Z-Score");
+        if (tradingPairs.isEmpty()) {
+            log.warn("⚠️ Не найдено новоиспеченных пар");
             return Collections.emptyList();
         }
 
-        log.info("✅ Обновлено {} пар из стабильных источников", updatedPairs.size());
-        updatedPairs.forEach(p -> log.info("📈 {}", p.getPairName()));
-        log.info("🕒 Время выполнения (стабильные пары): {} сек",
+        log.info("✅ Создано {} трейдинг пар из стабильных источников", tradingPairs.size());
+        tradingPairs.forEach(p -> log.info("📈 {}", p.getPairName()));
+        log.info("🕒 Время выполнения: {} сек",
                 String.format("%.2f", (System.currentTimeMillis() - start) / 1000.0));
 
-        return updatedPairs;
+        return tradingPairs;
     }
 
     /**
@@ -297,15 +305,15 @@ public class FetchPairsProcessor {
     /**
      * Анализирует и обновляет конкретные стабильные пары с Z-Score данными
      *
-     * @param pairs все пары включая зеркальные
-     * @param candlesMap          карта свечей
-     * @param settings            настройки
+     * @param pairs      все пары включая зеркальные
+     * @param candlesMap карта свечей
+     * @param settings   настройки
      * @return список обновленных пар с положительным Z-Score
      */
-    private List<Pair> analyzeAndUpdatePairs(List<Pair> pairs, Map<String, List<Candle>> candlesMap,
-                                             Settings settings) {
+    private List<Pair> createTradingPairs(List<Pair> pairs, Map<String, List<Candle>> candlesMap,
+                                          Settings settings) {
         try {
-            log.info("📊 Анализ и обновление {} пар (включая зеркальные)", pairs.size());
+            log.info("📊 Анализ и обновление {} пар", pairs.size());
 
             List<Pair> updatedPairs = new ArrayList<>();
 
@@ -326,37 +334,19 @@ public class FetchPairsProcessor {
                         // Рассчитываем Z-Score для конкретной пары
                         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, pairCandlesMap);
 
+                        //todo понял как нужно делать! то что ниже не корректно! мы должны для каждой пары создать мапу свечей, получить zScoreData, и для этого zScoreData создать TRADING пару!
+
                         if (zScoreData != null) {
-                            double zScore = zScoreData.getLatestZScore() != null ? zScoreData.getLatestZScore() : 0.0;
-                            if (zScore > 0) {
-                                // Обновляем пару с Z-Score данными
-//                                updatePairWithZScoreData(pair, zScoreData, candlesMap);
-
-                                updatedPairs.add(pair);
-                                log.info("✅ Пара {}/{} обновлена, Z-Score: {} - добавлена в результаты",
-                                        tickerA, tickerB, zScore);
+                            Pair createdPair = createPair(zScoreData, candlesMap);
+                            if (createdPair != null) {
+                                // Обогащаем данными из стабильных пар
+                                enrichSinglePairWithStableData(pair, pairs);
+                                updatedPairs.add(createdPair);
                             } else {
-                                log.debug("🪞 Пара {}/{} имеет отрицательный Z-Score: {}, создаем зеркальную пару",
-                                        tickerA, tickerB, zScore);
-
-                                Pair mirrorPair = pairService.createMirrorPairWithPositiveZScore(pair, zScoreData, candlesMap);
-
-                                if (mirrorPair != null) {
-                                    updatedPairs.add(mirrorPair);
-                                    log.info("✅ Зеркальная пара {}/{} создана централизованно, Z-Score: {} - добавлена в результаты",
-                                            mirrorPair.getTickerA(), mirrorPair.getTickerB(), 
-                                            mirrorPair.getZScoreCurrent() != null ? mirrorPair.getZScoreCurrent().doubleValue() : "N/A");
-                                } else {
-                                    log.debug("⚠️ Не удалось создать зеркальную пару для {}/{} через centralizedService",
-                                            tickerA, tickerB);
-                                }
+                                log.warn("⚠️ Пара {}/{} не создана", tickerA, tickerB);
                             }
-
-                            // Обогащаем данными из стабильных пар
-//                            enrichSinglePairWithStableData(pair, pairs); //todo пока отключил
-
                         } else {
-                            log.debug("⚠️ Пара {}/{} не получила Z-Score данные", tickerA, tickerB);
+                            log.warn("⚠️ Пара {}/{} не получила Z-Score данные", tickerA, tickerB);
                         }
                     } else {
                         log.warn("⚠️ Отсутствуют данные свечей для пары {}/{}", tickerA, tickerB);
@@ -384,44 +374,44 @@ public class FetchPairsProcessor {
         }
     }
 
-    /**
-     * Обновляет пару с данными Z-Score
-     *
-     * @param pair       пара для обновления
-     * @param zScoreData данные Z-Score
-     * @param candlesMap карта свечей
-     */
-    private void updatePairWithZScoreData(Pair pair, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
-        try {
-            log.debug("🔄 Обновление пары {} с Z-Score данными", pair.getPairName());
-
-            // Устанавливаем Z-Score
-            if (zScoreData.getLatestZScore() != null) {
-                pair.setZScoreCurrent(BigDecimal.valueOf(zScoreData.getLatestZScore()));
-            }
-
-            // Обновляем пару с Z-Score данными через PairService (если доступен метод)
-            pairService.updateZScoreDataCurrent(pair, zScoreData);
-
-            // Получаем свечи для пары
-            String tickerA = pair.getTickerA();
-            String tickerB = pair.getTickerB();
-
-            if (candlesMap.containsKey(tickerA) && candlesMap.containsKey(tickerB)) {
-                pair.setLongTickerCandles(candlesMap.get(tickerA));
-                pair.setShortTickerCandles(candlesMap.get(tickerB));
-
-                log.debug("✅ Пара {} обновлена с Z-Score: {}",
-                        pair.getPairName(), zScoreData.getLatestZScore());
-            } else {
-                log.warn("⚠️ Не удалось найти данные свечей для пары {}", pair.getPairName());
-            }
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при обновлении пары {} с Z-Score данными: {}",
-                    pair.getPairName(), e.getMessage(), e);
-        }
-    }
+//    /**
+//     * Обновляет пару с данными Z-Score
+//     *
+//     * @param pair       пара для обновления
+//     * @param zScoreData данные Z-Score
+//     * @param candlesMap карта свечей
+//     */
+//    private void updatePairWithZScoreData(Pair pair, ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+//        try {
+//            log.debug("🔄 Обновление пары {} с Z-Score данными", pair.getPairName());
+//
+//            // Устанавливаем Z-Score
+//            if (zScoreData.getLatestZScore() != null) {
+//                pair.setZScoreCurrent(BigDecimal.valueOf(zScoreData.getLatestZScore()));
+//            }
+//
+//            // Обновляем пару с Z-Score данными через PairService (если доступен метод)
+//            pairService.updateZScoreDataCurrent(pair, zScoreData);
+//
+//            // Получаем свечи для пары
+//            String tickerA = pair.getTickerA();
+//            String tickerB = pair.getTickerB();
+//
+//            if (candlesMap.containsKey(tickerA) && candlesMap.containsKey(tickerB)) {
+//                pair.setLongTickerCandles(candlesMap.get(tickerA));
+//                pair.setShortTickerCandles(candlesMap.get(tickerB));
+//
+//                log.debug("✅ Пара {} обновлена с Z-Score: {}",
+//                        pair.getPairName(), zScoreData.getLatestZScore());
+//            } else {
+//                log.warn("⚠️ Не удалось найти данные свечей для пары {}", pair.getPairName());
+//            }
+//
+//        } catch (Exception e) {
+//            log.error("❌ Ошибка при обновлении пары {} с Z-Score данными: {}",
+//                    pair.getPairName(), e.getMessage(), e);
+//        }
+//    }
 
     /**
      * Обогащает одну пару данными из стабильных пар

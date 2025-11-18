@@ -1,14 +1,9 @@
 package com.example.shared.models;
 
-import com.example.shared.dto.Candle;
-import com.example.shared.dto.CorrelationHistoryItem;
-import com.example.shared.dto.PixelSpreadHistoryItem;
-import com.example.shared.dto.ProfitHistoryItem;
-import com.example.shared.dto.ZScoreParam;
+import com.example.shared.dto.*;
 import com.example.shared.enums.PairType;
 import com.example.shared.enums.StabilityRating;
 import com.example.shared.enums.TradeStatus;
-import com.example.shared.utils.BigDecimalUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,40 +17,36 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Унифицированная модель торговых пар, объединяющая функциональность:
  * - StablePair (найденные пары для скрининга)
- * - CointPair (коинтегрированные пары для торговли) 
+ * - CointPair (коинтегрированные пары для торговли)
  * - TradingPair (активно торгуемые пары)
  */
 @Entity
-@Table(name = "pairs", 
-       indexes = {
-        @Index(name = "idx_pair_uuid", columnList = "uuid", unique = true),
-        @Index(name = "idx_pair_type", columnList = "type"),
-        @Index(name = "idx_pair_tickers", columnList = "ticker_a, ticker_b"),
-        @Index(name = "idx_pair_monitoring", columnList = "is_in_monitoring"),
-        @Index(name = "idx_pair_search_date", columnList = "search_date"),
-        @Index(name = "idx_pair_status", columnList = "status")
-       },
-       uniqueConstraints = {
-        // Уникальность стабильных пар по тикерам + таймфрейм + период + тип
-        @UniqueConstraint(
-                name = "uk_stable_pairs_unique", 
-                columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type"}
-        ),
-        // Уникальность пар в мониторинге по тикерам + таймфрейм + период + тип
-        @UniqueConstraint(
-                name = "uk_monitoring_pairs_unique", 
-                columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type", "is_in_monitoring"}
-        )
-       })
+@Table(name = "pairs",
+        indexes = {
+                @Index(name = "idx_pair_uuid", columnList = "uuid", unique = true),
+                @Index(name = "idx_pair_type", columnList = "type"),
+                @Index(name = "idx_pair_tickers", columnList = "ticker_a, ticker_b"),
+                @Index(name = "idx_pair_monitoring", columnList = "is_in_monitoring"),
+                @Index(name = "idx_pair_search_date", columnList = "search_date"),
+                @Index(name = "idx_pair_status", columnList = "status")
+        },
+        uniqueConstraints = {
+                // Уникальность стабильных пар по тикерам + таймфрейм + период + тип
+                @UniqueConstraint(
+                        name = "uk_stable_pairs_unique",
+                        columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type"}
+                ),
+                // Уникальность пар в мониторинге по тикерам + таймфрейм + период + тип
+                @UniqueConstraint(
+                        name = "uk_monitoring_pairs_unique",
+                        columnNames = {"ticker_a", "ticker_b", "timeframe", "period", "type", "is_in_monitoring"}
+                )
+        })
 @Data
 @Builder
 @AllArgsConstructor
@@ -647,8 +638,9 @@ public class Pair {
         }
         if (longTickerCandlesJson != null && !longTickerCandlesJson.isEmpty()) {
             try {
-                longTickerCandles = objectMapper.readValue(longTickerCandlesJson, 
-                        new TypeReference<List<Candle>>() {});
+                longTickerCandles = objectMapper.readValue(longTickerCandlesJson,
+                        new TypeReference<List<Candle>>() {
+                        });
                 return longTickerCandles;
             } catch (JsonProcessingException e) {
                 log.error("Ошибка при десериализации свечей long тикера", e);
@@ -677,8 +669,9 @@ public class Pair {
         }
         if (shortTickerCandlesJson != null && !shortTickerCandlesJson.isEmpty()) {
             try {
-                shortTickerCandles = objectMapper.readValue(shortTickerCandlesJson, 
-                        new TypeReference<List<Candle>>() {});
+                shortTickerCandles = objectMapper.readValue(shortTickerCandlesJson,
+                        new TypeReference<List<Candle>>() {
+                        });
                 return shortTickerCandles;
             } catch (JsonProcessingException e) {
                 log.error("Ошибка при десериализации свечей short тикера", e);
@@ -730,18 +723,19 @@ public class Pair {
     // ======== СТАТИЧЕСКИЕ МЕТОДЫ ДЛЯ СОЗДАНИЯ ИЗ СТАБИЛЬНЫХ ПАР ========
 
     //todo что это за монстр с рефлексией?!!!
+
     /**
      * Создание Pair из результата анализа стабильности
      */
     public static Pair fromStabilityResult(Object stabilityResult,
-                                          String timeframe, String period, 
-                                          Map<String, Object> searchSettings) {
+                                           String timeframe, String period,
+                                           Map<String, Object> searchSettings) {
         Pair pair = new Pair();
-        pair.setType(PairType.STABLE); //todo 1) здесь мы создаем стабильную пару без статуса
+        pair.setType(PairType.STABLE);
         pair.setTimeframe(timeframe);
         pair.setPeriod(period);
         pair.setSearchSettingsMap(searchSettings);
-        
+
         // Извлекаем данные из StabilityResultDto через рефлексию
         String tickerA = null;
         String tickerB = null;
@@ -793,7 +787,7 @@ public class Pair {
 
             // Устанавливаем candleCount равным dataPoints
             pair.setCandleCount(dataPoints);
-            
+
             // Сохраняем весь объект в JSON формате для analysisResults
             Map<String, Object> analysisResultsMap = new HashMap<>();
             analysisResultsMap.put("tickerA", tickerA);
@@ -831,15 +825,15 @@ public class Pair {
                 log.warn("⚠️ minVolume не является Number: {}", minVolumeObj);
             }
         } else {
-            log.warn("⚠️ minVolume отсутствует в searchSettings для пары {}/{}. SearchSettings keys: {}", 
+            log.warn("⚠️ minVolume отсутствует в searchSettings для пары {}/{}. SearchSettings keys: {}",
                     tickerA, tickerB, searchSettings != null ? searchSettings.keySet() : "null");
         }
 
         return pair;
     }
 
-    private static void tryAddField(Object source, Class<?> clazz, String fieldName, 
-                                   Map<String, Object> targetMap) {
+    private static void tryAddField(Object source, Class<?> clazz, String fieldName,
+                                    Map<String, Object> targetMap) {
         try {
             java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
             field.setAccessible(true);
@@ -879,7 +873,8 @@ public class Pair {
         if (zScoreHistoryJson != null && !zScoreHistoryJson.isEmpty()) {
             try {
                 zScoreHistory = objectMapper.readValue(zScoreHistoryJson,
-                        new TypeReference<List<ZScoreParam>>() {});
+                        new TypeReference<List<ZScoreParam>>() {
+                        });
                 return zScoreHistory;
             } catch (JsonProcessingException e) {
                 log.error("Ошибка при десериализации истории Z-Score", e);
@@ -933,7 +928,8 @@ public class Pair {
         if (profitHistoryJson != null && !profitHistoryJson.isEmpty()) {
             try {
                 profitHistory = objectMapper.readValue(profitHistoryJson,
-                        new TypeReference<>() {});
+                        new TypeReference<>() {
+                        });
                 return profitHistory;
             } catch (JsonProcessingException e) {
                 log.error("Ошибка при десериализации истории Profit", e);
@@ -973,7 +969,8 @@ public class Pair {
         if (correlationHistoryJson != null && !correlationHistoryJson.isEmpty()) {
             try {
                 correlationHistory = objectMapper.readValue(correlationHistoryJson,
-                        new TypeReference<>() {});
+                        new TypeReference<>() {
+                        });
                 return correlationHistory;
             } catch (JsonProcessingException e) {
                 log.error("Ошибка при десериализации истории Correlation", e);
