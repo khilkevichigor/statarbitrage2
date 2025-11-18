@@ -37,7 +37,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
         // Анализируем входящие данные
         analyzeInputData(zScoreDataList);
 
-        log.info("🔍 Ожидаемое количество наблюдений: {}, всего пар для анализа: {}", expected, zScoreDataList.size());
+        log.debug("🔍 Ожидаемое количество наблюдений: {}, всего пар для анализа: {}", expected, zScoreDataList.size());
 
         // Сохраняем копию оригинального списка для статистики
         List<ZScoreData> originalList = List.copyOf(zScoreDataList);
@@ -86,10 +86,10 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
         boolean hasNewFormat = sample.getLatestZScore() != null;
         boolean hasJohansenData = sample.getJohansenCointPValue() != null;
 
-        log.info("📋 Анализ формата данных:");
-        log.info("   📊 Старый формат (zscoreParams): {}", hasOldFormat ? "✅" : "❌");
-        log.info("   🆕 Новый формат (latest_zscore): {}", hasNewFormat ? "✅" : "❌");
-        log.info("   🔬 Johansen тест: {}", hasJohansenData ? "✅ ДОСТУПЕН" : "❌");
+        log.debug("📋 Анализ формата данных:");
+        log.debug("   📊 Старый формат (zscoreParams): {}", hasOldFormat ? "✅" : "❌");
+        log.debug("   🆕 Новый формат (latest_zscore): {}", hasNewFormat ? "✅" : "❌");
+        log.debug("   🔬 Johansen тест: {}", hasJohansenData ? "✅ ДОСТУПЕН" : "❌");
 
         if (hasJohansenData) {
             double minJohansenPValue = zScoreDataList.stream()
@@ -97,7 +97,7 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
                     .mapToDouble(ZScoreData::getJohansenCointPValue)
                     .min()
                     .orElse(1.0);
-            log.info("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
+            log.debug("   📈 Минимальный Johansen p-value: {}", String.format("%.6f", minJohansenPValue));
         }
     }
 
@@ -706,29 +706,29 @@ public class FilterZScoreDataForExistingPairBeforeNewTradeService {
         int remaining = filteredList.size();
         int filtered = total - remaining;
 
-        log.info("📈 === СТАТИСТИКА ФИЛЬТРАЦИИ ПАРЫ ===");
-        log.info("📊 Всего пар: {}", total);
-        log.info("✅ Прошли фильтры: {} ({}%)", remaining, String.format("%.1f", (remaining * 100.0 / total)));
-        log.info("❌ Отфильтровано: {} ({}%)", filtered, String.format("%.1f", (filtered * 100.0 / total)));
+        log.debug("📈 === СТАТИСТИКА ФИЛЬТРАЦИИ ПАРЫ ===");
+        log.debug("📊 Всего пар: {}", total);
+        log.debug("✅ Прошли фильтры: {} ({}%)", remaining, String.format("%.1f", (remaining * 100.0 / total)));
+        log.debug("❌ Отфильтровано: {} ({}%)", filtered, String.format("%.1f", (filtered * 100.0 / total)));
 
         // Анализ качества оставшихся пар
         if (!filteredList.isEmpty()) {
             analyzeRemainingPairs(filteredList);
         }
 
-        log.info("⚙️ Активные фильтры (централизованная фильтрация):");
+        log.debug("⚙️ Активные фильтры (централизованная фильтрация):");
         if (settings.isUseMaxAdfValueFilter())
-            log.info("   🔬 Коинтеграция: Johansen p-value < 0.05, ADF p-value < {}", settings.getMaxAdfValue()); //todo выпилить хардкод 0.05
+            log.debug("   🔬 Коинтеграция: Johansen p-value < 0.05, ADF p-value < {}", settings.getMaxAdfValue()); //todo выпилить хардкод 0.05
         if (settings.isUseMinRSquaredFilter())
-            log.info("   📈 R-squared: > {}", settings.getMinRSquared());
+            log.debug("   📈 R-squared: > {}", settings.getMinRSquared());
         if (settings.isUseMinCorrelationFilter())
-            log.info("   🔗 Корреляция: |значение| > {}", settings.getMinCorrelation());
+            log.debug("   🔗 Корреляция: |значение| > {}", settings.getMinCorrelation());
         if (settings.isUseMaxPValueFilter())
-            log.info("   📊 P-value корреляции: < {}", settings.getMaxPValue());
+            log.debug("   📊 P-value корреляции: < {}", settings.getMaxPValue());
         if (settings.isUseMinZFilter())
-            log.info("   ⚡ Z-Score: положительный и > {}", settings.getMinZ());
-        log.info("   🚫 Отрицательные Z-Score отфильтровываются автоматически");
-        log.info("   🎯 Ранжирование в ObtainBestPairServiceV2 по качественному скору (вместо приоритетов)");
+            log.debug("   ⚡ Z-Score: положительный и > {}", settings.getMinZ());
+        log.debug("   🚫 Отрицательные Z-Score отфильтровываются автоматически");
+        log.debug("   🎯 Ранжирование в ObtainBestPairServiceV2 по качественному скору (вместо приоритетов)");
     }
 
     /**
