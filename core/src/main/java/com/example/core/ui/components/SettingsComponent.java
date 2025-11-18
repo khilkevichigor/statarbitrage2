@@ -1709,9 +1709,9 @@ public class SettingsComponent extends VerticalLayout {
     @EventListener
     public void handleGlobalSettingsUpdated(GlobalSettingsUpdatedEvent event) {
         try {
-            log.info("🔧 SettingsComponent: Получено событие обновления глобальных настроек");
-            log.info("📊 Новые таймфреймы: {}", event.getUpdatedGlobalTimeframes());
-            log.info("📅 Новые периоды: {}", event.getUpdatedGlobalPeriods());
+            log.debug("🔧 SettingsComponent: Получено событие обновления глобальных настроек");
+            log.debug("📊 Новые таймфреймы: {}", event.getUpdatedGlobalTimeframes());
+            log.debug("📅 Новые периоды: {}", event.getUpdatedGlobalPeriods());
 
             getUI().ifPresent(ui -> ui.access(() -> {
                 try {
@@ -1732,7 +1732,7 @@ public class SettingsComponent extends VerticalLayout {
                         } else if (!newActiveTimeframes.isEmpty()) {
                             // Выбираем первый доступный таймфрейм
                             analysisTimeframeSelect.setValue(newActiveTimeframes.get(0));
-                            log.info("🔄 Таймфрейм в секции 'Анализ и фильтры' изменен: {} -> {}",
+                            log.debug("🔄 Таймфрейм в секции 'Анализ и фильтры' изменен: {} -> {}",
                                     currentTimeframeValue, newActiveTimeframes.get(0));
                         }
                     }
@@ -1748,7 +1748,7 @@ public class SettingsComponent extends VerticalLayout {
                         } else if (!newActivePeriods.isEmpty()) {
                             // Выбираем первый доступный период
                             analysisPeriodSelect.setValue(newActivePeriods.get(0));
-                            log.info("🔄 Период в секции 'Анализ и фильтры' изменен: {} -> {}",
+                            log.debug("🔄 Период в секции 'Анализ и фильтры' изменен: {} -> {}",
                                     currentPeriodValue, newActivePeriods.get(0));
                         }
                     }
