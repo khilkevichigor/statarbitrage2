@@ -214,9 +214,15 @@ public class ZScoreService {
             throw new IllegalStateException("Отсутствуют данные свечей для торговой пары " + tradingPair.getPairName());
         }
 
-        log.info("-->> candlesMap before пайтон {}", orderedCandlesMap);
+        /*
+        сначала избавиться от зеркальных пар в Стабильные пары, - сейчас они там есть
+        добавить лог при создании зеркальной пары
+        добавить тесты для получения з скор дата от пайтон при чередовании тикеров
+         */
+
+        log.info("-->> candlesMap before пайтон long: {}, short: {}", longTicker, shortTicker);
         ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, orderedCandlesMap);
-        log.info("-->> lastZScore от пайтон {}, {}", zScoreData.getLatestZScore(), zScoreData.getZScoreHistory().get(zScoreData.getZScoreHistory().size() - 1));
+        log.info("-->> lastZScore от пайтон underValued: {}, overValued: {}, latest: {}, last from history: {}", zScoreData.getUnderValuedTicker(), zScoreData.getOverValuedTicker(), zScoreData.getLatestZScore(), zScoreData.getZScoreHistory().get(zScoreData.getZScoreHistory().size() - 1).getZscore());
 
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
