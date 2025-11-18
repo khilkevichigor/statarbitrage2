@@ -59,6 +59,10 @@ public class CreatePairDataService {
      * Строит одну торговую пару на основе Z-данных и свечей
      */
     public Pair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
+
+        //todo серьезное улучшение!!! здесь нужно создавать пару всегда с положительным zScore. Если zScore отрицательный то переварачивать пару и zScoreData.
+        // Таким образом мы увеличим конверсию в открытые пары и не будем пропускать пары с высоким но отрицательным zScore
+
         String undervalued = zScoreData.getUnderValuedTicker();
         String overvalued = zScoreData.getOverValuedTicker();
 
