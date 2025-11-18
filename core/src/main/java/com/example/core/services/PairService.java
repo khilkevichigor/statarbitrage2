@@ -366,8 +366,8 @@ public class PairService {
         return searchStablePairService.searchStablePairs(timeframes, periods, searchSettings);
     }
 
-    public List<Pair> createPairDataList(List<ZScoreData> top, Map<String, List<Candle>> candlesMap) {
-        List<Pair> pairs = createPairDataService.createPairs(top, candlesMap);
+    public List<Pair> createPairDataList(List<ZScoreData> zScoreDataList, Map<String, List<Candle>> candlesMap) {
+        List<Pair> pairs = createPairDataService.createPairs(zScoreDataList, candlesMap);
         // Сохраняем с обработкой конфликтов
         List<Pair> savedPairs = new ArrayList<>();
         for (Pair pair : pairs) {

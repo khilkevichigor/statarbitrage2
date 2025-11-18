@@ -39,7 +39,6 @@ public class UpdateTradeProcessor {
     private final TradingProviderFactory tradingProviderFactory;
     private final CandlesFeignClient candlesFeignClient;
     private final UpdateZScoreDataCurrentService updateZScoreDataCurrentService;
-    private final CandleUpdateCheckService candleUpdateCheckService;
 
 
     //todo сделать проверку zScore - что он пересекал +3 и -3 несколько раз - говорит о том что пара гуляет туда-сюда
@@ -250,23 +249,7 @@ public class UpdateTradeProcessor {
                     candlesMap.containsKey(shortTicker) ? candlesMap.get(shortTicker).size() : 0);
             throw new RuntimeException("Недостаточно данных свечей — пропуск анализа");
         }
-
-//        // Оптимизация: рассчитываем Z-Score только если появились новые свечи
-//        ZScoreData zScoreData;
-//        if (candleUpdateCheckService.shouldRecalculateZScore(tradingPair)) {
-//            log.debug("🔄 Пересчитываем Z-Score для пары {} (ТФ: {})",
-//                    tradingPair.getPairName(), tradingPair.getTimeframe());
-//            zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
-//            // Отмечаем время обновления Z-Score
-//            candleUpdateCheckService.markZScoreUpdated(tradingPair);
-//        } else {
-//            log.debug("⏰ Z-Score актуален для пары {} - пропускаем пересчет", tradingPair.getPairName());
-//            // Используем последний рассчитанный Z-Score - не пересчитываем
-//            // Цены все равно будут обновляться в updatePositionPrices выше
-//            zScoreData = createCurrentZScoreFromPair(tradingPair);
-//        }
-//        Map<String, Object> result = new HashMap<>();
-
+        
         //Критично! Нужно обновлять zScore каждый раз независимо от ТФ
         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, candlesMap);
         Map<String, Object> result = new HashMap<>();

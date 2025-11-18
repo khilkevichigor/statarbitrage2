@@ -195,34 +195,7 @@ public class ZScoreService {
     }
 
     public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
-        // Переупорядочиваем candlesMap в соответствии с порядком тикеров в торговой паре
-        // Это важно, поскольку Python API зависит от порядка тикеров для правильного расчета Z-Score
-        Map<String, List<Candle>> orderedCandlesMap = new LinkedHashMap<>();
-        String longTicker = tradingPair.getLongTicker();
-        String shortTicker = tradingPair.getShortTicker();
-        
-        // Добавляем тикеры в том же порядке, что и в торговой паре: сначала long, потом short
-        if (candlesMap.containsKey(longTicker) && candlesMap.containsKey(shortTicker)) {
-            orderedCandlesMap.put(longTicker, candlesMap.get(longTicker));
-            orderedCandlesMap.put(shortTicker, candlesMap.get(shortTicker));
-            
-            log.debug("🔄 Переупорядочена candlesMap для пары {}: [{} -> {}]", 
-                     tradingPair.getPairName(), longTicker, shortTicker);
-        } else {
-            log.warn("⚠️ Отсутствуют данные свечей для тикеров пары {}: {} или {}", 
-                    tradingPair.getPairName(), longTicker, shortTicker);
-            throw new IllegalStateException("Отсутствуют данные свечей для торговой пары " + tradingPair.getPairName());
-        }
-
-        /*
-        сначала избавиться от зеркальных пар в Стабильные пары, - сейчас они там есть
-        добавить лог при создании зеркальной пары
-        добавить тесты для получения з скор дата от пайтон при чередовании тикеров
-         */
-
-        log.info("-->> candlesMap before пайтон long: {}, short: {}", longTicker, shortTicker);
-        ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, orderedCandlesMap);
-        log.info("-->> lastZScore от пайтон underValued: {}, overValued: {}, latest: {}, last from history: {}", zScoreData.getUnderValuedTicker(), zScoreData.getOverValuedTicker(), zScoreData.getLatestZScore(), zScoreData.getZScoreHistory().get(zScoreData.getZScoreHistory().size() - 1).getZscore());
+        ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
 
         if (zScoreData == null) {
             log.warn("⚠️ Обновление zScoreData перед созданием нового трейда! zScoreData is null");
