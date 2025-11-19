@@ -234,7 +234,7 @@ public class FetchPairsProcessor {
             return Collections.emptyList();
         }
 
-        // Анализируем исходные стабильные пары и создаем зеркальные при необходимости
+        // Анализируем исходные стабильные пары и создаем пары при необходимости
         List<Pair> tradingPairs = createTradingPairs(stablePairs, candlesMap, settings);
 
         if (tradingPairs.isEmpty()) {
@@ -333,8 +333,6 @@ public class FetchPairsProcessor {
 
                         // Рассчитываем Z-Score для конкретной пары
                         ZScoreData zScoreData = zScoreService.calculateZScoreData(settings, pairCandlesMap);
-
-                        //todo понял как нужно делать! то что ниже не корректно! мы должны для каждой пары создать мапу свечей, получить zScoreData, и для этого zScoreData создать TRADING пару!
 
                         if (zScoreData != null) {
                             Pair createdPair = createPair(zScoreData, candlesMap);

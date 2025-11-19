@@ -4,6 +4,7 @@ import com.example.core.repositories.PairRepository;
 import com.example.core.services.chart.PixelSpreadService;
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.ZScoreData;
+import com.example.shared.dto.ZScoreParam;
 import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.models.Pair;
@@ -60,11 +61,12 @@ public class CreatePairDataService {
      */
     public Pair buildPairData(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
 
-        //todo серьезное улучшение!!! здесь нужно создавать пару всегда с положительным zScore. Если zScore отрицательный то переварачивать пару и zScoreData.
-        // Таким образом мы увеличим конверсию в открытые пары и не будем пропускать пары с высоким но отрицательным zScore
-
-        String undervalued = zScoreData.getUnderValuedTicker();
-        String overvalued = zScoreData.getOverValuedTicker();
+        // УЛУЧШЕНИЕ: Переворачиваем пару если Z-Score отрицательный для получения положительного Z-Score
+        // Таким образом увеличиваем конверсию в открытые пары и не пропускаем пары с высоким но отрицательным zScore
+        ZScoreData adjustedZScoreData = ensurePositiveZScore(zScoreData);
+        
+        String undervalued = adjustedZScoreData.getUnderValuedTicker();
+        String overvalued = adjustedZScoreData.getOverValuedTicker();
 
         List<Candle> undervaluedCandles = candlesMap.get(undervalued);
         List<Candle> overvaluedCandles = candlesMap.get(overvalued);
@@ -74,7 +76,7 @@ public class CreatePairDataService {
         }
 
         // Создаём торговую пару с типом TRADING
-        Pair tradingPair = Pair.builder()
+        Pair pair = Pair.builder()
                 .type(PairType.TRADING)
                 .status(TradeStatus.SELECTED)
                 .tickerA(undervalued)  // Long ticker
@@ -90,43 +92,43 @@ public class CreatePairDataService {
                 .build();
 
         // Устанавливаем свечи
-        tradingPair.setLongTickerCandles(undervaluedCandles);
-        tradingPair.setShortTickerCandles(overvaluedCandles);
+        pair.setLongTickerCandles(undervaluedCandles);
+        pair.setShortTickerCandles(overvaluedCandles);
 
         // Переносим данные стабильности из исходной стабильной пары
-        transferStabilityDataFromStablePair(tradingPair, undervalued, overvalued);
+        transferStabilityDataFromStablePair(pair, undervalued, overvalued);
 
         // Заполняем поля настроек сразу при создании пары
         Settings settings = settingsService.getSettings();
-        tradingPair.setSettingsCandleLimit(BigDecimal.valueOf(settings.getCandleLimit()));
-        tradingPair.setSettingsMinZ(BigDecimal.valueOf(settings.getMinZ()));
-        tradingPair.setTimeframe(settings.getTimeframe());
+        pair.setSettingsCandleLimit(BigDecimal.valueOf(settings.getCandleLimit()));
+        pair.setSettingsMinZ(BigDecimal.valueOf(settings.getMinZ()));
+        pair.setTimeframe(settings.getTimeframe());
 
         // Устанавливаем минимальный объем из настроек
-        tradingPair.setMinVolMln(BigDecimal.valueOf(settings.getMinVolume()));
+        pair.setMinVolMln(BigDecimal.valueOf(settings.getMinVolume()));
 
-        updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
+        updateZScoreDataCurrentService.updateCurrent(pair, adjustedZScoreData);
 
         // Рассчитываем пиксельный спред для новой пары
         try {
-            pixelSpreadService.calculatePixelSpreadIfNeeded(tradingPair);
+            pixelSpreadService.calculatePixelSpreadIfNeeded(pair);
 
             // Логируем статистику пиксельного спреда
-            double avgSpread = pixelSpreadService.getAveragePixelSpread(tradingPair);
-            double maxSpread = pixelSpreadService.getMaxPixelSpread(tradingPair);
-            double currentSpread = pixelSpreadService.getCurrentPixelSpread(tradingPair);
+            double avgSpread = pixelSpreadService.getAveragePixelSpread(pair);
+            double maxSpread = pixelSpreadService.getMaxPixelSpread(pair);
+            double currentSpread = pixelSpreadService.getCurrentPixelSpread(pair);
 
             log.debug("🔢 Пиксельный спред для {}/{}: avg={}px, max={}px, current={}px",
-                    tradingPair.getLongTicker(), tradingPair.getShortTicker(),
+                    pair.getLongTicker(), pair.getShortTicker(),
                     String.format("%.1f", avgSpread), String.format("%.1f", maxSpread),
                     String.format("%.1f", currentSpread));
 
         } catch (Exception e) {
             log.warn("⚠️ Ошибка расчета пиксельного спреда для {}/{}: {}",
-                    tradingPair.getLongTicker(), tradingPair.getShortTicker(), e.getMessage());
+                    pair.getLongTicker(), pair.getShortTicker(), e.getMessage());
         }
 
-        return tradingPair;
+        return pair;
     }
 
     /**
@@ -190,6 +192,76 @@ public class CreatePairDataService {
             log.warn("❌ Ошибка при переносе данных стабильности для {}/{}: {}",
                     tickerA, tickerB, e.getMessage());
         }
+    }
+
+    /**
+     * Обеспечивает положительный Z-Score путем переворачивания пары при необходимости
+     * 
+     * @param originalZScoreData исходные данные Z-Score
+     * @return скорректированные данные с положительным Z-Score
+     */
+    private ZScoreData ensurePositiveZScore(ZScoreData originalZScoreData) {
+        if (originalZScoreData.getLatestZScore() == null) {
+            log.warn("⚠️ Отсутствует значение Z-Score, возвращаем исходные данные");
+            return originalZScoreData;
+        }
+
+        double currentZScore = originalZScoreData.getLatestZScore();
+        
+        // Если Z-Score уже положительный, возвращаем исходные данные
+        if (currentZScore >= 0) {
+            log.debug("✅ Z-Score уже положительный ({}), переворачивание не требуется", String.format("%.4f", currentZScore));
+            return originalZScoreData;
+        }
+
+        // Z-Score отрицательный, создаем перевернутую копию
+        log.info("🔄 Переворачиваем пару для получения положительного Z-Score: {} → {}", 
+                String.format("%.4f", currentZScore), String.format("%.4f", -currentZScore));
+        
+        ZScoreData flippedZScoreData = new ZScoreData();
+        
+        // Меняем местами тикеры
+        flippedZScoreData.setUnderValuedTicker(originalZScoreData.getOverValuedTicker());
+        flippedZScoreData.setOverValuedTicker(originalZScoreData.getUnderValuedTicker());
+        
+        // Инвертируем Z-Score
+        flippedZScoreData.setLatestZScore(-currentZScore);
+        
+        // Копируем остальные поля без изменений
+        flippedZScoreData.setPearsonCorr(originalZScoreData.getPearsonCorr());
+        flippedZScoreData.setPearsonCorrPValue(originalZScoreData.getPearsonCorrPValue());
+        flippedZScoreData.setJohansenCointPValue(originalZScoreData.getJohansenCointPValue());
+        flippedZScoreData.setAvgAdfPvalue(originalZScoreData.getAvgAdfPvalue());
+        flippedZScoreData.setAvgRSquared(originalZScoreData.getAvgRSquared());
+        flippedZScoreData.setTotalObservations(originalZScoreData.getTotalObservations());
+        
+        // Инвертируем историю Z-Score при переворачивании пары
+        if (originalZScoreData.getZScoreHistory() != null) {
+            List<ZScoreParam> flippedHistory = originalZScoreData.getZScoreHistory().stream()
+                    .map(param -> ZScoreParam.builder()
+                            .zscore(-param.getZscore())  // Инвертируем Z-Score
+                            .pvalue(param.getPvalue())   // P-value остается тем же
+                            .adfpvalue(param.getAdfpvalue())  // ADF p-value остается тем же
+                            .correlation(param.getCorrelation())  // Корреляция остается той же
+                            .alpha(-param.getBeta())     // Alpha становится отрицательной Beta
+                            .beta(-param.getAlpha())     // Beta становится отрицательной Alpha
+                            .spread(-param.getSpread())  // Спред инвертируется
+                            .mean(-param.getMean())      // Среднее инвертируется
+                            .std(param.getStd())         // Стандартное отклонение остается тем же
+                            .timestamp(param.getTimestamp())  // Временная метка остается той же
+                            .build())
+                    .collect(java.util.stream.Collectors.toList());
+            flippedZScoreData.setZScoreHistory(flippedHistory);
+            log.debug("🔄 Инвертирована история Z-Score: {} записей обработано", flippedHistory.size());
+        } else {
+            flippedZScoreData.setZScoreHistory(null);
+        }
+        
+        log.debug("✅ Пара успешно перевернута: {} ↔ {}, новый Z-Score: {}",
+                originalZScoreData.getUnderValuedTicker(), originalZScoreData.getOverValuedTicker(),
+                String.format("%.4f", flippedZScoreData.getLatestZScore()));
+        
+        return flippedZScoreData;
     }
 
     private boolean isEmpty(List<?> list) {

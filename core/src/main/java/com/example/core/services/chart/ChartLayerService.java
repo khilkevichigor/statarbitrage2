@@ -1,7 +1,6 @@
 package com.example.core.services.chart;
 
 import com.example.shared.dto.CorrelationHistoryItem;
-import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import com.example.shared.dto.ZScoreParam;
 import com.example.shared.models.Pair;

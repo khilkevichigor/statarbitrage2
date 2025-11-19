@@ -2,7 +2,6 @@ package com.example.core.services.chart;
 
 import com.example.shared.dto.Candle;
 import com.example.shared.dto.CorrelationHistoryItem;
-import com.example.shared.dto.PixelSpreadHistoryItem;
 import com.example.shared.dto.ProfitHistoryItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
