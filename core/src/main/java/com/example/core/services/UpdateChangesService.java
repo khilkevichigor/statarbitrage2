@@ -16,24 +16,24 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UpdateChangesService {
-    public void update(Pair tradingPair, ChangesData changes) {
-        tradingPair.setMinLong(changes.getMinLong());
-        tradingPair.setMaxLong(changes.getMaxLong());
-        tradingPair.setLongUSDTChanges(changes.getLongUSDTChanges());
-        tradingPair.setLongPercentChanges(changes.getLongPercentChanges());
-        tradingPair.setLongTickerCurrentPrice(changes.getLongCurrentPrice());
+    public void update(Pair pair, ChangesData changes) {
+        pair.setMinLong(changes.getMinLong());
+        pair.setMaxLong(changes.getMaxLong());
+        pair.setLongUSDTChanges(changes.getLongUSDTChanges());
+        pair.setLongPercentChanges(changes.getLongPercentChanges());
+        pair.setLongTickerCurrentPrice(changes.getLongCurrentPrice());
 
-        tradingPair.setMinShort(changes.getMinShort());
-        tradingPair.setMaxShort(changes.getMaxShort());
-        tradingPair.setShortUSDTChanges(changes.getShortUSDTChanges());
-        tradingPair.setShortPercentChanges(changes.getShortPercentChanges());
-        tradingPair.setShortTickerCurrentPrice(changes.getShortCurrentPrice());
+        pair.setMinShort(changes.getMinShort());
+        pair.setMaxShort(changes.getMaxShort());
+        pair.setShortUSDTChanges(changes.getShortUSDTChanges());
+        pair.setShortPercentChanges(changes.getShortPercentChanges());
+        pair.setShortTickerCurrentPrice(changes.getShortCurrentPrice());
 
-        tradingPair.setMinZ(changes.getMinZ());
-        tradingPair.setMaxZ(changes.getMaxZ());
+        pair.setMinZ(changes.getMinZ());
+        pair.setMaxZ(changes.getMaxZ());
 
-        tradingPair.setMinCorr(changes.getMinCorr());
-        tradingPair.setMaxCorr(changes.getMaxCorr());
+        pair.setMinCorr(changes.getMinCorr());
+        pair.setMaxCorr(changes.getMaxCorr());
 
         // Добавляем новую точку в историю корреляции ПОСЛЕ обновления значения (аналогично профиту)
         if (changes.getCorrelationCurrent() != null) {
@@ -41,7 +41,7 @@ public class UpdateChangesService {
             double currentCorrelation = changes.getCorrelationCurrent().doubleValue();
             
             // Получаем существующую историю для проверки дубликатов
-            List<CorrelationHistoryItem> existingHistory = tradingPair.getCorrelationHistory();
+            List<CorrelationHistoryItem> existingHistory = pair.getCorrelationHistory();
             
             // Проверяем дубликаты по времени (избегаем добавления одинаковых записей)
             boolean shouldAdd = true;
@@ -52,32 +52,32 @@ public class UpdateChangesService {
                 // Если прошло меньше 30 секунд - обновляем последнюю запись вместо добавления новой
                 if (timeDiff < 30000) { // 30 секунд
                     log.debug("📊 Обновляем последнюю точку корреляции (прошло {} сек): {} -> {} для пары {}",
-                            timeDiff / 1000, lastItem.getCorrelation(), currentCorrelation, tradingPair.getPairName());
+                            timeDiff / 1000, lastItem.getCorrelation(), currentCorrelation, pair.getPairName());
                     
                     lastItem.setTimestamp(currentTimestamp);
                     lastItem.setCorrelation(currentCorrelation);
-                    tradingPair.setCorrelationHistory(existingHistory); // Пересохраняем для обновления JSON
+                    pair.setCorrelationHistory(existingHistory); // Пересохраняем для обновления JSON
                     shouldAdd = false;
                 }
             }
             
             if (shouldAdd) {
                 log.debug("📊 Добавляем НОВУЮ точку корреляции в историю: {} на время {} для пары {} (было {} точек)",
-                        currentCorrelation, currentTimestamp, tradingPair.getPairName(), existingHistory.size());
+                        currentCorrelation, currentTimestamp, pair.getPairName(), existingHistory.size());
                 
-                tradingPair.addCorrelationHistoryPoint(CorrelationHistoryItem.builder()
+                pair.addCorrelationHistoryPoint(CorrelationHistoryItem.builder()
                         .timestamp(currentTimestamp)
                         .correlation(currentCorrelation)
                         .build());
                         
-                log.debug("📊 После добавления стало {} точек корреляции", tradingPair.getCorrelationHistory().size());
+                log.debug("📊 После добавления стало {} точек корреляции", pair.getCorrelationHistory().size());
             }
         }
 
-        tradingPair.setMinProfitPercentChanges(changes.getMinProfitChanges());
-        tradingPair.setMaxProfitPercentChanges(changes.getMaxProfitChanges());
-        tradingPair.setProfitUSDTChanges(changes.getProfitUSDTChanges());
-        tradingPair.setProfitPercentChanges(changes.getProfitPercentChanges());
+        pair.setMinProfitPercentChanges(changes.getMinProfitChanges());
+        pair.setMaxProfitPercentChanges(changes.getMaxProfitChanges());
+        pair.setProfitUSDTChanges(changes.getProfitUSDTChanges());
+        pair.setProfitPercentChanges(changes.getProfitPercentChanges());
 
         // Добавляем новую точку в историю профита ПОСЛЕ обновления значения (аналогично Z-Score)
         if (changes.getProfitPercentChanges() != null) {
@@ -85,7 +85,7 @@ public class UpdateChangesService {
             double currentProfitPercent = changes.getProfitPercentChanges().doubleValue();
             
             // Получаем существующую историю для проверки дубликатов
-            List<ProfitHistoryItem> existingHistory = tradingPair.getProfitHistory();
+            List<ProfitHistoryItem> existingHistory = pair.getProfitHistory();
             
             // Проверяем дубликаты по времени (избегаем добавления одинаковых записей)
             boolean shouldAdd = true;
@@ -96,36 +96,36 @@ public class UpdateChangesService {
                 // Если прошло меньше 30 секунд - обновляем последнюю запись вместо добавления новой
                 if (timeDiff < 30000) { // 30 секунд
                     log.debug("📊 Обновляем последнюю точку профита (прошло {} сек): {}% -> {}% для пары {}",
-                            timeDiff / 1000, lastItem.getProfitPercent(), currentProfitPercent, tradingPair.getPairName());
+                            timeDiff / 1000, lastItem.getProfitPercent(), currentProfitPercent, pair.getPairName());
                     
                     lastItem.setTimestamp(currentTimestamp);
                     lastItem.setProfitPercent(currentProfitPercent);
-                    tradingPair.setProfitHistory(existingHistory); // Пересохраняем для обновления JSON
+                    pair.setProfitHistory(existingHistory); // Пересохраняем для обновления JSON
                     shouldAdd = false;
                 }
             }
             
             if (shouldAdd) {
                 log.debug("📊 Добавляем НОВУЮ точку профита в историю: {}% на время {} для пары {} (было {} точек)",
-                        currentProfitPercent, currentTimestamp, tradingPair.getPairName(), existingHistory.size());
+                        currentProfitPercent, currentTimestamp, pair.getPairName(), existingHistory.size());
                 
-                tradingPair.addProfitHistoryPoint(ProfitHistoryItem.builder()
+                pair.addProfitHistoryPoint(ProfitHistoryItem.builder()
                         .timestamp(currentTimestamp)
                         .profitPercent(currentProfitPercent)
                         .build());
                         
-                log.debug("📊 После добавления стало {} точек профита", tradingPair.getProfitHistory().size());
+                log.debug("📊 После добавления стало {} точек профита", pair.getProfitHistory().size());
             }
         }
 
-        tradingPair.setMinutesToMinProfitPercent(changes.getTimeInMinutesSinceEntryToMinProfit());
-        tradingPair.setMinutesToMaxProfitPercent(changes.getTimeInMinutesSinceEntryToMaxProfit());
+        pair.setMinutesToMinProfitPercent(changes.getTimeInMinutesSinceEntryToMinProfit());
+        pair.setMinutesToMaxProfitPercent(changes.getTimeInMinutesSinceEntryToMaxProfit());
 
-        tradingPair.setZScoreChanges(changes.getZScoreChanges());
+        pair.setZScoreChanges(changes.getZScoreChanges());
 
         // Форматирование значений для UI
-        formatProfitValues(tradingPair, changes);
-        formatTimeValues(tradingPair, changes);
+        formatProfitValues(pair, changes);
+        formatTimeValues(pair, changes);
     }
 
     private void formatProfitValues(Pair tradingPair, ChangesData changes) {

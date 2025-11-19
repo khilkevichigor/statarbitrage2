@@ -34,67 +34,67 @@ public class StartNewTradeProcessor {
     public Pair startNewTrade(StartNewTradeRequest request) {
         startNewTradeValidationService.validateRequest(request);
 
-        final Pair tradingPair = request.getTradingPair();
+        final Pair pair = request.getTradingPair();
         final Settings settings = settingsService.getSettings();
 
         log.info("");
-        log.info("🚀 Начинаем новый трейд для пары {} tradingPairId={}...", tradingPair.getPairName(), tradingPair.getId());
+        log.info("🚀 Начинаем новый трейд для пары {} Id={}...", pair.getPairName(), pair.getId());
 
         // 1. Предварительная валидация
-        Optional<Pair> preValidationError = preValidate(tradingPair, settings);
+        Optional<Pair> preValidationError = preValidate(pair, settings);
         if (preValidationError.isPresent()) {
             return preValidationError.get();
         }
 
         // 2. Получаем и проверяем ZScore данные
-        Optional<ZScoreData> maybeZScoreData = updateZScoreDataForExistingPair(tradingPair, settings);
+        Optional<ZScoreData> maybeZScoreData = updateZScoreDataForExistingPair(pair, settings);
         if (maybeZScoreData.isEmpty()) {
-            return handleTradeError(tradingPair, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
+            return handleTradeError(pair, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
         }
 
         final ZScoreData zScoreData = maybeZScoreData.get();
-        pairService.updateZScoreDataCurrent(tradingPair, zScoreData);
+        pairService.updateZScoreDataCurrent(pair, zScoreData);
 
         // 3. Валидация тикеров и автотрейдинга
-        if (!startNewTradeValidationService.validateTickers(tradingPair, zScoreData)) {
-            return handleTradeError(tradingPair, StartTradeErrorType.TICKERS_SWITCHED);
+        if (!startNewTradeValidationService.validateTickers(pair, zScoreData)) {
+            return handleTradeError(pair, StartTradeErrorType.TICKERS_SWITCHED);
         }
-        if (!startNewTradeValidationService.validateAutoTrading(tradingPair, request.isCheckAutoTrading())) {
-            return handleTradeError(tradingPair, StartTradeErrorType.AUTO_TRADING_DISABLED);
+        if (!startNewTradeValidationService.validateAutoTrading(pair, request.isCheckAutoTrading())) {
+            return handleTradeError(pair, StartTradeErrorType.AUTO_TRADING_DISABLED);
         }
 
         // 4. Проверка фильтра снижения zScore
         if (!startNewTradeValidationService.validateZScoreDeclineFilter(zScoreData, settings)) {
-            log.warn("⚠️ Фильтр снижения zScore: условие не выполнено для пары {}", tradingPair.getPairName());
-            return handleTradeError(tradingPair, StartTradeErrorType.ZSCORE_DECLINE_FILTER_FAILED);
+            log.warn("⚠️ Фильтр снижения zScore: условие не выполнено для пары {}", pair.getPairName());
+            return handleTradeError(pair, StartTradeErrorType.ZSCORE_DECLINE_FILTER_FAILED);
         }
 
         logTradeInfo(zScoreData);
 
         // 5. Проверка баланса
-        if (!startNewTradeValidationService.validateBalance(tradingPair, settings)) {
-            return handleTradeError(tradingPair, StartTradeErrorType.INSUFFICIENT_FUNDS);
+        if (!startNewTradeValidationService.validateBalance(pair, settings)) {
+            return handleTradeError(pair, StartTradeErrorType.INSUFFICIENT_FUNDS);
         }
 
         // 6. Открытие позиции
-        return openTradePosition(tradingPair, zScoreData, settings);
+        return openTradePosition(pair, zScoreData, settings);
     }
 
-    private Optional<Pair> preValidate(Pair tradingPair, Settings settings) {
-        if (startNewTradeValidationService.isLastZLessThenMinZ(tradingPair, settings)) {
-            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", tradingPair.getPairName());
-            return Optional.of(handleTradeError(tradingPair, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM));
+    private Optional<Pair> preValidate(Pair pair, Settings settings) {
+        if (startNewTradeValidationService.isLastZLessThenMinZ(pair, settings)) {
+            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", pair.getPairName());
+            return Optional.of(handleTradeError(pair, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM));
         }
         return Optional.empty();
     }
 
-    private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair tradingPair, Settings settings) {
+    private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair pair, Settings settings) {
         // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
         ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
                 .timeframe(settings.getTimeframe())
                 .candleLimit((int) settings.getCandleLimit())
                 .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
-                .tickers(List.of(tradingPair.getLongTicker(), tradingPair.getShortTicker()))
+                .tickers(List.of(pair.getLongTicker(), pair.getShortTicker()))
                 .period(settings.calculateCurrentPeriod())
                 .untilDate(StringUtils.getCurrentDateTimeWithZ())
                 .excludeTickers(null)
@@ -106,7 +106,7 @@ public class StartNewTradeProcessor {
                 .build();
 
         Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
-        return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(tradingPair, settings, candlesMap);
+        return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(pair, settings, candlesMap);
     }
 
     private void logTradeInfo(ZScoreData zScoreData) {
@@ -115,47 +115,47 @@ public class StartNewTradeProcessor {
                 zScoreData.getJohansenCointPValue(), zScoreData.getAvgAdfPvalue(), zScoreData.getLatestZScore(), zScoreData.getPearsonCorr()));
     }
 
-    private Pair openTradePosition(Pair tradingPair, ZScoreData zScoreData, Settings settings) {
-        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(tradingPair, settings);
+    private Pair openTradePosition(Pair pair, ZScoreData zScoreData, Settings settings) {
+        ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pair, settings);
 
         if (openResult == null || !openResult.isSuccess()) {
-            log.debug("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", tradingPair.getPairName());
-            return handleTradeError(tradingPair, StartTradeErrorType.TRADE_OPEN_FAILED);
+            log.debug("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pair.getPairName());
+            return handleTradeError(pair, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        log.debug("✅ Успешно открыта арбитражная пара: {}", tradingPair.getPairName());
+        log.debug("✅ Успешно открыта арбитражная пара: {}", pair.getPairName());
 
-        tradingPair.setStatus(TradeStatus.TRADING);
+        pair.setStatus(TradeStatus.TRADING);
         
         // Переводим пару в статус активной торговли
-        tradingPair.setType(PairType.IN_TRADING);
+        pair.setType(PairType.IN_TRADING);
         
         // Сохраняем скор при входе в торговлю, если он еще не установлен
-        if (tradingPair.getTotalScoreEntry() == null && tradingPair.getTotalScore() != null) {
-            tradingPair.setTotalScoreEntry(tradingPair.getTotalScore());
+        if (pair.getTotalScoreEntry() == null && pair.getTotalScore() != null) {
+            pair.setTotalScoreEntry(pair.getTotalScore());
             log.debug("📊 Установлен скор при входе: {} для пары {}", 
-                     tradingPair.getTotalScore(), tradingPair.getPairName());
+                     pair.getTotalScore(), pair.getPairName());
         }
 
-        tradingPair.setPortfolioBeforeTradeUSDT(openResult.getPortfolioBalanceBeforeTradeUSDT()); // баланс ДО
+        pair.setPortfolioBeforeTradeUSDT(openResult.getPortfolioBalanceBeforeTradeUSDT()); // баланс ДО
 
         TradeResult longTrade = openResult.getLongTradeResult();
         TradeResult shortTrade = openResult.getShortTradeResult();
 
-        pairService.addEntryPoints(tradingPair, zScoreData, longTrade, shortTrade);
-        pairService.addChanges(tradingPair);
-        pairService.save(tradingPair);
+        pairService.addEntryPoints(pair, zScoreData, longTrade, shortTrade);
+        pairService.addChanges(pair);
+        pairService.save(pair);
 
-        tradeHistoryService.updateTradeLog(tradingPair, settings);
+        tradeHistoryService.updateTradeLog(pair, settings);
 
-        return tradingPair;
+        return pair;
     }
 
-    private Pair handleTradeError(Pair tradingPair, StartTradeErrorType errorType) {
-        log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), tradingPair.getPairName());
-        tradingPair.setStatus(TradeStatus.ERROR);
-        tradingPair.setErrorDescription(errorType.getDescription());
-        pairService.save(tradingPair);
-        return tradingPair;
+    private Pair handleTradeError(Pair pair, StartTradeErrorType errorType) {
+        log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), pair.getPairName());
+        pair.setStatus(TradeStatus.ERROR);
+        pair.setErrorDescription(errorType.getDescription());
+        pairService.save(pair);
+        return pair;
     }
 }

@@ -392,13 +392,13 @@ public class PairService {
         return pair;
     }
 
-    public void updateZScoreDataCurrent(Pair tradingPair, ZScoreData zScoreData) {
-        updateZScoreDataCurrentService.updateCurrent(tradingPair, zScoreData);
+    public void updateZScoreDataCurrent(Pair pair, ZScoreData zScoreData) {
+        updateZScoreDataCurrentService.updateCurrent(pair, zScoreData);
     }
 
-    public void save(Pair tradingPair) {
-        tradingPair.setUpdatedTime(LocalDateTime.now()); //перед сохранением обновляем время
-        pairRepository.save(tradingPair);
+    public void save(Pair pair) {
+        pair.setUpdatedTime(LocalDateTime.now()); //перед сохранением обновляем время
+        pairRepository.save(pair);
     }
 
     public void saveAll(List<Pair> tradingPairList) {
@@ -466,13 +466,13 @@ public class PairService {
         return calculateUnrealizedProfitTotalService.getUnrealizedProfitUSDTTotal();
     }
 
-    public void addEntryPoints(Pair tradingPair, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
-        entryPointService.addEntryPoints(tradingPair, zScoreData, openLongTradeResult, openShortTradeResult);
+    public void addEntryPoints(Pair pair, ZScoreData zScoreData, TradeResult openLongTradeResult, TradeResult openShortTradeResult) {
+        entryPointService.addEntryPoints(pair, zScoreData, openLongTradeResult, openShortTradeResult);
     }
 
-    public void addChanges(Pair tradingPair) {
-        ChangesData changes = calculateChangesServiceImpl.getChanges(tradingPair);
-        updateChangesService.update(tradingPair, changes);
+    public void addChanges(Pair pair) {
+        ChangesData changes = calculateChangesServiceImpl.getChanges(pair);
+        updateChangesService.update(pair, changes);
     }
 
     public void updatePortfolioBalanceBeforeTradeUSDT(Pair tradingPair) {

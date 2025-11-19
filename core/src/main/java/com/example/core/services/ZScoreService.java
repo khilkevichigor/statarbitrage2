@@ -194,7 +194,7 @@ public class ZScoreService {
         return rawZScoreDataList;
     }
 
-    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair tradingPair, Settings settings, Map<String, List<Candle>> candlesMap) {
+    public Optional<ZScoreData> updateZScoreDataForExistingPairBeforeNewTrade(Pair pair, Settings settings, Map<String, List<Candle>> candlesMap) {
         ZScoreData zScoreData = pythonAnalysisService.calculateZScoreData(settings, candlesMap);
 
         if (zScoreData == null) {
@@ -207,12 +207,12 @@ public class ZScoreService {
 
         filterZScoreDataForExistingPairBeforeNewTradeService.filter(zScoreDataSingletonList, settings);
 
-        log.debug("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", tradingPair.getPairName());
+        log.debug("🔄 Обновление данных для уже отобранной пары {} БЕЗ повторной фильтрации (ИСПРАВЛЕНО)", pair.getPairName());
 
         // Для информации: рассчитываем скор но не фильтруем
         if (!zScoreDataSingletonList.isEmpty()) {
             // Не используем результат, только для логов
-            log.debug("📊 Информационно: пара {} обновлена с детальными данными", tradingPair.getPairName());
+            log.debug("📊 Информационно: пара {} обновлена с детальными данными", pair.getPairName());
         }
 
         return zScoreDataSingletonList.isEmpty() ? Optional.empty() : Optional.of(zScoreDataSingletonList.get(0));

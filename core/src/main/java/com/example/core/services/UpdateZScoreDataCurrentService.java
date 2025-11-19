@@ -14,32 +14,32 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UpdateZScoreDataCurrentService {
-    public void updateCurrent(Pair tradingPair, ZScoreData zScoreData) {
+    public void updateCurrent(Pair pair, ZScoreData zScoreData) {
         if (zScoreData.getZScoreHistory() == null || zScoreData.getZScoreHistory().isEmpty()) {
-            log.error("Z-score history is empty for pair {}", tradingPair.getPairName());
+            log.error("Z-score history is empty for pair {}", pair.getPairName());
             return;
         }
         ZScoreParam latestParam = zScoreData.getZScoreHistory().get(zScoreData.getZScoreHistory().size() - 1);
-        tradingPair.setZScoreCurrent(BigDecimal.valueOf(latestParam.getZscore()));
-        tradingPair.setCorrelationCurrent(BigDecimal.valueOf(latestParam.getCorrelation()));
-        tradingPair.setAdfPvalueCurrent(BigDecimal.valueOf(latestParam.getAdfpvalue()));
-        tradingPair.setPValueCurrent(BigDecimal.valueOf(latestParam.getPvalue()));
-        tradingPair.setMeanCurrent(BigDecimal.valueOf(latestParam.getMean()));
-        tradingPair.setStdCurrent(BigDecimal.valueOf(latestParam.getStd()));
-        tradingPair.setSpreadCurrent(BigDecimal.valueOf(latestParam.getSpread()));
-        tradingPair.setAlphaCurrent(BigDecimal.valueOf(latestParam.getAlpha()));
-        tradingPair.setBetaCurrent(BigDecimal.valueOf(latestParam.getBeta()));
+        pair.setZScoreCurrent(BigDecimal.valueOf(latestParam.getZscore()));
+        pair.setCorrelationCurrent(BigDecimal.valueOf(latestParam.getCorrelation()));
+        pair.setAdfPvalueCurrent(BigDecimal.valueOf(latestParam.getAdfpvalue()));
+        pair.setPValueCurrent(BigDecimal.valueOf(latestParam.getPvalue()));
+        pair.setMeanCurrent(BigDecimal.valueOf(latestParam.getMean()));
+        pair.setStdCurrent(BigDecimal.valueOf(latestParam.getStd()));
+        pair.setSpreadCurrent(BigDecimal.valueOf(latestParam.getSpread()));
+        pair.setAlphaCurrent(BigDecimal.valueOf(latestParam.getAlpha()));
+        pair.setBetaCurrent(BigDecimal.valueOf(latestParam.getBeta()));
 
         // ИСПРАВЛЕНИЕ: Добавляем только новые точки в историю Z-Score, избегая дубликатов
-        List<ZScoreParam> existingHistory = tradingPair.getZScoreHistory();
+        List<ZScoreParam> existingHistory = pair.getZScoreHistory();
         List<ZScoreParam> newHistory = zScoreData.getZScoreHistory();
         
         if (existingHistory.isEmpty()) {
             // Если история пустая, добавляем всю новую историю (для новых пар)
             log.debug("📊 История Z-Score пустая для пары {} - добавляем {} новых точек",
-                    tradingPair.getPairName(), newHistory.size());
+                    pair.getPairName(), newHistory.size());
             for (ZScoreParam param : newHistory) {
-                tradingPair.addZScorePoint(param);
+                pair.addZScorePoint(param);
             }
         } else {
             // Если история есть, добавляем только новые точки
@@ -48,14 +48,14 @@ public class UpdateZScoreDataCurrentService {
             
             for (ZScoreParam param : newHistory) {
                 if (param.getTimestamp() > lastTimestamp) {
-                    tradingPair.addZScorePoint(param);
+                    pair.addZScorePoint(param);
                     addedCount++;
                 }
             }
             
             log.debug("📊 Добавлено {} новых точек Z-Score для пары {} (было: {}, стало: {})",
-                    addedCount, tradingPair.getPairName(), existingHistory.size(), 
-                    tradingPair.getZScoreHistory().size());
+                    addedCount, pair.getPairName(), existingHistory.size(),
+                    pair.getZScoreHistory().size());
         }
     }
 }

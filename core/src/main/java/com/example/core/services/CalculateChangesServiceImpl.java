@@ -28,25 +28,25 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
     private final SettingsService settingsService;
     private final SendEventService sendEventService;
 
-    public ChangesData getChanges(Pair tradingPair) {
-        log.debug("==> getChanges: НАЧАЛО для пары {}", tradingPair.getPairName());
+    public ChangesData getChanges(Pair pair) {
+        log.debug("==> getChanges: НАЧАЛО для пары {}", pair.getPairName());
         try {
 
             log.debug("Запрашиваем информацию о позициях...");
-            Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(tradingPair);
+            Positioninfo positionsInfo = tradingIntegrationServiceImpl.getPositionInfo(pair);
             log.debug("Получена информация о позициях: {}", positionsInfo);
 
             if (positionsInfo == null || positionsInfo.getLongPosition() == null || positionsInfo.getShortPosition() == null) {
-                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", tradingPair.getPairName(), positionsInfo);
+                log.warn("⚠️ Не удалось получить полную информацию о позициях для пары {}. PositionInfo: {}", pair.getPairName(), positionsInfo);
                 return new ChangesData();
             }
 
-            ChangesData result = getFromPositions(tradingPair, positionsInfo);
-            log.debug("<== getChanges: КОНЕЦ для пары {}. Результат: {}", tradingPair.getPairName(), result);
+            ChangesData result = getFromPositions(pair, positionsInfo);
+            log.debug("<== getChanges: КОНЕЦ для пары {}. Результат: {}", pair.getPairName(), result);
             return result;
 
         } catch (Exception e) {
-            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", tradingPair.getPairName(), e.getMessage(), e);
+            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары {}: {}", pair.getPairName(), e.getMessage(), e);
             Settings settings = settingsService.getSettings();
             settings.setAutoTradingEnabled(false);
 
@@ -56,7 +56,7 @@ public class CalculateChangesServiceImpl implements CalculateChangesService {
             sendEventService.sendCoreEvent(new CoreEvent("Ошибка при обновлении changes. Автотрейдинг был отключен.", CoreEvent.Type.MESSAGE_TO_TELEGRAM));
             log.warn("Уведомление в телеграм отправлено.");
 
-            throw new RuntimeException("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары " + tradingPair.getPairName(), e);
+            throw new RuntimeException("❌ КРИТИЧЕСКАЯ ОШИБКА при обновлении данных (getChanges) для пары " + pair.getPairName(), e);
         }
     }
 

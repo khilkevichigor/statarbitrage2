@@ -21,10 +21,10 @@ import java.util.Optional;
 public class TradeHistoryService {
     private final TradeHistoryRepository tradeHistoryRepository;
 
-    public void updateTradeLog(Pair tradingPair, Settings settings) {
-        String longTicker = tradingPair.getLongTicker();
-        String shortTicker = tradingPair.getShortTicker();
-        String pairDataUuid = tradingPair.getUuid().toString();
+    public void updateTradeLog(Pair pair, Settings settings) {
+        String longTicker = pair.getLongTicker();
+        String shortTicker = pair.getShortTicker();
+        String pairDataUuid = pair.getUuid().toString();
 
         // ищем по uuid
         Optional<TradeHistory> optional = tradeHistoryRepository.findLatestByUuid(pairDataUuid);
@@ -36,30 +36,30 @@ public class TradeHistoryService {
         tradeHistory.setPairUuid(pairDataUuid);
 
         // мапим поля
-        tradeHistory.setMinProfitPercent(tradingPair.getMinProfitPercentChanges());
-        tradeHistory.setMinProfitMinutes(tradingPair.getMinutesToMinProfitPercent() + "min");
+        tradeHistory.setMinProfitPercent(pair.getMinProfitPercentChanges());
+        tradeHistory.setMinProfitMinutes(pair.getMinutesToMinProfitPercent() + "min");
 
-        tradeHistory.setMaxProfitPercent(tradingPair.getMaxProfitPercentChanges());
-        tradeHistory.setMaxProfitMinutes(tradingPair.getMinutesToMaxProfitPercent() + "min");
+        tradeHistory.setMaxProfitPercent(pair.getMaxProfitPercentChanges());
+        tradeHistory.setMaxProfitMinutes(pair.getMinutesToMaxProfitPercent() + "min");
 
-        tradeHistory.setCurrentProfitUSDT(tradingPair.getProfitUSDTChanges());
-        tradeHistory.setCurrentProfitPercent(tradingPair.getProfitPercentChanges());
+        tradeHistory.setCurrentProfitUSDT(pair.getProfitUSDTChanges());
+        tradeHistory.setCurrentProfitPercent(pair.getProfitPercentChanges());
 
-        tradeHistory.setMinLongPercent(tradingPair.getMinLong());
-        tradeHistory.setMaxLongPercent(tradingPair.getMaxLong());
-        tradeHistory.setCurrentLongPercent(tradingPair.getLongPercentChanges());
+        tradeHistory.setMinLongPercent(pair.getMinLong());
+        tradeHistory.setMaxLongPercent(pair.getMaxLong());
+        tradeHistory.setCurrentLongPercent(pair.getLongPercentChanges());
 
-        tradeHistory.setMinShortPercent(tradingPair.getMinShort());
-        tradeHistory.setMaxShortPercent(tradingPair.getMaxShort());
-        tradeHistory.setCurrentShortPercent(tradingPair.getShortPercentChanges());
+        tradeHistory.setMinShortPercent(pair.getMinShort());
+        tradeHistory.setMaxShortPercent(pair.getMaxShort());
+        tradeHistory.setCurrentShortPercent(pair.getShortPercentChanges());
 
-        tradeHistory.setMinZ(tradingPair.getMinZ());
-        tradeHistory.setMaxZ(tradingPair.getMaxZ());
-        tradeHistory.setCurrentZ(tradingPair.getZScoreCurrent() != null ? tradingPair.getZScoreCurrent().doubleValue() : 0.0);
+        tradeHistory.setMinZ(pair.getMinZ());
+        tradeHistory.setMaxZ(pair.getMaxZ());
+        tradeHistory.setCurrentZ(pair.getZScoreCurrent() != null ? pair.getZScoreCurrent().doubleValue() : 0.0);
 
-        tradeHistory.setMinCorr(tradingPair.getMinCorr() != null ? tradingPair.getMinCorr() : BigDecimal.ZERO);
-        tradeHistory.setMaxCorr(tradingPair.getMaxCorr() != null ? tradingPair.getMaxCorr() : BigDecimal.ZERO);
-        tradeHistory.setCurrentCorr(tradingPair.getCorrelationCurrent() != null ? tradingPair.getCorrelationCurrent().doubleValue() : 0.0);
+        tradeHistory.setMinCorr(pair.getMinCorr() != null ? pair.getMinCorr() : BigDecimal.ZERO);
+        tradeHistory.setMaxCorr(pair.getMaxCorr() != null ? pair.getMaxCorr() : BigDecimal.ZERO);
+        tradeHistory.setCurrentCorr(pair.getCorrelationCurrent() != null ? pair.getCorrelationCurrent().doubleValue() : 0.0);
 
         tradeHistory.setExitTake(settings.getExitTake());
         tradeHistory.setExitStop(settings.getExitStop());
@@ -67,7 +67,7 @@ public class TradeHistoryService {
         tradeHistory.setExitZMax(settings.getExitZMaxPercent());
         tradeHistory.setExitTimeMinutes(settings.getExitTimeMinutes());
 
-        tradeHistory.setExitReason(tradingPair.getExitReason());
+        tradeHistory.setExitReason(pair.getExitReason());
 
 //        long entryMillis = tradingPair.getEntryTime(); // long, например 1721511983000
 //        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -79,8 +79,8 @@ public class TradeHistoryService {
 //                .format(formatter);
 //
 //        tradeHistory.setEntryTime(formattedEntryTime);
-        tradeHistory.setEntryTime(tradingPair.getEntryTime() != null ? 
-                tradingPair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : 
+        tradeHistory.setEntryTime(pair.getEntryTime() != null ?
+                pair.getEntryTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() :
                 System.currentTimeMillis());
 //        tradeHistory.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         tradeHistory.setTimestamp(System.currentTimeMillis());
