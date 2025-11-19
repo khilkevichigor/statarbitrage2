@@ -8,6 +8,7 @@ import com.example.core.trading.interfaces.TradingProvider;
 import com.example.core.trading.services.TradingIntegrationService;
 import com.example.core.trading.services.TradingProviderFactory;
 import com.example.shared.dto.*;
+import com.example.shared.enums.PairType;
 import com.example.shared.enums.TradeStatus;
 import com.example.shared.events.rabbit.CoreEvent;
 import com.example.shared.models.Pair;
@@ -306,6 +307,10 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара через торговую систему: {}", tradingPair.getPairName());
 
         tradingPair.setStatus(TradeStatus.CLOSED);
+        
+        // Переводим пару в завершенное состояние
+        tradingPair.setType(PairType.COMPLETED);
+        
         tradingPair.setExitReason(ExitReasonType.EXIT_REASON_MANUALLY.name());
         finalizeClosedTrade(tradingPair, settings);
 //        notificationService.sendTelegramClosedPair(tradingPair);
@@ -355,6 +360,10 @@ public class UpdateTradeProcessor {
         log.info("✅ Успешно закрыта арбитражная пара: {}", tradingPair.getPairName());
 
         tradingPair.setStatus(TradeStatus.CLOSED);
+        
+        // Переводим пару в завершенное состояние
+        tradingPair.setType(PairType.COMPLETED);
+        
         tradingPair.setExitReason(exitReason);
         finalizeClosedTrade(tradingPair, settings);
 //        notificationService.sendTelegramClosedPair(tradingPair);

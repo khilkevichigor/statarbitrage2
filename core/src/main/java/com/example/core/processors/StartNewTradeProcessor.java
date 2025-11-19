@@ -3,6 +3,7 @@ package com.example.core.processors;
 import com.example.core.client.CandlesFeignClient;
 import com.example.core.services.*;
 import com.example.core.trading.services.TradingIntegrationService;
+import com.example.shared.enums.PairType;
 import com.example.shared.utils.StringUtils;
 import com.example.shared.dto.*;
 import com.example.shared.enums.TradeStatus;
@@ -125,6 +126,9 @@ public class StartNewTradeProcessor {
         log.debug("✅ Успешно открыта арбитражная пара: {}", tradingPair.getPairName());
 
         tradingPair.setStatus(TradeStatus.TRADING);
+        
+        // Переводим пару в статус активной торговли
+        tradingPair.setType(PairType.IN_TRADING);
         
         // Сохраняем скор при входе в торговлю, если он еще не установлен
         if (tradingPair.getTotalScoreEntry() == null && tradingPair.getTotalScore() != null) {

@@ -172,7 +172,49 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     @Query("SELECT p FROM Pair p WHERE p.type = 'COINTEGRATED' AND p.status = :status ORDER BY p.updatedTime DESC")
     List<Pair> findCointegrationPairsByStatus(@Param("status") TradeStatus status);
 
-    // ======== МЕТОДЫ ДЛЯ ТОРГОВЫХ ПАР (TRADING) ========
+    // ======== МЕТОДЫ ДЛЯ НАЙДЕННЫХ ПАР (FETCHED) ========
+
+    /**
+     * Найти все найденные пары для торговли (FETCHED)
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'FETCHED' ORDER BY p.createdAt DESC")
+    List<Pair> findFetchedPairs();
+
+    /**
+     * Найти найденные пары по статусу
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'FETCHED' AND p.status = :status ORDER BY p.createdAt DESC")
+    List<Pair> findFetchedPairsByStatus(@Param("status") TradeStatus status);
+
+    /**
+     * Найти готовые к торговле пары (FETCHED + SELECTED)
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'FETCHED' AND p.status = 'SELECTED' ORDER BY p.createdAt DESC")
+    List<Pair> findReadyToTradePairs();
+
+    // ======== МЕТОДЫ ДЛЯ АКТИВНО ТОРГУЕМЫХ ПАР (IN_TRADING) ========
+
+    /**
+     * Найти все пары в активной торговле
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'IN_TRADING' ORDER BY p.entryTime DESC")
+    List<Pair> findInTradingPairs();
+
+    /**
+     * Найти пары в активной торговле по статусу
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'IN_TRADING' AND p.status = :status ORDER BY p.updatedTime DESC")
+    List<Pair> findInTradingPairsByStatus(@Param("status") TradeStatus status);
+
+    // ======== МЕТОДЫ ДЛЯ ЗАВЕРШЕННЫХ ПАР (COMPLETED) ========
+
+    /**
+     * Найти все завершенные пары
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'COMPLETED' ORDER BY p.updatedTime DESC")
+    List<Pair> findCompletedPairs();
+
+    // ======== МЕТОДЫ ДЛЯ ТОРГОВЫХ ПАР (TRADING) - УСТАРЕВШИЕ ========
 
     /**
      * Найти все торговые пары

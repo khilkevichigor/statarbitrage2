@@ -77,7 +77,7 @@ public class CreatePairDataService {
 
         // Создаём торговую пару с типом TRADING
         Pair pair = Pair.builder()
-                .type(PairType.TRADING)
+                .type(PairType.FETCHED)
                 .status(TradeStatus.SELECTED)
                 .tickerA(undervalued)  // Long ticker
                 .tickerB(overvalued)   // Short ticker

@@ -338,7 +338,7 @@ public class FetchPairsProcessor {
                             Pair createdPair = createPair(zScoreData, candlesMap);
                             if (createdPair != null) {
                                 // Обогащаем данными из стабильных пар
-                                enrichSinglePairWithStableData(pair, pairs);
+                                enrichSinglePairWithStableData(createdPair, pairs);
                                 updatedPairs.add(createdPair);
                             } else {
                                 log.warn("⚠️ Пара {}/{} не создана", tickerA, tickerB);

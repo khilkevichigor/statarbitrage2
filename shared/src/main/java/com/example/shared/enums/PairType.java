@@ -28,11 +28,34 @@ public enum PairType {
     COINTEGRATED("Коинтегрированная пара", "Пара прошедшая анализ коинтеграции"),
     
     /**
-     * Активно торгуемая пара (бывший TradingPair)
+     * Найденная пара для торговли
+     * - Пара получила положительный Z-Score
+     * - Готова к проверке фильтрами StartNewTradeProcessor
+     * - Позиции еще не открыты
+     */
+    FETCHED("Найденная пара", "Пара найдена для торговли, позиции не открыты"),
+    
+    /**
+     * Активно торгуемая пара
      * - Пара с открытыми позициями
      * - Содержит полную торговую статистику
      * - Отслеживает P&L, изменения цен, события усреднения
      */
+    IN_TRADING("Торгуемая пара", "Активно торгуемая пара с открытыми позициями"),
+    
+    /**
+     * Завершенная торговля
+     * - Позиции закрыты
+     * - Торговля завершена (успешно или по стоп-лоссу)
+     * - Содержит финальную статистику
+     */
+    COMPLETED("Завершенная пара", "Торговля завершена, позиции закрыты"),
+    
+    /**
+     * @deprecated Использовать IN_TRADING
+     * Активно торгуемая пара (бывший TradingPair)
+     */
+    @Deprecated
     TRADING("Торгуемая пара", "Активно торгуемая пара с открытыми позициями");
     
     private final String displayName;
@@ -71,29 +94,20 @@ public enum PairType {
      * Проверить является ли тип торгуемой парой
      */
     public boolean isTrading() {
-        return this == TRADING;
+        return this == IN_TRADING || this == TRADING;
     }
     
     /**
-     * Получить список типов доступных для конверсии из данного типа
+     * Проверить является ли тип найденной парой
      */
-    public PairType[] getConvertibleTypes() {
-        return switch (this) {
-            case STABLE -> new PairType[]{COINTEGRATED, TRADING};
-            case COINTEGRATED -> new PairType[]{TRADING};
-            case TRADING -> new PairType[]{COINTEGRATED}; // При закрытии позиций
-        };
+    public boolean isFetched() {
+        return this == FETCHED;
     }
     
     /**
-     * Проверить может ли данный тип быть конвертирован в целевой тип
+     * Проверить является ли тип завершенной парой
      */
-    public boolean canConvertTo(PairType targetType) {
-        for (PairType convertible : getConvertibleTypes()) {
-            if (convertible == targetType) {
-                return true;
-            }
-        }
-        return false;
+    public boolean isCompleted() {
+        return this == COMPLETED;
     }
 }
