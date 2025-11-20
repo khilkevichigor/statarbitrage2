@@ -199,8 +199,15 @@ public class StartNewTradeProcessor {
         zScoreData.setAvgAdfPvalue(currentParam.getAdfpvalue());
         zScoreData.setPearsonCorr(currentParam.getCorrelation());
 
-        // Добавляем текущий параметр в историю
-        zScoreData.setZScoreHistory(List.of(currentParam)); //todo нужна вся история из pair.getZScoreHistory() иначе не пройдем фильтр на снижение zScore
+        // Используем всю историю Z-Score из пары для прохождения фильтра снижения
+        if (pair.getZScoreHistory() != null && !pair.getZScoreHistory().isEmpty()) {
+            zScoreData.setZScoreHistory(pair.getZScoreHistory());
+            log.debug("📊 Восстановлена история Z-Score: {} точек", pair.getZScoreHistory().size());
+        } else {
+            // Если истории нет, создаем минимальную для совместимости
+            zScoreData.setZScoreHistory(List.of(currentParam));
+            log.debug("📊 История Z-Score отсутствует, создана точка для совместимости");
+        }
 
         // Устанавливаем коинтеграцию как true (поскольку пара уже создана)
         zScoreData.setJohansenIsCoint(true);
