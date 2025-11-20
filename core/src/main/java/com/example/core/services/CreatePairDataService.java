@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -250,7 +251,7 @@ public class CreatePairDataService {
                             .std(param.getStd())         // Стандартное отклонение остается тем же
                             .timestamp(param.getTimestamp())  // Временная метка остается той же
                             .build())
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
             flippedZScoreData.setZScoreHistory(flippedHistory);
             log.debug("🔄 Инвертирована история Z-Score: {} записей обработано", flippedHistory.size());
         } else {

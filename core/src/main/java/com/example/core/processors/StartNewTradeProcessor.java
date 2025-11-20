@@ -200,7 +200,7 @@ public class StartNewTradeProcessor {
         zScoreData.setPearsonCorr(currentParam.getCorrelation());
 
         // Добавляем текущий параметр в историю
-        zScoreData.setZScoreHistory(java.util.List.of(currentParam));
+        zScoreData.setZScoreHistory(List.of(currentParam)); //todo нужна вся история из pair.getZScoreHistory() иначе не пройдем фильтр на снижение zScore
 
         // Устанавливаем коинтеграцию как true (поскольку пара уже создана)
         zScoreData.setJohansenIsCoint(true);
