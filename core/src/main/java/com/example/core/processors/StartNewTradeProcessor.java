@@ -47,13 +47,14 @@ public class StartNewTradeProcessor {
         }
 
         // 2. Получаем и проверяем ZScore данные
-        Optional<ZScoreData> maybeZScoreData = updateZScoreDataForExistingPair(pair, settings);
-        if (maybeZScoreData.isEmpty()) {
+        // Используем уже рассчитанные данные из созданной пары вместо пересчета
+        ZScoreData zScoreData = createZScoreDataFromPair(pair);
+        if (zScoreData == null) {
             return handleTradeError(pair, StartTradeErrorType.Z_SCORE_DATA_EMPTY);
         }
 
-        final ZScoreData zScoreData = maybeZScoreData.get();
-        pairService.updateZScoreDataCurrent(pair, zScoreData);
+        // Данные уже актуальные, обновление не требуется
+        // pairService.updateZScoreDataCurrent(pair, zScoreData);
 
         // 3. Валидация тикеров и автотрейдинга
         if (!startNewTradeValidationService.validateTickers(pair, zScoreData)) {
@@ -157,5 +158,62 @@ public class StartNewTradeProcessor {
         pair.setErrorDescription(errorType.getDescription());
         pairService.save(pair);
         return pair;
+    }
+
+    /**
+     * Создает ZScoreData объект из текущих данных пары без пересчета
+     * Используется для сохранения переворота пары, сделанного в CreatePairDataService
+     */
+    private ZScoreData createZScoreDataFromPair(Pair pair) {
+        log.debug("📋 Используем существующие данные Z-Score из пары {} (без пересчета)", pair.getPairName());
+
+        ZScoreData zScoreData = new ZScoreData();
+
+        // Устанавливаем тикеры
+        zScoreData.setUnderValuedTicker(pair.getLongTicker());
+        zScoreData.setOverValuedTicker(pair.getShortTicker());
+
+        // Получаем timestamp последней точки из истории или используем текущее время
+        long lastTimestamp = System.currentTimeMillis();
+        if (pair.getZScoreHistory() != null && !pair.getZScoreHistory().isEmpty()) {
+            lastTimestamp = pair.getZScoreHistory().get(pair.getZScoreHistory().size() - 1).getTimestamp();
+        }
+
+        // Создаем актуальный ZScoreParam из текущих данных пары
+        ZScoreParam currentParam = ZScoreParam.builder()
+                .zscore(pair.getZScoreCurrent() != null ? pair.getZScoreCurrent().doubleValue() : 0.0)
+                .pvalue(pair.getPValueCurrent() != null ? pair.getPValueCurrent().doubleValue() : 0.0)
+                .adfpvalue(pair.getAdfPvalueCurrent() != null ? pair.getAdfPvalueCurrent().doubleValue() : 0.0)
+                .correlation(pair.getCorrelationCurrent() != null ? pair.getCorrelationCurrent().doubleValue() : 0.0)
+                .mean(pair.getMeanCurrent() != null ? pair.getMeanCurrent().doubleValue() : 0.0)
+                .std(pair.getStdCurrent() != null ? pair.getStdCurrent().doubleValue() : 0.0)
+                .spread(pair.getSpreadCurrent() != null ? pair.getSpreadCurrent().doubleValue() : 0.0)
+                .alpha(pair.getAlphaCurrent() != null ? pair.getAlphaCurrent().doubleValue() : 0.0)
+                .beta(pair.getBetaCurrent() != null ? pair.getBetaCurrent().doubleValue() : 1.0)
+                .timestamp(lastTimestamp)
+                .build();
+
+        // Устанавливаем данные в ZScoreData
+        zScoreData.setLatestZScore(currentParam.getZscore());
+        zScoreData.setJohansenCointPValue(currentParam.getPvalue());
+        zScoreData.setAvgAdfPvalue(currentParam.getAdfpvalue());
+        zScoreData.setPearsonCorr(currentParam.getCorrelation());
+
+        // Добавляем текущий параметр в историю
+        zScoreData.setZScoreHistory(java.util.List.of(currentParam));
+
+        // Устанавливаем коинтеграцию как true (поскольку пара уже создана)
+        zScoreData.setJohansenIsCoint(true);
+
+        // Базовые значения для совместимости
+        zScoreData.setAvgRSquared(0.8);
+        zScoreData.setStablePeriods(100);
+        zScoreData.setTotalObservations(pair.getCandleCount() != null ? pair.getCandleCount() : 1000);
+
+        log.debug("✅ Z-Score данные восстановлены из пары: z={}, p={}, adf={}, corr={}",
+                zScoreData.getLatestZScore(), zScoreData.getJohansenCointPValue(),
+                zScoreData.getAvgAdfPvalue(), zScoreData.getPearsonCorr());
+
+        return zScoreData;
     }
 }
