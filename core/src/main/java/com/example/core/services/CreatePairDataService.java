@@ -216,8 +216,8 @@ public class CreatePairDataService {
         }
 
         // Z-Score отрицательный, создаем перевернутую копию
-        log.info("🔄 Переворачиваем пару для получения положительного Z-Score: {} → {}", 
-                String.format("%.4f", currentZScore), String.format("%.4f", -currentZScore));
+        log.info("🔄 Переворачиваем пару для получения положительного Z-Score: {} → {} для {}/{}",
+                String.format("%.4f", currentZScore), String.format("%.4f", -currentZScore), originalZScoreData.getUnderValuedTicker(), originalZScoreData.getOverValuedTicker());
         
         ZScoreData flippedZScoreData = new ZScoreData();
         
