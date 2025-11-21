@@ -1565,7 +1565,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             fields.put("Плечо", getJsonStringValue(data, "lever") + "x");
 
             log.info("🔍 === РЕАЛЬНЫЕ ДАННЫЕ ПОЗИЦИИ OKX ===");
-            fields.forEach((label, value) -> log.debug("🔍 {}: {}", label, value));
+            fields.forEach((label, value) -> log.info("🔍 {}: {}", label, value));
             log.info("🔍 === КОНЕЦ РЕАЛЬНЫХ ДАННЫХ ===");
 
         } catch (Exception e) {
