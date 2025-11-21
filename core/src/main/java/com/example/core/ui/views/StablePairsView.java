@@ -454,7 +454,7 @@ public class StablePairsView extends VerticalLayout {
 
     private Grid<Pair> createFoundPairsGrid() {
         Grid<Pair> grid = new Grid<>(Pair.class, false);
-        grid.setHeight("300px");
+        grid.setHeight("500px");
         grid.addThemeVariants(com.vaadin.flow.component.grid.GridVariant.LUMO_ROW_STRIPES);
 
         // Основные колонки
@@ -498,7 +498,7 @@ public class StablePairsView extends VerticalLayout {
 
     private Grid<Pair> createMonitoringPairsGrid() {
         Grid<Pair> grid = new Grid<>(Pair.class, false);
-        grid.setHeight("200px");
+        grid.setHeight("500px");
         grid.addThemeVariants(com.vaadin.flow.component.grid.GridVariant.LUMO_ROW_STRIPES);
 
         // Основные колонки

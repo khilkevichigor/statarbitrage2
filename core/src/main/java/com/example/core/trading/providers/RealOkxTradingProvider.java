@@ -212,7 +212,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
             // 🧩 Создание позиции с реальным positionId
             Position position = createPositionFromTradeResult(tradingPairId, orderResult, positionType, amount, leverage, realPositionId);
-            log.debug("Сохраняем Position (openPosition() - position) {}", position);
+            log.info("Сохраняем Position (openPosition() - position) {}", position);
             position = positionRepository.save(position);
             okxPortfolioManager.onPositionOpened(position);
             log.info("Позиция создана и сохранена {}", position);
@@ -1502,7 +1502,7 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Получение реальной информации о позиции с OKX API по символу
      */
     private JsonObject getRealPositionFromOkx(String symbol, TradeResult orderResult) {
-        log.debug("==> getRealPositionFromOkx: Запрос реальной позиции для {}", symbol);
+        log.info("==> getRealPositionFromOkx: Запрос реальной позиции для {}", symbol);
 
         if (!geolocationService.isGeolocationAllowed()) {
             log.error("❌ БЛОКИРОВКА: Запрос позиции заблокирован из-за геолокации!");
@@ -1535,7 +1535,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     JsonObject orderDetails = getOrderJson(orderResult.getExternalOrderId());
                     if (orderDetails != null && orderDetails.has("tradeId")) {
                         orderTradeId = orderDetails.get("tradeId").getAsString();
-                        log.debug("📋 Получен tradeId из ордера {}: {}", orderResult.getExternalOrderId(), orderTradeId);
+                        log.info("📋 Получен tradeId из ордера {}: {}", orderResult.getExternalOrderId(), orderTradeId);
                     }
                 } catch (Exception e) {
                     log.warn("⚠️ Не удалось получить tradeId из ордера {}: {}", orderResult.getExternalOrderId(), e.getMessage());
@@ -1550,7 +1550,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                         String positionTradeId = position.get("tradeId").getAsString();
                         if (orderTradeId.equals(positionTradeId)) {
                             targetPosition = position;
-                            log.debug("✅ Найдена позиция по tradeId {}: {}", orderTradeId, position.get("posId").getAsString());
+                            log.info("✅ Найдена позиция по tradeId {}: {}", orderTradeId, position.get("posId").getAsString());
                             break;
                         }
                     }
@@ -1579,7 +1579,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 targetPosition = data.get(0).getAsJsonObject();
             }
             
-            log.debug("✅ Получена реальная позиция для {}: {}", symbol, targetPosition);
+            log.info("✅ Получена реальная позиция для {}: {}", symbol, targetPosition);
             return targetPosition;
 
         } catch (Exception e) {
@@ -1592,7 +1592,7 @@ public class RealOkxTradingProvider implements TradingProvider {
      * Получение JSON деталей ордера
      */
     private JsonObject getOrderJson(String orderId) {
-        log.debug("==> getOrderJson: Получение JSON деталей ордера {}", orderId);
+        log.info("==> getOrderJson: Получение JSON деталей ордера {}", orderId);
         
         if (!geolocationService.isGeolocationAllowed()) {
             log.error("❌ БЛОКИРОВКА: Получение деталей ордера {} заблокировано из-за геолокации!", orderId);
@@ -1616,7 +1616,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
             
             JsonObject orderData = data.get(0).getAsJsonObject();
-            log.debug("✅ Получены JSON детали ордера {}: {}", orderId, orderData);
+            log.info("✅ Получены JSON детали ордера {}: {}", orderId, orderData);
             return orderData;
             
         } catch (Exception e) {
