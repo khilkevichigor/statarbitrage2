@@ -41,9 +41,14 @@ public class StartNewTradeProcessor {
         log.info("🚀 Начинаем новый трейд для пары {} Id={}...", pair.getPairName(), pair.getId());
 
         // 1. Предварительная валидация
-        Optional<Pair> preValidationError = preValidate(pair, settings);
-        if (preValidationError.isPresent()) {
-            return preValidationError.get();
+//        Optional<Pair> preValidationError = preValidate(pair, settings);
+//        if (preValidationError.isPresent()) {
+//            return preValidationError.get();
+//        }
+
+        if (startNewTradeValidationService.isLastZLessThenMinZ(pair, settings)) {
+            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", pair.getPairName());
+            return handleTradeError(pair, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM);
         }
 
         // 2. Получаем и проверяем ZScore данные
@@ -70,45 +75,45 @@ public class StartNewTradeProcessor {
             return handleTradeError(pair, StartTradeErrorType.ZSCORE_DECLINE_FILTER_FAILED);
         }
 
-        logTradeInfo(zScoreData);
-
         // 5. Проверка баланса
         if (!startNewTradeValidationService.validateBalance(pair, settings)) {
             return handleTradeError(pair, StartTradeErrorType.INSUFFICIENT_FUNDS);
         }
 
+        logTradeInfo(zScoreData);
+
         // 6. Открытие позиции
         return openTradePosition(pair, zScoreData, settings);
     }
 
-    private Optional<Pair> preValidate(Pair pair, Settings settings) {
-        if (startNewTradeValidationService.isLastZLessThenMinZ(pair, settings)) {
-            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", pair.getPairName());
-            return Optional.of(handleTradeError(pair, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM));
-        }
-        return Optional.empty();
-    }
+//    private Optional<Pair> preValidate(Pair pair, Settings settings) {
+//        if (startNewTradeValidationService.isLastZLessThenMinZ(pair, settings)) {
+//            log.warn("⚠️ Z-скор текущий < Z-скор Min для пары {}", pair.getPairName());
+//            return Optional.of(handleTradeError(pair, StartTradeErrorType.Z_SCORE_BELOW_MINIMUM));
+//        }
+//        return Optional.empty();
+//    }
 
-    private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair pair, Settings settings) {
-        // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
-        ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
-                .timeframe(settings.getTimeframe())
-                .candleLimit((int) settings.getCandleLimit())
-                .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
-                .tickers(List.of(pair.getLongTicker(), pair.getShortTicker()))
-                .period(settings.calculateCurrentPeriod())
-                .untilDate(StringUtils.getCurrentDateTimeWithZ())
-                .excludeTickers(null)
-                .exchange("OKX")
-                .useCache(true)
-                .useMinVolumeFilter(true)
-                .minimumLotBlacklist(null)
-                .sorted(false)
-                .build();
-
-        Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
-        return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(pair, settings, candlesMap);
-    }
+//    private Optional<ZScoreData> updateZScoreDataForExistingPair(Pair pair, Settings settings) {
+//        // Создаем ExtendedCandlesRequest для получения свечей через пагинацию
+//        ExtendedCandlesRequest request = ExtendedCandlesRequest.builder()
+//                .timeframe(settings.getTimeframe())
+//                .candleLimit((int) settings.getCandleLimit())
+//                .minVolume(settings.getMinVolume() != 0.0 ? settings.getMinVolume() * 1_000_000 : 50_000_000)
+//                .tickers(List.of(pair.getLongTicker(), pair.getShortTicker()))
+//                .period(settings.calculateCurrentPeriod())
+//                .untilDate(StringUtils.getCurrentDateTimeWithZ())
+//                .excludeTickers(null)
+//                .exchange("OKX")
+//                .useCache(true)
+//                .useMinVolumeFilter(true)
+//                .minimumLotBlacklist(null)
+//                .sorted(false)
+//                .build();
+//
+//        Map<String, List<Candle>> candlesMap = candlesFeignClient.getValidatedCacheExtended(request);
+//        return zScoreService.updateZScoreDataForExistingPairBeforeNewTrade(pair, settings, candlesMap);
+//    }
 
     private void logTradeInfo(ZScoreData zScoreData) {
         log.debug(String.format("Наш новый трейд: underValued=%s overValued=%s | p=%.5f | adf=%.5f | z=%.2f | corr=%.2f",
@@ -154,6 +159,14 @@ public class StartNewTradeProcessor {
 
     private Pair handleTradeError(Pair pair, StartTradeErrorType errorType) {
         log.debug("❌ Ошибка: {} для пары {}", errorType.getDescription(), pair.getPairName());
+        
+        // Если пара типа FETCHED, удаляем её вместо сохранения с ошибкой
+        if (PairType.FETCHED.equals(pair.getType())) {
+            log.info("🗑️ Удаляем FETCHED пару {} из-за ошибки: {}", pair.getPairName(), errorType.getDescription());
+            pairService.delete(pair);
+            return pair; // Возвращаем пару для логирования, но она уже удалена
+        }
+        
         pair.setStatus(TradeStatus.ERROR);
         pair.setErrorDescription(errorType.getDescription());
         pairService.save(pair);

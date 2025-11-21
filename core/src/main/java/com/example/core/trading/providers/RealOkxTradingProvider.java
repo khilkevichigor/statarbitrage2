@@ -1525,58 +1525,28 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return null;
             }
 
-            // Находим позицию по tradeId из нашего ордера (самый точный способ)
+            log.info("Все позиции для {}: {}", symbol, data);
+
+            // Ищем самую свежую позицию по времени (самый надёжный способ)
             JsonObject targetPosition = null;
-            String orderTradeId = null;
+            long latestTime = 0;
             
-            // Пытаемся получить tradeId из ордера
-            if (orderResult != null && orderResult.getExternalOrderId() != null) {
-                try {
-                    JsonObject orderDetails = getOrderJson(orderResult.getExternalOrderId());
-                    if (orderDetails != null && orderDetails.has("tradeId")) {
-                        orderTradeId = orderDetails.get("tradeId").getAsString();
-                        log.info("📋 Получен tradeId из ордера {}: {}", orderResult.getExternalOrderId(), orderTradeId);
-                    }
-                } catch (Exception e) {
-                    log.warn("⚠️ Не удалось получить tradeId из ордера {}: {}", orderResult.getExternalOrderId(), e.getMessage());
-                }
-            }
-            
-            // Ищем позицию по tradeId
-            if (orderTradeId != null) {
-                for (int i = 0; i < data.size(); i++) {
-                    JsonObject position = data.get(i).getAsJsonObject();
-                    if (position.has("tradeId")) {
-                        String positionTradeId = position.get("tradeId").getAsString();
-                        if (orderTradeId.equals(positionTradeId)) {
-                            targetPosition = position;
-                            log.info("✅ Найдена позиция по tradeId {}: {}", orderTradeId, position.get("posId").getAsString());
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            // Fallback: ищем самую свежую позицию по времени
-            if (targetPosition == null) {
-                log.warn("⚠️ Позиция по tradeId не найдена, ищем по времени для {}", symbol);
-                long latestTime = 0;
-                
-                for (int i = 0; i < data.size(); i++) {
-                    JsonObject position = data.get(i).getAsJsonObject();
-                    if (position.has("uTime")) {
-                        long positionTime = position.get("uTime").getAsLong();
-                        if (positionTime > latestTime) {
-                            latestTime = positionTime;
-                            targetPosition = position;
-                        }
+            for (int i = 0; i < data.size(); i++) {
+                JsonObject position = data.get(i).getAsJsonObject();
+                if (position.has("uTime")) {
+                    long positionTime = position.get("uTime").getAsLong();
+                    if (positionTime > latestTime) {
+                        latestTime = positionTime;
+                        targetPosition = position;
                     }
                 }
             }
             
             if (targetPosition == null) {
-                log.warn("⚠️ Не найдена подходящая позиция для {}, используем первую", symbol);
+                log.warn("⚠️ Не найдена позиция с временем для {}, используем первую", symbol);
                 targetPosition = data.get(0).getAsJsonObject();
+            } else {
+                log.info("✅ Найдена самая свежая позиция для {}: {}", symbol, targetPosition.get("posId").getAsString());
             }
             
             log.info("✅ Получена реальная позиция для {}: {}", symbol, targetPosition);

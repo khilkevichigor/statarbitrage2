@@ -388,6 +388,7 @@ public class PairService {
 
     public Pair createPair(ZScoreData zScoreData, Map<String, List<Candle>> candlesMap) {
         Pair pair = createPairDataService.buildPairData(zScoreData, candlesMap);
+        //todo здесь можно на всякий получать пару FETCHED по pairName и удалять ее если она есть, ну или обновлять
         save(pair);
         return pair;
     }
