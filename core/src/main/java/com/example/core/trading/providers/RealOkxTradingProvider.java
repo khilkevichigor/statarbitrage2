@@ -82,6 +82,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     private static final String PROD_BASE_URL = "https://www.okx.com";
     private static final String SANDBOX_BASE_URL = "https://www.okx.com";
     private static final String TRADE_ORDER_ENDPOINT = "/api/v5/trade/order";
+    private static final String TRADE_ORDERS_HISTORY_ENDPOINT = "/api/v5/trade/orders-history-archive";
     private static final String TRADE_POSITIONS_ENDPOINT = "/api/v5/account/positions";
     private static final String ACCOUNT_BALANCE_ENDPOINT = "/api/v5/account/balance";
     private static final String MARKET_TICKER_ENDPOINT = "/api/v5/market/ticker";
@@ -198,7 +199,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                 // Небольшая задержка чтобы позиция успела появиться в системе OKX
                 Thread.sleep(1000);
 
-                JsonObject realPosition = getRealPositionFromOkx(symbol);
+                JsonObject realPosition = getRealPositionFromOkx(symbol, orderResult);
                 if (realPosition != null && realPosition.has("posId")) {
                     realPositionId = realPosition.get("posId").getAsString();
                     log.info("✅ Для {} получен реальный positionId от OKX: {}", symbol, realPositionId);
@@ -226,7 +227,7 @@ public class RealOkxTradingProvider implements TradingProvider {
                     position.getPositionId());
 
             // 🧾 Логгирование данных позиции
-            logRealPositionData(symbol, operationType.name());
+            logRealPositionData(symbol, operationType.name(), orderResult);
 
             // 🆔 Подмена ID и добавление позиции в результат
             orderResult.setPositionId(position.getPositionId());
@@ -1500,7 +1501,7 @@ public class RealOkxTradingProvider implements TradingProvider {
     /**
      * Получение реальной информации о позиции с OKX API по символу
      */
-    private JsonObject getRealPositionFromOkx(String symbol) {
+    private JsonObject getRealPositionFromOkx(String symbol, TradeResult orderResult) {
         log.debug("==> getRealPositionFromOkx: Запрос реальной позиции для {}", symbol);
 
         if (!geolocationService.isGeolocationAllowed()) {
@@ -1524,12 +1525,102 @@ public class RealOkxTradingProvider implements TradingProvider {
                 return null;
             }
 
-            JsonObject positionData = data.get(0).getAsJsonObject();
-            log.debug("✅ Получена реальная позиция для {}: {}", symbol, positionData);
-            return positionData;
+            // Находим позицию по tradeId из нашего ордера (самый точный способ)
+            JsonObject targetPosition = null;
+            String orderTradeId = null;
+            
+            // Пытаемся получить tradeId из ордера
+            if (orderResult != null && orderResult.getExternalOrderId() != null) {
+                try {
+                    JsonObject orderDetails = getOrderJson(orderResult.getExternalOrderId());
+                    if (orderDetails != null && orderDetails.has("tradeId")) {
+                        orderTradeId = orderDetails.get("tradeId").getAsString();
+                        log.debug("📋 Получен tradeId из ордера {}: {}", orderResult.getExternalOrderId(), orderTradeId);
+                    }
+                } catch (Exception e) {
+                    log.warn("⚠️ Не удалось получить tradeId из ордера {}: {}", orderResult.getExternalOrderId(), e.getMessage());
+                }
+            }
+            
+            // Ищем позицию по tradeId
+            if (orderTradeId != null) {
+                for (int i = 0; i < data.size(); i++) {
+                    JsonObject position = data.get(i).getAsJsonObject();
+                    if (position.has("tradeId")) {
+                        String positionTradeId = position.get("tradeId").getAsString();
+                        if (orderTradeId.equals(positionTradeId)) {
+                            targetPosition = position;
+                            log.debug("✅ Найдена позиция по tradeId {}: {}", orderTradeId, position.get("posId").getAsString());
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Fallback: ищем самую свежую позицию по времени
+            if (targetPosition == null) {
+                log.warn("⚠️ Позиция по tradeId не найдена, ищем по времени для {}", symbol);
+                long latestTime = 0;
+                
+                for (int i = 0; i < data.size(); i++) {
+                    JsonObject position = data.get(i).getAsJsonObject();
+                    if (position.has("uTime")) {
+                        long positionTime = position.get("uTime").getAsLong();
+                        if (positionTime > latestTime) {
+                            latestTime = positionTime;
+                            targetPosition = position;
+                        }
+                    }
+                }
+            }
+            
+            if (targetPosition == null) {
+                log.warn("⚠️ Не найдена подходящая позиция для {}, используем первую", symbol);
+                targetPosition = data.get(0).getAsJsonObject();
+            }
+            
+            log.debug("✅ Получена реальная позиция для {}: {}", symbol, targetPosition);
+            return targetPosition;
 
         } catch (Exception e) {
             log.error("❌ Ошибка при запросе реальной позиции для {}: {}", symbol, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Получение JSON деталей ордера
+     */
+    private JsonObject getOrderJson(String orderId) {
+        log.debug("==> getOrderJson: Получение JSON деталей ордера {}", orderId);
+        
+        if (!geolocationService.isGeolocationAllowed()) {
+            log.error("❌ БЛОКИРОВКА: Получение деталей ордера {} заблокировано из-за геолокации!", orderId);
+            return null;
+        }
+        
+        try {
+            String endpoint = "/api/v5/trade/orders-history-archive?ordId=" + orderId;
+            JsonObject response = executeSignedGet(endpoint);
+            
+            if (response == null || !"0".equals(response.get("code").getAsString())) {
+                log.error("❌ Ошибка OKX API при запросе ордера {}: {}", orderId, 
+                         response != null ? response.get("msg").getAsString() : "пустой ответ");
+                return null;
+            }
+            
+            JsonArray data = response.getAsJsonArray("data");
+            if (data.isEmpty()) {
+                log.warn("⚠️ Ордер {} не найден в истории", orderId);
+                return null;
+            }
+            
+            JsonObject orderData = data.get(0).getAsJsonObject();
+            log.debug("✅ Получены JSON детали ордера {}: {}", orderId, orderData);
+            return orderData;
+            
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении JSON деталей ордера {}: {}", orderId, e.getMessage(), e);
             return null;
         }
     }
@@ -1538,12 +1629,12 @@ public class RealOkxTradingProvider implements TradingProvider {
     /**
      * Логирование реальных данных о позиции с OKX
      */
-    private void logRealPositionData(String symbol, String operationType) {
+    private void logRealPositionData(String symbol, String operationType, TradeResult orderResult) {
         log.info("==> logRealPositionData: Логирование реальной позиции {} после {}", symbol, operationType);
         try {
             Thread.sleep(1000); // Пауза для появления позиции в OKX
 
-            JsonObject data = getRealPositionFromOkx(symbol);
+            JsonObject data = getRealPositionFromOkx(symbol, orderResult);
             if (data == null) {
                 log.warn("⚠️ Не удалось получить реальные данные о позиции для {}", symbol);
                 return;
@@ -1639,7 +1730,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             BigDecimal minCcyAmt = Optional.ofNullable(info.getMinCcyAmt()).orElse(BigDecimal.ZERO);
             BigDecimal minNotional = Optional.ofNullable(info.getMinNotional()).orElse(BigDecimal.ZERO);
 
-            log.debug("ℹ️ Минимальные значения: minCcyAmt = {}, minNotional = {}", minCcyAmt, minNotional);
+            log.debug("Минимальные значения: minCcyAmt = {}, minNotional = {}", minCcyAmt, minNotional);
 
             if (adjustedAmount.compareTo(minCcyAmt) < 0) {
                 String error = String.format("Сумма маржи %.2f USDT меньше минимальной %.2f USDT.", adjustedAmount, minCcyAmt);
@@ -1648,7 +1739,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             }
 
             BigDecimal notionalValue = positionSize.multiply(currentPrice);
-            log.debug("ℹ️ Условная стоимость сделки: {}", notionalValue);
+            log.debug("Условная стоимость сделки: {}", notionalValue);
 
             if (notionalValue.compareTo(minNotional) < 0) {
                 String error = String.format("Условная стоимость сделки %.2f USDT меньше минимальной %.2f USDT.", notionalValue, minNotional);
