@@ -2,6 +2,7 @@ package com.example.core;
 
 import com.example.core.client_python.CointegrationApiHealthCheck;
 import com.example.core.client_python.PythonRestClient;
+import com.example.core.services.PairService;
 import com.example.core.services.SchedulerControlService;
 import com.example.core.trading.services.GeolocationService;
 import com.example.shared.dto.Candle;
@@ -37,12 +38,14 @@ public class CoreApplication {
     private final PythonRestClient pythonRestClient;
     private final GeolocationService geolocationService;
     private final SchedulerControlService schedulerControlService;
+    private final PairService pairService;
 
-    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, SchedulerControlService schedulerControlService) {
+    public CoreApplication(CointegrationApiHealthCheck healthCheck, PythonRestClient pythonRestClient, GeolocationService geolocationService, SchedulerControlService schedulerControlService, PairService pairService) {
         this.healthCheck = healthCheck;
         this.pythonRestClient = pythonRestClient;
         this.geolocationService = geolocationService;
         this.schedulerControlService = schedulerControlService;
+        this.pairService = pairService;
     }
 
     public static void main(String[] args) {
@@ -62,6 +65,8 @@ public class CoreApplication {
         log.info("✅ Геолокация при запуске: безопасно для OKX");
         checkCointegrationApiHealth();
         log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
+        int deletedCount = pairService.clearFoundStablePairs();
+        log.info("✅ Очищено {} устаревших стабильных пар", deletedCount);
         schedulerControlService.logSchedulersStatus();
         log.info("🚀 Core готов к работе!");
     }
