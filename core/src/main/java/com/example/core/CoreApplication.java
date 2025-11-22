@@ -67,6 +67,8 @@ public class CoreApplication {
         log.info("✅ Интеграционный тест API коинтеграции прошел успешно");
         int deletedCount = pairService.clearFoundStablePairs();
         log.info("✅ Очищено {} устаревших стабильных пар", deletedCount);
+        deletedCount = pairService.clearFetchedPairs();
+        log.info("✅ Очищено {} устаревших FETCHED пар", deletedCount);
         schedulerControlService.logSchedulersStatus();
         log.info("🚀 Core готов к работе!");
     }

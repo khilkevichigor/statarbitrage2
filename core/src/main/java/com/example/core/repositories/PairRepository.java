@@ -252,6 +252,14 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     int deleteAllFoundStablePairs();
 
     /**
+     * Удалить ВСЕ найденные стабильные пары (не в мониторинге)
+     * Используется перед сохранением новых результатов поиска
+     */
+    @Modifying
+    @Query("DELETE FROM Pair p WHERE p.type = 'FETCHED' AND p.isInMonitoring = false")
+    int deleteAllFetchedPairs();
+
+    /**
      * Удалить пары по типу и статусу
      */
     @Modifying

@@ -511,7 +511,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             // Рассчитываем условную стоимость и требуемую маржу
             BigDecimal notionalValue = adjustedSize.multiply(currentPrice);
             BigDecimal requiredMargin = notionalValue.divide(leverage, 2, RoundingMode.HALF_UP);
-            log.debug("🔍 Условная стоимость: {} USD, требуемая маржа: {} USDT (с плечом {}x)", notionalValue, requiredMargin, leverage);
+            log.info("🔍 Условная стоимость: {} USD, требуемая маржа: {} USDT (с плечом {}x)", notionalValue, requiredMargin, leverage);
 
             // Формируем тело запроса
             JsonObject orderData = new JsonObject();
@@ -543,7 +543,7 @@ public class RealOkxTradingProvider implements TradingProvider {
             log.info("Отправка запроса на создание ордера...");
             try (Response response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body().string();
-                log.debug("Получен ответ от OKX API: HTTP {} | {}", response.code(), responseBody);
+                log.info("Получен ответ от OKX API: HTTP {} | {}", response.code(), responseBody);
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
                 if (!"0".equals(jsonResponse.get("code").getAsString())) {
@@ -1492,7 +1492,7 @@ public class RealOkxTradingProvider implements TradingProvider {
 
         try (Response response = httpClient.newCall(request).execute()) {
             String responseBody = response.body().string();
-            log.debug("📡 Ответ от OKX API [{}]: {}", endpoint, responseBody);
+            log.info("📡 Ответ от OKX API [{}]: {}", endpoint, responseBody);
             return JsonParser.parseString(responseBody).getAsJsonObject();
         }
     }

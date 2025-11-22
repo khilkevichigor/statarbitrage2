@@ -667,6 +667,22 @@ public class PairService {
     }
 
     /**
+     * Очистить все FETCHED пары (не в мониторинге)
+     * Используется перед сохранением новых результатов поиска
+     */
+    @Transactional
+    public int clearFetchedPairs() {
+        try {
+            int deletedCount = pairRepository.deleteAllFetchedPairs();
+            log.debug("🧹 Удалено {} FETCHED пар", deletedCount);
+            return deletedCount;
+        } catch (Exception e) {
+            log.error("❌ Ошибка при очистке FETCHED пар: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
      * Создает зеркальную пару с положительным Z-Score из пары с отрицательным Z-Score
      * Объединяет создание зеркальной пары и инверсию Z-Score данных
      *
