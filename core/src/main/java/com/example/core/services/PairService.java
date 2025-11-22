@@ -421,6 +421,11 @@ public class PairService {
     }
 
     public List<Pair> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
+        // Для закрытых пар используем специальный метод, который ищет по всем типам торгуемых пар
+        if (status == TradeStatus.CLOSED) {
+            return pairRepository.findAllClosedPairsByStatus(status);
+        }
+        // Для других статусов используем обычный метод
         return pairRepository.findInTradingPairsByStatus(status);
     }
 

@@ -222,6 +222,13 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     @Query("SELECT p FROM Pair p WHERE p.type = 'COMPLETED' ORDER BY p.updatedTime DESC")
     List<Pair> findCompletedPairs();
 
+    /**
+     * Найти все закрытые пары (по всем типам торгуемых пар)
+     */
+    @Query("SELECT p FROM Pair p WHERE p.status = :status " +
+            "AND p.type IN ('TRADING', 'IN_TRADING', 'COMPLETED') ORDER BY p.updatedTime DESC")
+    List<Pair> findAllClosedPairsByStatus(@Param("status") TradeStatus status);
+
     // ======== МЕТОДЫ ДЛЯ ТОРГОВЫХ ПАР (TRADING) - УСТАРЕВШИЕ ========
 
     /**
