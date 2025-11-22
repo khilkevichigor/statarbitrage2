@@ -125,11 +125,11 @@ public class StartNewTradeProcessor {
         ArbitragePairTradeInfo openResult = tradingIntegrationService.openArbitragePair(pair, settings);
 
         if (openResult == null || !openResult.isSuccess()) {
-            log.debug("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pair.getPairName());
+            log.warn("⚠️ Не удалось открыть арбитражную пару через торговую систему: {}", pair.getPairName());
             return handleTradeError(pair, StartTradeErrorType.TRADE_OPEN_FAILED);
         }
 
-        log.debug("✅ Успешно открыта арбитражная пара: {}", pair.getPairName());
+        log.info("✅ Успешно открыта арбитражная пара: {}", pair.getPairName());
 
         pair.setStatus(TradeStatus.TRADING);
         
@@ -139,7 +139,7 @@ public class StartNewTradeProcessor {
         // Сохраняем скор при входе в торговлю, если он еще не установлен
         if (pair.getTotalScoreEntry() == null && pair.getTotalScore() != null) {
             pair.setTotalScoreEntry(pair.getTotalScore());
-            log.debug("📊 Установлен скор при входе: {} для пары {}", 
+            log.info("📊 Установлен скор при входе: {} для пары {}",
                      pair.getTotalScore(), pair.getPairName());
         }
 

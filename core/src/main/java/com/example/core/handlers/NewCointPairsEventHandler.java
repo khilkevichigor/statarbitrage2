@@ -131,7 +131,7 @@ public class NewCointPairsEventHandler {
     private Map<String, List<Pair>> splitAndGetMissedAndRemainingPairs(List<Pair> cointPairs) {
         Map<String, List<Pair>> result = new HashMap<>();
 
-        List<Pair> activePairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        List<Pair> activePairs = tradingPairRepository.findInTradingPairsByStatus(TradeStatus.TRADING);
         Settings settings = settingsService.getSettings();
         int usePairs = (int) settings.getUsePairs();
 
@@ -174,7 +174,7 @@ public class NewCointPairsEventHandler {
     }
 
     private List<String> getUsedTickers() {
-        List<Pair> activePairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        List<Pair> activePairs = tradingPairRepository.findInTradingPairsByStatus(TradeStatus.TRADING);
         List<String> tickers = new ArrayList<>();
         for (Pair pair : activePairs) {
             tickers.add(pair.getTickerA());

@@ -24,7 +24,7 @@ public class CalculateUnrealizedProfitTotalService {
     private final TradingIntegrationService tradingIntegrationService;
 
     public BigDecimal getUnrealizedProfitPercentTotal() {
-        List<Pair> tradingPairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        List<Pair> tradingPairs = tradingPairRepository.findInTradingPairsByStatus(TradeStatus.TRADING);
 
         BigDecimal totalWeightedProfit = BigDecimal.ZERO;
         BigDecimal totalAllocatedAmount = BigDecimal.ZERO;
@@ -132,7 +132,7 @@ public class CalculateUnrealizedProfitTotalService {
     }
 
     public BigDecimal getUnrealizedProfitUSDTTotal() {
-        List<Pair> tradingPairs = tradingPairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        List<Pair> tradingPairs = tradingPairRepository.findInTradingPairsByStatus(TradeStatus.TRADING);
         return tradingPairs.stream()
                 .map(Pair::getProfitUSDTChanges)
                 .filter(Objects::nonNull)

@@ -214,7 +214,7 @@ public class PairService {
         }
 
         // Получаем все активные торговые пары
-        List<Pair> tradingPairs = pairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        List<Pair> tradingPairs = pairRepository.findInTradingPairsByStatus(TradeStatus.TRADING);
         if (tradingPairs.isEmpty()) {
             log.debug("Нет активных торговых пар, все ZScoreData будут использоваться.");
             return;
@@ -413,15 +413,15 @@ public class PairService {
 
     public List<Pair> findAllByStatusOrderByEntryTimeTodayDesc(TradeStatus status) {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        return pairRepository.findTradingPairsByStatusAndEntryTimeAfter(status, startOfDay);
+        return pairRepository.findInTradingPairsByStatusAndEntryTimeAfter(status, startOfDay);
     }
 
     public List<Pair> findAllByStatusOrderByEntryTimeDesc(TradeStatus status) {
-        return pairRepository.findTradingPairsByStatus(status);
+        return pairRepository.findInTradingPairsByStatus(status);
     }
 
     public List<Pair> findAllByStatusOrderByUpdatedTimeDesc(TradeStatus status) {
-        return pairRepository.findTradingPairsByStatus(status);
+        return pairRepository.findInTradingPairsByStatus(status);
     }
 
     /**
@@ -434,7 +434,7 @@ public class PairService {
     public List<Pair> findAllByStatusIn(List<TradeStatus> statuses) {
         List<Pair> result = new ArrayList<>();
         for (TradeStatus status : statuses) {
-            result.addAll(pairRepository.findTradingPairsByStatus(status));
+            result.addAll(pairRepository.findInTradingPairsByStatus(status));
         }
         return result;
     }

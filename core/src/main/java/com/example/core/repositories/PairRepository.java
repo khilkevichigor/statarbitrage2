@@ -206,6 +206,14 @@ public interface PairRepository extends JpaRepository<Pair, Long> {
     @Query("SELECT p FROM Pair p WHERE p.type = 'IN_TRADING' AND p.status = :status ORDER BY p.updatedTime DESC")
     List<Pair> findInTradingPairsByStatus(@Param("status") TradeStatus status);
 
+    /**
+     * Найти пары в активной торговле по статусу и времени входа после указанной даты
+     */
+    @Query("SELECT p FROM Pair p WHERE p.type = 'IN_TRADING' AND p.status = :status AND p.entryTime >= :afterDate " +
+            "ORDER BY p.entryTime DESC")
+    List<Pair> findInTradingPairsByStatusAndEntryTimeAfter(@Param("status") TradeStatus status,
+                                                           @Param("afterDate") LocalDateTime afterDate);
+
     // ======== МЕТОДЫ ДЛЯ ЗАВЕРШЕННЫХ ПАР (COMPLETED) ========
 
     /**

@@ -30,7 +30,7 @@ public class ExcludeExistingTradingPairsService {
             return;
         }
 
-        List<Pair> tradingPairs = pairRepository.findTradingPairsByStatus(TradeStatus.TRADING);
+        List<Pair> tradingPairs = pairRepository.findInTradingPairsByStatus(TradeStatus.TRADING);
         if (tradingPairs.isEmpty()) {
             log.debug("Нет активных торговых пар, все ZScoreData будут использоваться.");
             return;
